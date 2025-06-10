@@ -1,5 +1,12 @@
 @import "tailwindcss";
 @import "tw-animate-css";
+/* Carga de Tailwind v3+ */
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+/* Si sigues usando animaciones de tw-animate-css: */
+@import "tw-animate-css";
+
 
 @custom-variant dark (&:is(.dark *));
 
@@ -117,6 +124,6 @@
     @apply border-border outline-ring/50;
   }
   body {
-    @apply bg-background text-foreground;
-  }
+  @apply antialiased bg-white dark:bg-zinc-900 text-zinc-800 dark:text-zinc-100;
+       }
 }
