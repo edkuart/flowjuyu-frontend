@@ -19,7 +19,7 @@ import {
   SidebarMenuButton,
   SidebarMenuItem,
 } from "@/components/ui/sidebar";
-import { NavMain } from "@/layout/seller/nav-main";
+import { NavMain } from "@/components/layout/seller/nav-main";
 
 const data = {
   navMain: [
