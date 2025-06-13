@@ -1,7 +1,6 @@
 'use client'
 
-import { Sidebar } from '@/components/ui/sidebar'
-import { SidebarGroup, SidebarMenuItem } from '@/components/ui/sidebar'
+import { Sidebar, SidebarGroup, SidebarMenuItem } from '@/components/ui/sidebar/index'
 import {
   IconDashboard,
   IconPackage,
@@ -29,3 +28,4 @@ export default function SellerSidebar() {
     </Sidebar>
   )
 }
+

@@ -2,7 +2,7 @@
 
 import { useForm } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
-import { registerSchema, RegisterValues } from '@/schemas/register-schema'
+import { registerSchema, RegisterValues } from '@/schemas/register-comprador.schema'
 
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'

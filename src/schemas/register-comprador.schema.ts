@@ -1,13 +1,14 @@
-import { z } from "zod"
+// src/schemas/register-schema.ts
+import { z } from 'zod'
 
-export const registerSchema = z.object({
+export const registerCompradorSchema = z.object({
   nombre: z.string().min(2, "El nombre es obligatorio"),
   email: z.string().email("Correo inválido"),
   password: z.string().min(6, "Mínimo 6 caracteres"),
-  confirmarPassword: z.string().min(6),
+  confirmarPassword: z.string().min(6, "Confirmación requerida"),
 }).refine((data) => data.password === data.confirmarPassword, {
   message: "Las contraseñas no coinciden",
   path: ["confirmarPassword"],
 })
 
-export type RegisterValues = z.infer<typeof registerSchema>
+export type RegisterCompradorValues = z.infer<typeof registerCompradorSchema>
