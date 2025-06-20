@@ -1,23 +1,18 @@
 'use client'
 
+import { useSidebar } from '@/components/ui/sidebar/SidebarContext'
 import { Menu } from 'lucide-react'
-import { useSidebar } from './SidebarContext'
-import { cn } from '@/lib/utils' // <- si no tienes esta utilidad, te la paso
 
-interface SidebarTriggerProps {
-  className?: string
-}
-
-export function SidebarTrigger({ className }: SidebarTriggerProps) {
+export function SidebarTrigger() {
   const { toggle } = useSidebar()
 
   return (
     <button
       onClick={toggle}
-      className={cn('p-2 rounded hover:bg-gray-100', className)}
+      className="text-zinc-800 dark:text-white hover:text-primary transition-colors"
       aria-label="Abrir menú lateral"
     >
-      <Menu className="w-6 h-6" />
+      <Menu className="h-6 w-6" />
     </button>
   )
 }
