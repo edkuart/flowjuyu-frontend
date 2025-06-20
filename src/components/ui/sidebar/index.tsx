@@ -2,3 +2,6 @@
 export { Sidebar } from './Sidebar'
 export { SidebarGroup } from './SidebarGroup'
 export { SidebarMenuItem } from './SidebarMenuItem'
+export { SidebarTrigger } from './SidebarTrigger'
+
+
