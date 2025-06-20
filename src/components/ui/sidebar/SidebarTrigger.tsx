@@ -1,18 +1,14 @@
 'use client'
 
-import { useSidebar } from '@/components/ui/sidebar/SidebarContext'
-import { Menu } from 'lucide-react'
+import { AlignLeft } from 'lucide-react'
+import { useSidebar } from './SidebarContext'
 
 export function SidebarTrigger() {
   const { toggle } = useSidebar()
 
   return (
-    <button
-      onClick={toggle}
-      className="text-zinc-800 dark:text-white hover:text-primary transition-colors"
-      aria-label="Abrir menú lateral"
-    >
-      <Menu className="h-6 w-6" />
+    <button onClick={toggle} aria-label="Abrir menú">
+      <AlignLeft className="w-6 h-6" />
     </button>
   )
 }
