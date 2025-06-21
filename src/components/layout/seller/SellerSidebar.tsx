@@ -1,3 +1,4 @@
+//src/components/layout/seller/sellerSidebar.tsx
 'use client'
 
 import { Sidebar, SidebarGroup, SidebarMenuItem } from '@/components/ui/sidebar/index'

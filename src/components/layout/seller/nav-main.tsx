@@ -1,3 +1,4 @@
+//src/components/layout/seller/nav-main.tsx
 "use client";
 
 import { type Icon, IconCirclePlusFilled, IconMail } from "@tabler/icons-react";

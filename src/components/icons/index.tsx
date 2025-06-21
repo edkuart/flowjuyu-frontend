@@ -7,7 +7,19 @@ import {
   Settings,
 } from 'lucide-react'
 
-export const IconDashboard = () => <LayoutDashboard className="w-5 h-5" />
-export const IconPackage = () => <Package className="w-5 h-5" />
-export const IconUsers = () => <Users className="w-5 h-5" />
-export const IconSettings = () => <Settings className="w-5 h-5" />
+// ✅ Cada ícono acepta props para personalización (como className)
+export const IconDashboard = (props: React.SVGProps<SVGSVGElement>) => (
+  <LayoutDashboard {...props} />
+)
+
+export const IconPackage = (props: React.SVGProps<SVGSVGElement>) => (
+  <Package {...props} />
+)
+
+export const IconUsers = (props: React.SVGProps<SVGSVGElement>) => (
+  <Users {...props} />
+)
+
+export const IconSettings = (props: React.SVGProps<SVGSVGElement>) => (
+  <Settings {...props} />
+)

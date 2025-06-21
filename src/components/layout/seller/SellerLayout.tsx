@@ -1,3 +1,4 @@
+//src/components/layout/seller/SellerLayout.tsx
 'use client'
 
 import { ReactNode } from 'react'
