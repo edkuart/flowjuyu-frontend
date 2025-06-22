@@ -8,7 +8,6 @@ interface SidebarContextProps {
   close: () => void
 }
 
-
 const SidebarContext = createContext<SidebarContextProps | undefined>(undefined)
 
 export function SidebarProvider({ children }: { children: React.ReactNode }) {
@@ -22,10 +21,7 @@ export function SidebarProvider({ children }: { children: React.ReactNode }) {
       {children}
     </SidebarContext.Provider>
   )
-  
 }
-
-
 
 export const useSidebar = () => {
   const context = useContext(SidebarContext)

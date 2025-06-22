@@ -1,62 +1,49 @@
 'use client'
 
-import { SidebarTrigger } from '@/components/ui/sidebar/SidebarTrigger'
-import Image from 'next/image'
 import Link from 'next/link'
+import Image from 'next/image'
+import { SidebarTrigger } from '@/components/ui/sidebar/SidebarTrigger'
 
 export default function Header() {
   return (
-    <header className="bg-white dark:bg-zinc-900 shadow-md sticky top-0 z-50 px-6 py-3">
-      <div className="max-w-7xl mx-auto flex items-center justify-between gap-4">
-        {/* IZQUIERDA: sidebar + logo */}
-        <div className="flex items-center gap-3 min-w-[180px]">
-          <SidebarTrigger />
-          <Link href="/">
-            <Image
-              src="/cortelogo.png"
-              alt="Flowjuyu logo"
-              width={40}
-              height={40}
-              className="rounded-full"
-            />
-          </Link>
-        </div>
+    <div className="flex items-center justify-between px-4 h-16">
+      {/* Izquierda: Logo + Botón Sidebar */}
+      <div className="flex items-center gap-4">
+        <SidebarTrigger className="text-zinc-700" />
 
-        {/* CENTRO: barra de búsqueda */}
-        <div className="flex-1 flex justify-center">
-          <input
-            type="text"
-            placeholder="¿Qué deseas comprar hoy?"
-            className="border border-gray-300 rounded-lg px-4 py-2 w-full max-w-md focus:outline-none focus:ring-2 focus:ring-primary"
+        <Link href="/">
+          <Image
+            src="/cortelogo.png"
+            alt="Flowjuyu logo"
+            width={40}
+            height={40}
+            className="rounded-full cursor-pointer"
+            priority
           />
-        </div>
-
-        {/* DERECHA: navegación */}
-        <div className="flex items-center gap-4 text-sm min-w-[320px] justify-end">
-          <Link href="/login" className="hover:text-primary">
-            Iniciar sesión
-          </Link>
-          <Link href="/registro" className="hover:text-primary">
-            Crear cuenta
-          </Link>
-
-          <Link href="/carrito" className="text-xl">
-            🛒
-          </Link>
-
-          <select
-            defaultValue="es"
-            onChange={(e) => {
-              const locale = e.target.value
-              location.href = `/${locale}`
-            }}
-            className="border border-gray-300 rounded px-2 py-1"
-          >
-            <option value="es">ES</option>
-            <option value="en">EN</option>
-          </select>
-        </div>
+        </Link>
       </div>
-    </header>
+
+      {/* Centro: Barra de búsqueda */}
+      <input
+        type="text"
+        placeholder="Buscar..."
+        className="px-4 py-1 rounded border border-zinc-300 w-80"
+      />
+
+      {/* Derecha: Links de cuenta, carrito e idioma */}
+      <div className="flex items-center gap-4">
+        <Link href="/login">Iniciar sesión</Link>
+        <Link href="/register">Crear cuenta</Link>
+
+        <button>
+          <Image src="/cart-icon.svg" alt="Carrito" width={24} height={24} />
+        </button>
+
+        <select defaultValue="ES" className="border rounded px-2 py-1">
+          <option value="ES">ES</option>
+          <option value="EN">EN</option>
+        </select>
+      </div>
+    </div>
   )
 }

@@ -1,14 +1,22 @@
 'use client'
 
-import { AlignLeft } from 'lucide-react'
+import { Menu } from 'lucide-react'
 import { useSidebar } from './SidebarContext'
 
-export function SidebarTrigger() {
+interface Props {
+  className?: string
+}
+
+export function SidebarTrigger({ className }: Props) {
   const { toggle } = useSidebar()
 
   return (
-    <button onClick={toggle} aria-label="Abrir menú">
-      <AlignLeft className="w-6 h-6" />
+    <button
+      onClick={toggle}
+      className={`inline-flex items-center justify-center ${className}`}
+      aria-label="Abrir menú"
+    >
+      <Menu className="w-6 h-6 text-black" />
     </button>
   )
 }
