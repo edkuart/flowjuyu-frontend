@@ -4,7 +4,7 @@ const createNextIntlPlugin = require('next-intl/plugin')
 const nextConfig = {
   reactStrictMode: true,
   experimental: {
-    serverActions: true,
+    
   },
   images: {
     domains: ['via.placeholder.com'],
