@@ -21,7 +21,7 @@ export default function Header() {
             alt="Flowjuyu logo"
             width={40}
             height={40}
-            className="rounded-full cursor-pointer"
+            className="rounded-full"
             priority
           />
         </Link>
