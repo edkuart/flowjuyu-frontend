@@ -1,64 +1,99 @@
-'use client'
+// src/components/register-form.tsx
 
-import { useForm } from 'react-hook-form'
-import { zodResolver } from '@hookform/resolvers/zod'
-import { registerCompradorSchema, RegisterCompradorValues } from '@/schemas/register-comprador.schema'
-import { Button } from '@/components/ui/button'
-import { Input } from '@/components/ui/input'
-import { Label } from '@/components/ui/label'
-import { useState } from 'react'
+"use client"
 
-export default function RegisterCompradorForm() {
+import { useForm } from "react-hook-form"
+import { zodResolver } from "@hookform/resolvers/zod"
+import { useRouter } from "next/navigation"
+import { registerCompradorSchema, RegisterCompradorValues } from "@/schemas/register-comprador.schema"
+import { apiRegisterComprador } from "@/services/auth"
+import { cn } from "@/lib/utils"
+import { Button } from "@/components/ui/button"
+import { Input } from "@/components/ui/input"
+import { Label } from "@/components/ui/label"
+import { GalleryVerticalEnd } from "lucide-react"
+
+export function RegisterForm({ className, ...props }: React.ComponentProps<"div">) {
+  const router = useRouter()
   const {
     register,
     handleSubmit,
-    formState: { errors },
+    setError,
+    formState: { errors, isSubmitting },
   } = useForm<RegisterCompradorValues>({
     resolver: zodResolver(registerCompradorSchema),
   })
 
-  const [submittedData, setSubmittedData] = useState<RegisterCompradorValues | null>(null)
-
-  const onSubmit = (data: RegisterCompradorValues) => {
-    console.log('Formulario válido:', data)
-    setSubmittedData(data)
+  const onSubmit = async (data: RegisterCompradorValues) => {
+    const { ok, message } = await apiRegisterComprador(data)
+    if (ok) {
+      router.push("/")
+    } else {
+      setError("root", { message })
+    }
   }
 
   return (
-    <form onSubmit={handleSubmit(onSubmit)} className="space-y-6 max-w-md">
-      <div>
-        <Label htmlFor="nombre">Nombre completo</Label>
-        <Input id="nombre" {...register('nombre')} />
-        {errors.nombre && <p className="text-sm text-red-500">{errors.nombre.message}</p>}
-      </div>
+    <div className={cn("flex flex-col gap-6 items-center justify-center", className)} {...props}>
+      <form onSubmit={handleSubmit(onSubmit)} className="space-y-6 w-full max-w-screen-md">
+        <header className="flex flex-col items-center gap-2">
+          <GalleryVerticalEnd className="size-8 text-primary" />
+          <h1 className="text-2xl font-bold">Crea tu cuenta</h1>
+          <p className="text-sm text-muted-foreground">
+            ¿Ya tienes cuenta? <a href="/login" className="underline underline-offset-4">Inicia sesión</a>
+          </p>
+        </header>
 
-      <div>
-        <Label htmlFor="email">Correo electrónico</Label>
-        <Input id="email" type="email" {...register('email')} />
-        {errors.email && <p className="text-sm text-red-500">{errors.email.message}</p>}
-      </div>
+        <div className="grid md:grid-cols-2 gap-4">
+          <div className="space-y-2">
+            <Label htmlFor="nombre">Nombre</Label>
+            <Input id="nombre" {...register("nombre")} />
+            {errors.nombre && <p className="text-sm text-red-500">{errors.nombre.message}</p>}
+          </div>
 
-      <div>
-        <Label htmlFor="password">Contraseña</Label>
-        <Input id="password" type="password" {...register('password')} />
-        {errors.password && <p className="text-sm text-red-500">{errors.password.message}</p>}
-      </div>
+          <div className="space-y-2">
+            <Label htmlFor="email">Correo electrónico</Label>
+            <Input id="email" type="email" {...register("email")} />
+            {errors.email && <p className="text-sm text-red-500">{errors.email.message}</p>}
+          </div>
 
-      <div>
-        <Label htmlFor="confirmarPassword">Confirmar contraseña</Label>
-        <Input id="confirmarPassword" type="password" {...register('confirmarPassword')} />
-        {errors.confirmarPassword && <p className="text-sm text-red-500">{errors.confirmarPassword.message}</p>}
-      </div>
+          <div className="space-y-2">
+            <Label htmlFor="password">Contraseña</Label>
+            <Input id="password" type="password" {...register("password")} />
+            {errors.password && <p className="text-sm text-red-500">{errors.password.message}</p>}
+          </div>
 
-      <Button type="submit" className="w-full">
-        Registrarse
-      </Button>
+          <div className="space-y-2">
+            <Label htmlFor="confirmarPassword">Confirmar contraseña</Label>
+            <Input id="confirmarPassword" type="password" {...register("confirmarPassword")} />
+            {errors.confirmarPassword && <p className="text-sm text-red-500">{errors.confirmarPassword.message}</p>}
+          </div>
 
-      {submittedData && (
-        <div className="mt-4 p-2 bg-green-100 text-green-700 rounded">
-          Registro exitoso para: <strong>{submittedData.nombre}</strong>
+          <div className="space-y-2">
+            <Label htmlFor="telefono">Teléfono (opcional)</Label>
+            <Input id="telefono" {...register("telefono")} />
+            {errors.telefono && <p className="text-sm text-red-500">{errors.telefono.message}</p>}
+          </div>
+
+          <div className="space-y-2">
+            <Label htmlFor="direccion">Dirección (opcional)</Label>
+            <Input id="direccion" {...register("direccion")} />
+            {errors.direccion && <p className="text-sm text-red-500">{errors.direccion.message}</p>}
+          </div>
         </div>
-      )}
-    </form>
+
+        {errors.root && (
+          <p className="text-sm text-center text-red-600">{errors.root.message}</p>
+        )}
+
+        <Button type="submit" disabled={isSubmitting} className="w-full">
+          {isSubmitting ? "Creando cuenta..." : "Registrarse"}
+        </Button>
+
+        <p className="text-xs text-muted-foreground text-center">
+          Al continuar, aceptas nuestros <a className="underline" href="#">Términos</a> y <a className="underline" href="#">Política de privacidad</a>.
+        </p>
+      </form>
+    </div>
   )
 }

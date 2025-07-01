@@ -1,3 +1,4 @@
+// src/app/(auth)/login/page.tsx
 import { LoginForm } from '@/features/auth/LoginForm'
 
 export default function LoginPage() {

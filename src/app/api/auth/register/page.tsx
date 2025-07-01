@@ -1,54 +1,14 @@
-//src/app/(auth)/register/page.tsx
 'use client'
 
-import { useForm } from 'react-hook-form'
-import { zodResolver } from '@hookform/resolvers/zod'
-import { registerCompradorSchema as registerSchema, RegisterCompradorValues as RegisterValues
-} from '@/schemas/register-comprador.schema'
+import RegisterCompradorForm from '@/features/auth/RegisterCompradorForm'
 
-
-import { Input } from '@/components/ui/input'
-import { Label } from '@/components/ui/label'
-import { Button } from '@/components/ui/button'
-
-export function RegisterForm() {
-  const { register, handleSubmit, formState: { errors, isSubmitting } } = useForm<RegisterValues>({
-    resolver: zodResolver(registerSchema),
-  })
-
-  const onSubmit = async (data: RegisterValues) => {
-    console.log(data)
-  }
-
+export default function RegisterPage() {
   return (
-    <form onSubmit={handleSubmit(onSubmit)} className="space-y-4 max-w-md mx-auto">
-      <div>
-        <Label htmlFor="nombre">Nombre completo</Label>
-        <Input id="nombre" {...register("nombre")} />
-        {errors.nombre && <p className="text-sm text-red-500">{errors.nombre.message}</p>}
+    <main className="min-h-screen flex items-center justify-center bg-gray-50 px-4">
+      <div className="w-full max-w-md bg-white p-6 rounded-lg shadow">
+        <h1 className="text-2xl font-semibold text-center mb-4">Registro de Comprador</h1>
+        <RegisterCompradorForm />
       </div>
-
-      <div>
-        <Label htmlFor="email">Correo electrónico</Label>
-        <Input id="email" type="email" {...register("email")} />
-        {errors.email && <p className="text-sm text-red-500">{errors.email.message}</p>}
-      </div>
-
-      <div>
-        <Label htmlFor="password">Contraseña</Label>
-        <Input id="password" type="password" {...register("password")} />
-        {errors.password && <p className="text-sm text-red-500">{errors.password.message}</p>}
-      </div>
-
-      <div>
-        <Label htmlFor="confirmarPassword">Confirmar contraseña</Label>
-        <Input id="confirmarPassword" type="password" {...register("confirmarPassword")} />
-        {errors.confirmarPassword && <p className="text-sm text-red-500">{errors.confirmarPassword.message}</p>}
-      </div>
-
-      <Button type="submit" disabled={isSubmitting} className="w-full">
-        Crear cuenta
-      </Button>
-    </form>
+    </main>
   )
 }

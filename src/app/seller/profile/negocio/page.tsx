@@ -1,4 +1,4 @@
-"use client"
+'use client'
 
 import { useState } from "react"
 import { Input } from "@/components/ui/input"
@@ -7,9 +7,9 @@ import { Button } from "@/components/ui/button"
 import { Label } from "@/components/ui/label"
 import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/avatar"
 import Link from "next/link"
+import { validarTelefonoGT } from "@/lib/utils/validations"
 
 const prefijo = "+502"
-const longitud = 8
 
 export default function SellerProfileNegocioPage() {
   const [nombre, setNombre] = useState("Tienda Artesanal Xela")
@@ -17,13 +17,6 @@ export default function SellerProfileNegocioPage() {
   const [direccion, setDireccion] = useState("3a Calle 4-55, Zona 1, Quetzaltenango")
   const [descripcion, setDescripcion] = useState("Somos una tienda dedicada a la venta de productos típicos guatemaltecos hechos a mano.")
   const email = "tienda@example.com"
-
-  const validarTelefono = (valor: string) => {
-    const soloNumeros = valor.replace(/\D/g, "")
-    if (soloNumeros.length <= longitud) {
-      setTelefono(soloNumeros)
-    }
-  }
 
   return (
     <main className="max-w-3xl mx-auto px-4 py-10 space-y-8">
@@ -71,8 +64,9 @@ export default function SellerProfileNegocioPage() {
               <Input
                 id="telefono"
                 value={telefono}
-                onChange={(e) => validarTelefono(e.target.value)}
-                placeholder="Ej: XXXXXXXX"
+                onChange={(e) => setTelefono(validarTelefonoGT(e.target.value))}
+                placeholder="Ej: 55555555"
+                maxLength={8}
                 className="border-none focus-visible:ring-0 focus-visible:ring-offset-0 w-32"
               />
             </div>

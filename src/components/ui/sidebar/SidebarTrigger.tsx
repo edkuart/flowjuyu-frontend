@@ -3,6 +3,7 @@
 import { Menu } from 'lucide-react'
 import { useSidebar } from './SidebarContext'
 
+
 interface Props {
   className?: string
 }
