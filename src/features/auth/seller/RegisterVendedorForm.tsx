@@ -19,6 +19,7 @@ import { Input } from "@/components/ui/input"
 import { Textarea } from "@/components/ui/textarea"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent } from "@/components/ui/card"
+import { useFilePreview } from "@/hooks/use-file-preview"
 
 import { Eye, EyeOff } from "lucide-react" // o usa tus propios íconos svg
 
@@ -183,16 +184,17 @@ function CampoArchivo<T extends FieldValues>({
   label,
   register,
   error,
-  preview,
+  file,
   setValue,
 }: {
   id: Path<T>
   label: string
   register: UseFormRegister<T>
   error?: string
-  preview?: string
+  file?: File | null
   setValue: (id: Path<T>, file: File) => void
 }) {
+  const preview = useFilePreview(file)
   return (
     <div className="space-y-1">
       <Label htmlFor={id}>{label}</Label>
@@ -232,12 +234,15 @@ export default function RegisterVendedorForm() {
     resolver: zodResolver(registerVendedorSchema),
   })
 
+  const logoFile = watch("logo") as File | undefined
+  const logoPreview = useFilePreview(logoFile)
+
   const onSubmit = useCallback(
     async (data: RegisterVendedorValues) => {
       const form = new FormData()
       Object.entries(data).forEach(([k, v]) => form.append(k, v as any))
-      // TODO: Cambiar endpoint a tu backend real
-      const res = await fetch("/api/auth/register-vendedor", {
+      const apiBase = process.env.NEXT_PUBLIC_API_BASE_URL ?? ""
+      const res = await fetch(`${apiBase}/auth/register-vendedor`, {
         method: "POST",
         body: form,
       })
@@ -366,12 +371,8 @@ export default function RegisterVendedorForm() {
                       if (file) setValue("logo", file)
                     }}
                   />
-                  {watch("logo") && (
-                    <img
-                      src={URL.createObjectURL(watch("logo"))}
-                      alt="Logo"
-                      className="mt-2 w-24 rounded"
-                    />
+                  {logoPreview && (
+                    <img src={logoPreview} alt="Logo" className="mt-2 w-24 rounded" />
                   )}
                 </div>
 
@@ -403,11 +404,7 @@ export default function RegisterVendedorForm() {
                     label={label}
                     register={register}
                     setValue={setValue}
-                    preview={
-                      watch(id) && watch(id) instanceof File
-                        ? URL.createObjectURL(watch(id) as File)
-                        : undefined
-                    }
+                    file={watch(id) as File | undefined}
                     error={errors[id]?.message as string | undefined}
                   />
                 ))}
