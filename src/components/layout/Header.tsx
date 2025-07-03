@@ -57,7 +57,7 @@ export default function Header() {
                 Soy comprador
               </Link>
               <Link
-                href="/register/vendedor"
+                href="/register/seller"
                 className="block px-4 py-2 hover:bg-gray-100"
                 onClick={() => setMenuOpen(false)}
               >

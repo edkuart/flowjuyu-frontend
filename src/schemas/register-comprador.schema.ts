@@ -7,7 +7,7 @@ export const registerCompradorSchema = z.object({
   email: z.string().email('Correo inválido'),
   password: z.string().min(8, 'La contraseña debe tener al menos 8 caracteres'),
   confirmarPassword: z.string(),
-  telefono: z.string().optional(),
+  telefono: z.string().regex(/^\d{8}$/, "Debe tener 8 dígitos"),
   direccion: z.string().optional(),
 }).refine(data => data.password === data.confirmarPassword, {
   message: 'Las contraseñas no coinciden',
