@@ -1,18 +1,17 @@
 "use client"
 
 import { useState } from "react"
+import Image from "next/image"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
-import { Textarea } from "@/components/ui/textarea"
+import { useFileUpload } from "@/hooks/useFileUpload"
 
 export default function SellerValidationPage() {
+  const sellerId = "seller123" // TODO: reemplazar con ID real desde sesión o props
+
   const [editando, setEditando] = useState(false)
-  const [archivos, setArchivos] = useState<{ [key: string]: File | null }>({})
-  const [preview, setPreview] = useState<{ [key: string]: string | null }>({})
-  const [nit, setNit] = useState("")
-  const [nitError, setNitError] = useState("")
   const [motivosRechazo, setMotivosRechazo] = useState<{ [key: string]: string }>({
     selfieDpi: "El documento está borroso"
   })
@@ -20,21 +19,10 @@ export default function SellerValidationPage() {
   const estados: Record<string, "Validado" | "En revisión" | "Rechazado" | "Pendiente"> = {
     dpiFrente: "Validado",
     dpiReverso: "En revisión",
-    selfieDpi: "Rechazado",
-    nit: "Pendiente",
+    selfieDpi: "Rechazado"
   }
 
-  const handleArchivo = (e: React.ChangeEvent<HTMLInputElement>, campo: string) => {
-    const file = e.target.files?.[0] || null
-    if (file) {
-      const reader = new FileReader()
-      reader.onload = () => {
-        setPreview((prev) => ({ ...prev, [campo]: reader.result as string }))
-      }
-      reader.readAsDataURL(file)
-    }
-    setArchivos((prev) => ({ ...prev, [campo]: file }))
-  }
+  const { previews, files, handleFile } = useFileUpload()
 
   const renderEstado = (campo: string) => {
     const estado = estados[campo]
@@ -50,15 +38,11 @@ export default function SellerValidationPage() {
     }
   }
 
-  const validarNit = (valor: string) => {
-    const limpio = valor.replace(/[^0-9]/g, "")
-    if ([8, 9, 13].includes(limpio.length)) {
-      setNitError("")
-    } else {
-      setNitError("El NIT debe tener 8, 9 o 13 dígitos válidos")
-    }
-    setNit(limpio)
-  }
+  const campos = [
+    { id: "dpiFrente", label: "DPI - Frente" },
+    { id: "dpiReverso", label: "DPI - Reverso" },
+    { id: "selfieDpi", label: "Selfie con DPI" }
+  ]
 
   return (
     <main className="max-w-2xl mx-auto px-4 py-10 space-y-6">
@@ -70,11 +54,7 @@ export default function SellerValidationPage() {
       </header>
 
       <form className="space-y-6">
-        {[ 
-          { id: "dpiFrente", label: "DPI - Frente", tipo: "file" },
-          { id: "dpiReverso", label: "DPI - Reverso", tipo: "file" },
-          { id: "selfieDpi", label: "Selfie con DPI", tipo: "file" }
-        ].map(({ id, label }) => (
+        {campos.map(({ id, label }) => (
           <div key={id} className="space-y-1">
             <Label htmlFor={id}>{label}</Label>
             {editando ? (
@@ -82,15 +62,22 @@ export default function SellerValidationPage() {
                 <Input
                   id={id}
                   type="file"
-                  accept="image/*,application/pdf"
-                  onChange={(e) => handleArchivo(e, id)}
+                  accept="image/*"
+                  onChange={(e) => handleFile(e, id, sellerId)}
                 />
-                {preview[id] && (
-                  <img src={preview[id] || ""} alt={label} className="w-40 rounded border" />
+                {previews[id] && (
+                  <img
+                    src={previews[id] || ""}
+                    alt={label}
+                    className="w-40 rounded border"
+                  />
                 )}
               </div>
             ) : (
-              <div className="text-sm text-muted-foreground">Documento cargado (no editable)</div>
+              <>
+                <div className="text-sm text-muted-foreground">Documento cargado (no editable)</div>
+                {/* 👇 Aquí podrías renderizar imagen actual si tienes su URL */}
+              </>
             )}
             <div className="text-sm mt-1">{renderEstado(id)}</div>
             {estados[id] === "Rechazado" && (
@@ -100,26 +87,6 @@ export default function SellerValidationPage() {
             )}
           </div>
         ))}
-
-        <div className="space-y-1">
-          <Label htmlFor="nit">Número de NIT</Label>
-          {editando ? (
-            <div className="space-y-1">
-              <Input
-                id="nit"
-                type="text"
-                inputMode="numeric"
-                value={nit}
-                onChange={(e) => validarNit(e.target.value)}
-                placeholder="Ej: 12345678, 123456789 o 1234567891234"
-              />
-              {nitError && <p className="text-sm text-red-600">{nitError}</p>}
-            </div>
-          ) : (
-            <p className="text-muted-foreground">1234567-8</p>
-          )}
-          <div className="text-sm mt-1">{renderEstado("nit")}</div>
-        </div>
 
         {editando && (
           <div className="bg-yellow-50 border border-yellow-300 text-sm text-yellow-800 p-4 rounded-md">
@@ -132,7 +99,7 @@ export default function SellerValidationPage() {
             {editando ? "Cancelar" : "Editar datos"}
           </Button>
           {editando && (
-            <Button type="submit" disabled={!!nitError}>Guardar y enviar para revisión</Button>
+            <Button type="submit">Guardar y enviar para revisión</Button>
           )}
         </div>
       </form>

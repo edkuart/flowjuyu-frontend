@@ -1,37 +1,43 @@
 'use client'
 
 import { useSession } from 'next-auth/react'
-import { useEffect, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent } from '@/components/ui/card'
 import { Separator } from '@/components/ui/separator'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
-import { Upload, CheckCircle, XCircle } from 'lucide-react'
+import { Upload, CheckCircle } from 'lucide-react'
 import Link from 'next/link'
+import { useFileUpload } from '@/hooks/useFileUpload'
 
 export default function ProfilePage() {
   const { data: session, status } = useSession()
 
   const [editando, setEditando] = useState(false)
   const [nombre, setNombre] = useState('')
+  const [email, setEmail] = useState('')
   const [telefono, setTelefono] = useState('')
   const [direccion, setDireccion] = useState('')
-  const [imagen, setImagen] = useState<string | null>(null)
+  const inputFileRef = useRef<HTMLInputElement>(null)
+
+  const {
+    previews,
+    files,
+    handleFile,
+    eliminarAnterior,
+    archivoAnteriorId
+  } = useFileUpload()
 
   useEffect(() => {
     if (session?.user) {
       setNombre(session.user.name || '')
-      setTelefono('')
-      setDireccion('')
+      setEmail(session.user.email || '')
+      setTelefono((session.user as any).telefono || '')
+      setDireccion((session.user as any).direccion || '')
     }
   }, [session])
-
-  const validarTelefono = (valor: string) => {
-    const soloNumeros = valor.replace(/\D/g, '')
-    if (soloNumeros.length <= 8) setTelefono(soloNumeros)
-  }
 
   if (status === 'loading' || !session) return null
 
@@ -50,7 +56,7 @@ export default function ProfilePage() {
             <div className="flex flex-col items-center text-center">
               <Avatar className="w-28 h-28">
                 <AvatarImage
-                  src={imagen || 'https://ui-avatars.com/api/?name=Usuario&background=random'}
+                  src={previews.logo || 'https://ui-avatars.com/api/?name=Usuario&background=random'}
                   alt="Foto de perfil"
                   style={{ width: 'auto', height: 'auto' }}
                 />
@@ -58,27 +64,28 @@ export default function ProfilePage() {
               </Avatar>
 
               <h2 className="mt-4 text-lg font-semibold text-neutral-900">{nombre}</h2>
-              <p className="text-sm text-muted-foreground">{session.user.email}</p>
+              <p className="text-sm text-muted-foreground">{email}</p>
 
-              <label htmlFor="avatar-upload" className="mt-4">
-                <input
-                  id="avatar-upload"
-                  type="file"
-                  accept="image/*"
-                  hidden
-                  onChange={(e) => {
-                    const file = e.target.files?.[0]
-                    if (file) {
-                      const reader = new FileReader()
-                      reader.onload = () => setImagen(reader.result as string)
-                      reader.readAsDataURL(file)
-                    }
-                  }}
-                />
-                <Button variant="outline" size="sm" className="gap-2">
-                  <Upload className="w-4 h-4" /> Subir nueva foto
-                </Button>
-              </label>
+              {editando && (
+                <>
+                  <input
+                    id="avatar-upload"
+                    type="file"
+                    accept="image/jpeg,image/png,image/gif,image/webp"
+                    ref={inputFileRef}
+                    hidden
+                    onChange={(e) => handleFile(e, 'logo', session.user.id)}
+                  />
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    className="gap-2 mt-2"
+                    onClick={() => inputFileRef.current?.click()}
+                  >
+                    <Upload className="w-4 h-4" /> Subir nueva foto
+                  </Button>
+                </>
+              )}
 
               <p className="mt-6 text-xs text-muted-foreground">
                 Miembro desde el 12 de enero de 2024
@@ -103,9 +110,10 @@ export default function ProfilePage() {
                   <div className="relative">
                     <Input
                       id="email"
-                      value={session.user.email || ''}
-                      disabled
-                      className="mt-1 pr-10 bg-muted/30"
+                      value={email}
+                      onChange={(e) => setEmail(e.target.value)}
+                      disabled={!editando}
+                      className="mt-1 pr-10"
                     />
                     <span className="absolute right-2 top-[50%] -translate-y-1/2">
                       <CheckCircle className="w-4 h-4 text-green-500" />
@@ -120,7 +128,7 @@ export default function ProfilePage() {
                     <Input
                       id="telefono"
                       value={telefono}
-                      onChange={(e) => validarTelefono(e.target.value)}
+                      onChange={(e) => setTelefono(e.target.value.replace(/\D/g, ''))}
                       disabled={!editando}
                       className="w-32"
                       placeholder="Ej: 55556666"
@@ -142,9 +150,14 @@ export default function ProfilePage() {
               </div>
 
               {editando ? (
-                <Button className="w-full mt-4" type="submit">
-                  Guardar cambios
-                </Button>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mt-6">
+                  <Button type="submit" className="w-full">
+                    Guardar cambios
+                  </Button>
+                  <Button type="button" variant="outline" className="w-full" onClick={() => setEditando(false)}>
+                    Cancelar edición
+                  </Button>
+                </div>
               ) : (
                 <Button
                   className="w-full mt-4"

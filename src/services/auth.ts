@@ -1,21 +1,56 @@
 // src/services/auth.ts
-import { RegisterCompradorValues } from '@/schemas/register-comprador.schema'
 
-export async function apiRegisterComprador(data: RegisterCompradorValues) {
+export async function apiRegisterComprador(data: {
+  nombre: string
+  email: string
+  password: string
+  confirmarPassword?: string
+  telefono?: string
+  direccion?: string
+}) {
   try {
-    const res = await fetch('/api/auth/register', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ ...data, rol: 'comprador' }),
+    const res = await fetch("http://localhost:8800/api/register", {
+      method: "POST",
+      credentials: "include",
+      headers: {
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({
+        nombre: data.nombre,
+        correo: data.email,
+        contraseña: data.password,
+        rol: "comprador",
+      }),
     })
 
     if (!res.ok) {
-      const err = await res.json()
-      return { ok: false, message: err.message || 'Error al registrar' }
+      const error = await res.json()
+      return { ok: false, message: error.message || "Error desconocido" }
     }
 
-    return { ok: true }
+    const json = await res.json()
+    return { ok: true, user: json.user }
   } catch (error) {
-    return { ok: false, message: 'Ocurrió un error inesperado' }
+    return { ok: false, message: "Error de red o servidor" }
+  }
+}
+
+export async function apiRegisterSeller(formData: FormData) {
+  try {
+    const res = await fetch("http://localhost:8800/api/register/seller", {
+      method: "POST",
+      body: formData,
+      credentials: "include",
+    })
+
+    if (!res.ok) {
+      const error = await res.json()
+      return { ok: false, message: error.message || "Error al registrar vendedor" }
+    }
+
+    const json = await res.json()
+    return { ok: true, user: json.user }
+  } catch (error) {
+    return { ok: false, message: "Error de red o servidor" }
   }
 }

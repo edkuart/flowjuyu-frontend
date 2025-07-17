@@ -8,7 +8,6 @@ export const registerVendedorSchema = z.object({
   confirmarPassword: z.string().min(6, "Debes confirmar tu contraseña"),
   dpi: z.string().regex(/^\d{13}$/, "DPI inválido"),
   nombreComercio: z.string().min(1, "El nombre del comercio es obligatorio"),
-  nit: z.string().regex(/^\d{8}$|^\d{9}$|^\d{13}$/, "NIT inválido"),
   direccion: z.string().min(1, "La dirección es obligatoria"),
   telefonoComercio: z.string().regex(/^\d{8}$/, "Debe tener 8 dígitos"),
   departamento: z.string().min(1, "Selecciona un departamento"),

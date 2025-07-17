@@ -15,12 +15,7 @@ import { GalleryVerticalEnd } from "lucide-react"
 
 export function RegisterForm({ className, ...props }: React.ComponentProps<"div">) {
   const router = useRouter()
-  const {
-    register,
-    handleSubmit,
-    setError,
-    formState: { errors, isSubmitting },
-  } = useForm<RegisterCompradorValues>({
+  const { register, handleSubmit, setError, formState: { errors, isSubmitting }, } = useForm<RegisterCompradorValues>({
     resolver: zodResolver(registerCompradorSchema),
   })
 
@@ -70,9 +65,17 @@ export function RegisterForm({ className, ...props }: React.ComponentProps<"div"
           </div>
 
           <div className="space-y-2">
-            <Label htmlFor="telefono">Teléfono (opcional)</Label>
-            <Input id="telefono" {...register("telefono")} />
-            {errors.telefono && <p className="text-sm text-red-500">{errors.telefono.message}</p>}
+            <Label htmlFor="telefono">Teléfono personal (opcional)</Label>
+            <div className="flex rounded-md border px-3 py-2 items-center gap-2 focus-within:ring-2 focus-within:ring-primary">
+              <span className="text-sm text-muted-foreground">+502</span>
+              <Input
+              id="telefono"
+              {...register("telefono")}
+              placeholder="12345678"
+              className="border-none p-0 h-auto focus-visible:ring-0 focus-visible:ring-offset-0"
+              />
+            </div>
+              {errors.telefono && <p className="text-sm text-red-500">{errors.telefono.message}</p>}
           </div>
 
           <div className="space-y-2">

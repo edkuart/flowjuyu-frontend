@@ -1,4 +1,4 @@
-"use client"
+'use client'
 
 import { useEffect, useState, useRef } from "react"
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
@@ -7,9 +7,9 @@ import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Textarea } from "@/components/ui/textarea"
 import { Label } from "@/components/ui/label"
-import { getSession } from "next-auth/react"
-import type { Session } from "next-auth"
+import { useSession } from "next-auth/react"
 import Link from "next/link"
+import { useFileUpload } from "@/hooks/useFileUpload"
 
 const reseñasSimuladas = [
   {
@@ -50,19 +50,16 @@ const productosIniciales = [
 ]
 
 export default function SellerPublicProfilePage() {
-  const [session, setSession] = useState<Session | null>(null)
+  const { data: session } = useSession()
   const [nombre, setNombre] = useState("Tienda Artesanal Xela")
   const [descripcion, setDescripcion] = useState("Somos una tienda dedicada a la venta de productos típicos guatemaltecos hechos a mano.")
   const [direccion, setDireccion] = useState("3a Calle 4-55, Zona 1, Quetzaltenango")
   const [telefono, setTelefono] = useState("12345678")
   const [productosDisponibles, setProductosDisponibles] = useState(productosIniciales)
   const [editando, setEditando] = useState(false)
-  const [imagenPreview, setImagenPreview] = useState<string | null>(null)
   const inputFileRef = useRef<HTMLInputElement>(null)
 
-  useEffect(() => {
-    getSession().then((s) => setSession(s))
-  }, [])
+  const { previews, files, handleFile } = useFileUpload()
 
   const editable = Boolean(session)
   const promedio = reseñasSimuladas.length
@@ -75,19 +72,38 @@ export default function SellerPublicProfilePage() {
     )
   }
 
-  const handleImagenSeleccionada = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0]
-    if (file) {
-      const reader = new FileReader()
-      reader.onload = () => setImagenPreview(reader.result as string)
-      reader.readAsDataURL(file)
-    }
-  }
-
   const validarTelefono = (valor: string) => {
     const soloNumeros = valor.replace(/\D/g, "")
     if (soloNumeros.length <= 8) {
       setTelefono(soloNumeros)
+    }
+  }
+
+  const onSubmit = async () => {
+    if (!session?.user?.id || !session.user.email) {
+      console.error("❌ Falta el ID o email de la sesión.")
+      return
+    }
+
+    const form = new FormData()
+    form.append("id", session.user.id.toString())
+    form.append("nombre", nombre)
+    form.append("email", session.user.email)
+    form.append("telefono", telefono)
+    form.append("direccion", direccion)
+    if (files.logo) {
+      form.append("logo", files.logo)
+    }
+
+    const res = await fetch("http://localhost:8800/vendedor/perfil", {
+      method: "POST",
+      body: form,
+    })
+
+    if (res.ok) {
+      setEditando(false)
+    } else {
+      alert("Error al guardar el perfil.")
     }
   }
 
@@ -102,13 +118,21 @@ export default function SellerPublicProfilePage() {
 
       <section className="flex flex-col items-center gap-4">
         <Avatar className="w-28 h-28">
-          <AvatarImage src={imagenPreview || "/avatar-placeholder.png"} alt="Logo del negocio" />
+          <AvatarImage src={previews["fotoPerfil"] || "/avatar-placeholder.png"} alt="Logo del negocio" />
           <AvatarFallback>TX</AvatarFallback>
         </Avatar>
         {editable && editando && (
           <>
-            <input type="file" accept="image/*" ref={inputFileRef} onChange={handleImagenSeleccionada} className="hidden" />
-            <Button variant="outline" size="sm" onClick={() => inputFileRef.current?.click()}>Cambiar logo</Button>
+            <input
+              type="file"
+              accept="image/*"
+              ref={inputFileRef}
+              onChange={(e) => handleFile(e, "fotoPerfil", "perfil-vendedor")}
+              className="hidden"
+            />
+            <Button variant="outline" size="sm" onClick={() => inputFileRef.current?.click()}>
+              Cambiar logo
+            </Button>
           </>
         )}
       </section>
@@ -155,7 +179,7 @@ export default function SellerPublicProfilePage() {
             <Button onClick={() => setEditando(!editando)} variant="secondary">
               {editando ? "Cancelar edición" : "Editar perfil"}
             </Button>
-            {editando && <Button>Guardar cambios</Button>}
+            {editando && <Button onClick={onSubmit}>Guardar cambios</Button>}
           </div>
         )}
       </div>

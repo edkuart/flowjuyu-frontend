@@ -1,9 +1,8 @@
 "use client"
 
-import { useCallback, useMemo, useState } from "react"
+import { useCallback, useState } from "react"
 import {
   useForm,
-  type FieldValues,
   type Path,
   type UseFormRegister,
 } from "react-hook-form"
@@ -13,73 +12,38 @@ import {
   registerVendedorSchema,
   type RegisterVendedorValues,
 } from "@/schemas/register-vendedor.schema"
-import { departamentosConMunicipios, type Departamento } from "@/data/municipios"
+import { departamentosConMunicipios } from "@/data/municipios"
 import { Label } from "@/components/ui/label"
 import { Input } from "@/components/ui/input"
 import { Textarea } from "@/components/ui/textarea"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent } from "@/components/ui/card"
-import { useFilePreview } from "@/hooks/use-file-preview"
+import { useFileUpload } from "@/hooks/useFileUpload"
+import { Eye, EyeOff } from "lucide-react"
+import { apiRegisterSeller } from "@/services/auth"
 
-import { Eye, EyeOff } from "lucide-react" // o usa tus propios íconos svg
-
-type CampoTexto = {
-  id: keyof RegisterVendedorValues
-  label: string
-  type: string
-  pattern?: string
-  maxLength?: number
-  showTogglePassword?: boolean
-}
-
-const PERSONAL_FIELDS: CampoTexto[] = [
+const PERSONAL_FIELDS = [
   { id: "nombre", label: "Nombre completo", type: "text" },
   { id: "email", label: "Correo electrónico", type: "email" },
   { id: "telefono", label: "Teléfono personal", type: "text" },
-  {
-    id: "password",
-    label: "Contraseña",
-    type: "password",
-    showTogglePassword: true
-  },
-  {
-    id: "confirmarPassword",
-    label: "Confirmar contraseña",
-    type: "password",
-    showTogglePassword: true
-  },
-  {
-    id: "dpi",
-    label: "Número de DPI",
-    type: "text",
-    pattern: "^\\d{13}$",
-    maxLength: 13
-  },
-]
+  { id: "password", label: "Contraseña", type: "password", showTogglePassword: true },
+  { id: "confirmarPassword", label: "Confirmar contraseña", type: "password", showTogglePassword: true },
+  { id: "dpi", label: "Número de DPI", type: "text", pattern: "^\\d{13}$", maxLength: 13 },
+] as const
 
-const COMERCIO_FIELDS: CampoTexto[] = [
+const COMERCIO_FIELDS = [
   { id: "nombreComercio", label: "Nombre del comercio", type: "text" },
-  {
-    id: "nit",
-    label: "NIT",
-    type: "text",
-    pattern: "^\\d{8}$|^\\d{9}$|^\\d{13}$",
-  },
   { id: "direccion", label: "Dirección del puesto de venta", type: "text" },
-  {
-    id: "telefonoComercio",
-    label: "Teléfono del comercio",
-    type: "text"
-  },
-]
+  { id: "telefonoComercio", label: "Teléfono del comercio", type: "text" },
+] as const
 
-const FILE_FIELDS: { id: keyof RegisterVendedorValues; label: string }[] = [
+const FILE_FIELDS = [
   { id: "fotoDPIFrente", label: "Foto DPI (frente)" },
   { id: "fotoDPIReverso", label: "Foto DPI (reverso)" },
   { id: "selfieConDPI", label: "Selfie con DPI" },
-]
+] as const
 
-function Campo<T extends FieldValues>({
+function CampoTexto({
   id,
   label,
   register,
@@ -88,23 +52,18 @@ function Campo<T extends FieldValues>({
   pattern,
   maxLength,
   showTogglePassword,
-  value,
-  setValue,
 }: {
-  id: Path<T>
+  id: Path<RegisterVendedorValues>
   label: string
-  register: UseFormRegister<T>
+  register: UseFormRegister<RegisterVendedorValues>
   error?: string
   type?: string
   pattern?: string
   maxLength?: number
   showTogglePassword?: boolean
-  value?: string
-  setValue?: (id: Path<T>, value: string) => void
 }) {
   const [show, setShow] = useState(false)
 
-  // Teléfonos guatemala, +502 fijo
   if (id === "telefono" || id === "telefonoComercio") {
     return (
       <div className="space-y-1">
@@ -134,7 +93,6 @@ function Campo<T extends FieldValues>({
     )
   }
 
-  // Campo con toggle password
   if (showTogglePassword) {
     return (
       <div className="space-y-1">
@@ -162,7 +120,6 @@ function Campo<T extends FieldValues>({
     )
   }
 
-  // Otros campos
   return (
     <div className="space-y-1">
       <Label htmlFor={id}>{label}</Label>
@@ -179,50 +136,11 @@ function Campo<T extends FieldValues>({
   )
 }
 
-function CampoArchivo<T extends FieldValues>({
-  id,
-  label,
-  register,
-  error,
-  file,
-  setValue,
-}: {
-  id: Path<T>
-  label: string
-  register: UseFormRegister<T>
-  error?: string
-  file?: File | null
-  setValue: (id: Path<T>, file: File) => void
-}) {
-  const preview = useFilePreview(file)
-  return (
-    <div className="space-y-1">
-      <Label htmlFor={id}>{label}</Label>
-      <Input
-        id={id}
-        type="file"
-        accept="image/*"
-        onChange={(e) => {
-          const file = e.target.files?.[0]
-          if (file) setValue(id, file)
-        }}
-      />
-      {preview && (
-        <img
-          src={preview}
-          alt={label}
-          className="mt-2 h-20 rounded object-cover"
-        />
-      )}
-      {error && <p className="text-sm text-red-500">{error}</p>}
-    </div>
-  )
-}
-
 export default function RegisterVendedorForm() {
   const router = useRouter()
-  const [selectedDepartamento, setSelectedDepartamento] = useState<string>("")
+  const [selectedDepartamento, setSelectedDepartamento] = useState("")
   const [municipios, setMunicipios] = useState<string[]>([])
+  const { previews, files, handleFile } = useFileUpload()
 
   const {
     register,
@@ -234,26 +152,17 @@ export default function RegisterVendedorForm() {
     resolver: zodResolver(registerVendedorSchema),
   })
 
-  const logoFile = watch("logo") as File | undefined
-  const logoPreview = useFilePreview(logoFile)
-
   const onSubmit = useCallback(
     async (data: RegisterVendedorValues) => {
       const form = new FormData()
       Object.entries(data).forEach(([k, v]) => form.append(k, v as any))
-      const apiBase = process.env.NEXT_PUBLIC_API_BASE_URL ?? ""
-      const res = await fetch(`${apiBase}/auth/register-vendedor`, {
-        method: "POST",
-        body: form,
-      })
-      if (res.ok) {
-        router.push("/login")
-      }
+      if (files.logo) form.append("logo", files.logo)
+      const res = await apiRegisterSeller(form)
+      if (res.ok) router.push("/login")
     },
-    [router]
+    [router, files.logo]
   )
 
-  // Manejo municipios
   const handleDepartamentoChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
     const dep = e.target.value
     setSelectedDepartamento(dep)
@@ -275,45 +184,29 @@ export default function RegisterVendedorForm() {
               </p>
             </header>
 
-            {/* Datos personales */}
             <fieldset className="grid sm:grid-cols-2 lg:grid-cols-3 gap-8">
-              {PERSONAL_FIELDS.map(
-                ({ id, label, type, pattern, maxLength, showTogglePassword }) => (
-                  <Campo
-                    key={id}
-                    id={id}
-                    label={label}
-                    type={type}
-                    pattern={pattern}
-                    maxLength={maxLength}
-                    register={register}
-                    showTogglePassword={showTogglePassword}
-                    error={errors[id as keyof RegisterVendedorValues]?.message as string}
-                  />
-                )
-              )}
+              {PERSONAL_FIELDS.map((field) => (
+                <CampoTexto
+                  key={field.id}
+                  {...field}
+                  register={register}
+                  error={errors[field.id]?.message}
+                />
+              ))}
             </fieldset>
 
-            {/* Datos del comercio */}
             <div className="space-y-6">
               <h2 className="text-2xl font-semibold">Datos del comercio</h2>
               <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-8">
-                {COMERCIO_FIELDS.map(
-                  ({ id, label, type, pattern, maxLength }) => (
-                    <Campo
-                      key={id}
-                      id={id}
-                      label={label}
-                      type={type}
-                      pattern={pattern}
-                      maxLength={maxLength}
-                      register={register}
-                      error={errors[id as keyof RegisterVendedorValues]?.message as string}
-                    />
-                  )
-                )}
+                {COMERCIO_FIELDS.map((field) => (
+                  <CampoTexto
+                    key={field.id}
+                    {...field}
+                    register={register}
+                    error={errors[field.id]?.message}
+                  />
+                ))}
 
-                {/* Departamento */}
                 <div>
                   <Label htmlFor="departamento">Departamento</Label>
                   <select
@@ -329,14 +222,9 @@ export default function RegisterVendedorForm() {
                       </option>
                     ))}
                   </select>
-                  {errors.departamento && (
-                    <p className="text-sm text-red-500">
-                      {errors.departamento.message}
-                    </p>
-                  )}
+                  {errors.departamento && <p className="text-sm text-red-500">{errors.departamento.message}</p>}
                 </div>
 
-                {/* Municipio */}
                 <div>
                   <Label htmlFor="municipio">Municipio</Label>
                   <select
@@ -347,19 +235,12 @@ export default function RegisterVendedorForm() {
                   >
                     <option value="">Selecciona un municipio</option>
                     {municipios.map((m) => (
-                      <option key={m} value={m}>
-                        {m}
-                      </option>
+                      <option key={m} value={m}>{m}</option>
                     ))}
                   </select>
-                  {errors.municipio && (
-                    <p className="text-sm text-red-500">
-                      {errors.municipio.message}
-                    </p>
-                  )}
+                  {errors.municipio && <p className="text-sm text-red-500">{errors.municipio.message}</p>}
                 </div>
 
-                {/* Logo */}
                 <div className="sm:col-span-2 lg:col-span-3">
                   <Label htmlFor="logo">Foto logotipo del comercio (opcional)</Label>
                   <Input
@@ -367,16 +248,16 @@ export default function RegisterVendedorForm() {
                     type="file"
                     accept="image/*"
                     onChange={(e) => {
+                      handleFile(e, "logo", "registro-temporal")
                       const file = e.target.files?.[0]
                       if (file) setValue("logo", file)
                     }}
                   />
-                  {logoPreview && (
-                    <img src={logoPreview} alt="Logo" className="mt-2 w-24 rounded" />
+                  {previews["logo"] && (
+                    <img src={previews["logo"]} alt="Logo" className="mt-2 w-24 rounded" />
                   )}
                 </div>
 
-                {/* Descripción */}
                 <div className="sm:col-span-2 lg:col-span-3">
                   <Label htmlFor="descripcion">Descripción del comercio</Label>
                   <Textarea
@@ -384,29 +265,32 @@ export default function RegisterVendedorForm() {
                     className="h-28 text-base"
                     {...register("descripcion")}
                   />
-                  {errors.descripcion && (
-                    <p className="text-sm text-red-500">
-                      {errors.descripcion.message}
-                    </p>
-                  )}
+                  {errors.descripcion && <p className="text-sm text-red-500">{errors.descripcion.message}</p>}
                 </div>
               </div>
             </div>
 
-            {/* Archivos requeridos */}
             <div className="space-y-6">
               <h2 className="text-2xl font-semibold">Documentos requeridos</h2>
               <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-6">
                 {FILE_FIELDS.map(({ id, label }) => (
-                  <CampoArchivo
-                    key={id}
-                    id={id}
-                    label={label}
-                    register={register}
-                    setValue={setValue}
-                    file={watch(id) as File | undefined}
-                    error={errors[id]?.message as string | undefined}
-                  />
+                  <div key={id} className="space-y-1">
+                    <Label htmlFor={id}>{label}</Label>
+                    <Input
+                      id={id}
+                      type="file"
+                      accept="image/*"
+                      onChange={(e) => {
+                        handleFile(e, id, "registro-temporal")
+                        const file = e.target.files?.[0]
+                        if (file) setValue(id, file)
+                      }}
+                    />
+                    {previews[id] && (
+                      <img src={previews[id] || ""} alt={label} className="mt-2 h-20 rounded object-cover" />
+                    )}
+                    {errors[id] && <p className="text-sm text-red-500">{errors[id]?.message as string}</p>}
+                  </div>
                 ))}
               </div>
             </div>
