@@ -5,7 +5,7 @@
     "types": ["next-auth"],
     "allowJs": true,
     "skipLibCheck": true,
-    "baseUrl": ".",
+    "baseUrl": ".",                     // ✅ Base para alias
     "strict": true,
     "noEmit": true,
     "esModuleInterop": true,
@@ -21,9 +21,15 @@
       }
     ],
     "paths": {
-      "@/*": ["src/*"]
+      "@/*": ["src/*"]                  // ✅ Alias para imports
     }
   },
-  "include": ["next-env.d.ts", "**/*.ts", "**/*.tsx", ".next/types/**/*.ts", "src/types/**/*.d.ts"],
+  "include": [
+    "next-env.d.ts",
+    "**/*.ts",
+    "**/*.tsx",
+    ".next/types/**/*.ts",
+    "src/types/**/*.d.ts"
+  ],
   "exclude": ["node_modules"]
 }
