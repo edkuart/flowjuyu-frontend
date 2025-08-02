@@ -1,12 +1,12 @@
 "use client";
 
 import { createContext, useContext, useState, useEffect } from "react";
-import { apiLogout } from "@/services/auth";
 
 interface User {
   id: string;
   nombre: string;
   rol: "comprador" | "vendedor" | "admin";
+  [key: string]: any; // Extra info si tienes
 }
 
 interface AuthContextProps {
@@ -38,19 +38,12 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
     localStorage.setItem("token", token);
   };
 
-  const logout = async () => {
-    try {
-      await apiLogout(); // ✅ Llama al backend para cerrar sesión
-    } catch (error) {
-      console.error("Error al cerrar sesión en backend:", error);
-    }
-
-    // ✅ Limpia el estado local
+  const logout = () => {
     setUser(null);
     setToken(null);
     localStorage.removeItem("user");
     localStorage.removeItem("token");
-    window.location.href = "/";
+    window.location.href = "/"; // O router.push("/")
   };
 
   return (
