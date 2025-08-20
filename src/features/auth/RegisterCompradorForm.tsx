@@ -13,11 +13,15 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { GalleryVerticalEnd } from "lucide-react";
-import { useAuth } from "@/context/AuthContext"; // ✅ Importamos el contexto
+import { useAuth } from "@/context/AuthContext";
+import { auth } from "@/lib/firebase";
+import { GoogleAuthProvider, signInWithPopup } from "firebase/auth";
+import { useState } from "react";
 
 export function RegisterForm({ className, ...props }: React.ComponentProps<"div">) {
   const router = useRouter();
-  const { login } = useAuth(); // ✅ Usamos el contexto
+  const { login } = useAuth();
+  const [googleLoading, setGoogleLoading] = useState(false);
 
   const {
     register,
@@ -36,15 +40,12 @@ export function RegisterForm({ className, ...props }: React.ComponentProps<"div"
     },
   });
 
+  // Formulario tradicional
   const onSubmit = async (data: RegisterCompradorValues) => {
-    console.log("Datos capturados en el formulario:", data);
     const response = await apiRegisterComprador(data);
 
     if (response.ok && response.user && response.token) {
-      // ✅ Guardamos en el contexto y localStorage
       login(response.user, response.token);
-
-      // ✅ Redirigimos según rol
       switch (response.user.rol) {
         case "comprador":
           router.push("/");
@@ -60,6 +61,48 @@ export function RegisterForm({ className, ...props }: React.ComponentProps<"div"
       }
     } else {
       setError("root", { message: response.message || "Error al registrarse" });
+    }
+  };
+
+  // Registro/login con Google
+  const handleGoogleSignup = async () => {
+    setGoogleLoading(true);
+    try {
+      const provider = new GoogleAuthProvider();
+      const result = await signInWithPopup(auth, provider);
+      const { email, displayName } = result.user;
+
+      // Cambia el endpoint por el que uses realmente en tu backend
+      const response = await fetch("http://localhost:8800/api/login/google", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ email, nombre: displayName }),
+      });
+
+      const data = await response.json();
+
+      if (data.ok && data.user && data.token) {
+        login(data.user, data.token);
+        switch (data.user.rol) {
+          case "comprador":
+            router.push("/");
+            break;
+          case "vendedor":
+            router.push("/seller/dashboard");
+            break;
+          case "admin":
+            router.push("/admin/dashboard");
+            break;
+          default:
+            router.push("/");
+        }
+      } else {
+        alert(data.message || "No se pudo crear/iniciar sesión con Google.");
+      }
+    } catch (error: any) {
+      alert("Error con Google: " + (error?.message || error));
+    } finally {
+      setGoogleLoading(false);
     }
   };
 
@@ -123,6 +166,28 @@ export function RegisterForm({ className, ...props }: React.ComponentProps<"div"
           {isSubmitting ? "Creando cuenta..." : "Registrarse"}
         </Button>
       </form>
+
+      {/* Separador y botón de Google */}
+      <div className="w-full max-w-screen-md flex flex-col gap-2 mt-6">
+        <div className="relative text-center text-xs text-muted-foreground my-2">
+          <span className="bg-background px-2 z-10 relative">O usa</span>
+          <div className="absolute left-0 right-0 top-1/2 border-t border-muted-foreground opacity-30 -z-10"></div>
+        </div>
+        <Button
+          type="button"
+          variant="outline"
+          className="w-full flex items-center justify-center"
+          onClick={handleGoogleSignup}
+          disabled={googleLoading}
+        >
+          <img
+            src="/icons/google.svg"
+            alt="Google"
+            className="w-5 h-5 mr-2"
+          />
+          {googleLoading ? "Conectando con Google..." : "Registrarse / Iniciar sesión con Google"}
+        </Button>
+      </div>
     </div>
   );
 }

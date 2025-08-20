@@ -1,12 +1,12 @@
-export default function SellerDashboardPage() {
+
+import AuthGuard from "@/components/auth/AuthGuard";
+
+export default function SellerPage() {
   return (
-    <div className="space-y-4">
-      <h1 className="text-2xl font-bold tracking-tight">
-        Bienvenido al panel de vendedor
-      </h1>
-      <p className="text-muted-foreground">
-        Aquí puedes gestionar tus productos, ver tus pedidos y editar tu perfil de vendedor.
-      </p>
-    </div>
-  )
+    <AuthGuard allowedRoles={["vendedor"]}>
+      <div className="p-4">
+        <h1>Zona privada del vendedor 🛍️</h1>
+      </div>
+    </AuthGuard>
+  );
 }

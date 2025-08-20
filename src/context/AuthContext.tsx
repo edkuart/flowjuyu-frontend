@@ -1,17 +1,20 @@
 "use client";
+import { createContext, useContext, useEffect, useState } from "react";
 
-import { createContext, useContext, useState, useEffect } from "react";
+export type Rol = "comprador" | "vendedor" | "admin";
 
-interface User {
+export interface User {
   id: string;
   nombre: string;
-  rol: "comprador" | "vendedor" | "admin";
-  [key: string]: any; // Extra info si tienes
+  rol: Rol;
+  [key: string]: any;
 }
 
 interface AuthContextProps {
   user: User | null;
   token: string | null;
+  /** true cuando ya se leyó localStorage y el contexto está hidratado */
+  ready: boolean;
   login: (user: User, token: string) => void;
   logout: () => void;
 }
@@ -21,21 +24,26 @@ const AuthContext = createContext<AuthContextProps | undefined>(undefined);
 export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
   const [user, setUser] = useState<User | null>(null);
   const [token, setToken] = useState<string | null>(null);
+  const [ready, setReady] = useState(false);
 
   useEffect(() => {
-    const storedUser = localStorage.getItem("user");
-    const storedToken = localStorage.getItem("token");
-    if (storedUser && storedToken) {
-      setUser(JSON.parse(storedUser));
-      setToken(storedToken);
+    try {
+      const storedUser = localStorage.getItem("user");
+      const storedToken = localStorage.getItem("token");
+      if (storedUser && storedToken) {
+        setUser(JSON.parse(storedUser) as User);
+        setToken(storedToken);
+      }
+    } finally {
+      setReady(true); // ← evita “flash” en guards
     }
   }, []);
 
-  const login = (user: User, token: string) => {
-    setUser(user);
-    setToken(token);
-    localStorage.setItem("user", JSON.stringify(user));
-    localStorage.setItem("token", token);
+  const login = (u: User, t: string) => {
+    setUser(u);
+    setToken(t);
+    localStorage.setItem("user", JSON.stringify(u));
+    localStorage.setItem("token", t);
   };
 
   const logout = () => {
@@ -43,18 +51,18 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
     setToken(null);
     localStorage.removeItem("user");
     localStorage.removeItem("token");
-    window.location.href = "/"; // O router.push("/")
+    window.location.replace("/login");
   };
 
   return (
-    <AuthContext.Provider value={{ user, token, login, logout }}>
+    <AuthContext.Provider value={{ user, token, ready, login, logout }}>
       {children}
     </AuthContext.Provider>
   );
 };
 
 export const useAuth = () => {
-  const context = useContext(AuthContext);
-  if (!context) throw new Error("useAuth debe usarse dentro de AuthProvider");
-  return context;
+  const ctx = useContext(AuthContext);
+  if (!ctx) throw new Error("useAuth debe usarse dentro de AuthProvider");
+  return ctx;
 };

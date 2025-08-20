@@ -12,7 +12,11 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import Image from 'next/image'; // ✅ Importación necesaria
+import Image from 'next/image';
+
+// ⭐️ IMPORTA FIREBASE Y GOOGLE PROVIDER
+import { auth } from "@/lib/firebase";
+import { GoogleAuthProvider, signInWithPopup } from "firebase/auth";
 
 export function LoginForm({ className, ...props }: React.ComponentProps<'div'>) {
   const router = useRouter();
@@ -27,6 +31,7 @@ export function LoginForm({ className, ...props }: React.ComponentProps<'div'>) 
   });
 
   const [loginError, setLoginError] = useState<string | null>(null);
+  const [googleLoading, setGoogleLoading] = useState(false);
 
   const onSubmit = async (data: LoginValues) => {
     setLoginError(null);
@@ -62,6 +67,48 @@ export function LoginForm({ className, ...props }: React.ComponentProps<'div'>) 
     } catch (error) {
       console.error('Error al iniciar sesión:', error);
       setLoginError('Error de conexión con el servidor');
+    }
+  };
+
+  // ⭐️ LOGIN CON GOOGLE
+  const handleGoogleLogin = async () => {
+    setLoginError(null);
+    setGoogleLoading(true);
+
+    try {
+      const provider = new GoogleAuthProvider();
+      const result = await signInWithPopup(auth, provider);
+      const { email, displayName } = result.user;
+
+      // POST a tu backend para obtener tu JWT y rol
+      const response = await fetch('http://localhost:8800/api/login/google', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ email, nombre: displayName }),
+      });
+
+      const json = await response.json();
+
+      if (json.ok && json.token && json.user) {
+        login(json.user, json.token);
+
+        switch (json.user.rol) {
+          case 'admin':
+            router.push('/admin/dashboard');
+            break;
+          case 'vendedor':
+            router.push('/seller/dashboard');
+            break;
+          default:
+            router.push('/');
+        }
+      } else {
+        setLoginError(json.message || 'No se pudo iniciar sesión con Google.');
+      }
+    } catch (error: any) {
+      setLoginError('Error con Google: ' + (error?.message || error));
+    } finally {
+      setGoogleLoading(false);
     }
   };
 
@@ -120,17 +167,38 @@ export function LoginForm({ className, ...props }: React.ComponentProps<'div'>) 
                 <p className="text-sm text-red-600">{loginError}</p>
               )}
 
-              {/* BOTÓN */}
+              {/* BOTÓN LOGIN */}
               <Button type="submit" disabled={isSubmitting} className="w-full">
                 {isSubmitting ? 'Ingresando...' : 'Iniciar sesión'}
               </Button>
             </div>
+
+            {/* SEPARADOR Y BOTÓN GOOGLE */}
+            <div className="relative text-center text-xs text-muted-foreground my-3">
+              <span className="bg-background px-2 z-10 relative">O ingresa con</span>
+              <div className="absolute left-0 right-0 top-1/2 border-t border-muted-foreground opacity-30 -z-10"></div>
+            </div>
+
+            <Button
+              type="button"
+              variant="outline"
+              className="w-full flex items-center justify-center"
+              onClick={handleGoogleLogin}
+              disabled={googleLoading}
+            >
+              <img
+                src="/icons/google.svg"
+                alt="Google"
+                className="w-5 h-5 mr-2"
+              />
+              {googleLoading ? "Conectando con Google..." : "Iniciar sesión con Google"}
+            </Button>
           </form>
 
           {/* IMAGEN DECORATIVA */}
           <div className="relative hidden md:block min-h-[400px] bg-gray-100">
             <Image
-              src="/cortelogo.png" // ✅ Asegúrate de que esta imagen esté en /public
+              src="/cortelogo.png"
               alt="Login cultural"
               fill
               className="object-cover rounded-r-xl"
