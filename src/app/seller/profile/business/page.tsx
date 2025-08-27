@@ -1,7 +1,7 @@
-"use client"
+'use client'
 
 import {
-  BarChart,
+  BarChart as ReBarChart,
   Bar,
   XAxis,
   YAxis,
@@ -12,10 +12,7 @@ import {
   Cell,
 } from "recharts"
 
-import {
-  Card,
-  CardContent
-} from "@/components/ui/card"
+import { Card, CardContent } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import Link from "next/link"
 import { Badge } from "@/components/ui/badge"
@@ -23,7 +20,8 @@ import {
   ShoppingCart,
   Package,
   DollarSign,
-  Star
+  Star,
+  BarChart3,
 } from "lucide-react"
 import { useState } from "react"
 
@@ -50,7 +48,7 @@ export default function SellerDashboardPage() {
     { mes: "Sep", ventas: 1150 },
     { mes: "Oct", ventas: 950 },
     { mes: "Nov", ventas: 1250 },
-    { mes: "Dic", ventas: 1400 }
+    { mes: "Dic", ventas: 1400 },
   ]
 
   const categorias: { name: string; value: number }[] = [
@@ -66,35 +64,54 @@ export default function SellerDashboardPage() {
     { mes: "Mar", blusas: 210, trajes: 130, carteras: 90 },
     { mes: "Abr", blusas: 250, trajes: 160, carteras: 110 },
     { mes: "May", blusas: 140, trajes: 90, carteras: 60 },
-    { mes: "Jun", blusas: 300, trajes: 200, carteras: 120 }
+    { mes: "Jun", blusas: 300, trajes: 200, carteras: 120 },
   ]
 
   const actividadReciente = [
     {
       cliente: "Ana López",
-      productos: [
-        { nombre: "Blusa típica", cantidad: 1, precio: 120.00 }
-      ],
-      total: 120.00,
+      productos: [{ nombre: "Blusa típica", cantidad: 1, precio: 120.0 }],
+      total: 120.0,
       estado: "Completado",
-      fecha: "24/jun"
+      fecha: "24/jun",
     },
     {
       cliente: "Carlos Pérez",
       productos: [
-        { nombre: "Faja multicolor", cantidad: 1, precio: 90.00 },
-        { nombre: "Blusa típica", cantidad: 2, precio: 240.00 }
+        { nombre: "Faja multicolor", cantidad: 1, precio: 90.0 },
+        { nombre: "Blusa típica", cantidad: 2, precio: 240.0 },
       ],
-      total: 330.00,
+      total: 330.0,
       estado: "Enviado",
-      fecha: "23/jun"
-    }
+      fecha: "23/jun",
+    },
   ]
 
   const colores = ["#8884d8", "#82ca9d", "#ffc658", "#ff7f50"]
 
   return (
     <main className="space-y-6">
+      {/* Header con botón de Reportes */}
+      <section className="flex items-start justify-between gap-4">
+        <div>
+          <h1 className="text-3xl font-bold text-neutral-900 mb-1">
+            Bienvenido al Panel del Vendedor
+          </h1>
+          <p className="text-muted-foreground text-sm">
+            Consulta métricas generales de tu tienda .
+          </p>
+        </div>
+
+        {/* Ajusta href a tu ruta real: /seller/reportes o /seller/reports */}
+        <Button asChild className="gap-2">
+          <Link href="/seller/reports">
+            <BarChart3 className="w-4 h-4" />
+            Reportes
+          </Link>
+        </Button>
+      </section>
+
+      {/* Resumen en tarjetas */}
       <section className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
         {resumen.map((item, idx) => (
           <Card key={idx} className="flex flex-col items-start gap-2 p-4">
@@ -105,6 +122,7 @@ export default function SellerDashboardPage() {
         ))}
       </section>
 
+      {/* Ventas por mes */}
       <Card className="p-4">
         <div className="flex items-center justify-between mb-2">
           <h2 className="text-lg font-bold">Ventas por mes - {year}</h2>
@@ -114,20 +132,23 @@ export default function SellerDashboardPage() {
             onChange={(e) => setYear(Number(e.target.value))}
           >
             {[2023, 2024, 2025].map((y) => (
-              <option key={y} value={y}>{y}</option>
+              <option key={y} value={y}>
+                {y}
+              </option>
             ))}
           </select>
         </div>
         <ResponsiveContainer width="100%" height={250}>
-          <BarChart data={ventasPorMes}>
+          <ReBarChart data={ventasPorMes}>
             <XAxis dataKey="mes" />
             <YAxis />
             <Tooltip />
             <Bar dataKey="ventas" fill="#3b82f6" />
-          </BarChart>
+          </ReBarChart>
         </ResponsiveContainer>
       </Card>
 
+      {/* Categorías más vendidas */}
       <Card className="p-4">
         <h2 className="text-lg font-bold mb-2">Categorías más vendidas</h2>
         <ResponsiveContainer width="100%" height={250}>
@@ -151,20 +172,22 @@ export default function SellerDashboardPage() {
         </ResponsiveContainer>
       </Card>
 
+      {/* Evolución por categoría */}
       <Card className="p-4">
         <h2 className="text-lg font-bold mb-2">Evolución de ventas por categoría</h2>
         <ResponsiveContainer width="100%" height={300}>
-          <BarChart data={ventasPorCategoria}>
+          <ReBarChart data={ventasPorCategoria}>
             <XAxis dataKey="mes" />
             <YAxis />
             <Tooltip />
             <Bar dataKey="blusas" fill="#34d399" name="Blusas" />
             <Bar dataKey="trajes" fill="#6366f1" name="Trajes" />
             <Bar dataKey="carteras" fill="#fbbf24" name="Carteras" />
-          </BarChart>
+          </ReBarChart>
         </ResponsiveContainer>
       </Card>
 
+      {/* Actividad reciente */}
       <Card className="p-4">
         <h2 className="text-lg font-bold mb-2">Actividad reciente</h2>
         <div className="overflow-x-auto">
@@ -187,7 +210,9 @@ export default function SellerDashboardPage() {
                     {detallePedidoIndex === index ? (
                       <ul className="list-disc ml-4">
                         {pedido.productos.map((prod, i) => (
-                          <li key={i}>{prod.nombre} x{prod.cantidad} - Q {prod.precio.toFixed(2)}</li>
+                          <li key={i}>
+                            {prod.nombre} x{prod.cantidad} - Q {prod.precio.toFixed(2)}
+                          </li>
                         ))}
                       </ul>
                     ) : (
@@ -201,7 +226,9 @@ export default function SellerDashboardPage() {
                     <Button
                       size="sm"
                       variant="outline"
-                      onClick={() => setDetallePedidoIndex(index === detallePedidoIndex ? null : index)}
+                      onClick={() =>
+                        setDetallePedidoIndex(index === detallePedidoIndex ? null : index)
+                      }
                     >
                       {detallePedidoIndex === index ? "Ocultar" : "Ver productos"}
                     </Button>
