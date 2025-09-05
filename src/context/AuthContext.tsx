@@ -1,68 +1,44 @@
+// src/context/AuthContext.tsx
 "use client";
-import { createContext, useContext, useEffect, useState } from "react";
 
-export type Rol = "comprador" | "vendedor" | "admin";
+import { createContext, useContext, useState, ReactNode, useEffect } from "react";
 
-export interface User {
-  id: string;
-  nombre: string;
-  rol: Rol;
-  [key: string]: any;
-}
+type User = { id: string; nombre: string; rol: "comprador" | "vendedor" | "admin" } | null;
 
-interface AuthContextProps {
-  user: User | null;
-  token: string | null;
-  /** true cuando ya se leyó localStorage y el contexto está hidratado */
-  ready: boolean;
-  login: (user: User, token: string) => void;
+type AuthCtx = {
+  user: User;
+  login: (token: string) => Promise<void>;
   logout: () => void;
-}
+};
 
-const AuthContext = createContext<AuthContextProps | undefined>(undefined);
+const AuthContext = createContext<AuthCtx | undefined>(undefined);
 
-export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
-  const [user, setUser] = useState<User | null>(null);
-  const [token, setToken] = useState<string | null>(null);
-  const [ready, setReady] = useState(false);
+export function AuthProvider({ children }: { children: ReactNode }) {
+  const [user, setUser] = useState<User>(null);
 
   useEffect(() => {
-    try {
-      const storedUser = localStorage.getItem("user");
-      const storedToken = localStorage.getItem("token");
-      if (storedUser && storedToken) {
-        setUser(JSON.parse(storedUser) as User);
-        setToken(storedToken);
-      }
-    } finally {
-      setReady(true); // ← evita “flash” en guards
-    }
+    // leer token de localStorage y poblar user si aplica
+    // ...
   }, []);
 
-  const login = (u: User, t: string) => {
-    setUser(u);
-    setToken(t);
-    localStorage.setItem("user", JSON.stringify(u));
-    localStorage.setItem("token", t);
-  };
+  async function login(token: string) {
+    // guardar token y setUser(...)
+  }
 
-  const logout = () => {
+  function logout() {
+    // limpiar token y user
     setUser(null);
-    setToken(null);
-    localStorage.removeItem("user");
-    localStorage.removeItem("token");
-    window.location.replace("/login");
-  };
+  }
 
   return (
-    <AuthContext.Provider value={{ user, token, ready, login, logout }}>
+    <AuthContext.Provider value={{ user, login, logout }}>
       {children}
     </AuthContext.Provider>
   );
-};
+}
 
-export const useAuth = () => {
+export function useAuth() {
   const ctx = useContext(AuthContext);
   if (!ctx) throw new Error("useAuth debe usarse dentro de AuthProvider");
   return ctx;
-};
+}
