@@ -20,7 +20,7 @@ export default function HomePage() {
           <p className="text-lg md:text-xl mb-4">
             Explora cultura, identidad y talento
           </p>
-          <Link href="/categorias">
+          <Link href="/productos">
             <button className="bg-white text-black px-6 py-2 rounded-xl font-semibold hover:bg-gray-100">
               Ver productos
             </button>
