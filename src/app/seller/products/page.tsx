@@ -1,3 +1,4 @@
+//src/app/seller/products/page.tsx
 import Image from 'next/image'
 import Link from 'next/link'
 import { Pencil, Trash2 } from 'lucide-react'

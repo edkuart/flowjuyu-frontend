@@ -1,5 +1,7 @@
+// src/context/AuthContext.tsx
 "use client";
-import { createContext, useContext, useEffect, useState } from "react";
+
+import { createContext, useContext, useEffect, useState, ReactNode } from "react";
 
 export type Rol = "comprador" | "vendedor" | "admin";
 
@@ -7,7 +9,7 @@ export interface User {
   id: string;
   nombre: string;
   rol: Rol;
-  [key: string]: any;
+  [key: string]: any; // Para campos extra (email, imagen, etc.)
 }
 
 interface AuthContextProps {
@@ -21,11 +23,12 @@ interface AuthContextProps {
 
 const AuthContext = createContext<AuthContextProps | undefined>(undefined);
 
-export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
+export function AuthProvider({ children }: { children: ReactNode }) {
   const [user, setUser] = useState<User | null>(null);
   const [token, setToken] = useState<string | null>(null);
   const [ready, setReady] = useState(false);
 
+  // Al montar: hidratar estado desde localStorage
   useEffect(() => {
     try {
       const storedUser = localStorage.getItem("user");
@@ -35,7 +38,7 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
         setToken(storedToken);
       }
     } finally {
-      setReady(true); // ← evita “flash” en guards
+      setReady(true); // ← evita parpadeo en AuthGuard
     }
   }, []);
 
@@ -51,6 +54,7 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
     setToken(null);
     localStorage.removeItem("user");
     localStorage.removeItem("token");
+    // Redirige a login (similar a Manuel)
     window.location.replace("/login");
   };
 
@@ -59,10 +63,10 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
       {children}
     </AuthContext.Provider>
   );
-};
+}
 
-export const useAuth = () => {
+export function useAuth() {
   const ctx = useContext(AuthContext);
   if (!ctx) throw new Error("useAuth debe usarse dentro de AuthProvider");
   return ctx;
-};
+}

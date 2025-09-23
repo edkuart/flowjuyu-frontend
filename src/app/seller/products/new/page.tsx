@@ -1,400 +1,360 @@
-"use client"
+  "use client"
 
-import { useEffect, useRef, useState } from "react"
-import { Input } from "@/components/ui/input"
-import { Textarea } from "@/components/ui/textarea"
-import { Button } from "@/components/ui/button"
-import { Label } from "@/components/ui/label"
-import { Switch } from "@/components/ui/switch"
+  import { useEffect, useRef, useState, useMemo } from "react"
+  import { Input } from "@/components/ui/input"
+  import { Textarea } from "@/components/ui/textarea"
+  import { Button } from "@/components/ui/button"
+  import { Label } from "@/components/ui/label"
+  import { Switch } from "@/components/ui/switch"
+  import { departamentosConMunicipios } from "@/data/municipios"
 
-type Opcion = { id: number; nombre: string }
-type Clase = { id: number; nombre: string; alias?: string }
+  // Subcomponentes
+  import { CategoriaSelect } from "@/components/product/form/CategoriaSelect"
+  import { AccesorioSelect } from "@/components/product/form/AccesorioSelect"
+  import { TipoAccesorioSelect } from "@/components/product/form/TipoAccesorioSelect"
+  import { MaterialSelect } from "@/components/product/form/MaterialSelect"
+  import { TelaSelect } from "@/components/product/form/TelaSelect"
+  import { OrigenSelect } from "@/components/product/form/OrigenSelect"
 
-const API = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8800"
-const getToken = () =>
-  typeof window !== "undefined" ? localStorage.getItem("token") : null
-const toDecimal = (v: string) => v.trim().replace(",", ".")
+  import type { Opcion, Clase, OtroTipo } from "@/types/product"
 
-// Sentinelas UI
-const OTROS = "__OTROS__"
-const NA = "__NA__"
+  const API = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8800"
+  const getToken = () =>
+    typeof window !== "undefined" ? localStorage.getItem("token") : null
+  const toDecimal = (v: string) => v.trim().replace(",", ".")
 
-export default function AddProductPage() {
-  const [estado, setEstado] = useState<
-    "idle" | "loading" | "ok" | "error"
-  >("idle")
-  const [mensaje, setMensaje] = useState("")
-  const [infoMsg, setInfoMsg] = useState("") // Mensaje informativo para “Otros”
-  const [activo, setActivo] = useState(true)
+  const OTROS = "__OTROS__"
+  const NA = "__NA__"
 
-  const [categorias, setCategorias] = useState<Opcion[]>([])
-  const [clases, setClases] = useState<Clase[]>([])
-  const [telas, setTelas] = useState<Opcion[]>([])
-  const [regiones, setRegiones] = useState<Opcion[]>([])
+  export default function AddProductPage() {
+    const [estado, setEstado] = useState<"idle" | "loading" | "ok" | "error">("idle")
+    const [mensaje, setMensaje] = useState("")
+    const [infoMsg, setInfoMsg] = useState("")
+    const [activo, setActivo] = useState(true)
 
-  const [categoriaSel, setCategoriaSel] = useState<string>("")
-  const [claseSel, setClaseSel] = useState<string>("")
-  const [telaSel, setTelaSel] = useState<string>("")
-  const [regionSel, setRegionSel] = useState<string>("")
+    const [categorias, setCategorias] = useState<Opcion[]>([])
+    const [clases, setClases] = useState<Clase[]>([])
+    const [telas, setTelas] = useState<Opcion[]>([])
 
-  // textos libres (solo info/telemetría)
-  const [categoriaInput, setCategoriaInput] = useState("")
-  const [telaInput, setTelaInput] = useState("")
-  const [regionInput, setRegionInput] = useState("")
+    const [categoriaSel, setCategoriaSel] = useState("")
+    const [claseSel, setClaseSel] = useState("")
+    const [telaSel, setTelaSel] = useState("")
 
-  const fileRef = useRef<HTMLInputElement>(null)
+    // Accesorios
+    const [accesorios, setAccesorios] = useState<Opcion[]>([])
+    const [accesorioSel, setAccesorioSel] = useState("")
+    const [accesorioInput, setAccesorioInput] = useState("")
 
-  const fetchJSON = async <T,>(path: string, init?: RequestInit) => {
-    const r = await fetch(`${API}${path}`, {
-      credentials: "include",
-      cache: "no-store",
-      ...init,
-    })
-    if (!r.ok) throw new Error(await r.text())
-    return (await r.json()) as T
-  }
+    // Tipos (solo Accesorios normales)
+    const [tipos, setTipos] = useState<Opcion[]>([])
+    const [tipoSel, setTipoSel] = useState("")
+    const [tipoInput, setTipoInput] = useState("")
 
-  useEffect(() => {
-    ;(async () => {
-      try {
-        const [cats, cls, regs] = await Promise.all([
-          fetchJSON<Opcion[]>("/api/categorias"),
-          fetchJSON<Clase[]>("/api/clases"),
-          fetchJSON<Opcion[]>("/api/regiones"),
-        ])
-        setCategorias(cats)
-        setClases(cls)
-        setRegiones(regs)
-      } catch (e: any) {
-        setEstado("error")
-        setMensaje(e.message || "No se pudieron cargar opciones.")
+    // Materiales
+    const [materiales, setMateriales] = useState<Opcion[]>([])
+    const [materialSel, setMaterialSel] = useState("")
+    const [materialInput, setMaterialInput] = useState("")
+
+    const [departamentoSel, setDepartamentoSel] = useState("")
+    const [municipioSel, setMunicipioSel] = useState("")
+    const [municipios, setMunicipios] = useState<string[]>([])
+
+    const [categoriaInput, setCategoriaInput] = useState("")
+    const [telaInput, setTelaInput] = useState("")
+
+    const fileRef = useRef<HTMLInputElement>(null)
+    const formRef = useRef<HTMLFormElement>(null) // 🔹 usamos un ref al formulario
+
+    const fetchJSON = async <T,>(path: string) => {
+      const r = await fetch(`${API}${path}`, { credentials: "include", cache: "no-store" })
+      if (!r.ok) throw new Error(await r.text())
+      return (await r.json()) as T
+    }
+
+    // ============================
+    // Cargar opciones iniciales
+    // ============================
+    useEffect(() => {
+      ;(async () => {
+        try {
+          const [cats, cls] = await Promise.all([
+            fetchJSON<Opcion[]>("/api/categorias"),
+            fetchJSON<Clase[]>("/api/clases"),
+          ])
+          setCategorias(cats)
+          setClases(cls)
+        } catch (e: any) {
+          setEstado("error")
+          setMensaje(e.message)
+        }
+      })()
+    }, [])
+
+    useEffect(() => {
+      if (!claseSel || claseSel === OTROS) return setTelas([])
+      fetchJSON<Opcion[]>(`/api/telas?clase_id=${claseSel}`).then(setTelas).catch(() => setTelas([]))
+    }, [claseSel])
+
+    const nombreCategoriaSel = useMemo(
+      () => categorias.find((c) => String(c.id) === categoriaSel)?.nombre.toLowerCase() || "",
+      [categorias, categoriaSel]
+    )
+
+    // 🔹 aceptar "accesorio" o "accesorios"
+    const esAccesorio = ["accesorio", "accesorios"].includes(nombreCategoriaSel)
+    const esAccesorioTipico = nombreCategoriaSel === "accesorios típicos"
+
+    // ============================
+    // Accesorios / Tipos / Materiales
+    // ============================
+    useEffect(() => {
+      if (!(esAccesorio || esAccesorioTipico)) return setAccesorios([])
+      const tipo = esAccesorio ? "normal" : "tipico"
+      fetchJSON<Opcion[]>(`/api/accesorios?tipo=${tipo}`).then(setAccesorios).catch(() => setAccesorios([]))
+    }, [esAccesorio, esAccesorioTipico])
+
+    useEffect(() => {
+      if (!esAccesorio || !accesorioSel || accesorioSel === OTROS) return setTipos([])
+      fetchJSON<Opcion[]>(`/api/accesorio-tipos?accesorio_id=${accesorioSel}`)
+        .then(setTipos)
+        .catch(() => setTipos([]))
+    }, [esAccesorio, accesorioSel])
+
+    useEffect(() => {
+      if ((!esAccesorio && !esAccesorioTipico) || !accesorioSel || accesorioSel === OTROS)
+        return setMateriales([])
+
+      let q = `/api/accesorio-materiales?accesorio_id=${accesorioSel}`
+      if (esAccesorio && tipoSel && tipoSel !== OTROS) {
+        q += `&tipo_id=${tipoSel}`
       }
-    })()
-  }, [])
 
-  useEffect(() => {
-    setTelaSel("")
-    if (!claseSel || claseSel === OTROS) {
-      setTelas([])
-      return
+      fetchJSON<Opcion[]>(q).then(setMateriales).catch(() => setMateriales([]))
+    }, [esAccesorio, esAccesorioTipico, accesorioSel, tipoSel])
+
+    // ============================
+    // Helpers
+    // ============================
+    const confirmarOtro = (tipo: OtroTipo, valor: string) => {
+      if (!valor.trim()) return
+      setInfoMsg(`"${valor}" agregado como información en ${tipo}.`)
+      setTimeout(() => setInfoMsg(""), 4000)
     }
-    ;(async () => {
-      try {
-        setTelas(await fetchJSON<Opcion[]>(`/api/telas?clase_id=${claseSel}`))
-      } catch (e: any) {
-        setEstado("error")
-        setMensaje(e.message || "No se pudieron cargar telas.")
+
+    const handleDepartamentoChange = (dep: string) => {
+      setDepartamentoSel(dep)
+      const depObj = departamentosConMunicipios.find((d) => d.nombre === dep)
+      setMunicipios(depObj ? depObj.municipios : [])
+      setMunicipioSel("")
+    }
+
+    const handlePrecioKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
+      const ok =
+        ["Backspace", "Tab", "ArrowLeft", "ArrowRight", "Delete"].includes(e.key) ||
+        /[0-9.,]/.test(e.key)
+      if (!ok) e.preventDefault()
+    }
+
+    // ============================
+    // Submit
+    // ============================
+    async function onSubmit(e: React.FormEvent<HTMLFormElement>) {
+      e.preventDefault()
+      const fd = new FormData(e.currentTarget)
+      fd.set("precio", toDecimal(String(fd.get("precio") || "")))
+      fd.set("activo", String(activo))
+
+      if (categoriaSel === OTROS) fd.set("categoria_custom", categoriaInput)
+      else fd.set("categoria_id", categoriaSel)
+
+      fd.set("clase_id", claseSel)
+
+      if (telaSel === OTROS) fd.set("tela_custom", telaInput)
+      else if (telaSel && telaSel !== NA) fd.set("tela_id", telaSel)
+
+      if ((esAccesorio || esAccesorioTipico) && accesorioSel) {
+        if (accesorioSel === OTROS) fd.set("accesorio_custom", accesorioInput)
+        else fd.set("accesorio_id", accesorioSel)
+
+        if (esAccesorio && tipoSel) {
+          if (tipoSel === OTROS) fd.set("accesorio_tipo_custom", tipoInput)
+          else fd.set("accesorio_tipo_id", tipoSel)
+        }
+
+        if (materialSel) {
+          if (materialSel === OTROS) fd.set("accesorio_material_custom", materialInput)
+          else fd.set("accesorio_material_id", materialSel)
+        }
       }
-    })()
-  }, [claseSel])
 
-  async function onSubmit(e: React.FormEvent<HTMLFormElement>) {
-    e.preventDefault()
-    const form = e.currentTarget as any
+      if (departamentoSel) fd.set("departamento", departamentoSel)
+      if (municipioSel) fd.set("municipio", municipioSel)
 
-    if (!categoriaSel) return err("Selecciona una categoría (o agrega Otra).")
-    if (!claseSel) return err("Selecciona clase.")
-    if (!regionSel) return err("Selecciona región (o agrega Otra).")
-    if (telaSel !== NA && telaSel !== OTROS && !telaSel)
-      return err("Selecciona tela o 'No aplica'.")
+      const files = fileRef.current?.files
+      if (files) Array.from(files).slice(0, 9).forEach((f) => fd.append("imagenes[]", f))
 
-    if (categoriaSel === OTROS && !categoriaInput.trim())
-      return err("Escribe la nueva categoría (solo información).")
-    if (regionSel === OTROS && !regionInput.trim())
-      return err("Escribe la nueva región (solo información).")
-    if (telaSel === OTROS && !telaInput.trim())
-      return err("Escribe la nueva tela (solo información).")
+      try {
+        setEstado("loading")
+        const token = getToken()
+        const res = await fetch(`${API}/api/productos`, {
+          method: "POST",
+          body: fd,
+          headers: token ? { Authorization: `Bearer ${token}` } : {},
+          credentials: "include",
+        })
+        if (!res.ok) throw new Error(await res.text())
+        setMensaje("✅ Producto creado con éxito.")
+        setEstado("ok")
 
-    const fd = new FormData(form)
-    fd.set("precio", toDecimal(String(form["precio"].value)))
-
-    // Categoría
-    if (categoriaSel === OTROS) {
-      fd.set("categoria_id", "") // null en backend
-      fd.set("categoria_input", categoriaInput)
-    } else {
-      fd.set("categoria_id", categoriaSel)
-      fd.delete("categoria_input")
+        // ✅ ahora usamos el ref en lugar de e.currentTarget
+        if (formRef.current) formRef.current.reset()
+      } catch (err: any) {
+        setMensaje(err.message || "Error al guardar el producto.")
+        setEstado("error")
+      }
     }
 
-    fd.set("clase_id", claseSel)
+    // ============================
+    // Render
+    // ============================
+    return (
+      <main className="max-w-3xl mx-auto px-4 py-8 space-y-6">
+        <h1 className="text-2xl font-semibold">Agregar nuevo producto</h1>
+        <form ref={formRef} className="space-y-5" onSubmit={onSubmit}>
+          <CategoriaSelect
+            categorias={categorias}
+            categoriaSel={categoriaSel}
+            setCategoriaSel={setCategoriaSel}
+            categoriaInput={categoriaInput}
+            setCategoriaInput={setCategoriaInput}
+            OTROS={OTROS}
+            confirmarOtro={confirmarOtro}
+          />
 
-    // Región
-    if (regionSel === OTROS) {
-      fd.set("region_id", "") // null en backend
-      fd.set("region_input", regionInput)
-    } else {
-      fd.set("region_id", regionSel)
-      fd.delete("region_input")
-    }
-
-    // Tela
-    if (telaSel === NA) {
-      fd.set("tela_id", "")
-      fd.delete("tela_input")
-    } else if (telaSel === OTROS) {
-      fd.set("tela_id", "") // null en backend
-      fd.set("tela_input", telaInput)
-    } else {
-      fd.set("tela_id", telaSel)
-      fd.delete("tela_input")
-    }
-
-    fd.set("activo", String(activo))
-
-    const files = fileRef.current?.files
-    if (files)
-      Array.from(files)
-        .slice(0, 9)
-        .forEach((f) => fd.append("imagenes[]", f))
-
-    try {
-      setEstado("loading")
-      setMensaje("")
-      const headers: HeadersInit = {}
-      const token = getToken()
-      if (token) headers["Authorization"] = `Bearer ${token}`
-      const res = await fetch(`${API}/api/productos`, {
-        method: "POST",
-        body: fd,
-        headers,
-        credentials: "include",
-      })
-      if (!res.ok) throw new Error(await res.text())
-
-      ok("✅ Producto creado con éxito.")
-      ;(e.target as HTMLFormElement).reset()
-      setCategoriaSel("")
-      setClaseSel("")
-      setTelaSel("")
-      setRegionSel("")
-      setActivo(true)
-      setCategoriaInput("")
-      setTelaInput("")
-      setRegionInput("")
-      if (fileRef.current) fileRef.current.value = ""
-    } catch (err: any) {
-      errMsg(err.message || "Error al guardar el producto.")
-    }
-  }
-
-  const err = (m: string) => {
-    setEstado("error")
-    setMensaje(m)
-  }
-  const ok = (m: string) => {
-    setEstado("ok")
-    setMensaje(m)
-  }
-  const errMsg = (m: string) => err(m)
-
-  const handlePrecioKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
-    const ok =
-      ["Backspace", "Tab", "ArrowLeft", "ArrowRight", "Delete"].includes(
-        e.key
-      ) || /[0-9.,]/.test(e.key)
-    if (!ok) e.preventDefault()
-  }
-
-  // confirmar input “Otros”
-  const confirmarOtro = (
-    tipo: "categoria" | "tela" | "region",
-    valor: string
-  ) => {
-    if (!valor.trim()) return
-    setInfoMsg(`"${valor}" agregado como información en ${tipo}.`)
-    setTimeout(() => setInfoMsg(""), 4000)
-  }
-
-  return (
-    <main className="max-w-3xl mx-auto px-4 py-8 space-y-6">
-      <h1 className="text-2xl font-semibold">Agregar nuevo producto</h1>
-      <form className="space-y-5" onSubmit={onSubmit}>
-        {/* CATEGORÍA */}
-        <div>
-          <Label>Categoría</Label>
-          <select
-            className="w-full border rounded-md px-3 py-2"
-            value={categoriaSel}
-            onChange={(e) => setCategoriaSel(e.target.value)}
-          >
-            <option value="">Seleccione…</option>
-            {categorias.map((c) => (
-              <option key={c.id} value={String(c.id)}>
-                {c.nombre}
-              </option>
-            ))}
-            <option value={OTROS}>➕ Otros…</option>
-          </select>
-          {categoriaSel === OTROS && (
-            <div className="mt-2 flex gap-2">
-              <Input
-                className="flex-1"
-                placeholder="Nueva categoría (solo info)"
-                value={categoriaInput}
-                onChange={(e) => setCategoriaInput(e.target.value)}
+          {(esAccesorio || esAccesorioTipico) && (
+            <>
+              <AccesorioSelect
+                accesorios={accesorios}
+                accesorioSel={accesorioSel}
+                setAccesorioSel={setAccesorioSel}
+                accesorioInput={accesorioInput}
+                setAccesorioInput={setAccesorioInput}
+                OTROS={OTROS}
+                confirmarOtro={confirmarOtro}
               />
-              <Button
-                type="button"
-                onClick={() => confirmarOtro("categoria", categoriaInput)}
-              >
-                OK
-              </Button>
-            </div>
+
+              {esAccesorio && accesorioSel && accesorioSel !== OTROS && (
+                <TipoAccesorioSelect
+                  tipos={tipos}
+                  tipoSel={tipoSel}
+                  setTipoSel={setTipoSel}
+                  tipoInput={tipoInput}
+                  setTipoInput={setTipoInput}
+                  OTROS={OTROS}
+                  confirmarOtro={confirmarOtro}
+                />
+              )}
+
+              {accesorioSel && (
+                <MaterialSelect
+                  materiales={materiales}
+                  materialSel={materialSel}
+                  setMaterialSel={setMaterialSel}
+                  materialInput={materialInput}
+                  setMaterialInput={setMaterialInput}
+                  OTROS={OTROS}
+                  confirmarOtro={confirmarOtro}
+                />
+              )}
+            </>
           )}
-        </div>
 
-        {/* CLASE */}
-        <div>
-          <Label>Clase</Label>
-          <select
-            className="w-full border rounded-md px-3 py-2"
-            value={claseSel}
-            onChange={(e) => setClaseSel(e.target.value)}
-          >
-            <option value="">Seleccione…</option>
-            {clases.map((c) => (
-              <option key={c.id} value={String(c.id)}>
-                {c.nombre}
-              </option>
-            ))}
-          </select>
-        </div>
-
-        {/* TELA */}
-        <div>
-          <Label>Tela</Label>
-          <select
-            className="w-full border rounded-md px-3 py-2"
-            disabled={!claseSel}
-            value={telaSel}
-            onChange={(e) => setTelaSel(e.target.value)}
-          >
-            <option value="">
-              {claseSel ? "Seleccione…" : "Seleccione una clase primero"}
-            </option>
-            {telas.map((t) => (
-              <option key={t.id} value={String(t.id)}>
-                {t.nombre}
-              </option>
-            ))}
-            <option value={OTROS}>➕ Otros…</option>
-            <option value={NA}>— No aplica —</option>
-          </select>
-          {telaSel === OTROS && (
-            <div className="mt-2 flex gap-2">
-              <Input
-                className="flex-1"
-                placeholder="Nueva tela (solo info)"
-                value={telaInput}
-                onChange={(e) => setTelaInput(e.target.value)}
-              />
-              <Button
-                type="button"
-                onClick={() => confirmarOtro("tela", telaInput)}
-              >
-                OK
-              </Button>
-            </div>
-          )}
-        </div>
-
-        {/* REGIÓN */}
-        <div>
-          <Label>Región</Label>
-          <select
-            className="w-full border rounded-md px-3 py-2"
-            value={regionSel}
-            onChange={(e) => setRegionSel(e.target.value)}
-          >
-            <option value="">Seleccione…</option>
-            {regiones.map((r) => (
-              <option key={r.id} value={String(r.id)}>
-                {r.nombre}
-              </option>
-            ))}
-            <option value={OTROS}>➕ Otros…</option>
-          </select>
-          {regionSel === OTROS && (
-            <div className="mt-2 flex gap-2">
-              <Input
-                className="flex-1"
-                placeholder="Nueva región (solo info)"
-                value={regionInput}
-                onChange={(e) => setRegionInput(e.target.value)}
-              />
-              <Button
-                type="button"
-                onClick={() => confirmarOtro("region", regionInput)}
-              >
-                OK
-              </Button>
-            </div>
-          )}
-        </div>
-
-        {/* MENSAJE DE CONFIRMACIÓN */}
-        {infoMsg && <p className="text-sm text-blue-600">{infoMsg}</p>}
-
-        {/* DATOS BÁSICOS */}
-        <div className="grid sm:grid-cols-2 gap-4">
           <div>
-            <Label>Nombre del producto</Label>
-            <Input name="nombre" required placeholder="Ej. Huipil de Sololá" />
+            <Label>Clase</Label>
+            <select
+              className="w-full border rounded-md px-3 py-2"
+              value={claseSel}
+              onChange={(e) => setClaseSel(e.target.value)}
+            >
+              <option value="">Seleccione…</option>
+              {clases.map((c) => (
+                <option key={c.id} value={String(c.id)}>
+                  {c.nombre}
+                </option>
+              ))}
+            </select>
+          </div>
+
+          <TelaSelect
+            claseSel={claseSel}
+            telas={telas}
+            telaSel={telaSel}
+            setTelaSel={setTelaSel}
+            telaInput={telaInput}
+            setTelaInput={setTelaInput}
+            OTROS={OTROS}
+            NA={NA}
+            confirmarOtro={confirmarOtro}
+          />
+
+          <OrigenSelect
+            departamentosConMunicipios={departamentosConMunicipios}
+            departamentoSel={departamentoSel}
+            setDepartamentoSel={setDepartamentoSel}
+            municipioSel={municipioSel}
+            setMunicipioSel={setMunicipioSel}
+            municipios={municipios}
+            handleDepartamentoChange={handleDepartamentoChange}
+          />
+
+          {infoMsg && <p className="text-sm text-blue-600">{infoMsg}</p>}
+
+          {/* Datos básicos */}
+          <div className="grid sm:grid-cols-2 gap-4">
+            <div>
+              <Label>Nombre del producto</Label>
+              <Input name="nombre" required placeholder="Ej. Faja bordada" />
+            </div>
+            <div>
+              <Label>Precio</Label>
+              <Input
+                name="precio"
+                type="text"
+                inputMode="decimal"
+                pattern="^[0-9]+([.,][0-9]{1,2})?$"
+                onKeyDown={handlePrecioKeyDown}
+                placeholder="0.00"
+                required
+              />
+            </div>
+            <div>
+              <Label>Stock</Label>
+              <Input name="stock" type="number" min={0} required />
+            </div>
+            <div className="flex items-center justify-between">
+              <Label>Producto activo</Label>
+              <Switch checked={activo} onCheckedChange={setActivo} />
+            </div>
+          </div>
+
+          <div>
+            <Label>Descripción</Label>
+            <Textarea name="descripcion" rows={4} required />
           </div>
           <div>
-            <Label>Precio</Label>
-            <Input
-              name="precio"
-              type="text"
-              inputMode="decimal"
-              pattern="^[0-9]+([.,][0-9]{1,2})?$"
-              title="Ejemplo: 10, 10.5 o 10,50"
-              onKeyDown={handlePrecioKeyDown}
-              onBlur={(e) => {
-                const v = e.currentTarget.value.trim()
-                if (v) e.currentTarget.value = toDecimal(v)
-              }}
-              placeholder="0.00"
-              required
-            />
+            <Label>Imágenes (máx. 9)</Label>
+            <Input ref={fileRef} type="file" accept="image/*" multiple />
           </div>
-          <div>
-            <Label>Stock</Label>
-            <Input name="stock" type="number" min={0} required />
-          </div>
-          <div className="flex items-center justify-between">
-            <Label>Producto activo</Label>
-            <Switch checked={activo} onCheckedChange={setActivo} />
-          </div>
-        </div>
 
-        <div>
-          <Label>Descripción</Label>
-          <Textarea name="descripcion" rows={4} required />
-        </div>
-        <div>
-          <Label>Imágenes (máx. 9)</Label>
-          <Input ref={fileRef} type="file" accept="image/*" multiple />
-        </div>
-
-        <Button
-          type="submit"
-          className="w-full sm:w-auto"
-          disabled={estado === "loading"}
-        >
-          {estado === "loading" ? "Guardando…" : "Guardar producto"}
-        </Button>
-        {mensaje && (
-          <p
-            className={`text-sm ${
-              estado === "error" ? "text-red-600" : "text-green-600"
-            }`}
-          >
-            {mensaje}
-          </p>
-        )}
-      </form>
-    </main>
-  )
-}
+          <Button type="submit" className="w-full sm:w-auto" disabled={estado === "loading"}>
+            {estado === "loading" ? "Guardando…" : "Guardar producto"}
+          </Button>
+          {mensaje && (
+            <p className={`text-sm ${estado === "error" ? "text-red-600" : "text-green-600"}`}>
+              {mensaje}
+            </p>
+          )}
+        </form>
+      </main>
+    )
+  }
