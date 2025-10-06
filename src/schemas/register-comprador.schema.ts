@@ -1,3 +1,5 @@
+// src/schemas/register-comprador.schema.ts
+
 import { z } from "zod";
 
 export const registerCompradorSchema = z

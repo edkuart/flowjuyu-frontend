@@ -1,3 +1,5 @@
+// src/schemas/register-vendedor.schema.ts
+
 import { z } from "zod"
 
 export const registerVendedorSchema = z.object({

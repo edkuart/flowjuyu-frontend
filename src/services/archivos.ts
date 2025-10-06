@@ -1,3 +1,5 @@
+// src/services/archivos.ts
+
 import axios from "axios"
 
 export async function apiEliminarArchivoAnterior(campo: string, id: string) {
