@@ -1,37 +1,65 @@
 // src/context/AuthContext.tsx
 "use client";
 
-import { createContext, useContext, useState, ReactNode, useEffect } from "react";
+import { createContext, useContext, useEffect, useState, ReactNode } from "react";
 
-type User = { id: string; nombre: string; rol: "comprador" | "vendedor" | "admin" } | null;
+export type Rol = "comprador" | "vendedor" | "admin";
 
-type AuthCtx = {
-  user: User;
-  login: (token: string) => Promise<void>;
+export interface User {
+  id: string;
+  nombre: string;
+  rol: Rol;
+  [key: string]: any; // Para campos extra (email, imagen, etc.)
+}
+
+interface AuthContextProps {
+  user: User | null;
+  token: string | null;
+  /** true cuando ya se leyó localStorage y el contexto está hidratado */
+  ready: boolean;
+  login: (user: User, token: string) => void;
   logout: () => void;
-};
+}
 
-const AuthContext = createContext<AuthCtx | undefined>(undefined);
+const AuthContext = createContext<AuthContextProps | undefined>(undefined);
 
 export function AuthProvider({ children }: { children: ReactNode }) {
-  const [user, setUser] = useState<User>(null);
+  const [user, setUser] = useState<User | null>(null);
+  const [token, setToken] = useState<string | null>(null);
+  const [ready, setReady] = useState(false);
 
+  // Al montar: hidratar estado desde localStorage
   useEffect(() => {
-    // leer token de localStorage y poblar user si aplica
-    // ...
+    try {
+      const storedUser = localStorage.getItem("user");
+      const storedToken = localStorage.getItem("token");
+      if (storedUser && storedToken) {
+        setUser(JSON.parse(storedUser) as User);
+        setToken(storedToken);
+      }
+    } finally {
+      setReady(true); // ← evita parpadeo en AuthGuard
+    }
   }, []);
 
-  async function login(token: string) {
-    // guardar token y setUser(...)
-  }
+  const login = (u: User, t: string) => {
+    setUser(u);
+    setToken(t);
+    localStorage.setItem("user", JSON.stringify(u));
+    localStorage.setItem("token", t);
+  };
 
-  function logout() {
-    // limpiar token y user
+  const logout = () => {
     setUser(null);
-  }
+    setToken(null);
+    localStorage.removeItem("user");
+    localStorage.removeItem("token");
+    // Redirige a login (similar a Manuel)
+    window.location.replace("/login");
+  };
 
   return (
-    <AuthContext.Provider value={{ user, login, logout }}>
+    <AuthContext.Provider value={{ user, token, ready, login, logout }}>
       {children}
     </AuthContext.Provider>
   );

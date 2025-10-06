@@ -35,7 +35,7 @@
     "exceljs": "^4.4.0",
     "firebase": "^12.0.0",
     "jsonwebtoken": "^9.0.2",
-    "jspdf": "^3.0.2",
+    "jspdf": "^3.0.3",
     "jspdf-autotable": "^5.0.2",
     "libphonenumber-js": "^1.12.9",
     "lucide-react": "^0.513.0",
