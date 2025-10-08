@@ -3,11 +3,20 @@ const createNextIntlPlugin = require('next-intl/plugin')
 /** @type {import('next').NextConfig} */
 const nextConfig = {
   reactStrictMode: true,
-  experimental: {
-    
-  },
+  experimental: {},
   images: {
-    domains: ['via.placeholder.com'],
+    remotePatterns: [
+      {
+        protocol: "https",
+        hostname: "yjoybxvmnfwkuzrthdge.supabase.co", // ✅ tu proyecto Supabase
+        pathname: "/storage/v1/object/public/**",
+      },
+      {
+        protocol: "https",
+        hostname: "via.placeholder.com", // ✅ placeholder de compatibilidad
+        pathname: "/**",
+      },
+    ],
   },
 }
 
