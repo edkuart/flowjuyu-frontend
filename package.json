@@ -48,6 +48,7 @@
     "react-dom": "18.3.1",
     "react-hook-form": "^7.57.0",
     "recharts": "^3.0.2",
+    "sweetalert2": "^11.25.0",
     "tailwind-merge": "3.3.0",
     "tailwind-variants": "^1.0.0",
     "vaul": "1.1.2",
@@ -74,5 +75,21 @@
     "tailwindcss-animate": "^1.0.7",
     "tsx": "^4.20.6",
     "typescript": "5.8.3"
-  }
+  },
+  "description": "```plaintext\r components/\r config/\r hooks/\r lib/\r types/\r utils/\r ```",
+  "main": "next.config.js",
+  "directories": {
+    "test": "tests"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/edkuart/flowjuyu-frontend.git"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "bugs": {
+    "url": "https://github.com/edkuart/flowjuyu-frontend/issues"
+  },
+  "homepage": "https://github.com/edkuart/flowjuyu-frontend#readme"
 }
