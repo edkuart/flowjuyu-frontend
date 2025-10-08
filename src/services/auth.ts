@@ -109,7 +109,7 @@ export async function apiLogout() {
   try {
     const res = await fetch("http://localhost:8800/api/logout", {
       method: "POST",
-      credentials: "include", // ✅ importante para enviar cookie de sesión
+      credentials: "include", //  importante para enviar cookie de sesión
     });
 
     const json = await res.json();
