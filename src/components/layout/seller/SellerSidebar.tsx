@@ -48,6 +48,15 @@ export default function SellerSidebar() {
 
         <SidebarMenuItem>
           <SidebarMenuButton asChild>
+            <Link href="/seller/reportes">
+              <IconUsers className="w-5 h-5" />
+              <span>reportes</span>
+            </Link>
+          </SidebarMenuButton>
+        </SidebarMenuItem>
+
+        <SidebarMenuItem>
+          <SidebarMenuButton asChild>
             <Link href="/seller/settings">
               <IconSettings className="w-5 h-5" />
               <span>Configuración</span>

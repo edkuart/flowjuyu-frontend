@@ -1,25 +1,33 @@
-#!/bin/bash
+$extensiones = @(".ts", ".tsx", ".js", ".jsx", ".json", ".mjs", ".cjs")
+$excluirCarpetas = @("node_modules", "dist", "build", ".next", "out", "coverage", ".git", ".pnpm")
 
-extensiones=("ts" "tsx" "js" "json" "mjs" "cjs")
-excluir=("node_modules" ".git" "dist" "uploads")
+# Si ya existe, eliminar el archivo
+if (Test-Path "AllCode.txt") {
+    Remove-Item "AllCode.txt"
+}
 
-output="AllCode.txt"
-> "$output"
+Get-ChildItem -Recurse -File -ErrorAction SilentlyContinue | ForEach-Object {
+    $extension = $_.Extension.ToLower()
+    $ruta = $_.FullName.ToLower()
 
-find . -type f | while read -r archivo; do
-    extension="${archivo##*.}"
-    en_excluidas=false
-
-    for carpeta in "${excluir[@]}"; do
-        if [[ "$archivo" == "/$carpeta/" ]]; then
-            en_excluidas=true
+    # Verificar si está en carpetas excluidas
+    $enCarpetaExcluida = $false
+    foreach ($carpeta in $excluirCarpetas) {
+        if ($ruta -like "*$carpeta*") {
+            $enCarpetaExcluida = $true
             break
-        fi
-    done
+        }
+    }
 
-    if [[ " ${extensiones[*]} " == *" $extension " && $en_excluidas == false ]]; then
-        echo "----- FILE: $archivo -----" >> "$output"
-        cat "$archivo" >> "$output" 2>> "$output"
-        echo -e "\n\n" >> "$output"
-    fi
-done
+    if ($extensiones -contains $extension -and -not $enCarpetaExcluida) {
+        "----- FILE: $($_.FullName) -----`r`n" | Out-File -Append "AllCode.txt"
+
+        try {
+            Get-Content -Path $_.FullName -ErrorAction Stop | Out-File -Append "AllCode.txt"
+        } catch {
+            "`r`n**ERROR AL LEER EL ARCHIVO: $($_.FullName)**`r`n" | Out-File -Append "AllCode.txt"
+        }
+
+        "`r`n`r`n" | Out-File -Append "AllCode.txt"
+    }
+}

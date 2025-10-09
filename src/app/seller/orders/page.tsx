@@ -1,298 +1,534 @@
-"use client"
+'use client'
 
-import { useMemo, useState } from "react"
-import {
-  Card,
-  CardHeader,
-  CardTitle,
-  CardDescription,
-  CardContent,
-} from "@/components/ui/card"
-import { Button } from "@/components/ui/button"
-import { Input } from "@/components/ui/input"
-import { Badge } from "@/components/ui/badge"
+import { useEffect, useMemo, useState } from 'react'
+import { Badge } from '@/components/ui/badge'
+import { Button } from '@/components/ui/button'
+import { Card, CardContent } from '@/components/ui/card'
+import { Input } from '@/components/ui/input'
+import { Label } from '@/components/ui/label'
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog'
+import { CalendarDays, Loader2 } from 'lucide-react'
 
-type OrderItem = {
-  name: string
-  price: number
-  qty: number
-  image?: string
-}
-
-type Order = {
-  id: number
-  status: "Entregado" | "En camino" | "Pendiente" | "Cancelado"
-  date: string // ISO o legible
-  customer: string
+type PedidoProducto = { nombre: string; imagen?: string; precio: number; cantidad?: number }
+type Pedido = {
+  id: string
+  fecha: string // ISO
+  estado: 'Pendiente' | 'En preparación' | 'En camino' | 'Entregado' | 'Cancelado'
   total: number
-  payment: string
-  address: string
-  items: OrderItem[]
+  cliente: string
+  envio: string
+  metodo: string
+  productos: PedidoProducto[]
 }
 
-const MOCK: Order[] = [
+const ESTADOS: Pedido['estado'][] = ['Pendiente', 'En preparación', 'En camino', 'Entregado', 'Cancelado']
+
+// ===== Helpers =====
+const formatQ = (n: number) =>
+  `Q ${n.toLocaleString('es-GT', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`
+
+const estadoStyle = (estado: Pedido['estado']) => {
+  switch (estado) {
+    case 'Pendiente':
+      return 'border-amber-500 text-amber-600'
+    case 'En preparación':
+      return 'border-blue-500 text-blue-600'
+    case 'En camino':
+      return 'border-orange-500 text-orange-600'
+    case 'Entregado':
+      return 'border-green-600 text-green-700'
+    case 'Cancelado':
+      return 'border-red-600 text-red-700'
+    default:
+      return 'border-muted-foreground text-muted-foreground'
+  }
+}
+
+// Mock por si el backend no está listo
+const mockPedidos: Pedido[] = [
   {
-    id: 1249,
-    status: "Entregado",
-    date: "14 de junio de 2025",
-    customer: "Ana Gómez",
-    total: 300,
-    payment: "Pago contra entrega",
-    address: "Zona 1, Totonicapán",
-    items: [{ name: "Traje regional", price: 300, qty: 1 }],
+    id: '1248',
+    fecha: '2025-06-20',
+    estado: 'En camino',
+    total: 245.0,
+    cliente: 'María López',
+    envio: 'Zona 3, Quetzaltenango',
+    metodo: 'Tarjeta crédito',
+    productos: [
+      { nombre: 'Blusa típica bordada', imagen: '/productos/blusa1.jpg', precio: 120, cantidad: 1 },
+      { nombre: 'Faja multicolor artesanal', imagen: '/productos/faja1.jpg', precio: 125, cantidad: 1 },
+    ],
   },
   {
-    id: 1248,
-    status: "En camino",
-    date: "19 de junio de 2025",
-    customer: "Carlos Pérez",
-    total: 245,
-    payment: "Tarjeta crédito",
-    address: "Zona 3, Quetzaltenango",
-    items: [
-      { name: "Blusa típica bordada", price: 120, qty: 1 },
-      { name: "Faja multicolor artesanal", price: 125, qty: 1 },
-    ],
+    id: '1249',
+    fecha: '2025-06-15',
+    estado: 'Entregado',
+    total: 300.0,
+    cliente: 'Ana Gómez',
+    envio: 'Zona 1, Totonicapán',
+    metodo: 'Pago contra entrega',
+    productos: [{ nombre: 'Traje regional', imagen: '/productos/traje1.jpg', precio: 300, cantidad: 1 }],
   },
 ]
 
-function money(n: number) {
-  return `Q ${n.toLocaleString("es-GT", {
-    minimumFractionDigits: 2,
-    maximumFractionDigits: 2,
-  })}`
+// ===== Utilidades de fechas (YYYY-MM-DD) =====
+const pad = (n: number) => (n < 10 ? `0${n}` : `${n}`)
+const toYMD = (d: Date) => `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}`
+
+// Rango rápido activo (para resaltar botón)
+function sameRange(aFrom: string, aTo: string, bFrom: string, bTo: string) {
+  return aFrom === bFrom && aTo === bTo
 }
 
-export default function OrdersHistoryPage() {
-  const [query, setQuery] = useState("")
-  const [status, setStatus] = useState<"" | Order["status"]>("Entregado")
-  const [from, setFrom] = useState("")
-  const [to, setTo] = useState("")
+export default function SellerOrdersPage() {
+  // filtros
+  const [q, setQ] = useState('')
+  const [estado, setEstado] = useState<Pedido['estado'] | 'Todos'>('Todos')
+  const [from, setFrom] = useState<string>('') // YYYY-MM-DD
+  const [to, setTo] = useState<string>('')     // YYYY-MM-DD
 
-  const filtered = useMemo(() => {
-    return MOCK.filter((o) => {
-      const q = query.trim().toLowerCase()
-      if (q) {
-        const hit =
-          String(o.id).includes(q) ||
-          o.customer.toLowerCase().includes(q) ||
-          o.items.some((i) => i.name.toLowerCase().includes(q))
-        if (!hit) return false
-      }
-      if (status && o.status !== status) return false
+  // data
+  const [pedidos, setPedidos] = useState<Pedido[]>([])
+  const [loading, setLoading] = useState(false)
+  const [page, setPage] = useState(1)
+  const [pageSize] = useState(8)
+  const [hasMore, setHasMore] = useState(false)
 
-      // Filtro por fechas sólo si vienen (usa YYYY-MM-DD del <input type="date">)
-      if (from) {
-        try {
-          const f = new Date(from).getTime()
-          const od = new Date(o.date).getTime() || Date.now()
-          if (od < f) return false
-        } catch {}
-      }
-      if (to) {
-        try {
-          const t = new Date(to).getTime()
-          const od = new Date(o.date).getTime() || Date.now()
-          if (od > t) return false
-        } catch {}
-      }
+  // modal detalle
+  const [open, setOpen] = useState(false)
+  const [current, setCurrent] = useState<Pedido | null>(null)
 
-      return true
-    })
-  }, [query, status, from, to])
+  // ===== RANGOS RÁPIDOS =====
+  const today = toYMD(new Date())
+  const last7From = toYMD(new Date(Date.now() - 6 * 24 * 60 * 60 * 1000)) // incluye hoy
+  const last30From = toYMD(new Date(Date.now() - 29 * 24 * 60 * 60 * 1000))
+  const monthStart = (() => {
+    const d = new Date()
+    return toYMD(new Date(d.getFullYear(), d.getMonth(), 1))
+  })()
 
-  const totalPage = filtered.reduce((acc, o) => acc + o.total, 0)
+  const quickRanges = [
+    { key: 'hoy', label: 'Hoy', from: today, to: today },
+    { key: 'semana', label: 'Últimos 7 días', from: last7From, to: today },
+    { key: 'mes-actual', label: 'Este mes', from: monthStart, to: today },
+    { key: '30', label: 'Últimos 30 días', from: last30From, to: today },
+  ] as const
 
-  function clearFilters() {
-    setQuery("")
-    setStatus("" as any)
-    setFrom("")
-    setTo("")
+  function applyQuickRange(f: string, t: string) {
+    setFrom(f)
+    setTo(t)
+    setPage(1)
+    // El useEffect de filtros recargará automáticamente
   }
 
-  function exportCSV() {
-    const headers = [
-      "Pedido",
-      "Fecha",
-      "Cliente",
-      "Estado",
-      "Total",
-      "Método",
-      "Dirección",
-    ]
-    const rows = filtered.map((o) => [
-      `#${o.id}`,
-      o.date,
-      o.customer,
-      o.status,
-      o.total,
-      o.payment,
-      o.address,
-    ])
-    const csv =
-      [headers, ...rows]
-        .map((r) => r.map((c) => `"${String(c).replace(/"/g, '""')}"`).join(","))
-        .join("\n") + "\n"
+  // ===== Cargar pedidos =====
+  async function cargarPedidos(p = page) {
+    setLoading(true)
+    try {
+      // adapta tu endpoint; ejemplo con query params
+      const params = new URLSearchParams()
+      params.set('page', String(p))
+      params.set('limit', String(pageSize))
+      if (q.trim()) params.set('q', q.trim())
+      if (estado !== 'Todos') params.set('estado', estado)
+      if (from) params.set('from', from)
+      if (to) params.set('to', to)
 
-    const blob = new Blob([csv], { type: "text/csv;charset=utf-8" })
-    const a = document.createElement("a")
+      const url = `${process.env.NEXT_PUBLIC_API_URL}/api/seller/orders?${params.toString()}`
+      const res = await fetch(url, {
+        headers: { Authorization: `Bearer ${localStorage.getItem('token') || ''}` },
+        cache: 'no-store',
+      })
+
+      if (res.ok) {
+        // Espera algo como { items: Pedido[], hasMore: boolean }
+        const json = await res.json()
+        setPedidos(json.items ?? [])
+        setHasMore(!!json.hasMore)
+      } else {
+        // si tu backend aún no existe, usa mock con filtro en cliente
+        const filtered = filterLocal(mockPedidos, { q, estado, from, to })
+        setPedidos(paginate(filtered, p, pageSize))
+        setHasMore(p * pageSize < filtered.length)
+      }
+    } catch (e) {
+      console.error(e)
+      const filtered = filterLocal(mockPedidos, { q, estado, from, to })
+      setPedidos(paginate(filtered, p, pageSize))
+      setHasMore(p * pageSize < filtered.length)
+    } finally {
+      setLoading(false)
+    }
+  }
+
+  // util local para mocks
+  function filterLocal(items: Pedido[], f: { q: string; estado: Pedido['estado'] | 'Todos'; from: string; to: string }) {
+    return items.filter((it) => {
+      const matchQ =
+        !f.q ||
+        it.id.toLowerCase().includes(f.q.toLowerCase()) ||
+        it.cliente.toLowerCase().includes(f.q.toLowerCase())
+      const matchEstado = f.estado === 'Todos' || it.estado === f.estado
+      const t = new Date(it.fecha).getTime()
+      const min = f.from ? new Date(f.from).getTime() : -Infinity
+      const max = f.to ? new Date(f.to).getTime() : Infinity
+      const matchDate = t >= min && t <= max
+      return matchQ && matchEstado && matchDate
+    })
+  }
+  function paginate<T>(arr: T[], p: number, size: number) {
+    const start = (p - 1) * size
+    return arr.slice(start, start + size)
+  }
+
+  // carga inicial
+  useEffect(() => {
+    cargarPedidos(1)
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [])
+
+  // cuando cambian filtros, vuelve a página 1 y recarga
+  useEffect(() => {
+    setPage(1)
+    cargarPedidos(1)
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [q, estado, from, to])
+
+  // ===== Exportar CSV "amigable para Excel" =====
+  function exportCSV() {
+    if (!pedidos.length) return
+
+    const DELIM = ';' // mejor que coma en entornos ES (coma decimal)
+    const normalizeText = (s: string) =>
+      String(s).replace(/\r?\n|\r/g, ' ').replace(/"/g, '""').trim()
+
+    const toMoneyNumber = (n: number) => n.toFixed(2) // 2 decimales, sin "Q "
+    const toMoneyHuman = (n: number) =>
+      `Q ${n.toLocaleString('es-GT', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`
+
+    const headers = [
+      'ID',
+      'Fecha',
+      'Estado',
+      'Cliente',
+      'Total (num)',
+      'Total (texto)',
+      'Método',
+      'Envío',
+      'Productos',
+    ]
+
+    const rows = pedidos.map((p) => {
+      const productosTxt = p.productos
+        .map((pp) => `${pp.nombre} x${pp.cantidad ?? 1} (${toMoneyHuman(pp.precio)})`)
+        .join(' / ')
+
+      const cols = [
+        p.id,
+        p.fecha,                // o: new Date(p.fecha).toISOString().slice(0,10)
+        p.estado,
+        p.cliente,
+        toMoneyNumber(p.total), // num puro
+        toMoneyHuman(p.total),  // bonito
+        p.metodo,
+        p.envio,
+        productosTxt,
+      ]
+
+      return cols.map((c) => `"${normalizeText(c)}"`).join(DELIM)
+    })
+
+    const totalNum = pedidos.reduce((acc, p) => acc + p.total, 0)
+    const footer = [
+      '""', // ID
+      '""', // Fecha
+      '""', // Estado
+      '"TOTAL"', // Cliente
+      `"${toMoneyNumber(totalNum)}"`,
+      `"${toMoneyHuman(totalNum)}"`,
+      '""',
+      '""',
+      '""',
+    ].join(DELIM)
+
+    const csv = [
+      '\uFEFF' + headers.map((h) => `"${normalizeText(h)}"`).join(DELIM), // BOM + cabecera
+      ...rows,
+      footer,
+    ].join('\r\n')
+
+    const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' })
+    const a = document.createElement('a')
     a.href = URL.createObjectURL(blob)
-    a.download = "historial_pedidos.csv"
+    a.download = `pedidos_${new Date().toISOString().slice(0, 10)}.csv`
     a.click()
     URL.revokeObjectURL(a.href)
   }
 
+  // totales visibles en la página actual
+  const totalPagina = useMemo(() => pedidos.reduce((acc, p) => acc + p.total, 0), [pedidos])
+
+  // detectar rango activo para resaltar botón
+  const activeKey = (() => {
+    if (sameRange(from, to, today, today)) return 'hoy'
+    if (sameRange(from, to, last7From, today)) return 'semana'
+    if (sameRange(from, to, monthStart, today)) return 'mes-actual'
+    if (sameRange(from, to, last30From, today)) return '30'
+    return ''
+  })()
+
   return (
-    <main className="container mx-auto px-4 py-10 space-y-6">
-      <header className="flex items-start justify-between">
+    <main className="max-w-6xl mx-auto px-4 py-10 space-y-8">
+      <header className="flex items-center justify-between gap-4">
         <div>
-          <h1 className="text-3xl font-bold">Historial de pedidos</h1>
-          <p className="text-muted-foreground">
+          <h1 className="text-3xl font-bold text-neutral-900">Historial de pedidos</h1>
+          <p className="text-muted-foreground text-sm mt-1">
             Consulta, filtra y exporta tus pedidos
           </p>
         </div>
-        <div className="text-right text-sm">
-          <div className="text-muted-foreground">Total en página</div>
-          <div className="text-lg font-semibold">{money(totalPage)}</div>
+        <div className="text-right">
+          <div className="text-xs text-muted-foreground">Total en página</div>
+          <div className="text-lg font-semibold">{formatQ(totalPagina)}</div>
         </div>
       </header>
 
+      {/* Botones de rango rápido */}
+      <div className="flex flex-wrap gap-2">
+        {quickRanges.map((r) => (
+          <Button
+            key={r.key}
+            variant={activeKey === r.key ? 'default' : 'outline'}
+            size="sm"
+            onClick={() => applyQuickRange(r.from, r.to)}
+          >
+            {r.label}
+          </Button>
+        ))}
+        <Button
+          variant={!from && !to ? 'default' : 'outline'}
+          size="sm"
+          onClick={() => { setFrom(''); setTo('') }}
+        >
+          Todos
+        </Button>
+      </div>
+
       {/* Filtros */}
       <Card>
-        <CardContent className="pt-6">
-          <div className="grid gap-4 md:grid-cols-4">
-            <div className="md:col-span-1">
-              <label className="text-sm font-medium">Buscar (ID o cliente)</label>
-              <Input
-                placeholder="Ej. 1248 o María"
-                value={query}
-                onChange={(e) => setQuery(e.target.value)}
-              />
-            </div>
-            <div>
-              <label className="text-sm font-medium">Estado</label>
-              <select
-                className="border rounded-md h-10 px-3 w-full text-sm"
-                value={status}
-                onChange={(e) => setStatus(e.target.value as any)}
-              >
-                <option value="">Todos</option>
-                <option>Entregado</option>
-                <option>En camino</option>
-                <option>Pendiente</option>
-                <option>Cancelado</option>
-              </select>
-            </div>
-            <div>
-              <label className="text-sm font-medium">Desde</label>
-              <Input type="date" value={from} onChange={(e) => setFrom(e.target.value)} />
-            </div>
-            <div>
-              <label className="text-sm font-medium">Hasta</label>
-              <Input type="date" value={to} onChange={(e) => setTo(e.target.value)} />
-            </div>
+        <CardContent className="p-4 grid gap-3 md:grid-cols-5">
+          <div className="md:col-span-2">
+            <Label className="text-xs">Buscar (ID o cliente)</Label>
+            <Input
+              placeholder="Ej. 1248 o María"
+              value={q}
+              onChange={(e) => setQ(e.target.value)}
+            />
           </div>
-
-          <div className="mt-4 flex gap-2">
-            <Button variant="outline" onClick={clearFilters}>
+          <div>
+            <Label className="text-xs">Estado</Label>
+            <select
+              className="w-full h-9 border rounded-md bg-background"
+              value={estado}
+              onChange={(e) => setEstado(e.target.value as any)}
+            >
+              <option value="Todos">Todos</option>
+              {ESTADOS.map((s) => (
+                <option key={s} value={s}>
+                  {s}
+                </option>
+              ))}
+            </select>
+          </div>
+          <div>
+            <Label className="text-xs">Desde</Label>
+            <Input type="date" value={from} onChange={(e) => setFrom(e.target.value)} />
+          </div>
+          <div>
+            <Label className="text-xs">Hasta</Label>
+            <Input type="date" value={to} onChange={(e) => setTo(e.target.value)} />
+          </div>
+          <div className="md:col-span-5 flex items-center justify-end gap-2">
+            <Button variant="outline" onClick={() => { setQ(''); setEstado('Todos'); setFrom(''); setTo('') }}>
               Limpiar
             </Button>
-            <Button variant="outline" onClick={exportCSV}>
-              Exportar CSV
-            </Button>
+            <Button variant="secondary" onClick={exportCSV}>Exportar CSV</Button>
           </div>
         </CardContent>
       </Card>
 
-      {/* Listado */}
-      {filtered.map((o) => (
-        <Card key={o.id}>
-          <CardContent className="pt-6">
-            <div className="grid md:grid-cols-[1fr_auto] gap-4">
-              <div>
-                <div className="text-sm text-muted-foreground">Pedido #{o.id}</div>
-                <div className="font-semibold mt-1">
-                  {o.items.reduce((a, it) => a + it.qty, 0)} artículo
-                  {o.items.reduce((a, it) => a + it.qty, 0) > 1 ? "s" : ""}
+      {/* Lista */}
+      <section className="space-y-4">
+        {loading ? (
+          <Card><CardContent className="p-8 flex items-center justify-center gap-2 text-muted-foreground">
+            <Loader2 className="w-4 h-4 animate-spin" /> Cargando…
+          </CardContent></Card>
+        ) : pedidos.length === 0 ? (
+          <Card><CardContent className="p-8 text-center text-muted-foreground">No hay pedidos con esos filtros.</CardContent></Card>
+        ) : (
+          pedidos.map((pedido) => (
+            <Card key={pedido.id}>
+              <CardContent className="p-6 space-y-4">
+                <div className="flex justify-between items-start gap-4">
+                  <div>
+                    <p className="text-sm text-muted-foreground">
+                      Pedido <span className="font-medium">#{pedido.id}</span>
+                    </p>
+                    <p className="text-base font-semibold">
+                      {pedido.productos.length}{' '}
+                      {pedido.productos.length > 1 ? 'artículos' : 'artículo'}
+                    </p>
+                  </div>
+                  <div className="text-right space-y-1">
+                    <Badge variant="outline" className={`text-xs ${estadoStyle(pedido.estado)}`}>
+                      {pedido.estado}
+                    </Badge>
+                    <div className="flex items-center justify-end gap-1 text-xs text-muted-foreground">
+                      <CalendarDays className="w-4 h-4" />
+                      {new Date(pedido.fecha).toLocaleDateString('es-ES', {
+                        year: 'numeric', month: 'long', day: 'numeric',
+                      })}
+                    </div>
+                  </div>
                 </div>
 
-                <div className="mt-4 space-y-1 text-sm">
-                  <div>
-                    <span className="font-medium">Cliente:</span> {o.customer}
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 text-sm text-neutral-700">
+                  <div className="space-y-1">
+                    <p><span className="font-medium">Cliente:</span> {pedido.cliente}</p>
+                    <p><span className="font-medium">Total:</span> {formatQ(pedido.total)}</p>
+                    <p><span className="font-medium">Método:</span> {pedido.metodo}</p>
+                    <p><span className="font-medium">Envío a:</span> {pedido.envio}</p>
                   </div>
-                  <div>
-                    <span className="font-medium">Total:</span> {money(o.total)}
-                  </div>
-                  <div>
-                    <span className="font-medium">Método:</span> {o.payment}
-                  </div>
-                  <div>
-                    <span className="font-medium">Envío a:</span> {o.address}
-                  </div>
-                </div>
-
-                {/* Items */}
-                <div className="mt-4 space-y-3">
-                  {o.items.map((it, idx) => (
-                    <div key={idx} className="flex items-center gap-3">
-                      <div className="size-12 rounded-md bg-muted flex items-center justify-center text-xs text-muted-foreground">
-                        {it.image ? (
-                          // eslint-disable-next-line @next/next/no-img-element
-                          <img
-                            alt={it.name}
-                            src={it.image}
-                            className="size-12 rounded-md object-cover"
-                          />
-                        ) : (
-                          "img"
-                        )}
-                      </div>
-                      <div className="text-sm">
-                        <div className="font-medium">{it.name}</div>
-                        <div className="text-muted-foreground">
-                          x{it.qty} · {money(it.price)}
+                  <div className="flex flex-wrap gap-4 items-start">
+                    {pedido.productos.map((producto, i) => (
+                      <div key={i} className="flex items-center gap-2">
+                        <img
+                          src={producto.imagen || '/placeholder.svg'}
+                          alt={producto.nombre}
+                          className="w-14 h-14 object-cover rounded-md border"
+                        />
+                        <div>
+                          <p className="text-sm font-medium">{producto.nombre}</p>
+                          <p className="text-xs text-muted-foreground">
+                            {producto.cantidad ? `x${producto.cantidad} · ` : ''}
+                            {formatQ(producto.precio)}
+                          </p>
                         </div>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+
+                <div className="flex justify-end gap-2">
+                  <Button
+                    size="sm"
+                    variant="secondary"
+                    onClick={() => { setCurrent(pedido); setOpen(true) }}
+                  >
+                    Ver detalle
+                  </Button>
+                </div>
+              </CardContent>
+            </Card>
+          ))
+        )}
+      </section>
+
+      {/* Paginación */}
+      <div className="flex items-center justify-between pt-2">
+        <Button
+          variant="outline"
+          disabled={page === 1 || loading}
+          onClick={() => { const p = page - 1; setPage(p); cargarPedidos(p) }}
+        >
+          ← Anterior
+        </Button>
+        <span className="text-xs text-muted-foreground">Página {page}</span>
+        <Button
+          variant="outline"
+          disabled={!hasMore || loading}
+          onClick={() => { const p = page + 1; setPage(p); cargarPedidos(p) }}
+        >
+          Siguiente →
+        </Button>
+      </div>
+
+      {/* Modal detalle */}
+      <Dialog open={open} onOpenChange={setOpen}>
+        <DialogContent className="max-w-lg">
+          <DialogHeader>
+            <DialogTitle>Detalle del pedido {current?.id}</DialogTitle>
+          </DialogHeader>
+          {current && (
+            <div className="space-y-3 text-sm">
+              <div className="flex justify-between">
+                <div className="text-muted-foreground">
+                  {new Date(current.fecha).toLocaleString('es-ES', {
+                    year: 'numeric', month: 'long', day: 'numeric', hour: '2-digit', minute: '2-digit',
+                  })}
+                </div>
+                <Badge variant="outline" className={`text-xs ${estadoStyle(current.estado)}`}>
+                  {current.estado}
+                </Badge>
+              </div>
+              <div className="grid grid-cols-2 gap-3">
+                <div>
+                  <div className="font-medium">Cliente</div>
+                  <div>{current.cliente}</div>
+                </div>
+                <div>
+                  <div className="font-medium">Total</div>
+                  <div>{formatQ(current.total)}</div>
+                </div>
+                <div>
+                  <div className="font-medium">Método</div>
+                  <div>{current.metodo}</div>
+                </div>
+                <div>
+                  <div className="font-medium">Envío</div>
+                  <div className="truncate">{current.envio}</div>
+                </div>
+              </div>
+
+              <div className="pt-2">
+                <div className="font-medium mb-2">Productos</div>
+                <div className="space-y-2">
+                  {current.productos.map((p, i) => (
+                    <div key={i} className="flex items-center justify-between">
+                      <div className="flex items-center gap-2">
+                        <img
+                          src={p.imagen || '/placeholder.svg'}
+                          alt={p.nombre}
+                          className="w-10 h-10 rounded border object-cover"
+                        />
+                        <div>
+                          <div className="font-medium text-sm">{p.nombre}</div>
+                          <div className="text-xs text-muted-foreground">
+                            {p.cantidad ? `x${p.cantidad} · ` : ''}{formatQ(p.precio)}
+                          </div>
+                        </div>
+                      </div>
+                      <div className="text-sm font-semibold">
+                        {formatQ((p.cantidad ?? 1) * p.precio)}
                       </div>
                     </div>
                   ))}
                 </div>
               </div>
 
-              <div className="flex flex-col items-end justify-between">
-                <div className="flex items-center gap-3">
-                  <Badge
-                    variant={
-                      o.status === "Entregado"
-                        ? "success"
-                        : o.status === "En camino"
-                        ? "warning"
-                        : o.status === "Pendiente"
-                        ? "secondary"
-                        : "destructive"
-                    }
-                  >
-                    {o.status}
-                  </Badge>
-                  <div className="text-sm text-muted-foreground">{o.date}</div>
+              <div className="pt-2 border-t">
+                <div className="flex items-center justify-between">
+                  <div className="text-muted-foreground">Subtotal aprox.</div>
+                  <div className="font-semibold">{formatQ(current.productos.reduce((a, p) => a + (p.precio * (p.cantidad ?? 1)), 0))}</div>
                 </div>
-
-                <Button variant="outline" className="mt-4">Ver detalle</Button>
+                <div className="flex items-center justify-between">
+                  <div className="text-muted-foreground">Total pedido</div>
+                  <div className="font-semibold">{formatQ(current.total)}</div>
+                </div>
               </div>
             </div>
-          </CardContent>
-        </Card>
-      ))}
-
-      {/* Paginación simple (mock visual) */}
-      <div className="flex items-center justify-between">
-        <Button variant="outline" disabled>
-          ← Anterior
-        </Button>
-        <div className="text-sm text-muted-foreground">Página 1</div>
-        <Button variant="outline" disabled>
-          Siguiente →
-        </Button>
-      </div>
+          )}
+        </DialogContent>
+      </Dialog>
     </main>
   )
 }

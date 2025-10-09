@@ -1,54 +1,57 @@
-// src/hooks/useFileUpload.ts
-'use client'
-import { useState } from 'react'
+//src/hooks/useFileUpload.ts
 
-// Claves soportadas en formularios (ajusta si necesitas más)
-export type FileKey = 'logo' | 'dpiFrente' | 'dpiReverso' | 'selfie' | 'registroMercantil'
+import { useState } from "react"
+import { apiEliminarArchivoAnterior } from "@/services/archivos"
 
-type FilesMap = Partial<Record<FileKey, File>>
-type PreviewsMap = Partial<Record<FileKey, string>>
+export function useFileUpload() {
+  const [previews, setPreviews] = useState<Record<string, string | null>>({})
+  const [files, setFiles] = useState<Record<string, File | null>>({})
+  const [archivoAnteriorId, setArchivoAnteriorId] = useState<Record<string, string>>({})
 
-// ✅ Exportación nombrada y API estable
-export function useFileUpload(
-  allowed: string[] = ['image/png', 'image/jpeg', 'image/webp'],
-  maxSizeMB = 3
-) {
-  const [files, setFiles] = useState<FilesMap>({})
-  const [previews, setPreviews] = useState<PreviewsMap>({})
-  const [error, setError] = useState<string | null>(null)
+  const handleFile = async (
+    e: React.ChangeEvent<HTMLInputElement>,
+    campo: string,
+    idUsuario: string
+  ) => {
+    const file = e.target.files?.[0] || null
+    if (!file) return
 
-  // Compatibilidad con llamadas existentes
-  const archivoAnteriorId: string | null = null
-  const eliminarAnterior = (_key?: FileKey) => {}
-
-  function handleFile(e: React.ChangeEvent<HTMLInputElement>, key: FileKey) {
-    const f = e.target.files?.[0]
-    if (!f) return
-
-    if (f.size > maxSizeMB * 1024 * 1024) {
-      setError(`El archivo supera ${maxSizeMB}MB`)
+    // Validaciones de seguridad
+    const allowedTypes = ["image/jpeg", "image/png", "image/gif", "image/webp"]
+    if (!allowedTypes.includes(file.type)) {
+      alert("Solo se permiten imágenes .jpeg, .png, .gif o .webp.")
       return
     }
-    if (!allowed.includes(f.type)) {
-      setError('Formato no permitido. Usa PNG/JPG/WebP')
+    if (file.size > 2 * 1024 * 1024) {
+      alert("El archivo supera el tamaño máximo de 2MB.")
       return
     }
 
-    setError(null)
-    setFiles(prev => ({ ...prev, [key]: f }))
-    setPreviews(prev => ({ ...prev, [key]: URL.createObjectURL(f) }))
+    try {
+      await apiEliminarArchivoAnterior(campo, idUsuario)
+    } catch (err) {
+      console.error("Error al eliminar archivo anterior:", err)
+    }
+
+    const reader = new FileReader()
+    reader.onload = () => {
+      setPreviews((prev) => ({ ...prev, [campo]: reader.result as string }))
+    }
+    reader.readAsDataURL(file)
+
+    setFiles((prev) => ({ ...prev, [campo]: file }))
+    setArchivoAnteriorId((prev) => ({ ...prev, [campo]: `${idUsuario}-${campo}` }))
   }
 
-  function clearFile(key?: FileKey) {
-    if (!key) {
-      setFiles({})
-      setPreviews({})
-      setError(null)
-      return
-    }
-    setFiles(({ [key]: _omit, ...rest }) => rest as FilesMap)
-    setPreviews(({ [key]: _omit, ...rest }) => rest as PreviewsMap)
+  const eliminarAnterior = (campo: string) => {
+    setPreviews((prev) => ({ ...prev, [campo]: null }))
+    setFiles((prev) => ({ ...prev, [campo]: null }))
+    setArchivoAnteriorId((prev) => {
+      const nuevo = { ...prev }
+      delete nuevo[campo]
+      return nuevo
+    })
   }
 
-  return { files, previews, handleFile, clearFile, eliminarAnterior, archivoAnteriorId, error }
+  return { previews, files, handleFile, eliminarAnterior, archivoAnteriorId }
 }

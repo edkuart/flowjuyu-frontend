@@ -1,43 +1,41 @@
 // src/app/layout.tsx
-import type { Metadata } from "next";
-import { Inter } from "next/font/google";
 import "./globals.css";
-
-import ClientProviders from "@/providers/ClientProviders";
+import type { Metadata } from "next";
+import { geistSans, geistMono } from "@/lib/fonts";
+import { ClientProviders } from "@/providers/ClientProviders";
+import { AppSidebar } from "@/components/ui/sidebar/AppSidebar";
 import Header from "@/components/layout/Header";
-import { SidebarProvider } from "@/components/ui/sidebar";
-
-const inter = Inter({ subsets: ["latin"] });
+import { AuthProvider } from "@/context/AuthContext";
+import { CartProvider } from "@/context/CartContext";
 
 export const metadata: Metadata = {
-  title: "Flowjuyu Marketplace",
-  description: "Compra directo a artesanos guatemaltecos",
+  title: "Flowjuyu | Cortes Marketplace",
+  description: "Compra directo al productor",
 };
 
-export default function RootLayout({
-  children,
-}: {
-  children: React.ReactNode;
-}) {
+export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
-    <html lang="es" className="overflow-x-hidden">
-      <body className={`${inter.className} overflow-x-hidden`}>
-        <ClientProviders>
-          {/* Provee contexto a cualquier SidebarTrigger del Header sin pintar sidebar global */}
-          <SidebarProvider>
-            <div className="flex min-h-screen w-full flex-col">
-              {/* Header a ancho completo */}
-              <Header />
+    <html lang="es" className={`${geistSans.variable} ${geistMono.variable}`}>
+      <body className="font-sans antialiased bg-background text-foreground min-h-screen">
+        <AuthProvider>
+          <ClientProviders>
+            <CartProvider>
+              {/* Sidebar colapsable en móvil */}
+              <div className="flex flex-col md:flex-row">
+                <AppSidebar />
+                <div className="flex-1 flex flex-col">
+                  {/* Header sticky y compacto */}
+                  <header className="sticky top-0 z-50 bg-white shadow md:px-6 px-3 py-2">
+                    <Header />
+                  </header>
 
-              {/* Main con contenedor centralizado real (clase propia) */}
-              <main className="flex-1 w-full">
-                <div className="app-container">
-                  {children}
+                  {/* Contenido principal con padding adaptable */}
+                  <main className="flex-1 px-3 md:px-6 py-4 md:py-6">{children}</main>
                 </div>
-              </main>
-            </div>
-          </SidebarProvider>
-        </ClientProviders>
+              </div>
+            </CartProvider>
+          </ClientProviders>
+        </AuthProvider>
       </body>
     </html>
   );

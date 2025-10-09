@@ -22,7 +22,6 @@ import { useFileUpload } from "@/hooks/useFileUpload"
 import { Eye, EyeOff } from "lucide-react"
 import { apiRegisterSeller } from "@/services/auth"
 
-
 const PERSONAL_FIELDS = [
   { id: "nombre", label: "Nombre completo", type: "text" },
   { id: "email", label: "Correo electrónico", type: "email" },
@@ -153,33 +152,16 @@ export default function RegisterVendedorForm() {
     resolver: zodResolver(registerVendedorSchema),
   })
 
-const onSubmit = useCallback(
-  async (data: RegisterVendedorValues) => {
-    const payload = {
-      nombre: data.nombre,
-      correo: data.email,
-      contraseña: data.password,
-      telefono: data.telefono,
-      direccion: data.direccion,
-      nombreComercio: data.nombreComercio,
-      telefonoComercio: data.telefonoComercio,
-      departamento: data.departamento,
-      municipio: data.municipio,
-      descripcion: data.descripcion,
-      dpi: data.dpi,
-      logo: files.logo?.name,
-      fotoDPIFrente: files.fotoDPIFrente?.name,
-      fotoDPIReverso: files.fotoDPIReverso?.name,
-      selfieConDPI: files.selfieConDPI?.name,
-    }
-
-    const res = await apiRegisterSeller(payload)
-
-    if (res.ok) router.push("/login")
-  },
-  [router, files.logo, files.fotoDPIFrente, files.fotoDPIReverso, files.selfieConDPI]
-)
-
+  const onSubmit = useCallback(
+    async (data: RegisterVendedorValues) => {
+      const form = new FormData()
+      Object.entries(data).forEach(([k, v]) => form.append(k, v as any))
+      if (files.logo) form.append("logo", files.logo)
+      const res = await apiRegisterSeller(form)
+      if (res.ok) router.push("/login")
+    },
+    [router, files.logo]
+  )
 
   const handleDepartamentoChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
     const dep = e.target.value
@@ -194,7 +176,7 @@ const onSubmit = useCallback(
     <section className="w-full max-w-screen-xl mx-auto px-4 py-8">
       <Card className="w-full shadow-xl rounded-2xl">
         <CardContent className="p-12 space-y-10">
-          <form onSubmit={handleSubmit(onSubmit)} className="space-y-10" encType="multipart/form-data">
+          <form onSubmit={handleSubmit(onSubmit)} className="space-y-10">
             <header className="text-center space-y-2">
               <h1 className="text-4xl font-bold">Registro de Vendedor</h1>
               <p className="text-muted-foreground text-lg">

@@ -1,5 +1,3 @@
-// src/schemas/login-schema.ts
-
 import { z } from 'zod'
 
 export const loginSchema = z.object({
