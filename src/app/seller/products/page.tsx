@@ -164,17 +164,20 @@ export default function SellerProductsPage() {
 
                 return (
                   <tr key={producto.id} className="border-t">
-                    <td className="px-4 py-2">
-                      <div className="relative w-12 h-12 rounded overflow-hidden border">
-                        <Image
-                          src={imageUrl}
-                          alt={producto.nombre}
-                          fill
-                          sizes="48px"
-                          className="object-cover"
-                        />
-                      </div>
-                    </td>
+<td className="px-4 py-2">
+  {/* 🖼 Miniatura que abre la imagen en una nueva pestaña */}
+  <div className="relative w-12 h-12 rounded overflow-hidden border cursor-pointer hover:scale-105 transition-transform duration-200">
+    <a href={imageUrl} target="_blank" rel="noopener noreferrer">
+      <Image
+        src={imageUrl}
+        alt={producto.nombre}
+        fill
+        sizes="48px"
+        className="object-cover"
+      />
+    </a>
+  </div>
+</td>
                     <td className="px-4 py-2">{producto.nombre}</td>
                     <td className="px-4 py-2">Q {producto.precio}</td>
                     <td className="px-4 py-2">{producto.stock}</td>
