@@ -39,7 +39,7 @@ export function AccesorioSelect({
             {a.nombre}
           </option>
         ))}
-        <option value={OTROS}>➕ Otros…</option>
+        <option value={OTROS}> Otros…</option>
       </select>
 
       {accesorioSel === OTROS && (

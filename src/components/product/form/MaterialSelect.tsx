@@ -39,7 +39,7 @@ export function MaterialSelect({
             {m.nombre}
           </option>
         ))}
-        <option value={OTROS}>➕ Otros…</option>
+        <option value={OTROS}> Otros…</option>
       </select>
 
       {materialSel === OTROS && (

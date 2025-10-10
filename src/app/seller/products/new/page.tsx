@@ -1,323 +1,435 @@
-'use client'
+"use client"
 
-import { useState, useRef } from 'react'
-import Image from 'next/image'
-import { X, Move, Star, Loader2 } from 'lucide-react'
-import { useDrag, useDrop, DndProvider } from 'react-dnd'
-import { HTML5Backend } from 'react-dnd-html5-backend'
+import { useEffect, useRef, useState, useMemo } from "react"
+import { useRouter } from "next/navigation"
+import { ArrowLeft } from "lucide-react"
+import { Input } from "@/components/ui/input"
+import { Textarea } from "@/components/ui/textarea"
+import { Button } from "@/components/ui/button"
+import { Label } from "@/components/ui/label"
+import { Switch } from "@/components/ui/switch"
+import { departamentosConMunicipios } from "@/data/municipios"
 
-import { Input } from '@/components/ui/input'
-import { Textarea } from '@/components/ui/textarea'
-import { Button } from '@/components/ui/button'
-import { Label } from '@/components/ui/label'
-import { Switch } from '@/components/ui/switch'
-import { Card } from '@/components/ui/card'
+import { CategoriaSelect } from "@/components/product/form/CategoriaSelect"
+import { AccesorioSelect } from "@/components/product/form/AccesorioSelect"
+import { TipoAccesorioSelect } from "@/components/product/form/TipoAccesorioSelect"
+import { MaterialSelect } from "@/components/product/form/MaterialSelect"
+import { TelaSelect } from "@/components/product/form/TelaSelect"
+import { OrigenSelect } from "@/components/product/form/OrigenSelect"
 
-const categoriasTipicas = [
-  'Blusas típicas',
-  'Fajas artesanales',
-  'Trajes regionales',
-  'Bolsas tejidas',
-  'Máscaras ceremoniales',
-  'Ponchos mayas'
-]
+import type { Opcion, Clase, OtroTipo } from "@/types/product"
 
-type ImgItem = {
-  file: File
-  preview: string
-  isCover?: boolean
-}
+const API = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8800"
+const getToken = () =>
+  typeof window !== "undefined" ? localStorage.getItem("token") : null
+const toDecimal = (v: string) => v.trim().replace(",", ".")
 
-const MAX_IMAGES = 9
-const MAX_IMAGE_MB = 3
-const ALLOWED_TYPES = ['image/jpeg', 'image/png', 'image/webp', 'image/jpg']
+const OTROS = "__OTROS__"
+const NA = "__NA__"
 
 export default function AddProductPage() {
+  const router = useRouter()
+
+  const [estado, setEstado] = useState<"idle" | "loading" | "ok" | "error">("idle")
+  const [mensaje, setMensaje] = useState("")
+  const [infoMsg, setInfoMsg] = useState("")
   const [activo, setActivo] = useState(true)
-  const [moneda, setMoneda] = useState<'Q' | 'USD'>('Q')
 
-  const [nombre, setNombre] = useState('')
-  const [precio, setPrecio] = useState('')
-  const [sku, setSku] = useState('')
-  const [descripcion, setDescripcion] = useState('')
-  const [stock, setStock] = useState<number | ''>('')
-  const [categoria, setCategoria] = useState('')
-  const [tags, setTags] = useState('')
+  const [categorias, setCategorias] = useState<Opcion[]>([])
+  const [clases, setClases] = useState<Clase[]>([])
+  const [telas, setTelas] = useState<Opcion[]>([])
 
-  const [imagenes, setImagenes] = useState<ImgItem[]>([])
-  const [submitting, setSubmitting] = useState(false)
-  const [error, setError] = useState<string | null>(null)
-  const [okMsg, setOkMsg] = useState<string | null>(null)
+  const [categoriaSel, setCategoriaSel] = useState("")
+  const [claseSel, setClaseSel] = useState("")
+  const [telaSel, setTelaSel] = useState("")
 
-  const fileInputRef = useRef<HTMLInputElement>(null)
+  const [accesorios, setAccesorios] = useState<Opcion[]>([])
+  const [accesorioSel, setAccesorioSel] = useState("")
+  const [accesorioInput, setAccesorioInput] = useState("")
 
-  const totalSizeMb = (imagenes.reduce((a, i) => a + i.file.size, 0) / (1024 * 1024)).toFixed(2)
-  const imgCount = imagenes.length
+  const [tipos, setTipos] = useState<Opcion[]>([])
+  const [tipoSel, setTipoSel] = useState("")
+  const [tipoInput, setTipoInput] = useState("")
 
-  const formatMoney = (value: string) => {
-    if (!value) return ''
-    const n = Number(value)
-    if (Number.isNaN(n)) return ''
-    return n.toFixed(2)
+  const [materiales, setMateriales] = useState<Opcion[]>([])
+  const [materialSel, setMaterialSel] = useState("")
+  const [materialInput, setMaterialInput] = useState("")
+
+  const [departamentoSel, setDepartamentoSel] = useState("")
+  const [municipioSel, setMunicipioSel] = useState("")
+  const [municipios, setMunicipios] = useState<string[]>([])
+
+  const [categoriaInput, setCategoriaInput] = useState("")
+  const [telaInput, setTelaInput] = useState("")
+
+  const fileRef = useRef<HTMLInputElement>(null)
+  const formRef = useRef<HTMLFormElement>(null)
+  const [previews, setPreviews] = useState<string[]>([])
+
+  const fetchJSON = async <T,>(path: string) => {
+    const r = await fetch(`${API}${path}`, { credentials: "include", cache: "no-store" })
+    if (!r.ok) throw new Error(await r.text())
+    return (await r.json()) as T
   }
-  const onPrecioBlur = () => setPrecio(formatMoney(precio))
 
-  // manejo de imágenes
-  const handleImageChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const files = Array.from(e.target.files || [])
-    if (!files.length) return
-
-    const remaining = MAX_IMAGES - imagenes.length
-    const selected = files.slice(0, remaining)
-
-    const problems: string[] = []
-    const next: ImgItem[] = []
-
-    selected.forEach((file) => {
-      if (!ALLOWED_TYPES.includes(file.type)) {
-        problems.push(`Tipo no permitido: ${file.name}`)
-        return
+  // ============================
+  // Cargar opciones iniciales
+  // ============================
+  useEffect(() => {
+    ;(async () => {
+      try {
+        const [cats, cls] = await Promise.all([
+          fetchJSON<Opcion[]>("/api/categorias"),
+          fetchJSON<Clase[]>("/api/clases"),
+        ])
+        setCategorias(cats)
+        setClases(cls)
+      } catch (e: any) {
+        setEstado("error")
+        setMensaje(e.message)
       }
-      if (file.size > MAX_IMAGE_MB * 1024 * 1024) {
-        problems.push(`Archivo muy grande (> ${MAX_IMAGE_MB}MB): ${file.name}`)
-        return
-      }
-      const reader = new FileReader()
-      reader.onloadend = () => {
-        next.push({ file, preview: reader.result as string })
-        if (next.length === selected.length - problems.length) {
-          setImagenes((prev) => {
-            const merged = [...prev, ...next]
-            if (merged.length && !merged.some(i => i.isCover)) {
-              merged[0].isCover = true
-            }
-            return merged
-          })
-        }
-      }
-      reader.readAsDataURL(file)
-    })
+    })()
+  }, [])
 
-    if (problems.length) alert(problems.join('\n'))
-    if (fileInputRef.current) fileInputRef.current.value = ''
-  }
+  useEffect(() => {
+    if (!claseSel || claseSel === OTROS) return setTelas([])
+    fetchJSON<Opcion[]>(`/api/telas?clase_id=${claseSel}`).then(setTelas).catch(() => setTelas([]))
+  }, [claseSel])
 
-  const setAsCover = (idx: number) => {
-    setImagenes((prev) => {
-      const arr = prev.map((i, j) => ({ ...i, isCover: j === idx }))
-      const cover = arr[idx]
-      const rest = arr.filter((_, j) => j !== idx)
-      return [cover, ...rest]
-    })
-  }
+  const nombreCategoriaSel = useMemo(
+    () => categorias.find((c) => String(c.id) === categoriaSel)?.nombre.toLowerCase() || "",
+    [categorias, categoriaSel]
+  )
 
-  const handleRemoveImage = (index: number) => {
-    setImagenes((prev) => {
-      const removed = prev.filter((_, i) => i !== index)
-      if (removed.length && !removed.some(i => i.isCover)) removed[0].isCover = true
-      return removed
-    })
-  }
+  const esAccesorio = ["accesorio", "accesorios"].includes(nombreCategoriaSel)
+  const esAccesorioTipico = nombreCategoriaSel === "accesorios típicos"
 
-  const moveImage = (from: number, to: number) => {
-    setImagenes((prev) => {
-      const arr = [...prev]
-      const [moved] = arr.splice(from, 1)
-      arr.splice(to, 0, moved)
-      const coverIdx = arr.findIndex(i => i.isCover)
-      if (coverIdx > 0) {
-        const [cover] = arr.splice(coverIdx, 1)
-        arr.unshift(cover)
-      }
-      return arr
-    })
-  }
+  // ============================
+  // Accesorios / Tipos / Materiales
+  // ============================
+  useEffect(() => {
+    if (!(esAccesorio || esAccesorioTipico)) return setAccesorios([])
+    const tipo = esAccesorio ? "normal" : "tipico"
+    fetchJSON<Opcion[]>(`/api/accesorios?tipo=${tipo}`).then(setAccesorios).catch(() => setAccesorios([]))
+  }, [esAccesorio, esAccesorioTipico])
 
-  const DraggableImage = ({ item, index }: { item: ImgItem; index: number }) => {
-    const ref = useRef<HTMLDivElement>(null)
-    const [, drop] = useDrop({
-      accept: 'image',
-      hover: (dragItem: { index: number }) => {
-        if (!ref.current) return
-        if (dragItem.index !== index && index !== 0) {
-          moveImage(dragItem.index, index)
-          dragItem.index = index
-        }
-      },
-    })
-    const [, drag] = useDrag({
-      type: 'image',
-      item: { index },
-      canDrag: () => index !== 0,
-    })
-    drag(drop(ref))
+  useEffect(() => {
+    if (!esAccesorio || !accesorioSel || accesorioSel === OTROS) return setTipos([])
+    fetchJSON<Opcion[]>(`/api/accesorio-tipos?accesorio_id=${accesorioSel}`)
+      .then(setTipos)
+      .catch(() => setTipos([]))
+  }, [esAccesorio, accesorioSel])
 
-    return (
-      <div ref={ref} className="relative">
-        <Image src={item.preview} alt={`Vista previa ${index + 1}`} width={220} height={220} className="rounded-md border object-cover aspect-square" />
-        <button type="button" onClick={() => handleRemoveImage(index)} className="absolute top-1 right-1 bg-black/70 text-white rounded-full p-1 hover:bg-black/80">
-          <X className="w-4 h-4" />
-        </button>
-        {index === 0 && item.isCover ? (
-          <div className="absolute bottom-1 left-1 bg-green-600 text-white rounded-full px-2 py-0.5 text-[11px] font-medium">Portada</div>
-        ) : (
-          <div className="absolute bottom-1 left-1 flex gap-1">
-            <button type="button" onClick={() => setAsCover(index)} className="bg-black/70 text-white rounded-full p-1 hover:bg-black/80" title="Marcar como portada">
-              <Star className="w-4 h-4" />
-            </button>
-            <div className="bg-black/70 text-white rounded-full p-1" title="Arrastra para reordenar">
-              <Move className="w-4 h-4" />
-            </div>
-          </div>
-        )}
-      </div>
-    )
-  }
+  useEffect(() => {
+    if ((!esAccesorio && !esAccesorioTipico) || !accesorioSel || accesorioSel === OTROS)
+      return setMateriales([])
 
-  // submit
-  const onSubmit = async (e: React.FormEvent) => {
-    e.preventDefault()
-    setError(null)
-    setOkMsg(null)
-
-    if (!nombre.trim()) return setError('El nombre es obligatorio.')
-    if (!precio || Number(precio) <= 0) return setError('Ingresa un precio válido.')
-    if (!categoria) return setError('Selecciona una categoría.')
-    if (!descripcion.trim()) return setError('La descripción es obligatoria.')
-    if (!imagenes.length) return setError('Debes subir al menos una imagen.')
-    if (Number(totalSizeMb) > 40) return setError('Las imágenes superan 40MB totales.')
-
-    try {
-      setSubmitting(true)
-      const fd = new FormData()
-      fd.append('nombre', nombre.trim())
-      fd.append('precio', formatMoney(precio))
-      fd.append('moneda', moneda)
-      fd.append('sku', sku.trim())
-      fd.append('descripcion', descripcion.trim())
-      fd.append('stock', String(stock || 0))
-      fd.append('categoria', categoria)
-      fd.append('activo', String(activo))
-      fd.append('tags', tags)
-
-      imagenes.forEach((it, idx) => {
-        fd.append('imagenes', it.file, it.file.name)
-        if (it.isCover) fd.append('coverIndex', String(idx))
-      })
-
-      const url = `${process.env.NEXT_PUBLIC_API_URL}/api/seller/products`
-      const res = await fetch(url, {
-        method: 'POST',
-        headers: { Authorization: `Bearer ${localStorage.getItem('token') || ''}` },
-        body: fd,
-      })
-
-      if (!res.ok) throw new Error(await res.text().catch(() => 'No se pudo guardar el producto'))
-
-      setOkMsg('Producto guardado correctamente ✅')
-      setNombre(''); setPrecio(''); setSku(''); setDescripcion(''); setStock(''); setCategoria(''); setTags('')
-      setImagenes([])
-      if (fileInputRef.current) fileInputRef.current.value = ''
-    } catch (err: any) {
-      setError(err?.message || 'Error al guardar el producto')
-    } finally {
-      setSubmitting(false)
+    let q = `/api/accesorio-materiales?accesorio_id=${accesorioSel}`
+    if (esAccesorio && tipoSel && tipoSel !== OTROS) {
+      q += `&tipo_id=${tipoSel}`
     }
+
+    fetchJSON<Opcion[]>(q).then(setMateriales).catch(() => setMateriales([]))
+  }, [esAccesorio, esAccesorioTipico, accesorioSel, tipoSel])
+
+  // ============================
+  // Helpers
+  // ============================
+  const confirmarOtro = (tipo: OtroTipo, valor: string) => {
+    if (!valor.trim()) return
+    setInfoMsg(`"${valor}" agregado como información en ${tipo}.`)
+    setTimeout(() => setInfoMsg(""), 4000)
+  }
+
+  const handleDepartamentoChange = (dep: string) => {
+    setDepartamentoSel(dep)
+    const depObj = departamentosConMunicipios.find((d) => d.nombre === dep)
+    setMunicipios(depObj ? depObj.municipios : [])
+    setMunicipioSel("")
   }
 
   const handlePrecioKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
-    const allowed = ['Backspace', 'Tab', 'ArrowLeft', 'ArrowRight', '.']
-    if (!/\d/.test(e.key) && !allowed.includes(e.key)) e.preventDefault()
+    const ok =
+      ["Backspace", "Tab", "ArrowLeft", "ArrowRight", "Delete"].includes(e.key) ||
+      /[0-9.,]/.test(e.key)
+    if (!ok) e.preventDefault()
   }
 
+  // ============================
+  // Submit
+  // ============================
+  async function onSubmit(e: React.FormEvent<HTMLFormElement>) {
+    e.preventDefault()
+    const fd = new FormData(e.currentTarget)
+    fd.set("precio", toDecimal(String(fd.get("precio") || "")))
+    fd.set("activo", String(activo))
+
+    if (categoriaSel === OTROS) fd.set("categoria_custom", categoriaInput)
+    else fd.set("categoria_id", categoriaSel)
+    fd.set("clase_id", claseSel)
+
+    if (telaSel === OTROS) fd.set("tela_custom", telaInput)
+    else if (telaSel && telaSel !== NA) fd.set("tela_id", telaSel)
+
+    if ((esAccesorio || esAccesorioTipico) && accesorioSel) {
+      if (accesorioSel === OTROS) fd.set("accesorio_custom", accesorioInput)
+      else fd.set("accesorio_id", accesorioSel)
+
+      if (esAccesorio && tipoSel) {
+        if (tipoSel === OTROS) fd.set("accesorio_tipo_custom", tipoInput)
+        else fd.set("accesorio_tipo_id", tipoSel)
+      }
+
+      if (materialSel) {
+        if (materialSel === OTROS) fd.set("accesorio_material_custom", materialInput)
+        else fd.set("accesorio_material_id", materialSel)
+      }
+    }
+
+    if (departamentoSel) fd.set("departamento", departamentoSel)
+    if (municipioSel) fd.set("municipio", municipioSel)
+
+    const files = fileRef.current?.files
+    if (files) Array.from(files).slice(0, 9).forEach((f) => fd.append("imagenes[]", f))
+
+    try {
+      setEstado("loading")
+      const token = getToken()
+      const res = await fetch(`${API}/api/productos`, {
+        method: "POST",
+        body: fd,
+        headers: token ? { Authorization: `Bearer ${token}` } : {},
+        credentials: "include",
+      })
+      if (!res.ok) throw new Error(await res.text())
+      setMensaje("✅ Producto creado con éxito.")
+      setEstado("ok")
+      if (formRef.current) formRef.current.reset()
+      setPreviews([]) // 🔹 limpiar previews
+    } catch (err: any) {
+      setMensaje(err.message || "Error al guardar el producto.")
+      setEstado("error")
+    }
+  }
+
+  // ============================
+  // Render con preview
+  // ============================
   return (
-    <DndProvider backend={HTML5Backend}>
-      <main className="max-w-4xl mx-auto px-4 py-10 space-y-8">
-        <header className="space-y-2">
-          <h1 className="text-3xl font-bold text-neutral-900">Agregar nuevo producto</h1>
-          <p className="text-sm text-muted-foreground">Completa los campos para publicar un nuevo producto en tu tienda.</p>
-        </header>
+    <main className="min-h-screen px-4 py-10 bg-gradient-to-b from-gray-50 to-white dark:from-zinc-950 dark:to-zinc-900">
+      <div className="max-w-5xl mx-auto space-y-8">
+        <div className="flex items-center justify-between">
+          <Button
+            variant="outline"
+            onClick={() => router.back()}
+            className="flex items-center gap-2 border-2 border-gray-800 text-gray-800 hover:bg-gray-900 hover:text-white dark:border-gray-600 dark:text-gray-200 dark:hover:bg-black transition-all rounded-lg px-4 py-2 shadow-sm hover:shadow-md"
+          >
+            <ArrowLeft className="w-5 h-5" />
+            Volver
+          </Button>
+          <h1 className="text-2xl font-semibold text-gray-900 dark:text-white">
+            Agregar nuevo producto
+          </h1>
+        </div>
 
-        <form onSubmit={onSubmit} className="space-y-6">
-          <Card className="p-4 space-y-4">
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-              <div>
-                <Label htmlFor="nombre">Nombre del producto</Label>
-                <Input id="nombre" value={nombre} onChange={(e) => setNombre(e.target.value)} required placeholder="Ej. Blusa roja bordada a mano" />
-              </div>
-              <div>
-                <Label htmlFor="sku">SKU (opcional)</Label>
-                <Input id="sku" value={sku} onChange={(e) => setSku(e.target.value)} placeholder="Ej. BLU-ROJ-001" />
-              </div>
-            </div>
+        <form ref={formRef} className="grid md:grid-cols-2 gap-8 bg-white dark:bg-zinc-900 rounded-2xl shadow p-6" onSubmit={onSubmit}>
+          {/* Columna izquierda */}
+          <div className="space-y-5">
+            <CategoriaSelect
+              categorias={categorias}
+              categoriaSel={categoriaSel}
+              setCategoriaSel={setCategoriaSel}
+              categoriaInput={categoriaInput}
+              setCategoriaInput={setCategoriaInput}
+              OTROS={OTROS}
+              confirmarOtro={confirmarOtro}
+            />
 
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-              <div>
-                <Label>Precio</Label>
-                <div className="flex gap-2 items-center">
-                  <select value={moneda} onChange={(e) => setMoneda(e.target.value as 'Q' | 'USD')} className="border rounded-md px-2 py-1 text-sm">
-                    <option value="Q">Q</option>
-                    <option value="USD">USD</option>
-                  </select>
-                  <Input inputMode="decimal" pattern="^\d+(\.\d{1,2})?$" placeholder="0.00" className="appearance-none" onKeyDown={handlePrecioKeyDown} onBlur={onPrecioBlur} value={precio} onChange={(e) => setPrecio(e.target.value)} required />
-                </div>
-              </div>
-              <div>
-                <Label htmlFor="stock">Stock disponible</Label>
-                <Input id="stock" type="number" min={0} required value={stock} onChange={(e) => setStock(e.target.value === '' ? '' : Number(e.target.value))} />
-              </div>
-            </div>
+            {(esAccesorio || esAccesorioTipico) && (
+              <>
+                <AccesorioSelect
+                  accesorios={accesorios}
+                  accesorioSel={accesorioSel}
+                  setAccesorioSel={setAccesorioSel}
+                  accesorioInput={accesorioInput}
+                  setAccesorioInput={setAccesorioInput}
+                  OTROS={OTROS}
+                  confirmarOtro={confirmarOtro}
+                />
+
+                {esAccesorio && accesorioSel && accesorioSel !== OTROS && (
+                  <TipoAccesorioSelect
+                    tipos={tipos}
+                    tipoSel={tipoSel}
+                    setTipoSel={setTipoSel}
+                    tipoInput={tipoInput}
+                    setTipoInput={setTipoInput}
+                    OTROS={OTROS}
+                    confirmarOtro={confirmarOtro}
+                  />
+                )}
+
+                {accesorioSel && (
+                  <MaterialSelect
+                    materiales={materiales}
+                    materialSel={materialSel}
+                    setMaterialSel={setMaterialSel}
+                    materialInput={materialInput}
+                    setMaterialInput={setMaterialInput}
+                    OTROS={OTROS}
+                    confirmarOtro={confirmarOtro}
+                  />
+                )}
+              </>
+            )}
 
             <div>
-              <Label htmlFor="descripcion">Descripción</Label>
-              <Textarea id="descripcion" rows={4} required value={descripcion} onChange={(e) => setDescripcion(e.target.value)} />
-            </div>
-
-            <div>
-              <Label htmlFor="categoria">Categoría</Label>
-              <select id="categoria" required value={categoria} onChange={(e) => setCategoria(e.target.value)} className="w-full border rounded-md px-3 py-2 text-sm text-neutral-900">
-                <option value="">Seleccione una opción</option>
-                {categoriasTipicas.map((c) => (
-                  <option key={c} value={c}>{c}</option>
+              <Label>Clase</Label>
+              <select
+                className="w-full border rounded-md px-3 py-2 focus:ring-2 focus:ring-sky-500 dark:bg-zinc-800"
+                value={claseSel}
+                onChange={(e) => setClaseSel(e.target.value)}
+              >
+                <option value="">Seleccione…</option>
+                {clases.map((c) => (
+                  <option key={c.id} value={String(c.id)}>
+                    {c.nombre}
+                  </option>
                 ))}
               </select>
             </div>
 
-            <div>
-              <Label htmlFor="tags">Tags (separadas por coma)</Label>
-              <Input id="tags" placeholder="blusa, roja, bordado" value={tags} onChange={(e) => setTags(e.target.value)} />
-            </div>
+            <TelaSelect
+              claseSel={claseSel}
+              telas={telas}
+              telaSel={telaSel}
+              setTelaSel={setTelaSel}
+              telaInput={telaInput}
+              setTelaInput={setTelaInput}
+              OTROS={OTROS}
+              NA={NA}
+              confirmarOtro={confirmarOtro}
+            />
 
-            <div className="flex items-center justify-between py-2">
-              <Label htmlFor="activo" className="flex-1">Producto activo</Label>
-              <Switch id="activo" checked={activo} onCheckedChange={setActivo} />
-            </div>
-          </Card>
+            <OrigenSelect
+              departamentosConMunicipios={departamentosConMunicipios}
+              departamentoSel={departamentoSel}
+              setDepartamentoSel={setDepartamentoSel}
+              municipioSel={municipioSel}
+              setMunicipioSel={setMunicipioSel}
+              municipios={municipios}
+              handleDepartamentoChange={handleDepartamentoChange}
+            />
+          </div>
 
-          <Card className="p-4 space-y-3">
-            <div className="flex flex-wrap items-center justify-between gap-2">
-              <Label className="mb-1 block">Imágenes del producto (máximo {MAX_IMAGES})</Label>
-              <div className="text-xs text-muted-foreground">{imgCount}/{MAX_IMAGES} • {totalSizeMb} MB</div>
-            </div>
-            <Input ref={fileInputRef} type="file" accept={ALLOWED_TYPES.join(',')} multiple onChange={handleImageChange} />
-            {imagenes.length > 0 && (
-              <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-4 mt-2">
-                {imagenes.map((it, idx) => <DraggableImage key={idx} item={it} index={idx} />)}
-              </div>
+          {/* Columna derecha */}
+          <div className="space-y-5">
+            {infoMsg && (
+              <p className="text-sm text-blue-600 bg-blue-50 dark:bg-blue-900/30 px-3 py-2 rounded-md">
+                {infoMsg}
+              </p>
             )}
-          </Card>
 
-          {error && <div className="text-sm text-red-600 bg-red-50 border border-red-200 p-2 rounded-md">{error}</div>}
-          {okMsg && <div className="text-sm text-green-700 bg-green-50 border border-green-200 p-2 rounded-md">{okMsg}</div>}
+            <div className="grid sm:grid-cols-2 gap-4">
+              <div>
+                <Label>Nombre del producto</Label>
+                <Input name="nombre" required placeholder="Ej. Faja bordada" />
+              </div>
+              <div>
+                <Label>Precio</Label>
+                <Input
+                  name="precio"
+                  type="text"
+                  inputMode="decimal"
+                  pattern="^[0-9]+([.,][0-9]{1,2})?$"
+                  onKeyDown={handlePrecioKeyDown}
+                  placeholder="0.00"
+                  required
+                />
+              </div>
+              <div>
+                <Label>Stock</Label>
+                <Input name="stock" type="number" min={0} required />
+              </div>
+              <div className="flex items-center justify-between">
+                <Label>Producto activo</Label>
+                <Switch checked={activo} onCheckedChange={setActivo} />
+              </div>
+            </div>
 
-          <div className="flex gap-2">
-            <Button type="submit" disabled={submitting}>
-              {submitting ? (<><Loader2 className="w-4 h-4 mr-2 animate-spin" /> Guardando…</>) : 'Guardar producto'}
+            <div>
+              <Label>Descripción</Label>
+              <Textarea name="descripcion" rows={4} required placeholder="Describe el producto..." />
+            </div>
+
+            <div>
+              <Label>Imágenes (máx. 9)</Label>
+              <Input
+                ref={fileRef}
+                type="file"
+                accept="image/*"
+                multiple
+                className="border-dashed border-2 p-2 rounded-lg cursor-pointer hover:border-sky-500"
+                onChange={(e) => {
+                  const files = e.target.files
+                  if (!files) return
+                  const urls = Array.from(files)
+                    .slice(0, 9)
+                    .map((f) => URL.createObjectURL(f))
+                  setPreviews(urls)
+                }}
+              />
+
+              {/* 🖼️ Previews */}
+              {previews.length > 0 && (
+                <div className="mt-3 grid grid-cols-3 sm:grid-cols-4 gap-3">
+                  {previews.map((src, i) => (
+                    <div
+                      key={i}
+                      className="relative group rounded-md overflow-hidden border border-gray-300 dark:border-gray-700"
+                    >
+                      <img
+                        src={src}
+                        alt={`preview-${i}`}
+                        className="w-full h-24 object-cover"
+                      />
+                      <button
+                        type="button"
+                        onClick={() =>
+                          setPreviews((prev) => prev.filter((_, idx) => idx !== i))
+                        }
+                        className="absolute top-1 right-1 bg-black/60 text-white text-xs rounded-full px-2 opacity-0 group-hover:opacity-100 transition"
+                      >
+                        ✕
+                      </button>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+
+            <Button
+              type="submit"
+              className="w-full sm:w-auto bg-sky-600 hover:bg-sky-700 text-white shadow-sm"
+              disabled={estado === "loading"}
+            >
+              {estado === "loading" ? "Guardando…" : "Guardar producto"}
             </Button>
-            <Button type="button" variant="outline" onClick={() => { setNombre(''); setPrecio(''); setSku(''); setDescripcion(''); setStock(''); setCategoria(''); setTags(''); setImagenes([]); if (fileInputRef.current) fileInputRef.current.value = ''; setError(null); setOkMsg(null) }}>Limpiar</Button>
+
+            {mensaje && (
+              <p
+                className={`text-sm px-3 py-2 rounded-md ${
+                  estado === "error"
+                    ? "bg-red-100 text-red-700 dark:bg-red-900/30"
+                    : "bg-green-100 text-green-700 dark:bg-green-900/30"
+                }`}
+              >
+                {mensaje}
+              </p>
+            )}
           </div>
         </form>
-      </main>
-    </DndProvider>
+      </div>
+    </main>
   )
 }

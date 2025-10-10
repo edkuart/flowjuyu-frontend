@@ -35,7 +35,7 @@ export function CategoriaSelect({
         {categorias.map((c) => (
           <option key={c.id} value={String(c.id)}>{c.nombre}</option>
         ))}
-        <option value={OTROS}>➕ Otros…</option>
+        <option value={OTROS}> Otros…</option>
       </select>
 
       {categoriaSel === OTROS && (

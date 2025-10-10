@@ -46,7 +46,7 @@ export function TelaSelect({
             {t.nombre}
           </option>
         ))}
-        <option value={OTROS}>➕ Otros…</option>
+        <option value={OTROS}> Otros…</option>
         <option value={NA}>— No aplica —</option>
       </select>
 
