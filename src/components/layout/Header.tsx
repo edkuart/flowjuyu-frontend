@@ -10,43 +10,86 @@ import {
 import { SidebarTrigger } from "@/components/ui/sidebar/SidebarTrigger";
 import { useAuth } from "@/context/AuthContext";
 
-type Cat = { id: string; name: string; href: string; items?: { name: string; href: string }[] };
+// ===========================
+// 🔹 Subcomponente: Categorías dinámicas
+// ===========================
+type Categoria = {
+  id: number;
+  nombre: string;
+  imagen_url?: string | null;
+};
 
-const CATEGORIES: Cat[] = [
-  {
-    id: "ropa",
-    name: "Ropa típica",
-    href: "/categorias/ropa-tipica",
-    items: [
-      { name: "Huipiles", href: "/categorias/huipiles" },
-      { name: "Blusas", href: "/categorias/blusas" },
-      { name: "Fajas", href: "/categorias/fajas" },
-      { name: "Ponchos", href: "/categorias/ponchos" },
-    ],
-  },
-  {
-    id: "accesorios",
-    name: "Accesorios",
-    href: "/categorias/accesorios",
-    items: [
-      { name: "Carteras", href: "/categorias/carteras" },
-      { name: "Collares", href: "/categorias/collares" },
-      { name: "Pulseras", href: "/categorias/pulseras" },
-      { name: "Sombreros", href: "/categorias/sombreros" },
-    ],
-  },
-  {
-    id: "hogar",
-    name: "Hogar",
-    href: "/categorias/hogar",
-    items: [
-      { name: "Textiles", href: "/categorias/textiles" },
-      { name: "Decoración", href: "/categorias/decoracion" },
-      { name: "Cocina", href: "/categorias/cocina" },
-    ],
-  },
-];
+function CategoriasDropdown() {
+  const [categorias, setCategorias] = useState<Categoria[]>([]);
+  const API = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8800/api";
 
+  useEffect(() => {
+    const fetchCategorias = async () => {
+      try {
+        const res = await fetch(`${API}/categorias`, { cache: "no-store" });
+        if (res.ok) {
+          const data = await res.json();
+          setCategorias(data);
+        }
+      } catch (error) {
+        console.error("Error al obtener categorías:", error);
+      }
+    };
+    fetchCategorias();
+  }, []);
+
+  const chunkSize = 5;
+  const bloques: Categoria[][] = [];
+  for (let i = 0; i < categorias.length; i += chunkSize) {
+    bloques.push(categorias.slice(i, i + chunkSize));
+  }
+
+   return (
+  <div
+    className="
+      absolute left-0 top-full mt-2 z-50
+      bg-white shadow-lg rounded-xl border border-gray-100
+      p-5 grid gap-x-8 gap-y-4
+      sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4
+      transition-all duration-200 animate-fade-in
+      min-w-[450px] max-w-[90vw]
+    "
+  >
+    {bloques.map((bloque, i) => (
+      <div key={i} className="flex flex-col space-y-2 min-w-[160px]">
+        {bloque.map((cat) => (
+          <Link
+            key={cat.id}
+            href={`/categorias/${encodeURIComponent(cat.nombre.toLowerCase())}`}
+            className="flex items-center gap-3 hover:text-primary transition group"
+          >
+            <div className="relative w-9 h-9 rounded-md overflow-hidden bg-gray-100 group-hover:scale-105 transition-transform">
+              <Image
+                src={cat.imagen_url || "/images/categorias/default.jpg"}
+                alt={cat.nombre}
+                fill
+                sizes="40px"
+                className="object-cover"
+                onError={(e) => {
+                  (e.target as HTMLImageElement).src =
+                    "/images/categorias/default.jpg";
+                }}
+              />
+            </div>
+            <span className="text-sm font-medium text-gray-800 truncate">
+              {cat.nombre}
+            </span>
+          </Link>
+        ))}
+      </div>
+    ))}
+  </div>
+);
+}
+
+// ===========================
+// 🔸 Componente principal: Header
+// ===========================
 export default function Header() {
   const { user, logout } = useAuth();
   const [q, setQ] = useState("");
@@ -56,7 +99,6 @@ export default function Header() {
   const [helpOpen, setHelpOpen] = useState(false);
   const [cartCount] = useState<number>(0);
 
-  // Cerrar “Ayuda” al hacer click fuera o presionar Esc
   const helpRef = useRef<HTMLLIElement>(null);
   useEffect(() => {
     function onDocClick(e: MouseEvent) {
@@ -82,9 +124,10 @@ export default function Header() {
   }
 
   return (
-    <div className="w-full border-b bg-white">
+    <div className="w-full border-b bg-white relative z-50 shadow-sm">
+
       {/* Barra superior */}
-      <div className="max-w-7xl mx-auto h-16 px-3 md:px-6 flex items-center gap-3">
+      <div className="max-w-screen-xl mx-auto h-16 px-3 md:px-6 flex items-center gap-3">
         {/* Izquierda */}
         <div className="flex items-center gap-3">
           <SidebarTrigger className="md:hidden text-zinc-700">
@@ -100,51 +143,30 @@ export default function Header() {
               className="rounded-sm"
               priority
             />
-            <span className="hidden sm:block text-lg font-semibold tracking-tight">Flowjuyu</span>
+            <span className="hidden sm:block text-lg font-semibold tracking-tight">
+              Flowjuyu
+            </span>
           </Link>
 
-          {/* Categorías */}
-          <div className="relative hidden md:block">
-            <button
-              onClick={() => setOpenCats((v) => !v)}
-              onBlur={() => setTimeout(() => setOpenCats(false), 150)}
+          {/* 🔹 Categorías dinámicas */}
+          <div
+            className="relative hidden md:block"
+            onMouseEnter={() => setOpenCats(true)}
+            onMouseLeave={() => {setTimeout(() => setOpenCats(false), 1000);
+
+            }}
+            >
+              <button
               className="inline-flex items-center gap-2 rounded-md border px-3 py-2 text-sm hover:bg-zinc-50"
               aria-haspopup="menu"
               aria-expanded={openCats}
-            >
-              <Grid2x2 className="w-4 h-4" />
-              Categorías
-              <ChevronDown className="w-4 h-4" />
-            </button>
+              >
+                <Grid2x2 className="w-4 h-4" />
+                Categorías
+                <ChevronDown className="w-4 h-4" />
+              </button>
 
-            {openCats && (
-              <div className="absolute mt-2 w-[560px] rounded-md border bg-white shadow-sm p-4 grid grid-cols-2 gap-4 z-50">
-                {CATEGORIES.map((cat) => (
-                  <div key={cat.id}>
-                    <Link
-                      href={cat.href}
-                      className="font-medium text-sm hover:underline"
-                      onClick={() => setOpenCats(false)}
-                    >
-                      {cat.name}
-                    </Link>
-                    <ul className="mt-2 space-y-1">
-                      {cat.items?.map((it) => (
-                        <li key={it.href}>
-                          <Link
-                            href={it.href}
-                            className="text-sm text-zinc-600 hover:text-zinc-900"
-                            onClick={() => setOpenCats(false)}
-                          >
-                            {it.name}
-                          </Link>
-                        </li>
-                      ))}
-                    </ul>
-                  </div>
-                ))}
-              </div>
-            )}
+            {openCats && <CategoriasDropdown />}
           </div>
         </div>
 
@@ -172,11 +194,14 @@ export default function Header() {
           </div>
         </form>
 
-        {/* Móvil: botón de búsqueda */}
+        {/* Móvil: búsqueda rápida */}
         <button
           onClick={() => {
             const term = prompt("¿Qué deseas buscar?") || "";
-            if (term.trim()) window.location.href = `/buscar?q=${encodeURIComponent(term.trim())}`;
+            if (term.trim())
+              window.location.href = `/buscar?q=${encodeURIComponent(
+                term.trim()
+              )}`;
           }}
           className="sm:hidden p-2 rounded-md hover:bg-zinc-50"
           aria-label="Buscar"
@@ -213,7 +238,10 @@ export default function Header() {
               {openAccount && (
                 <div className="absolute right-0 mt-2 w-56 rounded-md border bg-white shadow-sm py-1 z-50">
                   <div className="px-3 py-2 text-xs text-zinc-500">
-                    Hola, <span className="font-medium text-zinc-700">{user.nombre}</span>
+                    Hola,{" "}
+                    <span className="font-medium text-zinc-700">
+                      {user.nombre}
+                    </span>
                   </div>
 
                   {user.rol === "vendedor" && (
@@ -322,7 +350,7 @@ export default function Header() {
             )}
           </Link>
 
-          {/* Idioma (placeholder) */}
+          {/* Idioma */}
           <button className="hidden sm:inline-flex items-center gap-1 px-2 py-1 rounded border text-sm hover:bg-zinc-50">
             <Globe className="w-4 h-4" />
             ES
@@ -339,7 +367,7 @@ export default function Header() {
             <li><Link className="hover:underline" href="/new-arrivals">Lo + nuevo</Link></li>
             <li><Link className="hover:underline" href="/sell">Vende en Flowjuyu</Link></li>
 
-            {/* Ayuda: abierto por hover/click, cierra por click fuera/Esc */}
+            {/* Ayuda */}
             <li
               ref={helpRef}
               className="relative"
@@ -347,7 +375,7 @@ export default function Header() {
             >
               <button
                 type="button"
-                onClick={() => setHelpOpen(v => !v)}
+                onClick={() => setHelpOpen((v) => !v)}
                 className="inline-flex items-center gap-1 hover:underline"
                 aria-haspopup="menu"
                 aria-expanded={helpOpen}
@@ -356,17 +384,14 @@ export default function Header() {
               </button>
 
               {helpOpen && (
-                <div
-                  className="absolute left-0 top-full w-52 rounded-md border bg-white shadow-sm py-1 z-50"
-                  role="menu"
-                >
-                  <Link className="block px-3 py-2 hover:bg-zinc-50" href="/help/faq" role="menuitem">
+                <div className="absolute left-0 top-full w-52 rounded-md border bg-white shadow-sm py-1 z-50">
+                  <Link className="block px-3 py-2 hover:bg-zinc-50" href="/help/faq">
                     Preguntas frecuentes
                   </Link>
-                  <Link className="block px-3 py-2 hover:bg-zinc-50" href="/help/contact" role="menuitem">
+                  <Link className="block px-3 py-2 hover:bg-zinc-50" href="/help/contact">
                     Contáctanos
                   </Link>
-                  <Link className="block px-3 py-2 hover:bg-zinc-50" href="/help/returns" role="menuitem">
+                  <Link className="block px-3 py-2 hover:bg-zinc-50" href="/help/returns">
                     Devoluciones
                   </Link>
                 </div>
