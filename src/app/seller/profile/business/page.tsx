@@ -31,8 +31,46 @@ import {
 } from 'lucide-react';
 import { useState } from 'react';
 
+// ✅ Barra de progreso dinámica
+import * as React from 'react';
+import { cn } from '@/lib/utils';
+
+export interface ProgressProps
+  extends React.HTMLAttributes<HTMLDivElement> {
+  value?: number;
+}
+
+export function Progress({ value = 0, className, ...props }: ProgressProps) {
+  const getColor = (val: number) => {
+    if (val < 25) return 'bg-rose-500';
+    if (val < 50) return 'bg-amber-500';
+    if (val < 75) return 'bg-lime-500';
+    return 'bg-sky-500';
+  };
+
+  return (
+    <div
+      className={cn(
+        'relative h-2 w-full overflow-hidden rounded-full bg-muted',
+        className
+      )}
+      {...props}
+    >
+      <div
+        className={cn(
+          'h-full flex-1 transition-all duration-500 ease-in-out rounded-full',
+          getColor(value || 0)
+        )}
+        style={{
+          width: `${Math.min(100, Math.max(0, value || 0))}%`,
+        }}
+      />
+    </div>
+  );
+}
+
 export default function SellerBusinessPage() {
-  // KPIs
+  // KPIs principales
   const resumen = [
     {
       icon: <DollarSign className="text-green-600" />,
@@ -60,6 +98,10 @@ export default function SellerBusinessPage() {
   const [detallePedidoIndex, setDetallePedidoIndex] = useState<number | null>(
     null
   );
+  const [periodo, setPeriodo] = useState<'dia' | 'mes' | 'anio'>('mes');
+  const [tab, setTab] = useState<'productos' | 'resenas' | 'favoritos'>(
+    'productos'
+  );
 
   const ventasPorMes = [
     { mes: 'Ene', ventas: 800 },
@@ -76,26 +118,33 @@ export default function SellerBusinessPage() {
     { mes: 'Dic', ventas: 1400 },
   ];
 
-  const categorias: { name: string; value: number }[] = [
-    { name: 'Blusas', value: 8 },
-    { name: 'Trajes', value: 6 },
-    { name: 'Carteras', value: 4 },
-    { name: 'Otros', value: 2 },
+  const PIE_COLORS = ['#3b82f6', '#8b5cf6', '#0ea5e9', '#14b8a6', '#f59e0b'];
+
+  const dataDia = [
+    { name: 'Huipiles', value: 22 },
+    { name: 'Cortes típicos', value: 17 },
+    { name: 'Accesorios', value: 12 },
+    { name: 'Accesorios típicos', value: 7 },
+    { name: 'Otros', value: 4 },
+  ];
+  const dataMes = [
+    { name: 'Huipiles', value: 240 },
+    { name: 'Cortes típicos', value: 180 },
+    { name: 'Accesorios', value: 120 },
+    { name: 'Accesorios típicos', value: 80 },
+    { name: 'Otros', value: 60 },
+  ];
+  const dataAnio = [
+    { name: 'Huipiles', value: 2800 },
+    { name: 'Cortes típicos', value: 1900 },
+    { name: 'Accesorios', value: 1600 },
+    { name: 'Accesorios típicos', value: 1100 },
+    { name: 'Otros', value: 700 },
   ];
 
-  const ventasPorCategoria: {
-    mes: string;
-    blusas: number;
-    trajes: number;
-    carteras: number;
-  }[] = [
-    { mes: 'Ene', blusas: 200, trajes: 150, carteras: 80 },
-    { mes: 'Feb', blusas: 180, trajes: 120, carteras: 100 },
-    { mes: 'Mar', blusas: 210, trajes: 130, carteras: 90 },
-    { mes: 'Abr', blusas: 250, trajes: 160, carteras: 110 },
-    { mes: 'May', blusas: 140, trajes: 90, carteras: 60 },
-    { mes: 'Jun', blusas: 300, trajes: 200, carteras: 120 },
-  ];
+  const currentData =
+    periodo === 'dia' ? dataDia : periodo === 'anio' ? dataAnio : dataMes;
+  const totalPeriodo = currentData.reduce((a, b) => a + b.value, 0);
 
   const actividadReciente = [
     {
@@ -116,8 +165,6 @@ export default function SellerBusinessPage() {
       fecha: '23/jun',
     },
   ];
-
-  const colores = ['#8884d8', '#82ca9d', '#ffc658', '#ff7f50'];
 
   return (
     <main className="container mx-auto px-4 py-6 space-y-6">
@@ -152,9 +199,9 @@ export default function SellerBusinessPage() {
         ))}
       </section>
 
-      {/* GRID PRINCIPAL (12 columnas) */}
+      {/* GRID PRINCIPAL */}
       <section className="grid gap-4 md:grid-cols-12">
-        {/* Ventas por mes – 8 columnas */}
+        {/* Ventas por mes */}
         <Card className="md:col-span-8">
           <CardHeader className="pb-2">
             <div className="flex items-center justify-between">
@@ -189,37 +236,136 @@ export default function SellerBusinessPage() {
           </CardContent>
         </Card>
 
-        {/* Top categorías – 4 columnas */}
-        <Card className="md:col-span-4">
-          <CardHeader className="pb-2">
-            <CardTitle>Top categorías</CardTitle>
-            <CardDescription>Distribución por categoría</CardDescription>
+        {/* Gráfico circular con progreso y tabs */}
+        <Card className="md:col-span-4 border border-muted/40 shadow-md">
+          <CardHeader>
+            <div className="flex items-center justify-between">
+              <div>
+                <CardTitle>Distribución por categoría</CardTitle>
+                <CardDescription>
+                  {periodo === 'dia'
+                    ? 'Hoy'
+                    : periodo === 'mes'
+                    ? 'Este mes'
+                    : 'Este año'}
+                </CardDescription>
+              </div>
+              <div className="flex gap-1">
+                {(['dia', 'mes', 'anio'] as const).map((p) => (
+                  <Button
+                    key={p}
+                    size="sm"
+                    variant={periodo === p ? 'default' : 'outline'}
+                    className="capitalize"
+                    onClick={() => setPeriodo(p)}
+                  >
+                    {p === 'dia' ? 'Día' : p === 'mes' ? 'Mes' : 'Año'}
+                  </Button>
+                ))}
+              </div>
+            </div>
+            <div className="mt-2">
+              <span className="text-xs text-muted-foreground uppercase">
+                Total
+              </span>
+              <div className="text-2xl font-bold text-sky-600">
+                Q {totalPeriodo.toLocaleString('es-GT')}
+              </div>
+            </div>
           </CardHeader>
-          <CardContent>
+
+          <CardContent className="space-y-5">
             <div className="h-64 md:h-72">
               <ResponsiveContainer width="100%" height="100%">
                 <PieChart>
                   <Pie
-                    data={categorias}
+                    data={currentData}
                     cx="50%"
                     cy="50%"
-                    labelLine={false}
-                    label={({ name }: { name: string }) => name}
-                    outerRadius={80}
+                    outerRadius={85}
                     dataKey="value"
+                    label={({ name, percent }) =>
+                      `${name} ${(percent * 100).toFixed(1)}%`
+                    }
                   >
-                    {categorias.map((_, i) => (
-                      <Cell key={i} fill={colores[i % colores.length]} />
+                    {currentData.map((_, i) => (
+                      <Cell key={i} fill={PIE_COLORS[i % PIE_COLORS.length]} />
                     ))}
                   </Pie>
                   <Tooltip />
                 </PieChart>
               </ResponsiveContainer>
             </div>
+
+            <div className="flex justify-center gap-2">
+              {(['productos', 'resenas', 'favoritos'] as const).map((t) => (
+                <Button
+                  key={t}
+                  size="sm"
+                  variant={tab === t ? 'default' : 'outline'}
+                  onClick={() => setTab(t)}
+                  className="capitalize"
+                >
+                  {t === 'productos'
+                    ? 'Productos'
+                    : t === 'resenas'
+                    ? 'Reseñas'
+                    : 'Favoritos'}
+                </Button>
+              ))}
+            </div>
+
+            {tab === 'productos' && (
+              <div className="text-sm space-y-3">
+                {currentData.map((it, index) => {
+                  const porcentaje = ((it.value / totalPeriodo) * 100).toFixed(1);
+                  return (
+                    <div key={index} className="space-y-1">
+                      <div className="flex justify-between items-center">
+                        <span className="font-medium text-foreground">
+                          {it.name}
+                        </span>
+                        <span className="text-xs text-muted-foreground">
+                          {porcentaje}% del total
+                        </span>
+                      </div>
+                      <Progress
+                        value={parseFloat(porcentaje)}
+                        className="h-2 bg-muted"
+                      />
+                      <div className="flex justify-between text-xs text-muted-foreground">
+                        <span>{it.value} vendidos</span>
+                        <span>Ganancia: Q {(it.value * 25).toFixed(2)}</span>
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+            )}
+
+            {tab === 'resenas' && (
+              <div className="text-sm text-muted-foreground">
+                ⭐ Promedio general: <b>4.7 / 5</b> — Huipiles y Cortes lideran{' '}
+                {periodo === 'dia'
+                  ? 'hoy'
+                  : periodo === 'mes'
+                  ? 'este mes'
+                  : 'este año'}
+                .
+              </div>
+            )}
+
+            {tab === 'favoritos' && (
+              <ul className="text-sm text-muted-foreground list-disc pl-5 space-y-1">
+                <li>Huipil de Quetzaltenango (58)</li>
+                <li>Corte típico azul cielo (42)</li>
+                <li>Faja artesanal multicolor (30)</li>
+              </ul>
+            )}
           </CardContent>
         </Card>
 
-        {/* Actividad reciente – 8 columnas */}
+        {/* Actividad reciente */}
         <Card className="md:col-span-8">
           <CardHeader className="pb-2">
             <CardTitle>Actividad reciente</CardTitle>
@@ -259,7 +405,9 @@ export default function SellerBusinessPage() {
                       <td className="p-2 whitespace-nowrap">
                         Q {pedido.total.toFixed(2)}
                       </td>
-                      <td className="p-2 whitespace-nowrap">{pedido.estado}</td>
+                      <td className="p-2 whitespace-nowrap">
+                        {pedido.estado}
+                      </td>
                       <td className="p-2 whitespace-nowrap">{pedido.fecha}</td>
                       <td className="p-2 whitespace-nowrap">
                         <Button
@@ -284,7 +432,7 @@ export default function SellerBusinessPage() {
           </CardContent>
         </Card>
 
-        {/* Alertas – 4 columnas */}
+        {/* Alertas */}
         <Card className="md:col-span-4">
           <CardHeader className="pb-2">
             <CardTitle>Alertas</CardTitle>

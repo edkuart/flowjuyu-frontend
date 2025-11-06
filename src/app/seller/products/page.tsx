@@ -46,31 +46,43 @@ export default function SellerProductsPage() {
   // ==============================
   // Obtener productos del vendedor
   // ==============================
-  useEffect(() => {
-    const fetchProductos = async () => {
-      try {
-        const token = localStorage.getItem("token")
-        if (!token) {
-          console.warn("⚠️ No se encontró token en localStorage")
-          setLoading(false)
-          return
-        }
+useEffect(() => {
+  const fetchProductos = async () => {
+    try {
+      const token = localStorage.getItem("token")
+      console.log("📦 Token enviado:", token) // 👈 para depurar en consola
 
-        const res = await fetch(`${API}/api/seller/productos`, {
-          headers: { Authorization: `Bearer ${token}` },
-        })
-        if (!res.ok) throw new Error("Error al cargar productos")
-        const data = await res.json()
-        setProductos(data)
-      } catch (e) {
-        console.error("Error cargando productos:", e)
-      } finally {
+      if (!token) {
+        console.warn("⚠️ No se encontró token en localStorage")
         setLoading(false)
+        return
       }
-    }
 
-    fetchProductos()
-  }, [API])
+      const res = await fetch(`${API}/api/seller/products`, {
+        method: "GET",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${token}`, // 👈 muy importante
+        },
+      })
+
+      if (!res.ok) {
+        const errText = await res.text()
+        throw new Error(`Error al cargar productos: ${errText}`)
+      }
+
+      const data = await res.json()
+      console.log("✅ Productos recibidos:", data)
+      setProductos(Array.isArray(data) ? data : data.data || [])
+    } catch (e) {
+      console.error("Error cargando productos:", e)
+    } finally {
+      setLoading(false)
+    }
+  }
+
+  fetchProductos()
+}, [API])
 
   // ==============================
   // Paginación
@@ -420,39 +432,6 @@ export default function SellerProductsPage() {
             </span>
           </p>
 
-          {/* 🏷 Datos opcionales */}
-          {selected.categoria?.nombre && (
-            <p>
-              <strong>Categoría:</strong> {selected.categoria.nombre}
-            </p>
-          )}
-          {selected.clase?.nombre && (
-            <p>
-              <strong>Clase:</strong> {selected.clase.nombre}
-            </p>
-          )}
-          {selected.tela?.nombre && (
-            <p>
-              <strong>Tela:</strong> {selected.tela.nombre}
-            </p>
-          )}
-          {selected.region?.nombre && (
-            <p>
-              <strong>Región:</strong> {selected.region.nombre}
-            </p>
-          )}
-
-          {/* 🕓 Fecha */}
-          {selected.created_at && (
-            <p>
-              <strong>Publicado el:</strong>{" "}
-              {new Date(selected.created_at).toLocaleDateString("es-GT", {
-                day: "2-digit",
-                month: "long",
-                year: "numeric",
-              })}
-            </p>
-          )}
 
           {selected.descripcion && (
             <p className="pt-2 text-gray-700 dark:text-gray-300">

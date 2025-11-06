@@ -362,51 +362,62 @@ export default function AddProductPage() {
               <Textarea name="descripcion" rows={4} required placeholder="Describe el producto..." />
             </div>
 
-            <div>
-              <Label>Imágenes (máx. 9)</Label>
-              <Input
-                ref={fileRef}
-                type="file"
-                accept="image/*"
-                multiple
-                className="border-dashed border-2 p-2 rounded-lg cursor-pointer hover:border-sky-500"
-                onChange={(e) => {
-                  const files = e.target.files
-                  if (!files) return
-                  const urls = Array.from(files)
-                    .slice(0, 9)
-                    .map((f) => URL.createObjectURL(f))
-                  setPreviews(urls)
-                }}
-              />
+           <div>
+                <Label>Imágenes (máx. 9)</Label>
+                <Input
+                  ref={fileRef}
+                  type="file"
+                  accept="image/*"
+                  multiple
+                  className="border-dashed border-2 p-2 rounded-lg cursor-pointer hover:border-sky-500"
+                  onChange={(e) => {
+                    const files = e.target.files
+                    if (!files) return
 
-              {/* 🖼️ Previews */}
-              {previews.length > 0 && (
-                <div className="mt-3 grid grid-cols-3 sm:grid-cols-4 gap-3">
-                  {previews.map((src, i) => (
-                    <div
-                      key={i}
-                      className="relative group rounded-md overflow-hidden border border-gray-300 dark:border-gray-700"
-                    >
-                      <img
-                        src={src}
-                        alt={`preview-${i}`}
-                        className="w-full h-24 object-cover"
-                      />
-                      <button
-                        type="button"
-                        onClick={() =>
-                          setPreviews((prev) => prev.filter((_, idx) => idx !== i))
-                        }
-                        className="absolute top-1 right-1 bg-black/60 text-white text-xs rounded-full px-2 opacity-0 group-hover:opacity-100 transition"
+                    // 🔹 Evitar sobreescribir las anteriores
+                    const newFiles = Array.from(files).slice(0, 9 - previews.length)
+                    const newPreviews = newFiles.map((f) => URL.createObjectURL(f))
+                    setPreviews((prev) => [...prev, ...newPreviews])
+                  }}
+                />
+
+                {/* 🖼️ Previews con botón ❌ */}
+                {previews.length > 0 && (
+                  <div className="mt-3 grid grid-cols-3 sm:grid-cols-4 gap-3">
+                    {previews.map((src, i) => (
+                      <div
+                        key={i}
+                        className="relative group rounded-md overflow-hidden border border-gray-300 dark:border-gray-700"
                       >
-                        ✕
-                      </button>
-                    </div>
-                  ))}
-                </div>
-              )}
-            </div>
+                        <img
+                          src={src}
+                          alt={`preview-${i}`}
+                          className="w-full h-24 object-cover"
+                        />
+                        <button
+                          type="button"
+                          onClick={() => {
+                            // 🔹 Eliminar imagen visualmente
+                            setPreviews((prev) => prev.filter((_, idx) => idx !== i))
+
+                            // 🔹 También quitarla del input
+                            const dt = new DataTransfer()
+                            const currentFiles = Array.from(fileRef.current?.files || [])
+                            currentFiles.forEach((f, idx) => {
+                              if (idx !== i) dt.items.add(f)
+                            })
+                            if (fileRef.current) fileRef.current.files = dt.files
+                          }}
+                          className="absolute top-1 right-1 bg-black/60 text-white text-xs rounded-full px-2 opacity-0 group-hover:opacity-100 transition"
+                        >
+                          ✕
+                        </button>
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </div>
+
 
             <Button
               type="submit"

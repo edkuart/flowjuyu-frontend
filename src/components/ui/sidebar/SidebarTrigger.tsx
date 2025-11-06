@@ -1,15 +1,15 @@
-'use client'
+"use client";
 
-import { Menu } from 'lucide-react'
-import { useSidebar } from './SidebarContext'
-
+import { ReactNode } from "react";
+import { useSidebar } from "./SidebarContext";
 
 interface Props {
-  className?: string
+  className?: string;
+  children?: ReactNode;
 }
 
-export function SidebarTrigger({ className }: Props) {
-  const { toggle } = useSidebar()
+export function SidebarTrigger({ className, children }: Props) {
+  const { toggle } = useSidebar();
 
   return (
     <button
@@ -17,7 +17,7 @@ export function SidebarTrigger({ className }: Props) {
       className={`inline-flex items-center justify-center ${className}`}
       aria-label="Abrir menú"
     >
-      <Menu className="w-6 h-6 text-black" />
+      {children}
     </button>
-  )
+  );
 }

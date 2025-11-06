@@ -1,474 +1,265 @@
-'use client';
+'use client'
 
-import {
-  BarChart as ReBarChart,
-  Bar,
-  XAxis,
-  YAxis,
-  Tooltip,
-  ResponsiveContainer,
-  PieChart,
-  Pie,
-  Cell,
-} from 'recharts';
+import { useEffect, useState, useRef } from "react"
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
+import { Badge } from "@/components/ui/badge"
+import { Button } from "@/components/ui/button"
+import { Input } from "@/components/ui/input"
+import { Textarea } from "@/components/ui/textarea"
+import { Label } from "@/components/ui/label"
+import { useAuth } from "@/context/AuthContext"
+import Link from "next/link"
+import { useFileUpload } from "@/hooks/useFileUpload"
 
-import {
-  Card,
-  CardHeader,
-  CardTitle,
-  CardDescription,
-  CardContent,
-} from '@/components/ui/card';
-import { Button } from '@/components/ui/button';
-import Link from 'next/link';
-import { Badge } from '@/components/ui/badge';
-import {
-  ShoppingCart,
-  Package,
-  DollarSign,
-  Star,
-  BarChart3,
-} from 'lucide-react';
-import { useState } from 'react';
+// 🔹 Datos de ejemplo temporal (luego vendrán del backend)
+const reseñasSimuladas = [
+  {
+    id: 1,
+    producto: { id: "123", nombre: "Huipil tradicional", imagen: "/ejemplo-producto-1.jpg" },
+    calificacion: 5,
+    comentario: "Excelente calidad y atención al cliente.",
+  },
+  {
+    id: 2,
+    producto: { id: "124", nombre: "Faja artesanal", imagen: "/ejemplo-producto-2.jpg" },
+    calificacion: 4,
+    comentario: "Muy bonito, aunque tardó un poco el envío.",
+  },
+]
 
-// ✅ Barra de progreso dinámica
-import * as React from 'react';
-import { cn } from '@/lib/utils';
+export default function SellerPublicProfilePage() {
+  const { user } = useAuth()
+  const [vendedor, setVendedor] = useState<any>(null)
+  const [editando, setEditando] = useState(false)
+  const [loading, setLoading] = useState(true)
+  const [formData, setFormData] = useState<any>({})
+  const inputFileRef = useRef<HTMLInputElement>(null)
+  const { previews, files, handleFile } = useFileUpload()
+  const API = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8800/api"
 
-export interface ProgressProps
-  extends React.HTMLAttributes<HTMLDivElement> {
-  value?: number;
-}
+  const promedio = reseñasSimuladas.length
+    ? (reseñasSimuladas.reduce((a, r) => a + r.calificacion, 0) / reseñasSimuladas.length).toFixed(1)
+    : "-"
 
-export function Progress({ value = 0, className, ...props }: ProgressProps) {
-  const getColor = (val: number) => {
-    if (val < 25) return 'bg-rose-500';
-    if (val < 50) return 'bg-amber-500';
-    if (val < 75) return 'bg-lime-500';
-    return 'bg-sky-500';
-  };
+  // 🔹 Cargar perfil del vendedor autenticado
+  useEffect(() => {
+    const fetchPerfil = async () => {
+      try {
+        const token = localStorage.getItem("token")
+        if (!token) {
+          console.warn("⚠️ No hay token de autenticación en localStorage.")
+          return
+        }
+
+        const res = await fetch(`${API}/vendedores`, {
+          headers: { Authorization: `Bearer ${token}` },
+        })
+
+        if (!res.ok) {
+          console.error("❌ Error al obtener el perfil:", res.status, await res.text())
+          setLoading(false)
+          return
+        }
+
+        const data = await res.json()
+        setVendedor(data)
+        setFormData(data)
+      } catch (err) {
+        console.error("Error al obtener perfil:", err)
+      } finally {
+        setLoading(false)
+      }
+    }
+
+    fetchPerfil()
+  }, [])
+
+  // 🔹 Cambiar valores de inputs
+  const onChange = (field: string, value: string) => {
+    setFormData((prev: any) => ({ ...prev, [field]: value }))
+  }
+
+  // 🔹 Enviar actualización de perfil
+  const onSubmit = async () => {
+    const token = localStorage.getItem("token")
+    if (!token) {
+      alert("No hay sesión activa.")
+      return
+    }
+
+    try {
+      const body = new FormData()
+      Object.entries(formData).forEach(([key, val]) => {
+        if (val !== undefined && val !== null) body.append(key, val as string)
+      })
+
+      if (files.fotoPerfil) body.append("logo", files.fotoPerfil)
+
+      const res = await fetch(`${API}/seller`, {
+        method: "PATCH",
+        headers: { Authorization: `Bearer ${token}` },
+        body,
+      })
+
+      if (res.ok) {
+        const updated = await res.json()
+        setVendedor(updated.perfil || updated)
+        setEditando(false)
+      } else {
+        console.error("Error al actualizar perfil:", await res.text())
+        alert("❌ No se pudo guardar los cambios")
+      }
+    } catch (error) {
+      console.error("Error al guardar:", error)
+    }
+  }
+
+  if (loading) return <p className="p-8 text-center">Cargando perfil...</p>
+  if (!vendedor) return <p className="p-8 text-center text-red-500">No se encontró el perfil del vendedor</p>
+
+  // Solo el dueño puede editar
+  const esPropietario = user?.id === vendedor.user_id
 
   return (
-    <div
-      className={cn(
-        'relative h-2 w-full overflow-hidden rounded-full bg-muted',
-        className
-      )}
-      {...props}
-    >
-      <div
-        className={cn(
-          'h-full flex-1 transition-all duration-500 ease-in-out rounded-full',
-          getColor(value || 0)
+    <main className="max-w-4xl mx-auto px-4 py-10 space-y-10">
+      {/* Encabezado */}
+      <header className="text-center">
+        <h1 className="text-3xl font-bold text-neutral-900">Perfil del vendedor</h1>
+        <p className="text-muted-foreground text-sm mt-1">
+          Información pública visible para los compradores
+        </p>
+      </header>
+
+      {/* Logo y botón de cambio */}
+      <section className="flex flex-col items-center gap-4">
+        <Avatar className="w-28 h-28">
+          <AvatarImage
+            src={previews["fotoPerfil"] || vendedor.logo || "/avatar-placeholder.png"}
+            alt="Logo del negocio"
+          />
+          <AvatarFallback>TX</AvatarFallback>
+        </Avatar>
+
+        {esPropietario && editando && (
+          <>
+            <input
+              type="file"
+              accept="image/*"
+              ref={inputFileRef}
+              onChange={(e) => handleFile(e, "fotoPerfil", "perfil-vendedor")}
+              className="hidden"
+            />
+            <Button variant="outline" size="sm" onClick={() => inputFileRef.current?.click()}>
+              Cambiar logo
+            </Button>
+          </>
         )}
-        style={{
-          width: `${Math.min(100, Math.max(0, value || 0))}%`,
-        }}
-      />
-    </div>
-  );
-}
+      </section>
 
-export default function SellerBusinessPage() {
-  // KPIs principales
-  const resumen = [
-    {
-      icon: <DollarSign className="text-green-600" />,
-      label: 'Ventas del mes',
-      value: 'Q 3,200.00',
-    },
-    {
-      icon: <ShoppingCart className="text-blue-600" />,
-      label: 'Pedidos completados',
-      value: '22',
-    },
-    {
-      icon: <Package className="text-purple-600" />,
-      label: 'Productos activos',
-      value: '10',
-    },
-    {
-      icon: <Star className="text-yellow-500" />,
-      label: 'Calificación promedio',
-      value: '4.6 / 5',
-    },
-  ];
-
-  const [year, setYear] = useState(2025);
-  const [detallePedidoIndex, setDetallePedidoIndex] = useState<number | null>(
-    null
-  );
-  const [periodo, setPeriodo] = useState<'dia' | 'mes' | 'anio'>('mes');
-  const [tab, setTab] = useState<'productos' | 'resenas' | 'favoritos'>(
-    'productos'
-  );
-
-  const ventasPorMes = [
-    { mes: 'Ene', ventas: 800 },
-    { mes: 'Feb', ventas: 1100 },
-    { mes: 'Mar', ventas: 950 },
-    { mes: 'Abr', ventas: 1200 },
-    { mes: 'May', ventas: 600 },
-    { mes: 'Jun', ventas: 1300 },
-    { mes: 'Jul', ventas: 500 },
-    { mes: 'Ago', ventas: 1000 },
-    { mes: 'Sep', ventas: 1150 },
-    { mes: 'Oct', ventas: 950 },
-    { mes: 'Nov', ventas: 1250 },
-    { mes: 'Dic', ventas: 1400 },
-  ];
-
-  const PIE_COLORS = ['#3b82f6', '#8b5cf6', '#0ea5e9', '#14b8a6', '#f59e0b'];
-
-  const dataDia = [
-    { name: 'Huipiles', value: 22 },
-    { name: 'Cortes típicos', value: 17 },
-    { name: 'Accesorios', value: 12 },
-    { name: 'Accesorios típicos', value: 7 },
-    { name: 'Otros', value: 4 },
-  ];
-  const dataMes = [
-    { name: 'Huipiles', value: 240 },
-    { name: 'Cortes típicos', value: 180 },
-    { name: 'Accesorios', value: 120 },
-    { name: 'Accesorios típicos', value: 80 },
-    { name: 'Otros', value: 60 },
-  ];
-  const dataAnio = [
-    { name: 'Huipiles', value: 2800 },
-    { name: 'Cortes típicos', value: 1900 },
-    { name: 'Accesorios', value: 1600 },
-    { name: 'Accesorios típicos', value: 1100 },
-    { name: 'Otros', value: 700 },
-  ];
-
-  const currentData =
-    periodo === 'dia' ? dataDia : periodo === 'anio' ? dataAnio : dataMes;
-  const totalPeriodo = currentData.reduce((a, b) => a + b.value, 0);
-
-  const actividadReciente = [
-    {
-      cliente: 'Ana López',
-      productos: [{ nombre: 'Blusa típica', cantidad: 1, precio: 120.0 }],
-      total: 120.0,
-      estado: 'Completado',
-      fecha: '24/jun',
-    },
-    {
-      cliente: 'Carlos Pérez',
-      productos: [
-        { nombre: 'Faja multicolor', cantidad: 1, precio: 90.0 },
-        { nombre: 'Blusa típica', cantidad: 2, precio: 240.0 },
-      ],
-      total: 330.0,
-      estado: 'Enviado',
-      fecha: '23/jun',
-    },
-  ];
-
-  return (
-    <main className="container mx-auto px-4 py-6 space-y-6">
-      {/* Encabezado + botón de Reportes */}
-      <section className="flex items-start justify-between gap-4">
-        <div>
-          <h1 className="text-2xl md:text-3xl font-bold text-neutral-900 mb-1">
-            Bienvenido al Panel del Vendedor
-          </h1>
-          <p className="text-muted-foreground text-sm">
-            Consulta métricas generales de tu tienda.
-          </p>
+      {/* Datos del vendedor */}
+      <div className="space-y-6">
+        <div className="space-y-2">
+          <Label>Nombre del comercio</Label>
+          {editando ? (
+            <Input
+              value={formData.nombre_comercio || ""}
+              onChange={(e) => onChange("nombre_comercio", e.target.value)}
+            />
+          ) : (
+            <p className="text-lg font-semibold">{vendedor.nombre_comercio || "Sin nombre"}</p>
+          )}
         </div>
-        <Button asChild className="gap-2">
-          <Link href="/seller/reports">
-            <BarChart3 className="w-4 h-4" />
-            Reportes
-          </Link>
-        </Button>
-      </section>
 
-      {/* KPIs */}
-      <section className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-        {resumen.map((item, idx) => (
-          <Card key={idx}>
-            <CardContent className="flex flex-col items-start gap-2 p-4">
-              <div className="text-2xl">{item.icon}</div>
-              <div className="text-sm text-muted-foreground">{item.label}</div>
-              <div className="text-lg font-bold">{item.value}</div>
-            </CardContent>
-          </Card>
-        ))}
-      </section>
+        <div className="space-y-2">
+          <Label>Descripción</Label>
+          {editando ? (
+            <Textarea
+              value={formData.descripcion || ""}
+              onChange={(e) => onChange("descripcion", e.target.value)}
+              rows={3}
+            />
+          ) : (
+            <p>{vendedor.descripcion || "Sin descripción"}</p>
+          )}
+        </div>
 
-      {/* GRID PRINCIPAL */}
-      <section className="grid gap-4 md:grid-cols-12">
-        {/* Ventas por mes */}
-        <Card className="md:col-span-8">
-          <CardHeader className="pb-2">
-            <div className="flex items-center justify-between">
-              <div>
-                <CardTitle>Ventas por mes - {year}</CardTitle>
-                <CardDescription>Rendimiento mensual</CardDescription>
-              </div>
-              <select
-                className="border rounded px-2 py-1 text-sm"
-                value={year}
-                onChange={(e) => setYear(Number(e.target.value))}
-              >
-                {[2023, 2024, 2025].map((y) => (
-                  <option key={y} value={y}>
-                    {y}
-                  </option>
-                ))}
-              </select>
-            </div>
-          </CardHeader>
-          <CardContent>
-            <div className="h-64 md:h-72">
-              <ResponsiveContainer width="100%" height="100%">
-                <ReBarChart data={ventasPorMes}>
-                  <XAxis dataKey="mes" />
-                  <YAxis />
-                  <Tooltip />
-                  <Bar dataKey="ventas" fill="#3b82f6" />
-                </ReBarChart>
-              </ResponsiveContainer>
-            </div>
-          </CardContent>
-        </Card>
+        <div className="space-y-2">
+          <Label>Dirección</Label>
+          {editando ? (
+            <Textarea
+              value={formData.direccion || ""}
+              onChange={(e) => onChange("direccion", e.target.value)}
+              rows={2}
+            />
+          ) : (
+            <p>{vendedor.direccion || "Sin dirección"}</p>
+          )}
+        </div>
 
-        {/* Gráfico circular con progreso y tabs */}
-        <Card className="md:col-span-4 border border-muted/40 shadow-md">
-          <CardHeader>
-            <div className="flex items-center justify-between">
-              <div>
-                <CardTitle>Distribución por categoría</CardTitle>
-                <CardDescription>
-                  {periodo === 'dia'
-                    ? 'Hoy'
-                    : periodo === 'mes'
-                    ? 'Este mes'
-                    : 'Este año'}
-                </CardDescription>
-              </div>
-              <div className="flex gap-1">
-                {(['dia', 'mes', 'anio'] as const).map((p) => (
-                  <Button
-                    key={p}
-                    size="sm"
-                    variant={periodo === p ? 'default' : 'outline'}
-                    className="capitalize"
-                    onClick={() => setPeriodo(p)}
-                  >
-                    {p === 'dia' ? 'Día' : p === 'mes' ? 'Mes' : 'Año'}
-                  </Button>
-                ))}
-              </div>
-            </div>
-            <div className="mt-2">
-              <span className="text-xs text-muted-foreground uppercase">
-                Total
-              </span>
-              <div className="text-2xl font-bold text-sky-600">
-                Q {totalPeriodo.toLocaleString('es-GT')}
-              </div>
-            </div>
-          </CardHeader>
+        <div className="space-y-2">
+          <Label>Teléfono</Label>
+          {editando ? (
+            <Input
+              value={formData.telefono_comercio || ""}
+              onChange={(e) => onChange("telefono_comercio", e.target.value)}
+              placeholder="Ej: 12345678"
+              className="w-40"
+            />
+          ) : (
+            <p>+502 {vendedor.telefono_comercio || "—"}</p>
+          )}
+        </div>
 
-          <CardContent className="space-y-5">
-            <div className="h-64 md:h-72">
-              <ResponsiveContainer width="100%" height="100%">
-                <PieChart>
-                  <Pie
-                    data={currentData}
-                    cx="50%"
-                    cy="50%"
-                    outerRadius={85}
-                    dataKey="value"
-                    label={({ name, percent }) =>
-                      `${name} ${(percent * 100).toFixed(1)}%`
-                    }
-                  >
-                    {currentData.map((_, i) => (
-                      <Cell key={i} fill={PIE_COLORS[i % PIE_COLORS.length]} />
-                    ))}
-                  </Pie>
-                  <Tooltip />
-                </PieChart>
-              </ResponsiveContainer>
-            </div>
+        <div className="space-y-2">
+          <Label>Estado de verificación</Label>
+          <Badge
+            className={
+              vendedor.estado_validacion === "verificado"
+                ? "bg-green-100 text-green-700"
+                : "bg-yellow-100 text-yellow-700"
+            }
+            variant="outline"
+          >
+            {vendedor.estado_validacion || "Pendiente"}
+          </Badge>
+        </div>
 
-            <div className="flex justify-center gap-2">
-              {(['productos', 'resenas', 'favoritos'] as const).map((t) => (
-                <Button
-                  key={t}
-                  size="sm"
-                  variant={tab === t ? 'default' : 'outline'}
-                  onClick={() => setTab(t)}
-                  className="capitalize"
-                >
-                  {t === 'productos'
-                    ? 'Productos'
-                    : t === 'resenas'
-                    ? 'Reseñas'
-                    : 'Favoritos'}
-                </Button>
-              ))}
-            </div>
+        {/* Botones */}
+        {esPropietario && (
+          <div className="flex gap-4">
+            <Button onClick={() => setEditando(!editando)} variant="secondary">
+              {editando ? "Cancelar edición" : "Editar perfil"}
+            </Button>
+            {editando && <Button onClick={onSubmit}>Guardar cambios</Button>}
+          </div>
+        )}
+      </div>
 
-            {tab === 'productos' && (
-              <div className="text-sm space-y-3">
-                {currentData.map((it, index) => {
-                  const porcentaje = ((it.value / totalPeriodo) * 100).toFixed(1);
-                  return (
-                    <div key={index} className="space-y-1">
-                      <div className="flex justify-between items-center">
-                        <span className="font-medium text-foreground">
-                          {it.name}
-                        </span>
-                        <span className="text-xs text-muted-foreground">
-                          {porcentaje}% del total
-                        </span>
-                      </div>
-                      <Progress
-                        value={parseFloat(porcentaje)}
-                        className="h-2 bg-muted"
-                      />
-                      <div className="flex justify-between text-xs text-muted-foreground">
-                        <span>{it.value} vendidos</span>
-                        <span>Ganancia: Q {(it.value * 25).toFixed(2)}</span>
-                      </div>
-                    </div>
-                  );
-                })}
-              </div>
-            )}
-
-            {tab === 'resenas' && (
-              <div className="text-sm text-muted-foreground">
-                ⭐ Promedio general: <b>4.7 / 5</b> — Huipiles y Cortes lideran{' '}
-                {periodo === 'dia'
-                  ? 'hoy'
-                  : periodo === 'mes'
-                  ? 'este mes'
-                  : 'este año'}
-                .
-              </div>
-            )}
-
-            {tab === 'favoritos' && (
-              <ul className="text-sm text-muted-foreground list-disc pl-5 space-y-1">
-                <li>Huipil de Quetzaltenango (58)</li>
-                <li>Corte típico azul cielo (42)</li>
-                <li>Faja artesanal multicolor (30)</li>
-              </ul>
-            )}
-          </CardContent>
-        </Card>
-
-        {/* Actividad reciente */}
-        <Card className="md:col-span-8">
-          <CardHeader className="pb-2">
-            <CardTitle>Actividad reciente</CardTitle>
-            <CardDescription>Últimos pedidos</CardDescription>
-          </CardHeader>
-          <CardContent>
-            <div className="overflow-x-auto">
-              <table className="min-w-full text-sm">
-                <thead>
-                  <tr className="border-b">
-                    <th className="text-left p-2">Cliente</th>
-                    <th className="text-left p-2">Productos</th>
-                    <th className="text-left p-2">Total</th>
-                    <th className="text-left p-2">Estado</th>
-                    <th className="text-left p-2">Fecha</th>
-                    <th className="text-left p-2">Acciones</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {actividadReciente.map((pedido, index) => (
-                    <tr key={index} className="border-b">
-                      <td className="p-2 whitespace-nowrap">{pedido.cliente}</td>
-                      <td className="p-2 whitespace-nowrap">
-                        {detallePedidoIndex === index ? (
-                          <ul className="list-disc ml-4">
-                            {pedido.productos.map((prod, i) => (
-                              <li key={i}>
-                                {prod.nombre} x{prod.cantidad} - Q{' '}
-                                {prod.precio.toFixed(2)}
-                              </li>
-                            ))}
-                          </ul>
-                        ) : (
-                          <span>{pedido.productos.length} producto(s)</span>
-                        )}
-                      </td>
-                      <td className="p-2 whitespace-nowrap">
-                        Q {pedido.total.toFixed(2)}
-                      </td>
-                      <td className="p-2 whitespace-nowrap">
-                        {pedido.estado}
-                      </td>
-                      <td className="p-2 whitespace-nowrap">{pedido.fecha}</td>
-                      <td className="p-2 whitespace-nowrap">
-                        <Button
-                          size="sm"
-                          variant="outline"
-                          onClick={() =>
-                            setDetallePedidoIndex(
-                              index === detallePedidoIndex ? null : index
-                            )
-                          }
-                        >
-                          {detallePedidoIndex === index
-                            ? 'Ocultar'
-                            : 'Ver productos'}
-                        </Button>
-                      </td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
-          </CardContent>
-        </Card>
-
-        {/* Alertas */}
-        <Card className="md:col-span-4">
-          <CardHeader className="pb-2">
-            <CardTitle>Alertas</CardTitle>
-            <CardDescription>Estado actual</CardDescription>
-          </CardHeader>
-          <CardContent className="space-y-3">
-            <div>
-              <div className="font-medium">Stock bajo</div>
-              <ul className="mt-1 text-sm list-disc pl-5 space-y-1">
-                <li className="flex items-center justify-between">
-                  Blusa roja bordada <Badge variant="secondary">2 uds</Badge>
-                </li>
-                <li className="flex items-center justify-between">
-                  Faja multicolor <Badge variant="secondary">1 uds</Badge>
-                </li>
-              </ul>
-            </div>
-
-            <div className="pt-2">
-              <div className="font-medium">Validaciones pendientes</div>
-              <ul className="mt-1 text-sm list-disc pl-5 space-y-1">
-                <li>Selfie con DPI (seller#123)</li>
-              </ul>
-            </div>
-
-            <div className="pt-2">
-              <Link
-                href="/seller/reports"
-                className="inline-flex items-center text-sm underline"
-              >
-                Ver reportes detallados
+      {/* ⭐ Reseñas simuladas */}
+      <section className="space-y-6">
+        <h2 className="text-xl font-semibold">⭐ Calificación general: {promedio} / 5</h2>
+        <div className="space-y-4">
+          <h3 className="text-lg font-bold">Reseñas recientes</h3>
+          {reseñasSimuladas.map((r) => (
+            <div key={r.id} className="flex items-start gap-4 border p-4 rounded-md">
+              <Link href={`/product/${r.producto.id}`}>
+                <img
+                  src={r.producto.imagen}
+                  alt={r.producto.nombre}
+                  className="w-16 h-16 rounded object-cover"
+                />
               </Link>
+              <div>
+                <p className="font-medium">{r.producto.nombre}</p>
+                <p className="text-sm text-muted-foreground">
+                  {"★".repeat(r.calificacion)}{"☆".repeat(5 - r.calificacion)}
+                </p>
+                <p className="text-sm mt-1">{r.comentario}</p>
+              </div>
             </div>
-          </CardContent>
-        </Card>
+          ))}
+        </div>
       </section>
     </main>
-  );
+  )
 }
