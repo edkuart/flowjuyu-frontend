@@ -67,7 +67,10 @@ export default function AddProductPage() {
   const [previews, setPreviews] = useState<string[]>([])
 
   const fetchJSON = async <T,>(path: string) => {
-    const r = await fetch(`${API}${path}`, { credentials: "include", cache: "no-store" })
+    const r = await fetch(`${API}${path}`, {
+      credentials: "include",
+      cache: "no-store",
+    })
     if (!r.ok) throw new Error(await r.text())
     return (await r.json()) as T
   }
@@ -91,15 +94,63 @@ export default function AddProductPage() {
     })()
   }, [])
 
+  // Telas dependen de la clase
   useEffect(() => {
     if (!claseSel || claseSel === OTROS) return setTelas([])
-    fetchJSON<Opcion[]>(`/api/telas?clase_id=${claseSel}`).then(setTelas).catch(() => setTelas([]))
+    fetchJSON<Opcion[]>(`/api/telas?clase_id=${claseSel}`)
+      .then(setTelas)
+      .catch(() => setTelas([]))
   }, [claseSel])
 
-  const nombreCategoriaSel = useMemo(
-    () => categorias.find((c) => String(c.id) === categoriaSel)?.nombre.toLowerCase() || "",
-    [categorias, categoriaSel]
-  )
+  // ============================
+  // Reglas por categoría
+  // ============================
+  const reglasCategoria: Record<
+    string,
+    { clase: boolean; tela: boolean; accesorio: boolean }
+  > = {
+    // Huipil
+    hupil: { clase: true, tela: true, accesorio: false },
+    hupiles: { clase: true, tela: true, accesorio: false },
+
+    // Cortes
+    corte: { clase: true, tela: true, accesorio: false },
+    cortes: { clase: true, tela: true, accesorio: false },
+
+    // Fajas (por si luego las manejas como categoría)
+    faja: { clase: true, tela: true, accesorio: false },
+    fajas: { clase: true, tela: true, accesorio: false },
+
+    // Telas como categoría
+    tela: { clase: true, tela: true, accesorio: false },
+    telas: { clase: true, tela: true, accesorio: false },
+
+    // Calzado
+    calzado: { clase: true, tela: true, accesorio: false },
+    calzados: { clase: true, tela: true, accesorio: false },
+
+    // Accesorios
+    accesorio: { clase: false, tela: false, accesorio: true },
+    accesorios: { clase: false, tela: false, accesorio: true },
+
+    // Accesorios típicos
+    "accesorios típicos": { clase: false, tela: false, accesorio: true },
+
+    // CALZADO (NO mostrar clase ni tela)
+    Calzado: { clase: false, tela: false, accesorio: false },
+
+    // Default
+    default: { clase: false, tela: false, accesorio: false },
+  }
+
+  const nombreCategoriaSel = useMemo(() => {
+    const cat = categorias.find((c) => String(c.id) === categoriaSel)
+    return cat?.nombre?.toLowerCase().trim() || ""
+  }, [categorias, categoriaSel])
+
+  const reglas = useMemo(() => {
+    return reglasCategoria[nombreCategoriaSel] ?? reglasCategoria.default
+  }, [nombreCategoriaSel])
 
   const esAccesorio = ["accesorio", "accesorios"].includes(nombreCategoriaSel)
   const esAccesorioTipico = nombreCategoriaSel === "accesorios típicos"
@@ -107,29 +158,37 @@ export default function AddProductPage() {
   // ============================
   // Accesorios / Tipos / Materiales
   // ============================
+  // Lista de accesorios (normal / típico)
   useEffect(() => {
     if (!(esAccesorio || esAccesorioTipico)) return setAccesorios([])
     const tipo = esAccesorio ? "normal" : "tipico"
-    fetchJSON<Opcion[]>(`/api/accesorios?tipo=${tipo}`).then(setAccesorios).catch(() => setAccesorios([]))
+    fetchJSON<Opcion[]>(`/api/accesorios?tipo=${tipo}`)
+      .then(setAccesorios)
+      .catch(() => setAccesorios([]))
   }, [esAccesorio, esAccesorioTipico])
 
+  // Tipos (modelo / estilo) del accesorio seleccionado
   useEffect(() => {
-    if (!esAccesorio || !accesorioSel || accesorioSel === OTROS) return setTipos([])
+    if (!(esAccesorio || esAccesorioTipico) || !accesorioSel || accesorioSel === OTROS) {
+      return setTipos([])
+    }
+
     fetchJSON<Opcion[]>(`/api/accesorio-tipos?accesorio_id=${accesorioSel}`)
       .then(setTipos)
       .catch(() => setTipos([]))
-  }, [esAccesorio, accesorioSel])
+  }, [esAccesorio, esAccesorioTipico, accesorioSel])
 
+  // Materiales del accesorio seleccionado
   useEffect(() => {
-    if ((!esAccesorio && !esAccesorioTipico) || !accesorioSel || accesorioSel === OTROS)
+    if ((!esAccesorio && !esAccesorioTipico) || !accesorioSel || accesorioSel === OTROS) {
       return setMateriales([])
-
-    let q = `/api/accesorio-materiales?accesorio_id=${accesorioSel}`
-    if (esAccesorio && tipoSel && tipoSel !== OTROS) {
-      q += `&tipo_id=${tipoSel}`
     }
 
-    fetchJSON<Opcion[]>(q).then(setMateriales).catch(() => setMateriales([]))
+    const q = `/api/accesorio-materiales?accesorio_id=${accesorioSel}`
+
+    fetchJSON<Opcion[]>(q)
+      .then(setMateriales)
+      .catch(() => setMateriales([]))
   }, [esAccesorio, esAccesorioTipico, accesorioSel, tipoSel])
 
   // ============================
@@ -160,17 +219,25 @@ export default function AddProductPage() {
   // ============================
   async function onSubmit(e: React.FormEvent<HTMLFormElement>) {
     e.preventDefault()
+
     const fd = new FormData(e.currentTarget)
     fd.set("precio", toDecimal(String(fd.get("precio") || "")))
     fd.set("activo", String(activo))
 
+    // -------------------------------
+    // 1. Categoría
+    // -------------------------------
     if (categoriaSel === OTROS) fd.set("categoria_custom", categoriaInput)
     else fd.set("categoria_id", categoriaSel)
+
+    // Clase (aunque después se borre si no aplica)
     fd.set("clase_id", claseSel)
 
+    // Tela (aunque después se borre si no aplica)
     if (telaSel === OTROS) fd.set("tela_custom", telaInput)
     else if (telaSel && telaSel !== NA) fd.set("tela_id", telaSel)
 
+    // Accesorio (aunque luego se borre si no aplica)
     if ((esAccesorio || esAccesorioTipico) && accesorioSel) {
       if (accesorioSel === OTROS) fd.set("accesorio_custom", accesorioInput)
       else fd.set("accesorio_id", accesorioSel)
@@ -186,9 +253,33 @@ export default function AddProductPage() {
       }
     }
 
-    if (departamentoSel) fd.set("departamento", departamentoSel)
-    if (municipioSel) fd.set("municipio", municipioSel)
+    fd.set("departamento", departamentoSel || "")
+    fd.set("municipio", municipioSel || "")
 
+    // --------------------------------
+    // 2. LIMPIAR CAMPOS SEGÚN REGLA
+    // --------------------------------
+    if (!reglas.clase) {
+      fd.delete("clase_id")
+    }
+
+    if (!reglas.tela) {
+      fd.delete("tela_id")
+      fd.delete("tela_custom")
+    }
+
+    if (!reglas.accesorio) {
+      fd.delete("accesorio_id")
+      fd.delete("accesorio_custom")
+      fd.delete("accesorio_tipo_id")
+      fd.delete("accesorio_tipo_custom")
+      fd.delete("accesorio_material_id")
+      fd.delete("accesorio_material_custom")
+    }
+
+    // --------------------------------
+    // 3. Imágenes
+    // --------------------------------
     const files = fileRef.current?.files
     if (files) Array.from(files).slice(0, 9).forEach((f) => fd.append("imagenes[]", f))
 
@@ -205,7 +296,7 @@ export default function AddProductPage() {
       setMensaje("✅ Producto creado con éxito.")
       setEstado("ok")
       if (formRef.current) formRef.current.reset()
-      setPreviews([]) // 🔹 limpiar previews
+      setPreviews([])
     } catch (err: any) {
       setMensaje(err.message || "Error al guardar el producto.")
       setEstado("error")
@@ -232,7 +323,11 @@ export default function AddProductPage() {
           </h1>
         </div>
 
-        <form ref={formRef} className="grid md:grid-cols-2 gap-8 bg-white dark:bg-zinc-900 rounded-2xl shadow p-6" onSubmit={onSubmit}>
+        <form
+          ref={formRef}
+          className="grid md:grid-cols-2 gap-8 bg-white dark:bg-zinc-900 rounded-2xl shadow p-6"
+          onSubmit={onSubmit}
+        >
           {/* Columna izquierda */}
           <div className="space-y-5">
             <CategoriaSelect
@@ -245,7 +340,7 @@ export default function AddProductPage() {
               confirmarOtro={confirmarOtro}
             />
 
-            {(esAccesorio || esAccesorioTipico) && (
+            {reglas.accesorio && (esAccesorio || esAccesorioTipico) && (
               <>
                 <AccesorioSelect
                   accesorios={accesorios}
@@ -257,59 +352,63 @@ export default function AddProductPage() {
                   confirmarOtro={confirmarOtro}
                 />
 
-                {esAccesorio && accesorioSel && accesorioSel !== OTROS && (
-                  <TipoAccesorioSelect
-                    tipos={tipos}
-                    tipoSel={tipoSel}
-                    setTipoSel={setTipoSel}
-                    tipoInput={tipoInput}
-                    setTipoInput={setTipoInput}
-                    OTROS={OTROS}
-                    confirmarOtro={confirmarOtro}
-                  />
-                )}
+                {accesorioSel && accesorioSel !== OTROS && (
+                  <>
+                    <TipoAccesorioSelect
+                      tipos={tipos}
+                      tipoSel={tipoSel}
+                      setTipoSel={setTipoSel}
+                      tipoInput={tipoInput}
+                      setTipoInput={setTipoInput}
+                      OTROS={OTROS}
+                      confirmarOtro={confirmarOtro}
+                    />
 
-                {accesorioSel && (
-                  <MaterialSelect
-                    materiales={materiales}
-                    materialSel={materialSel}
-                    setMaterialSel={setMaterialSel}
-                    materialInput={materialInput}
-                    setMaterialInput={setMaterialInput}
-                    OTROS={OTROS}
-                    confirmarOtro={confirmarOtro}
-                  />
+                    <MaterialSelect
+                      materiales={materiales}
+                      materialSel={materialSel}
+                      setMaterialSel={setMaterialSel}
+                      materialInput={materialInput}
+                      setMaterialInput={setMaterialInput}
+                      OTROS={OTROS}
+                      confirmarOtro={confirmarOtro}
+                    />
+                  </>
                 )}
               </>
             )}
 
-            <div>
-              <Label>Clase</Label>
-              <select
-                className="w-full border rounded-md px-3 py-2 focus:ring-2 focus:ring-sky-500 dark:bg-zinc-800"
-                value={claseSel}
-                onChange={(e) => setClaseSel(e.target.value)}
-              >
-                <option value="">Seleccione…</option>
-                {clases.map((c) => (
-                  <option key={c.id} value={String(c.id)}>
-                    {c.nombre}
-                  </option>
-                ))}
-              </select>
-            </div>
+            {reglas.clase && (
+              <div>
+                <Label>Clase</Label>
+                <select
+                  className="w-full border rounded-md px-3 py-2 focus:ring-2 focus:ring-sky-500 dark:bg-zinc-800"
+                  value={claseSel}
+                  onChange={(e) => setClaseSel(e.target.value)}
+                >
+                  <option value="">Seleccione…</option>
+                  {clases.map((c) => (
+                    <option key={c.id} value={String(c.id)}>
+                      {c.nombre}
+                    </option>
+                  ))}
+                </select>
+              </div>
+            )}
 
-            <TelaSelect
-              claseSel={claseSel}
-              telas={telas}
-              telaSel={telaSel}
-              setTelaSel={setTelaSel}
-              telaInput={telaInput}
-              setTelaInput={setTelaInput}
-              OTROS={OTROS}
-              NA={NA}
-              confirmarOtro={confirmarOtro}
-            />
+            {reglas.tela && (
+              <TelaSelect
+                claseSel={claseSel}
+                telas={telas}
+                telaSel={telaSel}
+                setTelaSel={setTelaSel}
+                telaInput={telaInput}
+                setTelaInput={setTelaInput}
+                OTROS={OTROS}
+                NA={NA}
+                confirmarOtro={confirmarOtro}
+              />
+            )}
 
             <OrigenSelect
               departamentosConMunicipios={departamentosConMunicipios}
@@ -359,7 +458,12 @@ export default function AddProductPage() {
 
             <div>
               <Label>Descripción</Label>
-              <Textarea name="descripcion" rows={4} required placeholder="Describe el producto..." />
+              <Textarea
+                name="descripcion"
+                rows={4}
+                required
+                placeholder="Describe el producto..."
+              />
             </div>
 
             <div>

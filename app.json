@@ -1,0 +1,12 @@
+{
+  "expo": {
+    "extra": {
+      "eas": {
+        "projectId": "408dbd51-46b1-42b8-a916-3848b0dc3c6e"
+      }
+    },
+    "android": {
+      "package": "com.pandre.cortesmarketplacefrontend"
+    }
+  }
+}

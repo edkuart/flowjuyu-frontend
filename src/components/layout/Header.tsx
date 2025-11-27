@@ -9,6 +9,8 @@ import {
 } from "lucide-react";
 import { SidebarTrigger } from "@/components/ui/sidebar/SidebarTrigger";
 import { useAuth } from "@/context/AuthContext";
+import SearchBar from "@/components/ui/SearchBar";
+
 
 // ===========================
 // 🔹 Subcomponente: Categorías dinámicas
@@ -92,12 +94,12 @@ function CategoriasDropdown() {
 // ===========================
 export default function Header() {
   const { user, logout } = useAuth();
-  const [q, setQ] = useState("");
   const [openCats, setOpenCats] = useState(false);
   const [openCreate, setOpenCreate] = useState(false);
   const [openAccount, setOpenAccount] = useState(false);
   const [helpOpen, setHelpOpen] = useState(false);
   const [cartCount] = useState<number>(0);
+  
 
   const helpRef = useRef<HTMLLIElement>(null);
   useEffect(() => {
@@ -116,13 +118,6 @@ export default function Header() {
     };
   }, []);
 
-  function onSearch(e?: React.FormEvent) {
-    e?.preventDefault();
-    const query = q.trim();
-    if (!query) return;
-    window.location.href = `/buscar?q=${encodeURIComponent(query)}`;
-  }
-
   return (
     <div className="w-full border-b bg-white relative z-50 shadow-sm">
 
@@ -130,9 +125,7 @@ export default function Header() {
       <div className="max-w-screen-xl mx-auto h-16 px-3 md:px-6 flex items-center gap-3">
         {/* Izquierda */}
         <div className="flex items-center gap-3">
-          <SidebarTrigger className="md:hidden text-zinc-700">
-            <Menu className="w-5 h-5" />
-          </SidebarTrigger>
+          <SidebarTrigger className="md:hidden text-zinc-700" />
 
           <Link href="/" className="flex items-center gap-2">
             <Image
@@ -171,28 +164,9 @@ export default function Header() {
         </div>
 
         {/* Centro: buscador */}
-        <form
-          onSubmit={onSearch}
-          className="flex-1 max-w-3xl mx-auto hidden sm:flex"
-          role="search"
-          aria-label="Buscador"
-        >
-          <div className="relative flex-1">
-            <input
-              value={q}
-              onChange={(e) => setQ(e.target.value)}
-              placeholder="Buscar en Flowjuyu"
-              className="w-full h-10 rounded-full border pl-4 pr-10 text-sm outline-none focus:ring-2 focus:ring-zinc-200"
-            />
-            <button
-              type="submit"
-              className="absolute right-2 top-1/2 -translate-y-1/2 p-2 rounded-full hover:bg-zinc-100"
-              aria-label="Buscar"
-            >
-              <Search className="w-5 h-5 text-zinc-600" />
-            </button>
+        <div className="flex-1 max-w-3xl mx-auto hidden sm:flex">
+          <SearchBar />
           </div>
-        </form>
 
         {/* Móvil: búsqueda rápida */}
         <button
