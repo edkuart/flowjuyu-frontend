@@ -3,19 +3,36 @@
 
 import { createContext, useContext, useEffect, useState, ReactNode } from "react";
 
-export type Rol = "comprador" | "vendedor" | "admin";
+
+export type Rol =
+  | "comprador"
+  | "buyer"
+  | "vendedor"
+  | "seller"
+  | "admin";
+
+
+function normalizeRole(rol: Rol): "comprador" | "vendedor" | "admin" {
+  switch (rol) {
+    case "buyer":
+      return "comprador";
+    case "seller":
+      return "vendedor";
+    default:
+      return rol; 
+  }
+}
 
 export interface User {
   id: string;
   nombre: string;
   rol: Rol;
-  [key: string]: any; // Para campos extra (email, imagen, etc.)
+  [key: string]: any;
 }
 
 interface AuthContextProps {
   user: User | null;
   token: string | null;
-  /** true cuando ya se leyó localStorage y el contexto está hidratado */
   ready: boolean;
   login: (user: User, token: string) => void;
   logout: () => void;
@@ -28,21 +45,27 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const [token, setToken] = useState<string | null>(null);
   const [ready, setReady] = useState(false);
 
-  // Al montar: hidratar estado desde localStorage
   useEffect(() => {
     try {
       const storedUser = localStorage.getItem("user");
       const storedToken = localStorage.getItem("token");
+
       if (storedUser && storedToken) {
-        setUser(JSON.parse(storedUser) as User);
+        const parsed = JSON.parse(storedUser) as User;
+
+        parsed.rol = normalizeRole(parsed.rol);
+
+        setUser(parsed);
         setToken(storedToken);
       }
     } finally {
-      setReady(true); // ← evita parpadeo en AuthGuard
+      setReady(true);
     }
   }, []);
 
   const login = (u: User, t: string) => {
+    u.rol = normalizeRole(u.rol);
+
     setUser(u);
     setToken(t);
     localStorage.setItem("user", JSON.stringify(u));
@@ -54,7 +77,6 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     setToken(null);
     localStorage.removeItem("user");
     localStorage.removeItem("token");
-    // Redirige a login (similar a Manuel)
     window.location.replace("/login");
   };
 

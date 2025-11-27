@@ -185,3 +185,9 @@ export function getMunicipiosPorDepartamento(nombre: string): string[] {
   const depto = departamentosConMunicipios.find((d) => d.nombre === nombre);
   return depto ? depto.municipios : [];
 }
+
+export const municipiosPorDepartamento: Record<string, string[]> = {};
+
+for (const d of departamentosConMunicipios) {
+  municipiosPorDepartamento[d.nombre] = d.municipios;
+}

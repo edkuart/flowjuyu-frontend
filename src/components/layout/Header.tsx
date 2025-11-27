@@ -38,7 +38,6 @@ function CategoriasDropdown() {
     fetchCategorias();
   }, []);
 
-  // Agrupar categorías en columnas
   const chunkSize = 5;
   const bloques: Categoria[][] = [];
   for (let i = 0; i < categorias.length; i += chunkSize) {
@@ -99,7 +98,6 @@ export default function Header() {
   const [helpOpen, setHelpOpen] = useState(false);
   const [cartCount] = useState<number>(0);
 
-  // Cerrar menú de ayuda al hacer click fuera o presionar ESC
   const helpRef = useRef<HTMLLIElement>(null);
   useEffect(() => {
     function onDocClick(e: MouseEvent) {
@@ -148,7 +146,7 @@ export default function Header() {
             </span>
           </Link>
 
-          {/* 🔹 Categorías dinámicas */}
+          {/* Categorías */}
           <div
             className="relative hidden md:block"
             onMouseEnter={() => setOpenCats(true)}
@@ -168,7 +166,7 @@ export default function Header() {
           </div>
         </div>
 
-        {/* Centro: buscador */}
+        {/* Buscador */}
         <form
           onSubmit={onSearch}
           className="flex-1 max-w-3xl mx-auto hidden sm:flex"
@@ -192,20 +190,6 @@ export default function Header() {
           </div>
         </form>
 
-        {/* Móvil: búsqueda rápida */}
-        <button
-          onClick={() => {
-            const term = prompt("¿Qué deseas buscar?") || "";
-            if (term.trim()) {
-              window.location.href = `/buscar?q=${encodeURIComponent(term.trim())}`;
-            }
-          }}
-          className="sm:hidden p-2 rounded-md hover:bg-zinc-50"
-          aria-label="Buscar"
-        >
-          <Search className="w-5 h-5 text-zinc-700" />
-        </button>
-
         {/* Derecha */}
         <div className="flex items-center gap-2 sm:gap-3">
           <Link
@@ -219,32 +203,52 @@ export default function Header() {
 
           {/* Cuenta */}
           {user ? (
-            <div className="relative">
+            <div
+              className="relative"
+              onMouseEnter={() => setOpenAccount(true)}
+              onMouseLeave={() => setOpenAccount(false)}
+            >
               <button
-                onClick={() => setOpenAccount((v) => !v)}
-                onBlur={() => setTimeout(() => setOpenAccount(false), 150)}
+                onClick={() => {
+                  if (user.rol === "comprador") {
+                    window.location.href = "/buyer/dashboard";
+                    return;
+                  }
+                  setOpenAccount(true);
+                }}
                 className="inline-flex items-center gap-2 rounded-md border px-3 py-2 text-sm hover:bg-zinc-50"
-                aria-haspopup="menu"
-                aria-expanded={openAccount}
               >
                 <User className="w-4 h-4" />
                 Mi cuenta
                 <ChevronDown className="w-4 h-4" />
               </button>
 
+              {/* 🧩 HOVER-BRIDGE (zona invisible anti-cierre) */}
+              <div className="absolute left-0 right-0 h-3 bg-transparent"></div>
+
               {openAccount && (
-                <div className="absolute right-0 mt-2 w-56 rounded-md border bg-white shadow-sm py-1 z-50">
+                <div
+                  className="absolute right-0 mt-2 w-56 rounded-md border bg-white shadow-sm py-1 z-50"
+                >
                   <div className="px-3 py-2 text-xs text-zinc-500">
                     Hola,{" "}
                     <span className="font-medium text-zinc-700">{user.nombre}</span>
                   </div>
+
+                  {user.rol === "comprador" && (
+                    <Link
+                      href="/buyer/orders"
+                      className="block px-3 py-2 text-sm hover:bg-zinc-50"
+                    >
+                      Mis pedidos
+                    </Link>
+                  )}
 
                   {user.rol === "vendedor" && (
                     <>
                       <Link
                         href="/seller/dashboard"
                         className="flex items-center gap-2 px-3 py-2 text-sm hover:bg-zinc-50"
-                        onClick={() => setOpenAccount(false)}
                       >
                         <LayoutDashboard className="w-4 h-4" />
                         Dashboard vendedor
@@ -252,32 +256,11 @@ export default function Header() {
                       <Link
                         href="/seller/products"
                         className="flex items-center gap-2 px-3 py-2 text-sm hover:bg-zinc-50"
-                        onClick={() => setOpenAccount(false)}
                       >
                         <Store className="w-4 h-4" />
                         Mis productos
                       </Link>
                     </>
-                  )}
-
-                  {user.rol === "comprador" && (
-                    <Link
-                      href="/orders"
-                      className="block px-3 py-2 text-sm hover:bg-zinc-50"
-                      onClick={() => setOpenAccount(false)}
-                    >
-                      Mis pedidos
-                    </Link>
-                  )}
-
-                  {user.rol === "admin" && (
-                    <Link
-                      href="/admin/dashboard"
-                      className="block px-3 py-2 text-sm hover:bg-zinc-50"
-                      onClick={() => setOpenAccount(false)}
-                    >
-                      Panel administrador
-                    </Link>
                   )}
 
                   <button
@@ -290,6 +273,7 @@ export default function Header() {
                 </div>
               )}
             </div>
+
           ) : (
             <>
               <Link href="/login" className="text-sm hover:underline">
@@ -353,7 +337,7 @@ export default function Header() {
         </div>
       </div>
 
-      {/* Fila secundaria */}
+      {/* Línea inferior */}
       <nav className="border-t">
         <div className="max-w-7xl mx-auto h-10 px-3 md:px-6 flex items-center justify-between text-sm">
           <ul className="flex items-center gap-4 text-zinc-700">
@@ -362,7 +346,6 @@ export default function Header() {
             <li><Link className="hover:underline" href="/new-arrivals">Lo + nuevo</Link></li>
             <li><Link className="hover:underline" href="/sell">Vende en Flowjuyu</Link></li>
 
-            {/* Ayuda */}
             <li
               ref={helpRef}
               className="relative"
