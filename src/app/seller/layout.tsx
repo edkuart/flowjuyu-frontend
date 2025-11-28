@@ -4,6 +4,8 @@ import Link from "next/link";
 import { ReactNode } from "react";
 import { Home, Package, ShoppingCart, User } from "lucide-react";
 import AuthGuard from "@/components/auth/AuthGuard";
+import SearchBar from "@/components/ui/SearchBar";
+
 
 const navItems = [
   { label: "Dashboard", icon: Home, href: "/seller/dashboard" },

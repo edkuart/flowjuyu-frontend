@@ -24,7 +24,7 @@ function CategoriasDropdown() {
   const API = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8800/api";
 
   useEffect(() => {
-    const fetchCategorias = async () => {
+    async function fetchCategorias() {
       try {
         const res = await fetch(`${API}/categorias`, { cache: "no-store" });
         if (res.ok) {
@@ -34,9 +34,9 @@ function CategoriasDropdown() {
       } catch (error) {
         console.error("Error al obtener categorías:", error);
       }
-    };
+    }
     fetchCategorias();
-  }, []);
+  }, [API]);
 
   const chunkSize = 5;
   const bloques: Categoria[][] = [];
@@ -71,7 +71,8 @@ function CategoriasDropdown() {
                   sizes="40px"
                   className="object-cover"
                   onError={(e) => {
-                    (e.target as HTMLImageElement).src = "/images/categorias/default.jpg";
+                    const target = e.target as HTMLImageElement;
+                    target.src = "/images/categorias/default.jpg";
                   }}
                 />
               </div>
@@ -99,16 +100,26 @@ export default function Header() {
   const [cartCount] = useState<number>(0);
 
   const helpRef = useRef<HTMLLIElement>(null);
+
   useEffect(() => {
-    function onDocClick(e: MouseEvent) {
+    const onDocClick = (e: MouseEvent) => {
       if (!helpRef.current) return;
-      if (!helpRef.current.contains(e.target as Node)) setHelpOpen(false);
-    }
-    function onKey(e: KeyboardEvent) {
-      if (e.key === "Escape") setHelpOpen(false);
-    }
+      if (!helpRef.current.contains(e.target as Node)) {
+        setHelpOpen(false);
+      }
+    };
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key === "Escape") {
+        setHelpOpen(false);
+        setOpenAccount(false);
+        setOpenCreate(false);
+        setOpenCats(false);
+      }
+    };
+
     document.addEventListener("mousedown", onDocClick);
     document.addEventListener("keydown", onKey);
+
     return () => {
       document.removeEventListener("mousedown", onDocClick);
       document.removeEventListener("keydown", onKey);
@@ -124,8 +135,10 @@ export default function Header() {
 
   return (
     <div className="w-full border-b bg-white relative z-50 shadow-sm">
+      
       {/* Barra superior */}
       <div className="max-w-screen-xl mx-auto h-16 px-3 md:px-6 flex items-center gap-3">
+        
         {/* Izquierda */}
         <div className="flex items-center gap-3">
           <SidebarTrigger className="md:hidden text-zinc-700">
@@ -150,7 +163,7 @@ export default function Header() {
           <div
             className="relative hidden md:block"
             onMouseEnter={() => setOpenCats(true)}
-            onMouseLeave={() => setTimeout(() => setOpenCats(false), 400)}
+            onMouseLeave={() => setTimeout(() => setOpenCats(false), 700)}
           >
             <button
               className="inline-flex items-center gap-2 rounded-md border px-3 py-2 text-sm hover:bg-zinc-50"
@@ -171,7 +184,6 @@ export default function Header() {
           onSubmit={onSearch}
           className="flex-1 max-w-3xl mx-auto hidden sm:flex"
           role="search"
-          aria-label="Buscador"
         >
           <div className="relative flex-1">
             <input
@@ -183,7 +195,6 @@ export default function Header() {
             <button
               type="submit"
               className="absolute right-2 top-1/2 -translate-y-1/2 p-2 rounded-full hover:bg-zinc-100"
-              aria-label="Buscar"
             >
               <Search className="w-5 h-5 text-zinc-600" />
             </button>
@@ -192,11 +203,10 @@ export default function Header() {
 
         {/* Derecha */}
         <div className="flex items-center gap-2 sm:gap-3">
+
           <Link
             href="/favoritos"
             className="p-2 rounded-full hover:bg-zinc-50"
-            aria-label="Favoritos"
-            title="Favoritos"
           >
             <Heart className="w-5 h-5 text-zinc-700" />
           </Link>
@@ -209,13 +219,6 @@ export default function Header() {
               onMouseLeave={() => setOpenAccount(false)}
             >
               <button
-                onClick={() => {
-                  if (user.rol === "comprador") {
-                    window.location.href = "/buyer/dashboard";
-                    return;
-                  }
-                  setOpenAccount(true);
-                }}
                 className="inline-flex items-center gap-2 rounded-md border px-3 py-2 text-sm hover:bg-zinc-50"
               >
                 <User className="w-4 h-4" />
@@ -223,40 +226,32 @@ export default function Header() {
                 <ChevronDown className="w-4 h-4" />
               </button>
 
-              {/* 🧩 HOVER-BRIDGE (zona invisible anti-cierre) */}
+              {/* Área flotante anti-cierre */}
               <div className="absolute left-0 right-0 h-3 bg-transparent"></div>
 
               {openAccount && (
-                <div
-                  className="absolute right-0 mt-2 w-56 rounded-md border bg-white shadow-sm py-1 z-50"
-                >
+                <div className="absolute right-0 mt-2 w-56 rounded-md border bg-white shadow-sm py-1 z-50">
                   <div className="px-3 py-2 text-xs text-zinc-500">
                     Hola,{" "}
-                    <span className="font-medium text-zinc-700">{user.nombre}</span>
+                    <span className="font-medium text-zinc-700">
+                      {user.nombre}
+                    </span>
                   </div>
 
                   {user.rol === "comprador" && (
-                    <Link
-                      href="/buyer/orders"
-                      className="block px-3 py-2 text-sm hover:bg-zinc-50"
-                    >
+                    <Link href="/buyer/orders" className="block px-3 py-2 text-sm hover:bg-zinc-50">
                       Mis pedidos
                     </Link>
                   )}
 
                   {user.rol === "vendedor" && (
                     <>
-                      <Link
-                        href="/seller/dashboard"
-                        className="flex items-center gap-2 px-3 py-2 text-sm hover:bg-zinc-50"
-                      >
+                      <Link href="/seller/dashboard" className="flex gap-2 px-3 py-2 text-sm hover:bg-zinc-50">
                         <LayoutDashboard className="w-4 h-4" />
                         Dashboard vendedor
                       </Link>
-                      <Link
-                        href="/seller/products"
-                        className="flex items-center gap-2 px-3 py-2 text-sm hover:bg-zinc-50"
-                      >
+
+                      <Link href="/seller/products" className="flex gap-2 px-3 py-2 text-sm hover:bg-zinc-50">
                         <Store className="w-4 h-4" />
                         Mis productos
                       </Link>
@@ -273,7 +268,6 @@ export default function Header() {
                 </div>
               )}
             </div>
-
           ) : (
             <>
               <Link href="/login" className="text-sm hover:underline">
@@ -283,29 +277,18 @@ export default function Header() {
               <div className="relative">
                 <button
                   onClick={() => setOpenCreate((v) => !v)}
-                  onBlur={() => setTimeout(() => setOpenCreate(false), 150)}
+                  onBlur={() => setTimeout(() => setOpenCreate(false), 100)}
                   className="inline-flex items-center gap-1 text-sm hover:text-zinc-900"
-                  aria-haspopup="menu"
-                  aria-expanded={openCreate}
                 >
-                  Crear cuenta
-                  <ChevronDown className="w-4 h-4" />
+                  Crear cuenta <ChevronDown className="w-4 h-4" />
                 </button>
 
                 {openCreate && (
                   <div className="absolute right-0 mt-2 w-48 rounded-md border bg-white shadow-sm py-1 z-50">
-                    <Link
-                      href="/register/buyer"
-                      className="block px-3 py-2 text-sm hover:bg-zinc-50"
-                      onClick={() => setOpenCreate(false)}
-                    >
+                    <Link href="/register/buyer" className="block px-3 py-2 text-sm hover:bg-zinc-50">
                       Soy comprador
                     </Link>
-                    <Link
-                      href="/register/seller"
-                      className="block px-3 py-2 text-sm hover:bg-zinc-50"
-                      onClick={() => setOpenCreate(false)}
-                    >
+                    <Link href="/register/seller" className="block px-3 py-2 text-sm hover:bg-zinc-50">
                       Soy vendedor
                     </Link>
                   </div>
@@ -318,8 +301,6 @@ export default function Header() {
           <Link
             href="/carrito"
             className="relative p-2 rounded-full hover:bg-zinc-50"
-            aria-label="Carrito"
-            title="Carrito"
           >
             <ShoppingCart className="w-5 h-5 text-zinc-700" />
             {cartCount > 0 && (
@@ -355,8 +336,6 @@ export default function Header() {
                 type="button"
                 onClick={() => setHelpOpen((v) => !v)}
                 className="inline-flex items-center gap-1 hover:underline"
-                aria-haspopup="menu"
-                aria-expanded={helpOpen}
               >
                 Ayuda <ChevronDown className="w-4 h-4" />
               </button>
