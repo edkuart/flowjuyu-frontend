@@ -9,6 +9,8 @@ import {
 } from "lucide-react";
 import { SidebarTrigger } from "@/components/ui/sidebar/SidebarTrigger";
 import { useAuth } from "@/context/AuthContext";
+import SearchBar from "@/components/ui/SearchBar";
+
 
 // ===========================
 // 🔹 Subcomponente: Categorías dinámicas
@@ -24,7 +26,7 @@ function CategoriasDropdown() {
   const API = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8800/api";
 
   useEffect(() => {
-    async function fetchCategorias() {
+    const fetchCategorias = async () => {
       try {
         const res = await fetch(`${API}/categorias`, { cache: "no-store" });
         if (res.ok) {
@@ -34,9 +36,9 @@ function CategoriasDropdown() {
       } catch (error) {
         console.error("Error al obtener categorías:", error);
       }
-    }
+    };
     fetchCategorias();
-  }, [API]);
+  }, []);
 
   const chunkSize = 5;
   const bloques: Categoria[][] = [];
@@ -44,47 +46,47 @@ function CategoriasDropdown() {
     bloques.push(categorias.slice(i, i + chunkSize));
   }
 
-  return (
-    <div
-      className="
-        absolute left-0 top-full mt-2 z-50
-        bg-white shadow-lg rounded-xl border border-gray-100
-        p-5 grid gap-x-8 gap-y-4
-        sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4
-        transition-all duration-200 animate-fade-in
-        min-w-[450px] max-w-[90vw]
-      "
-    >
-      {bloques.map((bloque, i) => (
-        <div key={i} className="flex flex-col space-y-2 min-w-[160px]">
-          {bloque.map((cat) => (
-            <Link
-              key={cat.id}
-              href={`/categorias/${encodeURIComponent(cat.nombre.toLowerCase())}`}
-              className="flex items-center gap-3 hover:text-primary transition group"
-            >
-              <div className="relative w-9 h-9 rounded-md overflow-hidden bg-gray-100 group-hover:scale-105 transition-transform">
-                <Image
-                  src={cat.imagen_url || "/images/categorias/default.jpg"}
-                  alt={cat.nombre}
-                  fill
-                  sizes="40px"
-                  className="object-cover"
-                  onError={(e) => {
-                    const target = e.target as HTMLImageElement;
-                    target.src = "/images/categorias/default.jpg";
-                  }}
-                />
-              </div>
-              <span className="text-sm font-medium text-gray-800 truncate">
-                {cat.nombre}
-              </span>
-            </Link>
-          ))}
-        </div>
-      ))}
-    </div>
-  );
+   return (
+  <div
+    className="
+      absolute left-0 top-full mt-2 z-50
+      bg-white shadow-lg rounded-xl border border-gray-100
+      p-5 grid gap-x-8 gap-y-4
+      sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4
+      transition-all duration-200 animate-fade-in
+      min-w-[450px] max-w-[90vw]
+    "
+  >
+    {bloques.map((bloque, i) => (
+      <div key={i} className="flex flex-col space-y-2 min-w-[160px]">
+        {bloque.map((cat) => (
+          <Link
+            key={cat.id}
+            href={`/categorias/${encodeURIComponent(cat.nombre.toLowerCase())}`}
+            className="flex items-center gap-3 hover:text-primary transition group"
+          >
+            <div className="relative w-9 h-9 rounded-md overflow-hidden bg-gray-100 group-hover:scale-105 transition-transform">
+              <Image
+                src={cat.imagen_url || "/images/categorias/default.jpg"}
+                alt={cat.nombre}
+                fill
+                sizes="40px"
+                className="object-cover"
+                onError={(e) => {
+                  (e.target as HTMLImageElement).src =
+                    "/images/categorias/default.jpg";
+                }}
+              />
+            </div>
+            <span className="text-sm font-medium text-gray-800 truncate">
+              {cat.nombre}
+            </span>
+          </Link>
+        ))}
+      </div>
+    ))}
+  </div>
+);
 }
 
 // ===========================
@@ -92,12 +94,12 @@ function CategoriasDropdown() {
 // ===========================
 export default function Header() {
   const { user, logout } = useAuth();
-  const [q, setQ] = useState("");
   const [openCats, setOpenCats] = useState(false);
   const [openCreate, setOpenCreate] = useState(false);
   const [openAccount, setOpenAccount] = useState(false);
   const [helpOpen, setHelpOpen] = useState(false);
   const [cartCount] = useState<number>(0);
+  
 
   const helpRef = useRef<HTMLLIElement>(null);
 
@@ -126,24 +128,14 @@ export default function Header() {
     };
   }, []);
 
-  function onSearch(e?: React.FormEvent) {
-    e?.preventDefault();
-    const query = q.trim();
-    if (!query) return;
-    window.location.href = `/buscar?q=${encodeURIComponent(query)}`;
-  }
-
   return (
     <div className="w-full border-b bg-white relative z-50 shadow-sm">
-      
+
       {/* Barra superior */}
       <div className="max-w-screen-xl mx-auto h-16 px-3 md:px-6 flex items-center gap-3">
-        
         {/* Izquierda */}
         <div className="flex items-center gap-3">
-          <SidebarTrigger className="md:hidden text-zinc-700">
-            <Menu className="w-5 h-5" />
-          </SidebarTrigger>
+          <SidebarTrigger className="md:hidden text-zinc-700" />
 
           <Link href="/" className="flex items-center gap-2">
             <Image
@@ -159,47 +151,47 @@ export default function Header() {
             </span>
           </Link>
 
-          {/* Categorías */}
+          {/* 🔹 Categorías dinámicas */}
           <div
             className="relative hidden md:block"
             onMouseEnter={() => setOpenCats(true)}
-            onMouseLeave={() => setTimeout(() => setOpenCats(false), 700)}
-          >
-            <button
+            onMouseLeave={() => {setTimeout(() => setOpenCats(false), 1000);
+
+            }}
+            >
+              <button
               className="inline-flex items-center gap-2 rounded-md border px-3 py-2 text-sm hover:bg-zinc-50"
               aria-haspopup="menu"
               aria-expanded={openCats}
-            >
-              <Grid2x2 className="w-4 h-4" />
-              Categorías
-              <ChevronDown className="w-4 h-4" />
-            </button>
+              >
+                <Grid2x2 className="w-4 h-4" />
+                Categorías
+                <ChevronDown className="w-4 h-4" />
+              </button>
 
             {openCats && <CategoriasDropdown />}
           </div>
         </div>
 
-        {/* Buscador */}
-        <form
-          onSubmit={onSearch}
-          className="flex-1 max-w-3xl mx-auto hidden sm:flex"
-          role="search"
-        >
-          <div className="relative flex-1">
-            <input
-              value={q}
-              onChange={(e) => setQ(e.target.value)}
-              placeholder="Buscar en Flowjuyu"
-              className="w-full h-10 rounded-full border pl-4 pr-10 text-sm outline-none focus:ring-2 focus:ring-zinc-200"
-            />
-            <button
-              type="submit"
-              className="absolute right-2 top-1/2 -translate-y-1/2 p-2 rounded-full hover:bg-zinc-100"
-            >
-              <Search className="w-5 h-5 text-zinc-600" />
-            </button>
+        {/* Centro: buscador */}
+        <div className="flex-1 max-w-3xl mx-auto hidden sm:flex">
+          <SearchBar />
           </div>
-        </form>
+
+        {/* Móvil: búsqueda rápida */}
+        <button
+          onClick={() => {
+            const term = prompt("¿Qué deseas buscar?") || "";
+            if (term.trim())
+              window.location.href = `/buscar?q=${encodeURIComponent(
+                term.trim()
+              )}`;
+          }}
+          className="sm:hidden p-2 rounded-md hover:bg-zinc-50"
+          aria-label="Buscar"
+        >
+          <Search className="w-5 h-5 text-zinc-700" />
+        </button>
 
         {/* Derecha */}
         <div className="flex items-center gap-2 sm:gap-3">
@@ -327,6 +319,7 @@ export default function Header() {
             <li><Link className="hover:underline" href="/new-arrivals">Lo + nuevo</Link></li>
             <li><Link className="hover:underline" href="/sell">Vende en Flowjuyu</Link></li>
 
+            {/* Ayuda */}
             <li
               ref={helpRef}
               className="relative"
