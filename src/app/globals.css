@@ -55,6 +55,25 @@
   animation: fade-in 0.25s ease-out;
 }
 
+/* Ocultar scrollbars en todos los navegadores */
+.no-scrollbar {
+  -ms-overflow-style: none; /* IE, Edge */
+  scrollbar-width: none; /* Firefox */
+}
+.no-scrollbar::-webkit-scrollbar {
+  display: none; /* Chrome, Safari, Opera */
+}
+
+/* Fijar comportamiento del carrusel */
+.carousel-track {
+  display: flex;
+  gap: 1rem;
+  overflow-x: auto;
+  scroll-behavior: smooth;
+  padding-left: 3rem;
+  padding-right: 3rem;
+}
+
 :root {
   --radius: 0.625rem;
   --background: oklch(1 0 0);
