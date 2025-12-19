@@ -1,68 +1,108 @@
-import ProductsGridClient from "./products-grid-client"
-import { Product } from "@/types/product"
+"use client";
 
-type Raw = {
-  id: string | number
-  nombre: string
-  descripcion?: string | null
-  precio: string | number
-  imagen_url?: string | null
-  created_at?: string | null
-  vendedor_nombre?: string | null
-}
+import { useEffect, useState } from "react";
+import Image from "next/image";
+import Link from "next/link";
 
-const CANDIDATE_BASES = [
-  process.env.BACKEND_URL,
-  process.env.NEXT_PUBLIC_API_BASE,
-  "http://localhost:8800",
-].filter(Boolean) as string[]
+const API = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8800";
 
-const CANDIDATE_PREFIXES = [
-  process.env.BACKEND_PREFIX ?? "",
-  "/api",
-  "",
-]
+type Producto = {
+  id: number;
+  nombre: string;
+  precio: number;
+  imagen_url?: string | null;
+};
 
-async function fetchProductos(): Promise<Product[]> {
-  for (const base of CANDIDATE_BASES) {
-    for (const rawPrefix of CANDIDATE_PREFIXES) {
-      const prefix = rawPrefix.replace(/\/+$/, "")
-      const url = `${base}${prefix}/productos`
+export default function ProductosPage() {
+  const [productos, setProductos] = useState<Producto[]>([]);
+  const [loading, setLoading] = useState(true);
 
-      const res = await fetch(url, { cache: "no-store" })
-      const ct = res.headers.get("content-type") || ""
-      if (!ct.includes("application/json")) continue
+  // ============================
+  //  Cargar productos públicos
+  // ============================
+  useEffect(() => {
+    async function loadProducts() {
+      try {
+        const res = await fetch(`${API}/api/products`, {
+          cache: "no-store",
+        });
 
-      const json = await res.json()
-      if (!res.ok || !json?.ok) continue
+        const data = await res.json();
 
-      return (json.data as Raw[]).map((p) => ({
-        id: String(p.id),
-        title: p.nombre,
-        description: p.descripcion ?? "",
-        price: Number(p.precio),
-        image: p.imagen_url?.startsWith("http")
-        ? p.imagen_url
-        : p.imagen_url
-        ? `${base}/${p.imagen_url.replace(/^\/+/, "")}`
-        : "/images/placeholder.jpg",
-        seller: { name: p.vendedor_nombre ?? "Vendedor" },
-        createdAt: p.created_at ?? "",
-      }))
+        // El backend devuelve: { data: [...] }
+        const lista = data.data || data || [];
+
+        if (Array.isArray(lista)) {
+          setProductos(lista);
+        } else {
+          setProductos([]);
+        }
+      } catch (error) {
+        console.error("Error cargando productos:", error);
+        setProductos([]);
+      } finally {
+        setLoading(false);
+      }
     }
+
+    loadProducts();
+  }, []);
+
+  // ============================
+  //  Loading
+  // ============================
+  if (loading) {
+    return (
+      <main className="p-10 text-center text-neutral-500">
+        Cargando productos...
+      </main>
+    );
   }
-  return []
-}
 
-export default async function ProductosPage() {
-  const productos = await fetchProductos()
+  // ============================
+  //  Sin productos
+  // ============================
+  if (productos.length === 0) {
+    return (
+      <main className="p-10 text-center text-neutral-500">
+        No hay productos disponibles.
+      </main>
+    );
+  }
 
+  // ============================
+  //  Render principal
+  // ============================
   return (
-    <main className="min-h-screen p-6 bg-muted">
-      <section className="w-full max-w-screen-2xl mx-auto px-4 md:px-6">
-        <h1 className="text-3xl font-bold mb-6">Productos</h1>
-        <ProductsGridClient initialProducts={productos} />
-      </section>
+    <main className="min-h-screen px-6 py-10 bg-neutral-50">
+      <h1 className="text-3xl font-bold mb-8">Productos disponibles</h1>
+
+      <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6">
+        {productos.map((p) => (
+          <Link href={`/product/${p.id}`} key={p.id}>
+            <div className="border rounded-xl bg-white shadow hover:shadow-md transition p-3 cursor-pointer">
+
+              {/* Imagen */}
+              <div className="relative w-full aspect-square rounded-md overflow-hidden bg-neutral-100">
+                <Image
+                  src={p.imagen_url || "/placeholder.jpg"}
+                  alt={p.nombre}
+                  fill
+                  className="object-cover"
+                />
+              </div>
+
+              {/* Nombre */}
+              <h3 className="font-medium mt-2 line-clamp-1">{p.nombre}</h3>
+
+              {/* Precio */}
+              <p className="text-orange-600 font-bold text-sm">
+                Q{Number(p.precio).toFixed(2)}
+              </p>
+            </div>
+          </Link>
+        ))}
+      </div>
     </main>
-  )
+  );
 }

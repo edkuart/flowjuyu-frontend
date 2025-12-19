@@ -1,28 +1,48 @@
 "use client";
+
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
-import { useAuth } from "@/context/AuthContext";
-
-type Rol = "comprador" | "vendedor" | "admin";
+import { useAuth, RolNormalized, normalizeRole } from "@/context/AuthContext";
+import { useSession } from "next-auth/react";
 
 export default function AuthGuard({
   children,
   allowedRoles,
 }: {
   children: React.ReactNode;
-  allowedRoles: Rol[];
+  allowedRoles: RolNormalized[];
 }) {
-  const { user, token, ready } = useAuth();
   const router = useRouter();
+
+  // AuthContext (localStorage)
+  const { user, token, ready } = useAuth();
+
+  // NextAuth (Google)
+  const { data: session, status } = useSession();
+
   const [ok, setOk] = useState(false);
 
   useEffect(() => {
-    if (!ready) return; // espera hidratación de localStorage
-    const allowed = Boolean(user && token && allowedRoles.includes(user.rol));
-    if (allowed) setOk(true);
-    else router.replace("/login");
-  }, [ready, user, token, allowedRoles, router]);
+    // Esperar a que ambos sistemas estén “listos”
+    const nextAuthReady = status !== "loading";
+    if (!ready || !nextAuthReady) return;
 
-  if (!ready || !ok) return null; // evita “flash” de contenido
+    // 1) primero intentamos por AuthContext
+    if (user && token && allowedRoles.includes(user.rol)) {
+      setOk(true);
+      return;
+    }
+
+    // 2) fallback por NextAuth session (si existe)
+    const sessionRole = normalizeRole((session?.user as any)?.role || (session as any)?.role);
+    if (session?.user && sessionRole && allowedRoles.includes(sessionRole)) {
+      setOk(true);
+      return;
+    }
+
+    router.replace("/");
+  }, [ready, status, user, token, session, allowedRoles, router]);
+
+  if (!ready || status === "loading" || !ok) return null;
   return <>{children}</>;
 }

@@ -12,7 +12,7 @@ type Categoria = {
 };
 
 type Producto = {
-  id: number;
+  id: string;
   nombre: string;
   precio: number;
   imagen_url?: string | null;
@@ -145,8 +145,9 @@ export default function HomePage() {
         ) : (
           <div className="overflow-x-auto whitespace-nowrap flex gap-4">
             {nuevosProductos.map((p) => (
-              <div
+              <Link
                 key={p.id}
+                href={`/product/${p.id}`}
                 className="flex-shrink-0 w-60 border rounded-xl overflow-hidden hover:shadow-md bg-white"
               >
                 <Image
@@ -162,7 +163,7 @@ export default function HomePage() {
                     Q{Number(p.precio || 0).toFixed(2)}
                   </p>
                 </div>
-              </div>
+              </Link>
             ))}
           </div>
         )}
