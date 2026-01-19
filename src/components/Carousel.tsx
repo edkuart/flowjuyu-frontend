@@ -19,16 +19,18 @@ export default function Carousel({
   const scrollAmount = itemWidth * itemsVisible;
 
   const scrollLeft = () => {
-    if (ref.current) ref.current.scrollBy({ left: -scrollAmount, behavior: "smooth" });
+    if (ref.current)
+      ref.current.scrollBy({ left: -scrollAmount, behavior: "smooth" });
   };
 
   const scrollRight = () => {
-    if (ref.current) ref.current.scrollBy({ left: scrollAmount, behavior: "smooth" });
+    if (ref.current)
+      ref.current.scrollBy({ left: scrollAmount, behavior: "smooth" });
   };
 
   return (
-    <div className="relative w-full">
-      
+    <div className="relative w-full overflow-hidden">
+
       {/* Flecha izquierda */}
       <button
         onClick={scrollLeft}
@@ -40,10 +42,16 @@ export default function Carousel({
       {/* Contenedor del carrusel */}
       <div
         ref={ref}
-        className="flex gap-4 overflow-x-auto scroll-smooth no-scrollbar px-10"
-        style={{
-          scrollSnapType: "x mandatory",
-        }}
+        className="
+          flex gap-4
+          overflow-x-auto
+          overflow-y-hidden
+          scroll-smooth
+          no-scrollbar
+          px-10
+          items-center
+          h-[220px]
+        "
       >
         {children}
       </div>
@@ -55,6 +63,7 @@ export default function Carousel({
       >
         <ChevronRight className="w-5 h-5" />
       </button>
+
     </div>
   );
 }

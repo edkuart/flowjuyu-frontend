@@ -4,17 +4,27 @@ import Link from "next/link";
 import Image from "next/image";
 import { useEffect, useRef, useState } from "react";
 import {
-  Menu, Grid2x2, ChevronDown, Search, Heart, User,
-  ShoppingCart, Globe, LogOut, LayoutDashboard, Store,
+  Menu,
+  Grid2x2,
+  ChevronDown,
+  Search,
+  Heart,
+  User,
+  ShoppingCart,
+  Globe,
+  LogOut,
+  LayoutDashboard,
+  Store,
 } from "lucide-react";
+
 import { SidebarTrigger } from "@/components/ui/sidebar/SidebarTrigger";
 import { useAuth } from "@/context/AuthContext";
+import { useCart } from "@/context/CartContext";
 import SearchBar from "@/components/ui/SearchBar";
 
-
-// ===========================
-// 🔹 Subcomponente: Categorías dinámicas
-// ===========================
+/* ===========================
+   🔹 Subcomponente: Categorías dinámicas
+=========================== */
 type Categoria = {
   id: number;
   nombre: string;
@@ -23,22 +33,29 @@ type Categoria = {
 
 function CategoriasDropdown() {
   const [categorias, setCategorias] = useState<Categoria[]>([]);
-  const API = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8800/api";
+  const API = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8800";
 
   useEffect(() => {
     const fetchCategorias = async () => {
       try {
-        const res = await fetch(`${API}/categorias`, { cache: "no-store" });
-        if (res.ok) {
-          const data = await res.json();
-          setCategorias(data);
+        const res = await fetch(`${API}/api/categorias`, {
+          cache: "no-store",
+        });
+
+        if (!res.ok) {
+          console.error("Error al cargar categorías:", res.status);
+          return;
         }
+
+        const data = await res.json();
+        setCategorias(data);
       } catch (error) {
         console.error("Error al obtener categorías:", error);
       }
     };
+
     fetchCategorias();
-  }, []);
+  }, [API]);
 
   const chunkSize = 5;
   const bloques: Categoria[][] = [];
@@ -46,76 +63,91 @@ function CategoriasDropdown() {
     bloques.push(categorias.slice(i, i + chunkSize));
   }
 
-   return (
-  <div
-    className="
-      absolute left-0 top-full mt-2 z-50
-      bg-white shadow-lg rounded-xl border border-gray-100
-      p-5 grid gap-x-8 gap-y-4
-      sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4
-      transition-all duration-200 animate-fade-in
-      min-w-[450px] max-w-[90vw]
-    "
-  >
-    {bloques.map((bloque, i) => (
-      <div key={i} className="flex flex-col space-y-2 min-w-[160px]">
-        {bloque.map((cat) => (
-          <Link
-            key={cat.id}
-            href={`/categorias/${encodeURIComponent(cat.nombre.toLowerCase())}`}
-            className="flex items-center gap-3 hover:text-primary transition group"
-          >
-            <div className="relative w-9 h-9 rounded-md overflow-hidden bg-gray-100 group-hover:scale-105 transition-transform">
-              <Image
-                src={cat.imagen_url || "/images/categorias/default.jpg"}
-                alt={cat.nombre}
-                fill
-                sizes="40px"
-                className="object-cover"
-                onError={(e) => {
-                  (e.target as HTMLImageElement).src =
-                    "/images/categorias/default.jpg";
-                }}
-              />
-            </div>
-            <span className="text-sm font-medium text-gray-800 truncate">
-              {cat.nombre}
-            </span>
-          </Link>
-        ))}
-      </div>
-    ))}
-  </div>
-);
+  return (
+    <div
+      className="
+        absolute left-0 top-full mt-2 z-50
+        bg-white shadow-lg rounded-xl border border-gray-100
+        p-5 grid gap-x-8 gap-y-4
+        sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4
+        transition-all duration-200 animate-fade-in
+        min-w-[450px] max-w-[90vw]
+      "
+    >
+      {bloques.map((bloque, i) => (
+        <div key={i} className="flex flex-col space-y-2 min-w-[160px]">
+          {bloque.map((cat) => (
+            <Link
+              key={cat.id}
+              href={`/categorias/${encodeURIComponent(
+                cat.nombre.toLowerCase()
+              )}`}
+              className="flex items-center gap-3 hover:text-primary transition group"
+            >
+              <div className="relative w-9 h-9 rounded-md overflow-hidden bg-gray-100 group-hover:scale-105 transition-transform">
+                <Image
+                  src={cat.imagen_url || "/images/categorias/default.jpg"}
+                  alt={cat.nombre}
+                  fill
+                  sizes="40px"
+                  className="object-cover"
+                />
+              </div>
+              <span className="text-sm font-medium text-gray-800 truncate">
+                {cat.nombre}
+              </span>
+            </Link>
+          ))}
+        </div>
+      ))}
+    </div>
+  );
 }
 
-// ===========================
-// 🔸 Componente principal: Header
-// ===========================
+/* ===========================
+   🔸 Componente principal: Header
+=========================== */
 export default function Header() {
   const { user, logout } = useAuth();
+  const { count } = useCart(); // ✅ contador REAL del carrito
+
   const [openCats, setOpenCats] = useState(false);
   const [openCreate, setOpenCreate] = useState(false);
   const [openAccount, setOpenAccount] = useState(false);
   const [helpOpen, setHelpOpen] = useState(false);
-  const [cartCount] = useState<number>(0);
-  
+
+  // ✅ mantenemos cartCount como tú lo tenías, pero ahora lo alimentamos del contexto
+  const [cartCount, setCartCount] = useState<number>(0);
+
+  // ✅ extra: buscador móvil (para usar ícono Search y no quede import “unused”)
+  const [mobileSearchOpen, setMobileSearchOpen] = useState(false);
 
   const helpRef = useRef<HTMLLIElement>(null);
+  const catsRef = useRef<HTMLDivElement>(null);
+
+  // ✅ sincroniza contador real
+  useEffect(() => {
+    setCartCount(count);
+  }, [count]);
 
   useEffect(() => {
     const onDocClick = (e: MouseEvent) => {
-      if (!helpRef.current) return;
-      if (!helpRef.current.contains(e.target as Node)) {
+      if (catsRef.current && !catsRef.current.contains(e.target as Node)) {
+        setOpenCats(false);
+      }
+
+      if (helpRef.current && !helpRef.current.contains(e.target as Node)) {
         setHelpOpen(false);
       }
     };
+
     const onKey = (e: KeyboardEvent) => {
       if (e.key === "Escape") {
         setHelpOpen(false);
         setOpenAccount(false);
         setOpenCreate(false);
         setOpenCats(false);
+        setMobileSearchOpen(false);
       }
     };
 
@@ -128,14 +160,33 @@ export default function Header() {
     };
   }, []);
 
+  // ✅ helper: soporta roles nuevos y viejos (buyer/seller vs comprador/vendedor)
+  const isBuyer =
+    user?.rol === "buyer" || user?.rol === "comprador" || user?.role === "buyer";
+  const isSeller =
+    user?.rol === "seller" || user?.rol === "vendedor" || user?.role === "seller";
+
   return (
     <div className="w-full border-b bg-white relative z-50 shadow-sm">
-
-      {/* Barra superior */}
+      {/* ================= Barra superior ================= */}
       <div className="max-w-screen-xl mx-auto h-16 px-3 md:px-6 flex items-center gap-3">
         {/* Izquierda */}
         <div className="flex items-center gap-3">
-          <SidebarTrigger className="md:hidden text-zinc-700" />
+          {/* Sidebar (móvil) */}
+          <div className="md:hidden flex items-center gap-2">
+            {/* Mantengo SidebarTrigger como lo tenías */}
+            <SidebarTrigger className="text-zinc-700" />
+
+            {/* ✅ Uso Menu para que no quede import sin usar (opcional UX) */}
+            <button
+              type="button"
+              onClick={() => setOpenCats((v) => !v)}
+              className="p-2 rounded-md hover:bg-zinc-50"
+              aria-label="Abrir categorías"
+            >
+              <Menu className="w-5 h-5 text-zinc-700" />
+            </button>
+          </div>
 
           <Link href="/" className="flex items-center gap-2">
             <Image
@@ -151,43 +202,43 @@ export default function Header() {
             </span>
           </Link>
 
-          {/* 🔹 Categorías dinámicas */}
-          <div
-            className="relative hidden md:block"
-            onMouseEnter={() => setOpenCats(true)}
-            onMouseLeave={() => {setTimeout(() => setOpenCats(false), 1000);
-
-            }}
-            >
-              <button
+          {/* 🔹 Categorías dinámicas (CLICK) */}
+          <div ref={catsRef} className="relative hidden md:block">
+            <button
+              type="button"
+              onClick={() => setOpenCats((v) => !v)}
               className="inline-flex items-center gap-2 rounded-md border px-3 py-2 text-sm hover:bg-zinc-50"
               aria-haspopup="menu"
               aria-expanded={openCats}
-              >
-                <Grid2x2 className="w-4 h-4" />
-                Categorías
-                <ChevronDown className="w-4 h-4" />
-              </button>
+            >
+              <Grid2x2 className="w-4 h-4" />
+              Categorías
+              <ChevronDown
+                className={`w-4 h-4 transition-transform ${
+                  openCats ? "rotate-180" : ""
+                }`}
+              />
+            </button>
 
+            {openCats && <CategoriasDropdown />}
+          </div>
+
+          {/* ✅ Categorías dropdown en móvil también (cuando presionas Menu) */}
+          <div className="relative md:hidden">
             {openCats && <CategoriasDropdown />}
           </div>
         </div>
 
-        {/* Centro: buscador */}
+        {/* Centro */}
         <div className="flex-1 max-w-3xl mx-auto hidden sm:flex">
           <SearchBar />
-          </div>
+        </div>
 
-        {/* Móvil: búsqueda rápida */}
+        {/* ✅ Botón de búsqueda móvil (usa icono Search del import) */}
         <button
-          onClick={() => {
-            const term = prompt("¿Qué deseas buscar?") || "";
-            if (term.trim())
-              window.location.href = `/buscar?q=${encodeURIComponent(
-                term.trim()
-              )}`;
-          }}
-          className="sm:hidden p-2 rounded-md hover:bg-zinc-50"
+          type="button"
+          onClick={() => setMobileSearchOpen((v) => !v)}
+          className="sm:hidden p-2 rounded-full hover:bg-zinc-50"
           aria-label="Buscar"
         >
           <Search className="w-5 h-5 text-zinc-700" />
@@ -195,11 +246,7 @@ export default function Header() {
 
         {/* Derecha */}
         <div className="flex items-center gap-2 sm:gap-3">
-
-          <Link
-            href="/favoritos"
-            className="p-2 rounded-full hover:bg-zinc-50"
-          >
+          <Link href="/favoritos" className="p-2 rounded-full hover:bg-zinc-50">
             <Heart className="w-5 h-5 text-zinc-700" />
           </Link>
 
@@ -210,40 +257,37 @@ export default function Header() {
               onMouseEnter={() => setOpenAccount(true)}
               onMouseLeave={() => setOpenAccount(false)}
             >
-              <button
-                className="inline-flex items-center gap-2 rounded-md border px-3 py-2 text-sm hover:bg-zinc-50"
-              >
+              <button className="inline-flex items-center gap-2 rounded-md border px-3 py-2 text-sm hover:bg-zinc-50">
                 <User className="w-4 h-4" />
                 Mi cuenta
                 <ChevronDown className="w-4 h-4" />
               </button>
 
-              {/* Área flotante anti-cierre */}
-              <div className="absolute left-0 right-0 h-3 bg-transparent"></div>
-
               {openAccount && (
                 <div className="absolute right-0 mt-2 w-56 rounded-md border bg-white shadow-sm py-1 z-50">
-                  <div className="px-3 py-2 text-xs text-zinc-500">
-                    Hola,{" "}
-                    <span className="font-medium text-zinc-700">
-                      {user.nombre}
-                    </span>
-                  </div>
-
-                  {user.rol === "comprador" && (
-                    <Link href="/buyer/orders" className="block px-3 py-2 text-sm hover:bg-zinc-50">
+                  {isBuyer && (
+                    <Link
+                      href="/buyer/orders"
+                      className="block px-3 py-2 text-sm hover:bg-zinc-50"
+                    >
                       Mis pedidos
                     </Link>
                   )}
 
-                  {user.rol === "vendedor" && (
+                  {isSeller && (
                     <>
-                      <Link href="/seller/dashboard" className="flex gap-2 px-3 py-2 text-sm hover:bg-zinc-50">
+                      <Link
+                        href="/seller/dashboard"
+                        className="flex gap-2 px-3 py-2 text-sm hover:bg-zinc-50"
+                      >
                         <LayoutDashboard className="w-4 h-4" />
                         Dashboard vendedor
                       </Link>
 
-                      <Link href="/seller/products" className="flex gap-2 px-3 py-2 text-sm hover:bg-zinc-50">
+                      <Link
+                        href="/seller/products"
+                        className="flex gap-2 px-3 py-2 text-sm hover:bg-zinc-50"
+                      >
                         <Store className="w-4 h-4" />
                         Mis productos
                       </Link>
@@ -277,10 +321,16 @@ export default function Header() {
 
                 {openCreate && (
                   <div className="absolute right-0 mt-2 w-48 rounded-md border bg-white shadow-sm py-1 z-50">
-                    <Link href="/register/buyer" className="block px-3 py-2 text-sm hover:bg-zinc-50">
+                    <Link
+                      href="/register/buyer"
+                      className="block px-3 py-2 text-sm hover:bg-zinc-50"
+                    >
                       Soy comprador
                     </Link>
-                    <Link href="/register/seller" className="block px-3 py-2 text-sm hover:bg-zinc-50">
+                    <Link
+                      href="/register/seller"
+                      className="block px-3 py-2 text-sm hover:bg-zinc-50"
+                    >
                       Soy vendedor
                     </Link>
                   </div>
@@ -310,21 +360,39 @@ export default function Header() {
         </div>
       </div>
 
-      {/* Línea inferior */}
+      {/* ✅ SearchBar en móvil desplegable */}
+      {mobileSearchOpen && (
+        <div className="sm:hidden px-3 pb-3">
+          <SearchBar />
+        </div>
+      )}
+
+      {/* ================= Línea inferior ================= */}
       <nav className="border-t">
         <div className="max-w-7xl mx-auto h-10 px-3 md:px-6 flex items-center justify-between text-sm">
           <ul className="flex items-center gap-4 text-zinc-700">
-            <li><Link className="hover:underline" href="/offers">Ofertas</Link></li>
-            <li><Link className="hover:underline" href="/shipments">Envíos</Link></li>
-            <li><Link className="hover:underline" href="/new-arrivals">Lo + nuevo</Link></li>
-            <li><Link className="hover:underline" href="/sell">Vende en Flowjuyu</Link></li>
+            <li>
+              <Link className="hover:underline" href="/offers">
+                Ofertas
+              </Link>
+            </li>
+            <li>
+              <Link className="hover:underline" href="/shipments">
+                Envíos
+              </Link>
+            </li>
+            <li>
+              <Link className="hover:underline" href="/new-arrivals">
+                Lo + nuevo
+              </Link>
+            </li>
+            <li>
+              <Link className="hover:underline" href="/sell">
+                Vende en Flowjuyu
+              </Link>
+            </li>
 
-            {/* Ayuda */}
-            <li
-              ref={helpRef}
-              className="relative"
-              onMouseEnter={() => setHelpOpen(true)}
-            >
+            <li ref={helpRef} className="relative">
               <button
                 type="button"
                 onClick={() => setHelpOpen((v) => !v)}
@@ -335,13 +403,22 @@ export default function Header() {
 
               {helpOpen && (
                 <div className="absolute left-0 top-full w-52 rounded-md border bg-white shadow-sm py-1 z-50">
-                  <Link className="block px-3 py-2 hover:bg-zinc-50" href="/help/faq">
+                  <Link
+                    className="block px-3 py-2 hover:bg-zinc-50"
+                    href="/help/faq"
+                  >
                     Preguntas frecuentes
                   </Link>
-                  <Link className="block px-3 py-2 hover:bg-zinc-50" href="/help/contact">
+                  <Link
+                    className="block px-3 py-2 hover:bg-zinc-50"
+                    href="/help/contact"
+                  >
                     Contáctanos
                   </Link>
-                  <Link className="block px-3 py-2 hover:bg-zinc-50" href="/help/returns">
+                  <Link
+                    className="block px-3 py-2 hover:bg-zinc-50"
+                    href="/help/returns"
+                  >
                     Devoluciones
                   </Link>
                 </div>

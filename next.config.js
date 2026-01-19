@@ -1,25 +1,32 @@
 const createNextIntlPlugin = require("next-intl/plugin");
-
 const withIntl = createNextIntlPlugin();
 
 module.exports = withIntl({
   reactStrictMode: true,
 
   images: {
-    domains: ["localhost", "127.0.0.1", "yjoybxvmnfwkuzrthdge.supabase.co"],
     remotePatterns: [
+      // Supabase bucket público
       {
         protocol: "https",
         hostname: "yjoybxvmnfwkuzrthdge.supabase.co",
+        port: "",
         pathname: "/storage/v1/object/public/**",
       },
+
+      // Rutas locales (si usas uploads/)
       {
         protocol: "http",
         hostname: "localhost",
         port: "8800",
-        pathname: "/**",
+        pathname: "/uploads/**",
       },
     ],
+
+    // Necesario para evitar errores internos cuando la imagen falla
+    dangerouslyAllowSVG: true,
+    contentDispositionType: "attachment",
+    contentSecurityPolicy: "default-src 'self'; script-src 'none'; sandbox;",
   },
 
   env: {

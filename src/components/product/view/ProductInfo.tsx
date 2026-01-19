@@ -1,24 +1,47 @@
 "use client";
 
 import { Button } from "@/components/ui/button";
+import { useCart } from "@/context/CartContext";
+import { useRouter } from "next/navigation";
 
 export default function ProductInfo({
   nombre,
   descripcion,
-  precio
+  precio,
+  productId,
+  imagen_principal,
 }: {
   nombre: string;
   descripcion?: string | null;
   precio: any;
+  productId: string;
+  imagen_principal?: string | null;
 }) {
+  const { addItem } = useCart();
+  const router = useRouter();
+
   const precioNumber = Number(precio || 0);
 
+  // ⚪ Añadir al carrito (NO navega)
   function handleAddToCart() {
-    console.log("🛒 Agregado al carrito");
+    addItem({
+      id: productId,
+      name: nombre,
+      price: Number(precioNumber), // 🔒 blindado
+      image: imagen_principal || "/images/categorias/default.jpg",
+    });
   }
 
+  // 🟠 Comprar ahora (agrega + navega)
   function handleBuyNow() {
-    console.log("⚡ Comprar ahora");
+    addItem({
+      id: productId,
+      name: nombre,
+      price: Number(precioNumber), // 🔒 blindado
+      image: imagen_principal || "/images/categorias/default.jpg",
+    });
+
+    router.push("/carrito");
   }
 
   return (
@@ -34,6 +57,7 @@ export default function ProductInfo({
       </p>
 
       <div className="space-y-3">
+        {/* 🟠 COMPRAR AHORA */}
         <Button
           className="w-full bg-orange-600 hover:bg-orange-700 text-white font-semibold"
           onClick={handleBuyNow}
@@ -41,7 +65,12 @@ export default function ProductInfo({
           Comprar ahora
         </Button>
 
-        <Button variant="outline" className="w-full font-semibold" onClick={handleAddToCart}>
+        {/* ⚪ AÑADIR AL CARRITO */}
+        <Button
+          variant="outline"
+          className="w-full font-semibold"
+          onClick={handleAddToCart}
+        >
           Añadir al carrito
         </Button>
       </div>
