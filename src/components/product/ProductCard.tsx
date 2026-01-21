@@ -9,7 +9,7 @@ import { Product } from "@/types/product"
 interface Props {
   product: Product
   canEdit?: boolean
-  onAddToCart?: (p: Product) => void // opcional si luego usas un CartContext
+  onAddToCart?: (p: Product) => void
 }
 
 function formatPrice(v: number | string) {
@@ -28,7 +28,6 @@ export function ProductCard({ product, canEdit = false, onAddToCart }: Props) {
       if (onAddToCart) {
         onAddToCart(product)
       } else {
-        // carrito simple en localStorage
         const raw = localStorage.getItem("cart")
         const cart: any[] = raw ? JSON.parse(raw) : []
         const idx = cart.findIndex((i) => String(i.id) === String(product.id))
@@ -44,8 +43,8 @@ export function ProductCard({ product, canEdit = false, onAddToCart }: Props) {
             qty: 1,
           })
         }
+
         localStorage.setItem("cart", JSON.stringify(cart))
-        // notifica por si tu header escucha y actualiza el badge
         window.dispatchEvent(new CustomEvent("cart:update", { detail: cart }))
       }
 
@@ -58,6 +57,7 @@ export function ProductCard({ product, canEdit = false, onAddToCart }: Props) {
 
   return (
     <div className="group rounded-2xl border bg-white dark:bg-zinc-900 shadow-sm hover:shadow-md transition-shadow overflow-hidden flex flex-col">
+
       {/* Imagen rectangular responsiva */}
       <div className="relative aspect-[4/5] w-full bg-muted overflow-hidden">
         <Image
@@ -86,6 +86,7 @@ export function ProductCard({ product, canEdit = false, onAddToCart }: Props) {
           <span className="text-lg font-bold">
             {formatPrice(product.price)}
           </span>
+
           {product.seller?.name && (
             <span className="text-xs text-muted-foreground">
               Vendido por {product.seller.name}
@@ -96,7 +97,9 @@ export function ProductCard({ product, canEdit = false, onAddToCart }: Props) {
 
       {/* Acciones */}
       <div className="p-4 pt-0 flex gap-2">
-        <Link href={`/producto/${product.id}`} className="w-1/2">
+
+        {/* ✅ Ruta corregida (/product/${id}) */}
+        <Link href={`/product/${product.id}`} className="w-1/2">
           <Button variant="outline" className="w-full">
             Ver detalles
           </Button>

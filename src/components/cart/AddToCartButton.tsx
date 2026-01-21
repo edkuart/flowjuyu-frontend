@@ -5,7 +5,7 @@ import { createContext, useContext, useEffect, useMemo, useState } from 'react'
 export type CartItem = {
   id: string
   name: string
-  price: number
+  price: number | string // 🔒 blindaje extra
   image?: string
   qty: number
 }
@@ -26,22 +26,33 @@ const STORAGE_KEY = 'cart_v1'
 export function CartProvider({ children }: { children: React.ReactNode }) {
   const [items, setItems] = useState<CartItem[]>([])
 
-  // cargar carrito
+  // ==========================
+  // 🔹 Cargar carrito (localStorage)
+  // ==========================
   useEffect(() => {
     try {
       const raw = localStorage.getItem(STORAGE_KEY)
       if (raw) setItems(JSON.parse(raw))
-    } catch {}
+    } catch (err) {
+      console.error('Error cargando carrito', err)
+    }
   }, [])
 
-  // persistir carrito
+  // ==========================
+  // 🔹 Persistir carrito
+  // ==========================
   useEffect(() => {
     try {
       localStorage.setItem(STORAGE_KEY, JSON.stringify(items))
-    } catch {}
+    } catch (err) {
+      console.error('Error guardando carrito', err)
+    }
   }, [items])
 
   const value = useMemo<CartContextType>(() => {
+    // ==========================
+    // ➕ Agregar item (stack)
+    // ==========================
     const addItem: CartContextType['addItem'] = (item, qty = 1) => {
       if (qty <= 0) return
 
@@ -49,29 +60,67 @@ export function CartProvider({ children }: { children: React.ReactNode }) {
         const found = prev.find(p => p.id === item.id)
         if (found) {
           return prev.map(p =>
-            p.id === item.id ? { ...p, qty: p.qty + qty } : p
+            p.id === item.id
+              ? {
+                  ...p,
+                  qty: p.qty + qty,
+                  price: Number(p.price), // 🔒 refuerzo
+                }
+              : p
           )
         }
-        return [...prev, { ...item, qty }]
+
+        return [
+          ...prev,
+          {
+            ...item,
+            qty,
+            price: Number(item.price), // 🔒 refuerzo
+          },
+        ]
       })
     }
 
+    // ==========================
+    // 🔢 Cambiar cantidad
+    // ==========================
     const setQty: CartContextType['setQty'] = (id, qty) => {
       setItems(prev =>
         prev
-          .map(p => (p.id === id ? { ...p, qty: Math.max(1, qty) } : p))
+          .map(p =>
+            p.id === id
+              ? {
+                  ...p,
+                  qty: Math.max(1, qty),
+                  price: Number(p.price), // 🔒 refuerzo
+                }
+              : p
+          )
           .filter(p => p.qty > 0)
       )
     }
 
+    // ==========================
+    // ❌ Quitar item
+    // ==========================
     const removeItem = (id: string) => {
       setItems(prev => prev.filter(p => p.id !== id))
     }
 
+    // ==========================
+    // 🧹 Vaciar carrito
+    // ==========================
     const clear = () => setItems([])
 
+    // ==========================
+    // 🔢 Totales (REFUERZO CLAVE)
+    // ==========================
     const count = items.reduce((a, i) => a + i.qty, 0)
-    const subtotal = items.reduce((a, i) => a + i.qty * i.price, 0)
+
+    const subtotal = items.reduce(
+      (a, i) => a + i.qty * Number(i.price), // 🔥 AQUÍ VA EL REFUERZO
+      0
+    )
 
     return { items, count, subtotal, addItem, setQty, removeItem, clear }
   }, [items])
@@ -85,6 +134,8 @@ export function CartProvider({ children }: { children: React.ReactNode }) {
 
 export function useCart() {
   const ctx = useContext(CartContext)
-  if (!ctx) throw new Error('useCart must be used inside CartProvider')
+  if (!ctx) {
+    throw new Error('useCart must be used inside <CartProvider>')
+  }
   return ctx
 }
