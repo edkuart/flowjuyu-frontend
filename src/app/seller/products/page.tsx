@@ -1,3 +1,5 @@
+//src/app/seller/products/page.tsx
+
 "use client"
 
 import { useEffect, useState, useMemo } from "react"
@@ -20,6 +22,7 @@ import {
   DialogDescription,
 } from "@/components/ui/dialog"
 import Swal from "sweetalert2"
+import { useRouter } from "next/navigation"
 
 type Producto = {
   id: string
@@ -46,8 +49,9 @@ export default function SellerProductsPage() {
   // ==============================
   // Obtener productos del vendedor
   // ==============================
+  const router = useRouter()
 useEffect(() => {
-  const fetchProductos = async () => {
+  const fetchProductos = async () => { [page]
     try {
       const token = localStorage.getItem("token")
       console.log("📦 Token enviado:", token) // 👈 para depurar en consola

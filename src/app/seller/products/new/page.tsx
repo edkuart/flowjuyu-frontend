@@ -87,9 +87,13 @@ export default function AddProductPage() {
   const formRef = useRef<HTMLFormElement>(null)
   const [previews, setPreviews] = useState<string[]>([])
 
+  const [imagenPrincipal, setImagenPrincipal] = useState<string | null>(null)
+
   const [imagenesExistentes, setImagenesExistentes] = useState<
     { id: number; url: string }[]
   >([])
+
+  const MAX_IMAGES = 5;
 
   const fetchJSON = async <T,>(path: string) => {
     const r = await fetch(`${API}${path}`, {
@@ -111,35 +115,97 @@ export default function AddProductPage() {
         const token = getToken()
         if (!token) return
   
-        const res = await fetch(`${API}/api/productos/${productId}`, {
-          headers: { Authorization: `Bearer ${token}` },
-        })        
+        const res = await fetch(`${API}/api/productos/${productId}/edit`, {
+          headers: {
+            Authorization: `Bearer ${token}`,
+          },
+        })
   
         if (!res.ok) return
   
         const { product } = await res.json()
   
+        // =============================
+        // Básicos
+        // =============================
         setNombre(product.nombre ?? "")
         setDescripcion(product.descripcion ?? "")
         setPrecio(String(product.precio ?? ""))
         setStock(String(product.stock ?? ""))
         setActivo(Boolean(product.activo))
+        setImagenPrincipal(product.imagen_principal ?? null)
   
-        setCategoriaSel(product.categoria_id ? String(product.categoria_id) : "")
-        setClaseSel(product.clase_id ? String(product.clase_id) : "")
-        setTelaSel(product.tela_id ? String(product.tela_id) : "")
+        // =============================
+        // Categoría / Clase / Tela
+        // =============================
+        setCategoriaSel(
+          product.categoria_id ? String(product.categoria_id) : ""
+        )
   
-        setDepartamentoSel(product.departamento ?? "")
-        setMunicipioSel(product.municipio ?? "")
+        setClaseSel(
+          product.clase_id ? String(product.clase_id) : ""
+        )
   
-        setImagenesExistentes(Array.isArray(product.imagenes) ? product.imagenes : [])
+        if (product.tela_custom) {
+          setTelaSel(OTROS)
+          setTelaInput(product.tela_custom)
+        } else {
+          setTelaSel(
+            product.tela_id ? String(product.tela_id) : ""
+          )
+        }
+  
+        // =============================
+        // Departamento / Municipio
+        // =============================
+        if (product.departamento) {
+          handleDepartamentoChange(product.departamento)
+          setMunicipioSel(product.municipio ?? "")
+        }
+  
+        // =============================
+        // Accesorio
+        // =============================
+        if (product.accesorio_custom) {
+          setAccesorioSel(OTROS)
+          setAccesorioInput(product.accesorio_custom)
+        } else if (product.accesorio_id) {
+          setAccesorioSel(String(product.accesorio_id))
+        }
+  
+        // ⚠️ Delay para esperar que carguen tipos/materiales
+        setTimeout(() => {
+          // Tipo
+          if (product.accesorio_tipo_custom) {
+            setTipoSel(OTROS)
+            setTipoInput(product.accesorio_tipo_custom)
+          } else if (product.accesorio_tipo_id) {
+            setTipoSel(String(product.accesorio_tipo_id))
+          }
+  
+          // Material
+          if (product.accesorio_material_custom) {
+            setMaterialSel(OTROS)
+            setMaterialInput(product.accesorio_material_custom)
+          } else if (product.accesorio_material_id) {
+            setMaterialSel(String(product.accesorio_material_id))
+          }
+        }, 200)
+  
+        // =============================
+        // Imágenes
+        // =============================
+        setImagenesExistentes(
+          Array.isArray(product.imagenes) ? product.imagenes : []
+        )
+  
       } catch (err) {
         console.error("Error cargando producto:", err)
       }
     }
   
     fetchProduct()
-  }, [productId, dataReady])  
+  }, [productId, dataReady])    
 
   // ============================
   // Cargar opciones iniciales
@@ -266,7 +332,11 @@ export default function AddProductPage() {
   const confirmarOtro = (tipo: OtroTipo, valor: string) => {
     if (!valor.trim()) return
     setInfoMsg(`"${valor}" agregado como información en ${tipo}.`)
-    setTimeout(() => setInfoMsg(""), 4000)
+    setEstado("ok")
+
+    setTimeout(() => {
+      router.push("/seller/products")
+    }, 1200)
   }
 
   const handleDepartamentoChange = (dep: string) => {
@@ -411,6 +481,36 @@ export default function AddProductPage() {
     }
   }  
 
+  const hacerPrincipal = async (url: string) => {
+    try {
+      const token = getToken()
+      if (!token || !productId) return
+  
+      const res = await fetch(
+        `${API}/api/productos/${productId}/set-principal`,
+        {
+          method: "PATCH",
+          headers: {
+            "Content-Type": "application/json",
+            Authorization: `Bearer ${token}`,
+          },
+          body: JSON.stringify({ imagen_url: url }),
+        }
+      )
+  
+      if (!res.ok) {
+        console.error("Error cambiando imagen principal")
+        return
+      }
+  
+      // 🔥 Actualizar visualmente
+      setImagenesExistentes((prev) => [...prev])
+  
+    } catch (err) {
+      console.error("Error cambiando principal:", err)
+    }
+  }  
+
   // ============================
   // Render con preview
   // ============================
@@ -427,7 +527,7 @@ export default function AddProductPage() {
             Volver
           </Button>
           <h1 className="text-2xl font-semibold text-gray-900 dark:text-white">
-            Agregar nuevo producto
+            {isEditing ? "Editar producto" : "Agregar nuevo producto"}
           </h1>
         </div>
 
@@ -584,8 +684,8 @@ export default function AddProductPage() {
               />
             </div>
 
-           <div>
-                <Label>Imágenes (máx. 9)</Label>
+            <div>
+              <label>Imágenes (máx. {MAX_IMAGES})</label>
                 <Input
                   ref={fileRef}
                   type="file"
@@ -601,7 +701,7 @@ export default function AddProductPage() {
                     const newPreviews = newFiles.map((f) => URL.createObjectURL(f))
                     setPreviews((prev) => [...prev, ...newPreviews])
                   }}
-                />
+              />
 
                 {/* 🖼️ Imágenes existentes (modo edición) */}
                 {imagenesExistentes.length > 0 && (
@@ -613,6 +713,28 @@ export default function AddProductPage() {
                           className="w-full h-24 object-cover"
                         />
 
+                        {/* ⭐ Hacer principal */}
+                        {img.url !== imagenPrincipal && (
+                          <button
+                            type="button"
+                            onClick={() => {
+                              hacerPrincipal(img.url)
+                              setImagenPrincipal(img.url)
+                            }}
+                            className="absolute bottom-1 left-1 bg-white/90 text-xs px-2 py-1 rounded shadow opacity-0 group-hover:opacity-100 transition"
+                          >
+                            ⭐ Principal
+                          </button>
+                        )}
+
+                        {/* Indicador visual */}
+                        {img.url === imagenPrincipal && (
+                          <span className="absolute bottom-1 left-1 bg-yellow-400 text-white text-xs px-2 py-1 rounded shadow">
+                            ⭐ Principal
+                          </span>
+                        )}
+
+                        {/* Eliminar */}
                         <button
                           type="button"
                           onClick={() => eliminarImagen(img.id)}

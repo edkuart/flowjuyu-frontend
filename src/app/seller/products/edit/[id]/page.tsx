@@ -114,6 +114,7 @@ export default function EditProductPage() {
       })
 
       router.push("/seller/products")
+      router.refresh()
     } catch (error) {
       console.error("❌ Error guardando producto:", error)
       Swal.fire("Error", "No se pudo guardar el producto", "error")

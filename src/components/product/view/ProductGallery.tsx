@@ -2,7 +2,7 @@
 
 "use client";
 
-import { useState, useRef, useMemo } from "react";
+import { useState, useRef, useMemo, useEffect } from "react";
 import Image from "next/image";
 
 export type ProductImage = {
@@ -44,6 +44,11 @@ export default function ProductGallery({
       ])
     ).slice(0, 5);
   }, [imagen_principal, imagenes]);
+
+  // 🔥 Resetear imagen activa cuando cambia la principal  
+  useEffect(() => {
+    setActive(0);
+  }, [imagen_principal]);
 
   const changeImage = (index: number) => {
     setFade(true);
