@@ -186,6 +186,9 @@ useEffect(() => {
       {/* Header */}
       <div className="flex items-center justify-between mb-6 flex-wrap gap-3">
         <h1 className="text-2xl font-bold">Mis productos</h1>
+        <p className="text-sm text-muted-foreground">
+          Los productos en <strong>borrador</strong> no aparecen en la tienda hasta que los publiques.
+        </p>
 
         <div className="flex items-center gap-4">
           <label className="text-sm text-muted-foreground">
@@ -277,22 +280,24 @@ useEffect(() => {
                               : "bg-red-100 text-red-700"
                           }`}
                         >
-                          {p.activo ? "Activo" : "Inactivo"}
+                          {p.activo ? "Publicado" : "Borrador"}
                         </span>
                       </td>
                       <td className="px-4 py-2 text-right space-x-2">
-                        <Link href={`/seller/products/edit/${p.id}`}>
+                      <Link href={`/seller/products/new?id=${p.id}`}>
                           <Button variant="outline" size="icon">
                             <Pencil className="w-4 h-4" />
                           </Button>
                         </Link>
                         <Button
-                          variant="secondary"
-                          size="icon"
+                          variant={p.activo ? "secondary" : "default"}
+                          size="sm"
                           disabled={processingId === p.id}
                           onClick={() => handleToggleActivo(p.id, p.activo)}
+                          title={p.activo ? "Despublicar producto" : "Publicar producto"}
                         >
-                          <Power className="w-4 h-4" />
+                          <Power className="w-4 h-4 mr-1" />
+                          {p.activo ? "Despublicar" : "Publicar"}
                         </Button>
                         <Button
                           variant="destructive"

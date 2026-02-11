@@ -1,6 +1,5 @@
-// =====================
-// Registro de comprador
-// =====================
+//src/services/auth.ts
+
 export async function apiRegisterComprador(data: {
   nombre: string;
   email: string;
@@ -75,30 +74,36 @@ export async function apiRegisterSeller(formData: FormData) {
 // =====================
 // Login
 // =====================
-export async function apiLogin(data: { email: string; password: string }) {
+export async function apiLogin(data: { correo: string; password: string }) {
   try {
     const res = await fetch("http://localhost:8800/api/login", {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
       },
-      body: JSON.stringify(data),
-    });
+      body: JSON.stringify({
+        correo: data.correo,
+        password: data.password,
+      }),
+    })
 
-    const json = await res.json();
-    console.log("Respuesta backend (login):", json);
+    const json = await res.json()
+    console.log("Respuesta backend (login):", json)
 
     if (!res.ok) {
-      return { ok: false, message: json.message || "Credenciales incorrectas" };
+      return { ok: false, message: json.message || "Credenciales incorrectas" }
     }
+
+    // 🔐 Guardamos el token para futuras requests
+    localStorage.setItem("token", json.token)
 
     return {
       ok: true,
       user: json.user,
       token: json.token,
-    };
+    }
   } catch (error) {
-    return { ok: false, message: "Error de red o servidor" };
+    return { ok: false, message: "Error de red o servidor" }
   }
 }
 

@@ -15,6 +15,7 @@ import { Search } from "lucide-react";
 
 import { departamentosConMunicipios } from "@/data/municipios";
 
+// 👇 Base del backend (sin /api, eso se añade en cada fetch)
 const API = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8800";
 
 type Categoria = { id: number; nombre: string };
@@ -26,7 +27,7 @@ type AccesorioTipo = { id: number; nombre: string };
 type AccesorioMaterial = { id: number; nombre: string };
 
 type Producto = {
-  id: string;
+  id: string; // uuid
   nombre: string;
   precio: number | string;
   categoria?: string | null;
@@ -80,7 +81,7 @@ export default function SearchProductsPage() {
   const [accesorioMaterialId, setAccesorioMaterialId] = useState<number | null>(null);
 
   // ---------------------------
-  // URL → ESTADOS (sin sobrescribir si vienen vacíos)
+  // URL → ESTADOS
   // ---------------------------
   useEffect(() => {
     const q =
@@ -132,7 +133,7 @@ export default function SearchProductsPage() {
   }, []);
 
   // ---------------------------
-  // LOGICA DE TIPO DE CATEGORÍA
+  // LÓGICA DE TIPO DE CATEGORÍA
   // ---------------------------
   const categoriaSeleccionada = categorias.find((c) => c.id === categoriaId);
   const categoriaNombre = (categoriaSeleccionada?.nombre || "").toLowerCase();
@@ -177,7 +178,8 @@ export default function SearchProductsPage() {
       try {
         const res = await fetch(`${API}/api/accesorios?tipo=${tipo}`);
         setAccesorios(await res.json());
-      } catch {
+      } catch (error) {
+        console.error("Error cargando accesorios:", error);
         setAccesorios([]);
       }
     })();
@@ -197,7 +199,8 @@ export default function SearchProductsPage() {
       try {
         const res = await fetch(`${API}/api/telas?clase_id=${claseId}`);
         setTelas(await res.json());
-      } catch {
+      } catch (error) {
+        console.error("Error cargando telas:", error);
         setTelas([]);
       }
     })();
@@ -223,7 +226,8 @@ export default function SearchProductsPage() {
         ]);
         setAccesorioTipos(tip);
         setAccesorioMateriales(mat);
-      } catch {
+      } catch (error) {
+        console.error("Error cargando tipos / materiales de accesorio:", error);
         setAccesorioTipos([]);
         setAccesorioMateriales([]);
       }
@@ -289,14 +293,28 @@ export default function SearchProductsPage() {
       if (esAccesorios && accesorioMaterialId)
         params.set("accesorio_material_id", String(accesorioMaterialId));
 
+      // Sincronizar URL
       router.replace(`/search?${params.toString()}`, { scroll: false });
 
-      const res = await fetch(`${API}/api/products?${params.toString()}`);
+      const url = `${API}/api/products?${params.toString()}`;
+      console.log("[SEARCH] Fetch:", url);
+
+      const res = await fetch(url, { cache: "no-store" });
+
+      if (!res.ok) {
+        console.error("[SEARCH] Respuesta no OK:", res.status, res.statusText);
+        setProductos([]);
+        setRelacionados([]);
+        return;
+      }
+
       const data = await res.json();
+      console.log("[SEARCH] Data:", data);
 
       setProductos(data.data || []);
       setRelacionados(data.related || []);
-    } catch {
+    } catch (error) {
+      console.error("[SEARCH] Error obteniendo productos:", error);
       setProductos([]);
       setRelacionados([]);
     } finally {
@@ -310,7 +328,7 @@ export default function SearchProductsPage() {
   useEffect(() => {
     const id = setTimeout(fetchProductos, 300);
     return () => clearTimeout(id);
-    // eslint-disable-next-line
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [
     busqueda,
     categoriaId,
@@ -384,7 +402,6 @@ export default function SearchProductsPage() {
 
   return (
     <main className="min-h-screen bg-neutral-50 px-4 py-8 space-y-8">
-
       {/* HEADER */}
       <section className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
         <div>
@@ -434,10 +451,7 @@ export default function SearchProductsPage() {
       )}
 
       <section className="flex flex-col sm:flex-row gap-6">
-
-        {/* ------------------------------ */}
         {/* PANEL FILTROS */}
-        {/* ------------------------------ */}
         <aside className="sm:w-72 space-y-4">
           <Card>
             <CardHeader>
@@ -445,7 +459,6 @@ export default function SearchProductsPage() {
             </CardHeader>
 
             <CardContent className="space-y-4 text-sm">
-
               {/* CATEGORÍA */}
               <div>
                 <label className="font-medium">Categoría</label>
@@ -458,7 +471,9 @@ export default function SearchProductsPage() {
                 >
                   <option value="">Todas</option>
                   {categorias.map((c) => (
-                    <option key={c.id} value={c.id}>{c.nombre}</option>
+                    <option key={c.id} value={c.id}>
+                      {c.nombre}
+                    </option>
                   ))}
                 </select>
               </div>
@@ -508,7 +523,9 @@ export default function SearchProductsPage() {
                   >
                     <option value="">Todas</option>
                     {clases.map((cls) => (
-                      <option key={cls.id} value={cls.id}>{cls.nombre}</option>
+                      <option key={cls.id} value={cls.id}>
+                        {cls.nombre}
+                      </option>
                     ))}
                   </select>
 
@@ -525,7 +542,9 @@ export default function SearchProductsPage() {
                       >
                         <option value="">Todas</option>
                         {telas.map((t) => (
-                          <option key={t.id} value={t.id}>{t.nombre}</option>
+                          <option key={t.id} value={t.id}>
+                            {t.nombre}
+                          </option>
                         ))}
                       </select>
                     </>
@@ -548,7 +567,9 @@ export default function SearchProductsPage() {
                   >
                     <option value="">Todos</option>
                     {accesorios.map((a) => (
-                      <option key={a.id} value={a.id}>{a.nombre}</option>
+                      <option key={a.id} value={a.id}>
+                        {a.nombre}
+                      </option>
                     ))}
                   </select>
 
@@ -568,7 +589,9 @@ export default function SearchProductsPage() {
                       >
                         <option value="">Todos</option>
                         {accesorioTipos.map((t) => (
-                          <option key={t.id} value={t.id}>{t.nombre}</option>
+                          <option key={t.id} value={t.id}>
+                            {t.nombre}
+                          </option>
                         ))}
                       </select>
                     </>
@@ -588,7 +611,9 @@ export default function SearchProductsPage() {
                       >
                         <option value="">Todos</option>
                         {accesorioMateriales.map((m) => (
-                          <option key={m.id} value={m.id}>{m.nombre}</option>
+                          <option key={m.id} value={m.id}>
+                            {m.nombre}
+                          </option>
                         ))}
                       </select>
                     </>
@@ -689,16 +714,12 @@ export default function SearchProductsPage() {
               >
                 Limpiar filtros
               </Button>
-
             </CardContent>
           </Card>
         </aside>
 
-        {/* ------------------------------ */}
         {/* RESULTADOS */}
-        {/* ------------------------------ */}
         <section className="flex-1 grid gap-6 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
-
           {/* LOADING SKELETON */}
           {loading &&
             [...Array(8)].map((_, i) => (
@@ -713,11 +734,13 @@ export default function SearchProductsPage() {
               </div>
             ))}
 
-          {!loading && productos.length > 0 &&
+          {/* RESULTADOS NORMALES */}
+          {!loading &&
+            productos.length > 0 &&
             productos.map((p) => (
               <Link
                 key={p.id}
-                href={`/product/${p.id}`}
+                href={`/product/${p.id}`} 
                 className="block hover:opacity-90 transition"
               >
                 <Card className="border shadow-sm hover:shadow-md transition cursor-pointer">
@@ -753,6 +776,7 @@ export default function SearchProductsPage() {
               </Link>
             ))}
 
+          {/* RELACIONADOS */}
           {!loading && productos.length === 0 && mostrarRelacionados && (
             <>
               <p className="col-span-full text-neutral-500">
@@ -761,33 +785,39 @@ export default function SearchProductsPage() {
               </p>
 
               {relacionados.map((p) => (
-                <Card key={p.id} className="border shadow-sm hover:shadow-md transition">
-                  <CardContent className="p-4">
-                    <div className="relative w-full aspect-square mb-3">
-                      <Image
-                        src={p.imagen_url || "/placeholder.jpg"}
-                        alt={p.nombre}
-                        fill
-                        className="object-cover rounded-lg"
-                      />
-                    </div>
+                <Link
+                  key={p.id}
+                  href={`/product/${p.id}`}
+                  className="block hover:opacity-90 transition"
+                >
+                  <Card className="border shadow-sm hover:shadow-md transition">
+                    <CardContent className="p-4">
+                      <div className="relative w-full aspect-square mb-3">
+                        <Image
+                          src={p.imagen_url || "/placeholder.jpg"}
+                          alt={p.nombre}
+                          fill
+                          className="object-cover rounded-lg"
+                        />
+                      </div>
 
-                    <h3 className="font-semibold line-clamp-1">{p.nombre}</h3>
-                    <p className="text-base font-bold mt-2">
-                      Q{Number(p.precio).toFixed(2)}
-                    </p>
-                  </CardContent>
-                </Card>
+                      <h3 className="font-semibold line-clamp-1">{p.nombre}</h3>
+                      <p className="text-base font-bold mt-2">
+                        Q{Number(p.precio).toFixed(2)}
+                      </p>
+                    </CardContent>
+                  </Card>
+                </Link>
               ))}
             </>
           )}
 
+          {/* SIN RESULTADOS */}
           {!loading && productos.length === 0 && !mostrarRelacionados && (
             <p className="col-span-full text-center text-neutral-500">
               No se encontraron productos.
             </p>
           )}
-
         </section>
       </section>
     </main>

@@ -1,94 +1,176 @@
-// src/context/AuthContext.tsx
 "use client";
 
-import { createContext, useContext, useEffect, useState, ReactNode } from "react";
+import {
+  createContext,
+  useContext,
+  useEffect,
+  useState,
+  ReactNode,
+} from "react";
+import { useRouter } from "next/navigation";
 
-
+/* ===========================
+   Roles
+=========================== */
 export type Rol =
   | "comprador"
   | "buyer"
   | "vendedor"
   | "seller"
-  | "admin";
+  | "admin"
+  | "soporte"
+  | "support";
 
+export type RolNormalized = "comprador" | "vendedor" | "admin" | "soporte";
 
-function normalizeRole(rol: Rol): "comprador" | "vendedor" | "admin" {
-  switch (rol) {
-    case "buyer":
-      return "comprador";
-    case "seller":
-      return "vendedor";
-    default:
-      return rol; 
-  }
+export function normalizeRole(rol?: string): RolNormalized | undefined {
+  if (!rol) return undefined;
+
+  const r = rol.toLowerCase().trim();
+
+  if (r === "buyer") return "comprador";
+  if (r === "seller") return "vendedor";
+  if (r === "support") return "soporte";
+
+  if (r === "comprador") return "comprador";
+  if (r === "vendedor") return "vendedor";
+  if (r === "admin") return "admin";
+  if (r === "soporte") return "soporte";
+
+  return undefined;
 }
 
+/* ===========================
+   User types
+=========================== */
 export interface User {
   id: string;
   nombre: string;
-  rol: Rol;
+  correo?: string;
+  rol: RolNormalized; // siempre normalizado
   [key: string]: any;
 }
 
+// Usuario crudo que viene del backend
+type RawUser = {
+  id: string;
+  nombre: string;
+  correo?: string;
+  rol?: string;
+  [key: string]: any;
+};
+
+/* ===========================
+   Context
+=========================== */
 interface AuthContextProps {
   user: User | null;
   token: string | null;
   ready: boolean;
-  login: (user: User, token: string) => void;
+  isAuthenticated: boolean;
+  login: (user: RawUser, token: string) => void;
   logout: () => void;
 }
 
-const AuthContext = createContext<AuthContextProps | undefined>(undefined);
+const AuthContext = createContext<AuthContextProps | undefined>(
+  undefined
+);
 
+/* ===========================
+   Provider
+=========================== */
 export function AuthProvider({ children }: { children: ReactNode }) {
+  const router = useRouter();
+
   const [user, setUser] = useState<User | null>(null);
   const [token, setToken] = useState<string | null>(null);
   const [ready, setReady] = useState(false);
 
+  // ===========================
+  // Restaurar sesión
+  // ===========================
   useEffect(() => {
     try {
       const storedUser = localStorage.getItem("user");
       const storedToken = localStorage.getItem("token");
 
       if (storedUser && storedToken) {
-        const parsed = JSON.parse(storedUser) as User;
+        const parsed: RawUser = JSON.parse(storedUser);
+        const rolNorm = normalizeRole(parsed?.rol);
 
-        parsed.rol = normalizeRole(parsed.rol);
-
-        setUser(parsed);
-        setToken(storedToken);
+        if (!rolNorm) {
+          localStorage.removeItem("user");
+          localStorage.removeItem("token");
+          setUser(null);
+          setToken(null);
+        } else {
+          setUser({ ...parsed, rol: rolNorm });
+          setToken(storedToken);
+        }
       }
+    } catch (error) {
+      console.error("Error restaurando sesión:", error);
+      localStorage.removeItem("user");
+      localStorage.removeItem("token");
     } finally {
       setReady(true);
     }
   }, []);
 
-  const login = (u: User, t: string) => {
-    u.rol = normalizeRole(u.rol);
+  // ===========================
+  // Login
+  // ===========================
+  const login = (u: RawUser, t: string) => {
+    const rolNorm = normalizeRole(u?.rol);
+    if (!rolNorm) {
+      throw new Error(`Rol inválido recibido: ${u?.rol}`);
+    }
 
-    setUser(u);
+    const userToStore: User = {
+      ...u,
+      rol: rolNorm,
+    };
+
+    setUser(userToStore);
     setToken(t);
-    localStorage.setItem("user", JSON.stringify(u));
+    localStorage.setItem("user", JSON.stringify(userToStore));
     localStorage.setItem("token", t);
   };
 
+  // ===========================
+  // Logout
+  // ===========================
   const logout = () => {
     setUser(null);
     setToken(null);
     localStorage.removeItem("user");
     localStorage.removeItem("token");
-    window.location.replace("/login");
+    router.replace("/login");
   };
 
   return (
-    <AuthContext.Provider value={{ user, token, ready, login, logout }}>
+    <AuthContext.Provider
+      value={{
+        user,
+        token,
+        ready,
+        isAuthenticated: !!user && !!token,
+        login,
+        logout,
+      }}
+    >
       {children}
     </AuthContext.Provider>
   );
 }
 
+/* ===========================
+   Hook
+=========================== */
 export function useAuth() {
   const ctx = useContext(AuthContext);
-  if (!ctx) throw new Error("useAuth debe usarse dentro de AuthProvider");
+  if (!ctx) {
+    throw new Error("useAuth debe usarse dentro de AuthProvider");
+  }
   return ctx;
 }

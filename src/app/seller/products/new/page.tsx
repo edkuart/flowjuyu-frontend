@@ -1,3 +1,5 @@
+//src/app/seller/products/new/page.tsx
+
 "use client"
 
 import { useEffect, useRef, useState, useMemo } from "react"
@@ -16,6 +18,7 @@ import { TipoAccesorioSelect } from "@/components/product/form/TipoAccesorioSele
 import { MaterialSelect } from "@/components/product/form/MaterialSelect"
 import { TelaSelect } from "@/components/product/form/TelaSelect"
 import { OrigenSelect } from "@/components/product/form/OrigenSelect"
+import { useSearchParams } from "next/navigation"
 
 import type { Opcion, Clase, OtroTipo } from "@/types/product"
 
@@ -29,11 +32,29 @@ const NA = "__NA__"
 
 export default function AddProductPage() {
   const router = useRouter()
+  const searchParams = useSearchParams()
+
+  // 🧠 Detectar si estamos editando
+  const productId = searchParams.get("id")
+  const isEditing = Boolean(productId)
+
+    // =========================
+  // Estados principales
+  // =========================
+  const [nombre, setNombre] = useState("")
+  const [descripcion, setDescripcion] = useState("")
+  const [precio, setPrecio] = useState("")
+  const [stock, setStock] = useState("")
+  const [activo, setActivo] = useState(false)
+
+  const [departamento, setDepartamento] = useState<string | null>(null)
+  const [municipio, setMunicipio] = useState<string | null>(null)
+
+  const [dataReady, setDataReady] = useState(false)
 
   const [estado, setEstado] = useState<"idle" | "loading" | "ok" | "error">("idle")
   const [mensaje, setMensaje] = useState("")
   const [infoMsg, setInfoMsg] = useState("")
-  const [activo, setActivo] = useState(true)
 
   const [categorias, setCategorias] = useState<Opcion[]>([])
   const [clases, setClases] = useState<Clase[]>([])
@@ -66,6 +87,10 @@ export default function AddProductPage() {
   const formRef = useRef<HTMLFormElement>(null)
   const [previews, setPreviews] = useState<string[]>([])
 
+  const [imagenesExistentes, setImagenesExistentes] = useState<
+    { id: number; url: string }[]
+  >([])
+
   const fetchJSON = async <T,>(path: string) => {
     const r = await fetch(`${API}${path}`, {
       credentials: "include",
@@ -74,6 +99,47 @@ export default function AddProductPage() {
     if (!r.ok) throw new Error(await r.text())
     return (await r.json()) as T
   }
+
+    // =========================
+  // Precargar producto (EDIT)
+  // =========================
+  useEffect(() => {
+    if (!productId || !dataReady) return
+  
+    const fetchProduct = async () => {
+      try {
+        const token = getToken()
+        if (!token) return
+  
+        const res = await fetch(`${API}/api/productos/${productId}`, {
+          headers: { Authorization: `Bearer ${token}` },
+        })        
+  
+        if (!res.ok) return
+  
+        const { product } = await res.json()
+  
+        setNombre(product.nombre ?? "")
+        setDescripcion(product.descripcion ?? "")
+        setPrecio(String(product.precio ?? ""))
+        setStock(String(product.stock ?? ""))
+        setActivo(Boolean(product.activo))
+  
+        setCategoriaSel(product.categoria_id ? String(product.categoria_id) : "")
+        setClaseSel(product.clase_id ? String(product.clase_id) : "")
+        setTelaSel(product.tela_id ? String(product.tela_id) : "")
+  
+        setDepartamentoSel(product.departamento ?? "")
+        setMunicipioSel(product.municipio ?? "")
+  
+        setImagenesExistentes(Array.isArray(product.imagenes) ? product.imagenes : [])
+      } catch (err) {
+        console.error("Error cargando producto:", err)
+      }
+    }
+  
+    fetchProduct()
+  }, [productId, dataReady])  
 
   // ============================
   // Cargar opciones iniciales
@@ -85,14 +151,17 @@ export default function AddProductPage() {
           fetchJSON<Opcion[]>("/api/categorias"),
           fetchJSON<Clase[]>("/api/clases"),
         ])
+  
         setCategorias(cats)
         setClases(cls)
+  
+        setDataReady(true) 
       } catch (e: any) {
         setEstado("error")
         setMensaje(e.message)
       }
     })()
-  }, [])
+  }, [])  
 
   // Telas dependen de la clase
   useEffect(() => {
@@ -222,7 +291,7 @@ export default function AddProductPage() {
 
     const fd = new FormData(e.currentTarget)
     fd.set("precio", toDecimal(String(fd.get("precio") || "")))
-    fd.set("activo", String(activo))
+    fd.set("activo", "false")
 
     // -------------------------------
     // 1. Categoría
@@ -286,14 +355,24 @@ export default function AddProductPage() {
     try {
       setEstado("loading")
       const token = getToken()
-      const res = await fetch(`${API}/api/productos`, {
-        method: "POST",
+      const url = isEditing
+        ? `${API}/api/productos/${productId}`
+        : `${API}/api/productos`
+
+      const method = isEditing ? "PUT" : "POST"
+
+      const res = await fetch(url, {
+        method,
         body: fd,
         headers: token ? { Authorization: `Bearer ${token}` } : {},
         credentials: "include",
       })
       if (!res.ok) throw new Error(await res.text())
-      setMensaje("✅ Producto creado con éxito.")
+        setMensaje(
+          isEditing
+            ? "✅ Producto actualizado correctamente."
+            : "✅ Producto creado como borrador."
+        )        
       setEstado("ok")
       if (formRef.current) formRef.current.reset()
       setPreviews([])
@@ -302,6 +381,35 @@ export default function AddProductPage() {
       setEstado("error")
     }
   }
+
+  const eliminarImagen = async (imageId: number) => {
+    try {
+      const token = getToken()
+      if (!token || !productId) return
+  
+      const res = await fetch(
+        `${API}/api/productos/${productId}/imagenes/${imageId}`,
+        {
+          method: "DELETE",
+          headers: {
+            Authorization: `Bearer ${token}`,
+          },
+        }
+      )
+  
+      if (!res.ok) {
+        console.error("Error eliminando imagen")
+        return
+      }
+  
+      // 🔹 quitar del estado
+      setImagenesExistentes((prev) =>
+        prev.filter((img) => img.id !== imageId)
+      )
+    } catch (err) {
+      console.error("Error eliminando imagen:", err)
+    }
+  }  
 
   // ============================
   // Render con preview
@@ -432,27 +540,36 @@ export default function AddProductPage() {
             <div className="grid sm:grid-cols-2 gap-4">
               <div>
                 <Label>Nombre del producto</Label>
-                <Input name="nombre" required placeholder="Ej. Faja bordada" />
+                <Input
+                  name="nombre"
+                  value={nombre}
+                  onChange={(e) => setNombre(e.target.value)}
+                  required
+                  placeholder="Ej. Faja bordada"
+                />
               </div>
               <div>
                 <Label>Precio</Label>
                 <Input
                   name="precio"
+                  value={precio}
+                  onChange={(e) => setPrecio(e.target.value)}
                   type="text"
                   inputMode="decimal"
-                  pattern="^[0-9]+([.,][0-9]{1,2})?$"
                   onKeyDown={handlePrecioKeyDown}
-                  placeholder="0.00"
                   required
                 />
               </div>
               <div>
                 <Label>Stock</Label>
-                <Input name="stock" type="number" min={0} required />
-              </div>
-              <div className="flex items-center justify-between">
-                <Label>Producto activo</Label>
-                <Switch checked={activo} onCheckedChange={setActivo} />
+                <Input
+                  name="stock"
+                  value={stock}
+                  onChange={(e) => setStock(e.target.value)}
+                  type="number"
+                  min={0}
+                  required
+                />
               </div>
             </div>
 
@@ -460,9 +577,10 @@ export default function AddProductPage() {
               <Label>Descripción</Label>
               <Textarea
                 name="descripcion"
+                value={descripcion}
+                onChange={(e) => setDescripcion(e.target.value)}
                 rows={4}
                 required
-                placeholder="Describe el producto..."
               />
             </div>
 
@@ -484,6 +602,28 @@ export default function AddProductPage() {
                     setPreviews((prev) => [...prev, ...newPreviews])
                   }}
                 />
+
+                {/* 🖼️ Imágenes existentes (modo edición) */}
+                {imagenesExistentes.length > 0 && (
+                  <div className="mt-3 grid grid-cols-3 sm:grid-cols-4 gap-3">
+                    {imagenesExistentes.map((img) => (
+                      <div key={img.id} className="relative group rounded-md overflow-hidden">
+                        <img
+                          src={img.url}
+                          className="w-full h-24 object-cover"
+                        />
+
+                        <button
+                          type="button"
+                          onClick={() => eliminarImagen(img.id)}
+                          className="absolute top-1 right-1 bg-black/60 text-white text-xs rounded-full px-2 opacity-0 group-hover:opacity-100 transition"
+                        >
+                          ✕
+                        </button>
+                      </div>
+                    ))}
+                  </div>
+                )}
 
                 {/* 🖼️ Previews con botón ❌ */}
                 {previews.length > 0 && (
@@ -523,13 +663,19 @@ export default function AddProductPage() {
               </div>
 
 
-            <Button
-              type="submit"
-              className="w-full sm:w-auto bg-sky-600 hover:bg-sky-700 text-white shadow-sm"
-              disabled={estado === "loading"}
-            >
-              {estado === "loading" ? "Guardando…" : "Guardar producto"}
-            </Button>
+              <Button
+                type="submit"
+                className="w-full sm:w-auto bg-sky-600 hover:bg-sky-700 text-white shadow-sm"
+                disabled={estado === "loading"}
+              >
+                {estado === "loading"
+                  ? isEditing
+                    ? "Actualizando…"
+                    : "Guardando borrador…"
+                  : isEditing
+                    ? "Guardar cambios"
+                    : "Guardar como borrador"}
+              </Button>
 
             {mensaje && (
               <p

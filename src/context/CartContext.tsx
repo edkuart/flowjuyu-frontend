@@ -26,7 +26,7 @@ const STORAGE_KEY = 'cart_v1'
 export function CartProvider({ children }: { children: React.ReactNode }) {
   const [items, setItems] = useState<CartItem[]>([])
 
-  // cargar desde localStorage
+  // cargar carrito
   useEffect(() => {
     try {
       const raw = localStorage.getItem(STORAGE_KEY)
@@ -34,35 +34,40 @@ export function CartProvider({ children }: { children: React.ReactNode }) {
     } catch {}
   }, [])
 
-  // persistir
+  // persistir carrito
   useEffect(() => {
     try {
       localStorage.setItem(STORAGE_KEY, JSON.stringify(items))
     } catch {}
   }, [items])
 
-  const api: CartContextType = useMemo(() => {
+  const value = useMemo<CartContextType>(() => {
     const addItem: CartContextType['addItem'] = (item, qty = 1) => {
+      if (qty <= 0) return
+
       setItems(prev => {
-        const ix = prev.findIndex(p => p.id === item.id)
-        if (ix >= 0) {
-          const copy = [...prev]
-          copy[ix] = { ...copy[ix], qty: copy[ix].qty + qty }
-          return copy
+        const found = prev.find(p => p.id === item.id)
+        if (found) {
+          return prev.map(p =>
+            p.id === item.id ? { ...p, qty: p.qty + qty } : p
+          )
         }
         return [...prev, { ...item, qty }]
       })
     }
+
     const setQty: CartContextType['setQty'] = (id, qty) => {
       setItems(prev =>
         prev
           .map(p => (p.id === id ? { ...p, qty: Math.max(1, qty) } : p))
-          .filter(p => p.qty > 0),
+          .filter(p => p.qty > 0)
       )
     }
-    const removeItem: CartContextType['removeItem'] = (id) => {
+
+    const removeItem = (id: string) => {
       setItems(prev => prev.filter(p => p.id !== id))
     }
+
     const clear = () => setItems([])
 
     const count = items.reduce((a, i) => a + i.qty, 0)
@@ -71,11 +76,15 @@ export function CartProvider({ children }: { children: React.ReactNode }) {
     return { items, count, subtotal, addItem, setQty, removeItem, clear }
   }, [items])
 
-  return <CartContext.Provider value={api}>{children}</CartContext.Provider>
+  return (
+    <CartContext.Provider value={value}>
+      {children}
+    </CartContext.Provider>
+  )
 }
 
 export function useCart() {
   const ctx = useContext(CartContext)
-  if (!ctx) throw new Error('useCart must be used inside <CartProvider>')
+  if (!ctx) throw new Error('useCart must be used inside CartProvider')
   return ctx
 }
