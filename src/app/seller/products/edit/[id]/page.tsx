@@ -1,16 +1,17 @@
-//src/app/seller/products/edit/[id]/page.tsx
+// src/app/seller/products/edit/[id]/page.tsx
 
 "use client"
 
-import { useEffect, useState } from "react"
+import { useEffect, useMemo, useState } from "react"
 import { useParams, useRouter } from "next/navigation"
+import Image from "next/image"
+import Swal from "sweetalert2"
+
 import { Input } from "@/components/ui/input"
 import { Textarea } from "@/components/ui/textarea"
 import { Button } from "@/components/ui/button"
 import { Label } from "@/components/ui/label"
 import { Switch } from "@/components/ui/switch"
-import Image from "next/image"
-import Swal from "sweetalert2"
 
 type Producto = {
   id: string
@@ -19,7 +20,8 @@ type Producto = {
   precio: number
   stock: number
   activo: boolean
-  imagen_url?: string | null
+  imagen_principal?: string | null
+  imagenes: { id: number; url: string }[]
 }
 
 export default function EditProductPage() {
@@ -31,10 +33,20 @@ export default function EditProductPage() {
   const [producto, setProducto] = useState<Producto | null>(null)
   const [loading, setLoading] = useState(true)
   const [saving, setSaving] = useState(false)
-  const [file, setFile] = useState<File | null>(null)
-  const [preview, setPreview] = useState<string | null>(null)
 
-  // 🔄 Obtener producto por ID
+  const [files, setFiles] = useState<File[]>([])
+  const [preview, setPreview] = useState<string[]>([])
+
+  const toImageUrl = useMemo(
+    () => (url?: string | null) => {
+      if (!url) return null
+      if (/^https?:\/\//i.test(url)) return url
+      return `${API}${url.startsWith("/") ? "" : "/"}${url}`
+    },
+    [API]
+  )
+
+  // 🔄 Obtener producto
   useEffect(() => {
     const fetchProducto = async () => {
       try {
@@ -44,18 +56,21 @@ export default function EditProductPage() {
           return
         }
 
-        const res = await fetch(`${API}/api/productos/${id}edit`, {
+        const res = await fetch(`${API}/api/productos/${id}/edit`, {
           headers: { Authorization: `Bearer ${token}` },
         })
 
         if (!res.ok) throw new Error("Error al cargar producto")
         const data = await res.json()
+        const product = data?.product ?? data
+
         setProducto({
-          ...data,
-          precio: Number(data.precio),
+          ...product,
+          precio: Number(product.precio),
+          imagenes: Array.isArray(product.imagenes) ? product.imagenes : [],
         })
-      } catch (e) {
-        console.error("❌ Error cargando producto:", e)
+      } catch (error) {
+        console.error("❌ Error cargando producto:", error)
       } finally {
         setLoading(false)
       }
@@ -68,10 +83,11 @@ export default function EditProductPage() {
   const handleSave = async (e: React.FormEvent) => {
     e.preventDefault()
     if (!producto) return
+
     setSaving(true)
     try {
       const token = localStorage.getItem("token")
-      if (!token) throw new Error("No hay token de autenticación")
+      if (!token) throw new Error("No hay token")
 
       const formData = new FormData()
       formData.append("nombre", producto.nombre)
@@ -80,7 +96,7 @@ export default function EditProductPage() {
       formData.append("stock", String(producto.stock))
       formData.append("activo", producto.activo ? "true" : "false")
 
-      if (file) formData.append("imagenes[]", file)
+      files.forEach((file) => formData.append("imagenes[]", file))
 
       const res = await fetch(`${API}/api/productos/${id}`, {
         method: "PUT",
@@ -88,10 +104,7 @@ export default function EditProductPage() {
         body: formData,
       })
 
-      if (!res.ok) {
-        const errorText = await res.text()
-        throw new Error(errorText)
-      }
+      if (!res.ok) throw new Error(await res.text())
 
       await Swal.fire({
         icon: "success",
@@ -101,36 +114,44 @@ export default function EditProductPage() {
       })
 
       router.push("/seller/products")
-    } catch (e) {
-      console.error("❌ Error guardando producto:", e)
+    } catch (error) {
+      console.error("❌ Error guardando producto:", error)
       Swal.fire("Error", "No se pudo guardar el producto", "error")
     } finally {
       setSaving(false)
     }
   }
 
-  // 🖼️ Previsualizar nueva imagen
+  // 🖼️ Manejo de imágenes nuevas
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const selected = e.target.files?.[0] || null
-    setFile(selected)
+    const selectedFiles = e.target.files ? Array.from(e.target.files) : []
+    setFiles(selectedFiles)
 
-    if (selected) {
-      const reader = new FileReader()
-      reader.onloadend = () => setPreview(reader.result as string)
-      reader.readAsDataURL(selected)
-    } else {
-      setPreview(null)
-    }
+    const previews = selectedFiles.map((file) => URL.createObjectURL(file))
+    setPreview(previews)
   }
 
+  useEffect(() => {
+    return () => preview.forEach((url) => URL.revokeObjectURL(url))
+  }, [preview])
+
   if (loading)
-    return <p className="text-center py-10 text-muted-foreground">Cargando producto...</p>
+    return (
+      <p className="text-center py-10 text-muted-foreground">
+        Cargando producto...
+      </p>
+    )
+
   if (!producto)
-    return <p className="text-center py-10 text-muted-foreground">Producto no encontrado</p>
+    return (
+      <p className="text-center py-10 text-muted-foreground">
+        Producto no encontrado
+      </p>
+    )
 
   return (
     <main className="max-w-3xl mx-auto py-10 px-4">
-      <h1 className="text-2xl font-bold mb-6 text-neutral-900">Editar producto</h1>
+      <h1 className="text-2xl font-bold mb-6">Editar producto</h1>
 
       <form
         onSubmit={handleSave}
@@ -138,64 +159,56 @@ export default function EditProductPage() {
       >
         {/* Nombre */}
         <div>
-          <Label htmlFor="nombre">Nombre</Label>
+          <Label>Nombre</Label>
           <Input
-            id="nombre"
             value={producto.nombre}
-            onChange={(e) => setProducto({ ...producto, nombre: e.target.value })}
+            onChange={(e) =>
+              setProducto({ ...producto, nombre: e.target.value })
+            }
             required
           />
         </div>
 
         {/* Descripción */}
         <div>
-          <Label htmlFor="descripcion">Descripción</Label>
+          <Label>Descripción</Label>
           <Textarea
-            id="descripcion"
-            rows={3}
             value={producto.descripcion}
             onChange={(e) =>
               setProducto({ ...producto, descripcion: e.target.value })
             }
-            required
           />
         </div>
 
-        {/* Precio y Stock */}
-        <div className="grid sm:grid-cols-2 gap-4">
+        {/* Precio y stock */}
+        <div className="grid grid-cols-2 gap-4">
           <div>
-            <Label htmlFor="precio">Precio (Q)</Label>
+            <Label>Precio</Label>
             <Input
-              id="precio"
               type="number"
-              step="0.01"
               value={producto.precio}
               onChange={(e) =>
-                setProducto({ ...producto, precio: parseFloat(e.target.value) })
+                setProducto({ ...producto, precio: Number(e.target.value) })
               }
-              required
             />
           </div>
 
           <div>
-            <Label htmlFor="stock">Stock</Label>
+            <Label>Stock</Label>
             <Input
-              id="stock"
               type="number"
               value={producto.stock}
               onChange={(e) =>
-                setProducto({ ...producto, stock: parseInt(e.target.value) })
+                setProducto({ ...producto, stock: Number(e.target.value) })
               }
-              required
             />
           </div>
         </div>
 
-        {/* Estado activo */}
+        {/* Estado */}
         <div className="flex items-center gap-3">
-          <Label htmlFor="activo">Estado</Label>
+          <Label>Estado</Label>
           <Switch
-            id="activo"
             checked={producto.activo}
             onCheckedChange={(checked) =>
               setProducto({ ...producto, activo: checked })
@@ -210,51 +223,69 @@ export default function EditProductPage() {
           </span>
         </div>
 
-        {/* Imagen actual */}
+        {/* Imagen principal */}
         <div>
-          <Label>Imagen actual</Label>
-          {producto.imagen_url ? (
-            <div className="relative w-full max-w-xs mt-2">
+          <Label>Imagen principal</Label>
+          {producto.imagen_principal ? (
+            <div className="relative w-full max-w-xs mt-2 aspect-[4/3]">
               <Image
-                src={producto.imagen_url}
-                alt="Imagen actual"
-                width={400}
-                height={300}
-                className="rounded-md border shadow-sm object-cover"
+                src={toImageUrl(producto.imagen_principal)!}
+                alt="Imagen principal"
+                fill
+                className="rounded-md border object-cover"
               />
             </div>
           ) : (
-            <p className="text-sm text-muted-foreground mt-1">Sin imagen</p>
+            <p className="text-sm text-muted-foreground">Sin imagen</p>
           )}
         </div>
 
-        {/* Nueva imagen */}
+        {/* Imágenes extra */}
         <div>
-          <Label>Nueva imagen</Label>
-          <Input
-            type="file"
-            accept="image/*"
-            onChange={handleFileChange}
-          />
+          <Label>Imágenes extra actuales</Label>
+          {producto.imagenes.length > 0 ? (
+            <div className="grid grid-cols-2 sm:grid-cols-3 gap-3 mt-2">
+              {producto.imagenes.map((img) => (
+                <div key={img.id} className="relative aspect-[4/3]">
+                  <Image
+                    src={toImageUrl(img.url)!}
+                    alt="Imagen extra"
+                    fill
+                    className="rounded-md border object-cover"
+                  />
+                </div>
+              ))}
+            </div>
+          ) : (
+            <p className="text-sm text-muted-foreground">
+              No hay imágenes extra
+            </p>
+          )}
+        </div>
 
-          {preview && (
-            <div className="relative w-full max-w-xs mt-3">
-              <Image
-                src={preview}
-                alt="Vista previa"
-                width={400}
-                height={300}
-                className="rounded-md border shadow-sm object-cover"
-              />
-              <p className="text-xs text-center text-muted-foreground mt-1">
-                Vista previa de la nueva imagen
-              </p>
+        {/* Nuevas imágenes */}
+        <div>
+          <Label>Nuevas imágenes</Label>
+          <Input type="file" multiple accept="image/*" onChange={handleFileChange} />
+
+          {preview.length > 0 && (
+            <div className="grid grid-cols-2 sm:grid-cols-3 gap-3 mt-3">
+              {preview.map((src) => (
+                <div key={src} className="relative aspect-[4/3]">
+                  <Image
+                    src={src}
+                    alt="Preview"
+                    fill
+                    className="rounded-md border object-cover"
+                  />
+                </div>
+              ))}
             </div>
           )}
         </div>
 
         {/* Botones */}
-        <div className="flex justify-end gap-4 pt-4">
+        <div className="flex justify-end gap-4">
           <Button
             type="button"
             variant="secondary"
@@ -262,11 +293,7 @@ export default function EditProductPage() {
           >
             Cancelar
           </Button>
-          <Button
-            type="submit"
-            disabled={saving}
-            className="bg-blue-600 hover:bg-blue-700"
-          >
+          <Button type="submit" disabled={saving}>
             {saving ? "Guardando..." : "Guardar cambios"}
           </Button>
         </div>
