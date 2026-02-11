@@ -1,7 +1,17 @@
 "use client";
 
-import { createContext, useContext, useEffect, useState, ReactNode } from "react";
+import {
+  createContext,
+  useContext,
+  useEffect,
+  useState,
+  ReactNode,
+} from "react";
+import { useRouter } from "next/navigation";
 
+/* ===========================
+   Roles
+=========================== */
 export type Rol =
   | "comprador"
   | "buyer"
@@ -27,44 +37,68 @@ export function normalizeRole(rol?: string): RolNormalized | undefined {
   if (r === "admin") return "admin";
   if (r === "soporte") return "soporte";
 
-  // si viene algo raro, lo dejamos undefined para no dar permisos
   return undefined;
 }
 
+/* ===========================
+   User types
+=========================== */
 export interface User {
   id: string;
   nombre: string;
   correo?: string;
-  rol: RolNormalized; // 👈 guardamos ya normalizado
+  rol: RolNormalized; // siempre normalizado
   [key: string]: any;
 }
 
+// Usuario crudo que viene del backend
+type RawUser = {
+  id: string;
+  nombre: string;
+  correo?: string;
+  rol?: string;
+  [key: string]: any;
+};
+
+/* ===========================
+   Context
+=========================== */
 interface AuthContextProps {
   user: User | null;
   token: string | null;
   ready: boolean;
-  login: (user: any, token: string) => void; // any porque a veces viene "support"
+  isAuthenticated: boolean;
+  login: (user: RawUser, token: string) => void;
   logout: () => void;
 }
 
-const AuthContext = createContext<AuthContextProps | undefined>(undefined);
+const AuthContext = createContext<AuthContextProps | undefined>(
+  undefined
+);
 
+/* ===========================
+   Provider
+=========================== */
 export function AuthProvider({ children }: { children: ReactNode }) {
+  const router = useRouter();
+
   const [user, setUser] = useState<User | null>(null);
   const [token, setToken] = useState<string | null>(null);
   const [ready, setReady] = useState(false);
 
+  // ===========================
+  // Restaurar sesión
+  // ===========================
   useEffect(() => {
     try {
       const storedUser = localStorage.getItem("user");
       const storedToken = localStorage.getItem("token");
 
       if (storedUser && storedToken) {
-        const parsed = JSON.parse(storedUser);
-
+        const parsed: RawUser = JSON.parse(storedUser);
         const rolNorm = normalizeRole(parsed?.rol);
+
         if (!rolNorm) {
-          // rol inválido => limpiamos para evitar loops raros
           localStorage.removeItem("user");
           localStorage.removeItem("token");
           setUser(null);
@@ -74,18 +108,28 @@ export function AuthProvider({ children }: { children: ReactNode }) {
           setToken(storedToken);
         }
       }
+    } catch (error) {
+      console.error("Error restaurando sesión:", error);
+      localStorage.removeItem("user");
+      localStorage.removeItem("token");
     } finally {
       setReady(true);
     }
   }, []);
 
-  const login = (u: any, t: string) => {
+  // ===========================
+  // Login
+  // ===========================
+  const login = (u: RawUser, t: string) => {
     const rolNorm = normalizeRole(u?.rol);
     if (!rolNorm) {
       throw new Error(`Rol inválido recibido: ${u?.rol}`);
     }
 
-    const userToStore: User = { ...u, rol: rolNorm };
+    const userToStore: User = {
+      ...u,
+      rol: rolNorm,
+    };
 
     setUser(userToStore);
     setToken(t);
@@ -93,23 +137,40 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     localStorage.setItem("token", t);
   };
 
+  // ===========================
+  // Logout
+  // ===========================
   const logout = () => {
     setUser(null);
     setToken(null);
     localStorage.removeItem("user");
     localStorage.removeItem("token");
-    window.location.replace("/login");
+    router.replace("/login");
   };
 
   return (
-    <AuthContext.Provider value={{ user, token, ready, login, logout }}>
+    <AuthContext.Provider
+      value={{
+        user,
+        token,
+        ready,
+        isAuthenticated: !!user && !!token,
+        login,
+        logout,
+      }}
+    >
       {children}
     </AuthContext.Provider>
   );
 }
 
+/* ===========================
+   Hook
+=========================== */
 export function useAuth() {
   const ctx = useContext(AuthContext);
-  if (!ctx) throw new Error("useAuth debe usarse dentro de AuthProvider");
+  if (!ctx) {
+    throw new Error("useAuth debe usarse dentro de AuthProvider");
+  }
   return ctx;
 }

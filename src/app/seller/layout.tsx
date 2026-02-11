@@ -2,10 +2,9 @@
 
 import Link from "next/link";
 import { ReactNode } from "react";
+import { usePathname } from "next/navigation";
 import { Home, Package, ShoppingCart, User } from "lucide-react";
 import AuthGuard from "@/components/auth/AuthGuard";
-import SearchBar from "@/components/ui/SearchBar";
-
 
 const navItems = [
   { label: "Dashboard", icon: Home, href: "/seller/dashboard" },
@@ -16,7 +15,13 @@ const navItems = [
   { label: "Validación", icon: User, href: "/seller/profile/validation" },
 ];
 
-export default function SellerLayout({ children }: { children: ReactNode }) {
+export default function SellerLayout({
+  children,
+}: {
+  children: ReactNode;
+}) {
+  const pathname = usePathname();
+
   return (
     <AuthGuard allowedRoles={["vendedor"]}>
       <div className="min-h-screen flex bg-muted/20">
@@ -25,17 +30,29 @@ export default function SellerLayout({ children }: { children: ReactNode }) {
           <div className="p-6 border-b">
             <h2 className="text-xl font-bold">Panel Vendedor</h2>
           </div>
-          <nav className="p-4 space-y-2">
-            {navItems.map(({ label, icon: Icon, href }) => (
-              <Link
-                key={href}
-                href={href}
-                className="flex items-center gap-3 text-sm font-medium text-muted-foreground hover:text-foreground transition px-3 py-2 rounded-md hover:bg-muted"
-              >
-                <Icon className="w-4 h-4" />
-                {label}
-              </Link>
-            ))}
+
+          <nav className="p-4 space-y-1">
+            {navItems.map(({ label, icon: Icon, href }) => {
+              const isActive = pathname === href;
+
+              return (
+                <Link
+                  key={href}
+                  href={href}
+                  className={`
+                    flex items-center gap-3 text-sm font-medium px-3 py-2 rounded-md transition
+                    ${
+                      isActive
+                        ? "bg-muted text-foreground"
+                        : "text-muted-foreground hover:text-foreground hover:bg-muted"
+                    }
+                  `}
+                >
+                  <Icon className="w-4 h-4" />
+                  {label}
+                </Link>
+              );
+            })}
           </nav>
         </aside>
 

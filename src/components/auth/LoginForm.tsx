@@ -1,3 +1,5 @@
+//scr/components/auth/LoginForm.tsx
+
 'use client';
 
 import { useForm } from 'react-hook-form';
@@ -14,11 +16,14 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import Image from 'next/image';
 
-// ⭐️ IMPORTA FIREBASE Y GOOGLE PROVIDER
-import { auth } from "@/lib/firebase";
-import { GoogleAuthProvider, signInWithPopup } from "firebase/auth";
+// 🔹 Firebase Google Login
+import { auth } from '@/lib/firebase';
+import { GoogleAuthProvider, signInWithPopup } from 'firebase/auth';
 
-export function LoginForm({ className, ...props }: React.ComponentProps<'div'>) {
+export function LoginForm({
+  className,
+  ...props
+}: React.ComponentProps<'div'>) {
   const router = useRouter();
   const { login } = useAuth();
 
@@ -33,6 +38,9 @@ export function LoginForm({ className, ...props }: React.ComponentProps<'div'>) 
   const [loginError, setLoginError] = useState<string | null>(null);
   const [googleLoading, setGoogleLoading] = useState(false);
 
+  // ===========================
+  // Login normal (email/password)
+  // ===========================
   const onSubmit = async (data: LoginValues) => {
     setLoginError(null);
 
@@ -42,27 +50,29 @@ export function LoginForm({ className, ...props }: React.ComponentProps<'div'>) 
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           correo: data.email,
-          contraseña: data.password,
+          password: data.password, // ✅ backend espera password
         }),
       });
 
       const json = await res.json();
 
-      if (res.ok && json.token && json.user) {
-        login(json.user, json.token);
-
-        switch (json.user.rol) {
-          case 'admin':
-            router.push('/admin/dashboard');
-            break;
-          case 'vendedor':
-            router.push('/seller/dashboard');
-            break;
-          default:
-            router.push('/');
-        }
-      } else {
+      if (!res.ok || !json.token || !json.user) {
         setLoginError(json.message || 'Credenciales incorrectas');
+        return;
+      }
+
+      // 🔐 Guardamos sesión global
+      login(json.user, json.token);
+
+      // 🔹 Normalizamos rol
+      const rawRole = json.user.role ?? json.user.rol ?? null;
+
+      if (rawRole === 'seller' || rawRole === 'vendedor') {
+        router.push('/seller/dashboard');
+      } else if (rawRole === 'admin') {
+        router.push('/admin/dashboard');
+      } else {
+        router.push('/');
       }
     } catch (error) {
       console.error('Error al iniciar sesión:', error);
@@ -70,7 +80,9 @@ export function LoginForm({ className, ...props }: React.ComponentProps<'div'>) 
     }
   };
 
-  // ⭐️ LOGIN CON GOOGLE
+  // ===========================
+  // Login con Google
+  // ===========================
   const handleGoogleLogin = async () => {
     setLoginError(null);
     setGoogleLoading(true);
@@ -80,40 +92,49 @@ export function LoginForm({ className, ...props }: React.ComponentProps<'div'>) 
       const result = await signInWithPopup(auth, provider);
       const { email, displayName } = result.user;
 
-      // POST a tu backend para obtener tu JWT y rol
-      const response = await fetch('http://localhost:8800/api/login/google', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ email, nombre: displayName }),
-      });
+      const response = await fetch(
+        'http://localhost:8800/api/login/google',
+        {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ email, nombre: displayName }),
+        }
+      );
 
       const json = await response.json();
 
-      if (json.ok && json.token && json.user) {
-        login(json.user, json.token);
+      if (!response.ok || !json.token || !json.user) {
+        setLoginError(
+          json.message || 'No se pudo iniciar sesión con Google.'
+        );
+        return;
+      }
 
-        switch (json.user.rol) {
-          case 'admin':
-            router.push('/admin/dashboard');
-            break;
-          case 'vendedor':
-            router.push('/seller/dashboard');
-            break;
-          default:
-            router.push('/');
-        }
+      login(json.user, json.token);
+
+      const rawRole = json.user.role ?? json.user.rol ?? null;
+
+      if (rawRole === 'seller' || rawRole === 'vendedor') {
+        router.push('/seller/dashboard');
+      } else if (rawRole === 'admin') {
+        router.push('/admin/dashboard');
       } else {
-        setLoginError(json.message || 'No se pudo iniciar sesión con Google.');
+        router.push('/');
       }
     } catch (error: any) {
-      setLoginError('Error con Google: ' + (error?.message || error));
+      setLoginError(
+        'Error con Google: ' + (error?.message || error)
+      );
     } finally {
       setGoogleLoading(false);
     }
   };
 
   return (
-    <div className={cn('flex flex-col gap-6 w-full max-w-3xl', className)} {...props}>
+    <div
+      className={cn('flex flex-col gap-6 w-full max-w-3xl', className)}
+      {...props}
+    >
       <Card className="overflow-hidden shadow-lg">
         <CardContent className="grid p-0 md:grid-cols-2">
           {/* FORMULARIO */}
@@ -139,7 +160,9 @@ export function LoginForm({ className, ...props }: React.ComponentProps<'div'>) 
                   {...register('email')}
                 />
                 {errors.email && (
-                  <p className="text-sm text-red-500">{errors.email.message}</p>
+                  <p className="text-sm text-red-500">
+                    {errors.email.message}
+                  </p>
                 )}
               </div>
 
@@ -154,7 +177,11 @@ export function LoginForm({ className, ...props }: React.ComponentProps<'div'>) 
                     ¿Olvidaste tu contraseña?
                   </a>
                 </div>
-                <Input id="password" type="password" {...register('password')} />
+                <Input
+                  id="password"
+                  type="password"
+                  {...register('password')}
+                />
                 {errors.password && (
                   <p className="text-sm text-red-500">
                     {errors.password.message}
@@ -162,21 +189,27 @@ export function LoginForm({ className, ...props }: React.ComponentProps<'div'>) 
                 )}
               </div>
 
-              {/* ERROR LOGIN */}
+              {/* ERROR */}
               {loginError && (
                 <p className="text-sm text-red-600">{loginError}</p>
               )}
 
               {/* BOTÓN LOGIN */}
-              <Button type="submit" disabled={isSubmitting} className="w-full">
+              <Button
+                type="submit"
+                disabled={isSubmitting}
+                className="w-full"
+              >
                 {isSubmitting ? 'Ingresando...' : 'Iniciar sesión'}
               </Button>
             </div>
 
-            {/* SEPARADOR Y BOTÓN GOOGLE */}
+            {/* GOOGLE */}
             <div className="relative text-center text-xs text-muted-foreground my-3">
-              <span className="bg-background px-2 z-10 relative">O ingresa con</span>
-              <div className="absolute left-0 right-0 top-1/2 border-t border-muted-foreground opacity-30 -z-10"></div>
+              <span className="bg-background px-2 z-10 relative">
+                O ingresa con
+              </span>
+              <div className="absolute left-0 right-0 top-1/2 border-t border-muted-foreground opacity-30 -z-10" />
             </div>
 
             <Button
@@ -191,15 +224,17 @@ export function LoginForm({ className, ...props }: React.ComponentProps<'div'>) 
                 alt="Google"
                 className="w-5 h-5 mr-2"
               />
-              {googleLoading ? "Conectando con Google..." : "Iniciar sesión con Google"}
+              {googleLoading
+                ? 'Conectando con Google...'
+                : 'Iniciar sesión con Google'}
             </Button>
           </form>
 
-          {/* IMAGEN DECORATIVA */}
+          {/* IMAGEN */}
           <div className="relative hidden md:block min-h-[400px] bg-gray-100">
             <Image
               src="/cortelogo.png"
-              alt="Login cultural"
+              alt="Login Flowjuyu"
               fill
               className="object-cover rounded-r-xl"
               priority

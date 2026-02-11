@@ -1,3 +1,5 @@
+//src/app/seller/products/edit/[id]/page.tsx
+
 "use client"
 
 import { useEffect, useState } from "react"
@@ -42,7 +44,7 @@ export default function EditProductPage() {
           return
         }
 
-        const res = await fetch(`${API}/api/productos/${id}`, {
+        const res = await fetch(`${API}/api/productos/${id}edit`, {
           headers: { Authorization: `Bearer ${token}` },
         })
 

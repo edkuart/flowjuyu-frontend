@@ -39,8 +39,6 @@ export default async function ProductPage({
 
   const imagenes = Array.isArray(product.imagenes)
     ? product.imagenes
-    : Array.isArray(data.imagenes)
-    ? data.imagenes
     : [];
 
   const relacionados = Array.isArray(data.related) ? data.related : [];

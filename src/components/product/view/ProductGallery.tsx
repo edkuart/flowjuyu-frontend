@@ -34,10 +34,12 @@ export default function ProductGallery({
 
   const fallback = imagen_principal || "/placeholder.jpg";
 
-  const imageUrls =
-    imagenes.length > 0
-      ? imagenes.map((img) => `${BACKEND}${img.url}`)
-      : [fallback];
+  const imageUrls = imagen_principal
+    ? [
+        imagen_principal,
+        ...imagenes.map((img) => img.url),
+      ].slice(0, 5)
+    : imagenes.map((img) => img.url).slice(0, 5);
 
   // Transición fade entre imágenes
   const changeImage = (index: number) => {

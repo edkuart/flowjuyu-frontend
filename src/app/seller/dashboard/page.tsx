@@ -13,9 +13,11 @@ import {
   PlusCircle,
   Boxes,
 } from 'lucide-react'
+
 import { Card, CardContent } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
+
 import {
   ResponsiveContainer,
   BarChart,
@@ -29,22 +31,15 @@ import {
   CartesianGrid,
 } from 'recharts'
 
-type PedidoResumen = {
-  id: string
-  cliente: string
-  total: number
-  estado: 'Pendiente' | 'En preparación' | 'En camino' | 'Entregado' | 'Cancelado'
-  fecha: string // ISO
-}
-
-type KPI = {
-  ventasMes: number
-  pedidosMes: number
-  ticketPromedio: number
-  productosActivos: number
-}
-
-type VentasMes = { mes: string; ventas: number }
+// 🔑 Servicio centralizado del dashboard
+import {
+  fetchSellerDashboard,
+  KPI,
+  VentasMes,
+  PedidoResumen,
+  TopCategoria,
+  LowStock,
+} from '@/services/sellerDashboard'
 
 const colores = ['#3b82f6', '#22c55e', '#f59e0b', '#ef4444', '#a855f7']
 
@@ -58,105 +53,87 @@ export default function SellerDashboardPage() {
     ticketPromedio: 0,
     productosActivos: 0,
   })
+
   const [ventasPorMes, setVentasPorMes] = useState<VentasMes[]>([])
-  const [topCategorias, setTopCategorias] = useState<{ name: string; value: number }[]>([])
+  const [topCategorias, setTopCategorias] = useState<TopCategoria[]>([])
   const [actividadReciente, setActividadReciente] = useState<PedidoResumen[]>([])
-  const [lowStock, setLowStock] = useState<{ id: string; nombre: string; stock: number }[]>([])
+  const [lowStock, setLowStock] = useState<LowStock[]>([])
   const [validacionesPendientes, setValidacionesPendientes] = useState<string[]>([])
 
   useEffect(() => {
-    // Intenta cargar de tu API; si falla, usa mock
     ;(async () => {
       try {
-        const base = process.env.NEXT_PUBLIC_API_URL
-        const token = localStorage.getItem('token') || ''
-        const headers = { Authorization: `Bearer ${token}` }
+        const data = await fetchSellerDashboard()
 
-        const [kpiRes, ventasRes, topRes, actividadRes, stockRes, valRes] = await Promise.all([
-          fetch(`${base}/api/seller/dashboard/kpis`, { headers }),
-          fetch(`${base}/api/seller/dashboard/sales-by-month`, { headers }),
-          fetch(`${base}/api/seller/dashboard/top-categories`, { headers }),
-          fetch(`${base}/api/seller/orders?limit=5`, { headers }),
-          fetch(`${base}/api/seller/products/low-stock?limit=3`, { headers }),
-          fetch(`${base}/api/seller/profile/pending-validations`, { headers }),
+        setKpi(data.kpi)
+        setVentasPorMes(data.ventasPorMes)
+        setTopCategorias(data.topCategorias)
+        setActividadReciente(data.actividad)
+        setLowStock(data.lowStock)
+        setValidacionesPendientes(data.validaciones)
+      } catch {
+        // 🔁 Fallback a MOCKS
+
+        setKpi({
+          ventasMes: 3200,
+          pedidosMes: 22,
+          ticketPromedio: 145.45,
+          productosActivos: 10,
+        })
+
+        setVentasPorMes([
+          { mes: 'Ene', ventas: 800 },
+          { mes: 'Feb', ventas: 1100 },
+          { mes: 'Mar', ventas: 950 },
+          { mes: 'Abr', ventas: 1200 },
+          { mes: 'May', ventas: 600 },
+          { mes: 'Jun', ventas: 1300 },
+          { mes: 'Jul', ventas: 500 },
+          { mes: 'Ago', ventas: 1000 },
+          { mes: 'Sep', ventas: 1150 },
+          { mes: 'Oct', ventas: 950 },
+          { mes: 'Nov', ventas: 1250 },
+          { mes: 'Dic', ventas: 1400 },
         ])
 
-        if (kpiRes.ok) setKpi(await kpiRes.json())
-        else
-          setKpi({
-            ventasMes: 3200,
-            pedidosMes: 22,
-            ticketPromedio: 145.45,
-            productosActivos: 10,
-          })
+        setTopCategorias([
+          { name: 'Blusas', value: 8 },
+          { name: 'Trajes', value: 6 },
+          { name: 'Carteras', value: 4 },
+          { name: 'Accesorios', value: 3 },
+          { name: 'Otros', value: 2 },
+        ])
 
-        if (ventasRes.ok) setVentasPorMes(await ventasRes.json())
-        else
-          setVentasPorMes([
-            { mes: 'Ene', ventas: 800 },
-            { mes: 'Feb', ventas: 1100 },
-            { mes: 'Mar', ventas: 950 },
-            { mes: 'Abr', ventas: 1200 },
-            { mes: 'May', ventas: 600 },
-            { mes: 'Jun', ventas: 1300 },
-            { mes: 'Jul', ventas: 500 },
-            { mes: 'Ago', ventas: 1000 },
-            { mes: 'Sep', ventas: 1150 },
-            { mes: 'Oct', ventas: 950 },
-            { mes: 'Nov', ventas: 1250 },
-            { mes: 'Dic', ventas: 1400 },
-          ])
+        setActividadReciente([
+          {
+            id: '1249',
+            cliente: 'Ana López',
+            total: 120,
+            estado: 'Entregado',
+            fecha: '2025-06-24',
+          },
+          {
+            id: '1250',
+            cliente: 'Carlos Pérez',
+            total: 330,
+            estado: 'En camino',
+            fecha: '2025-06-23',
+          },
+          {
+            id: '1251',
+            cliente: 'Luis García',
+            total: 90,
+            estado: 'Pendiente',
+            fecha: '2025-06-22',
+          },
+        ])
 
-        if (topRes.ok) setTopCategorias(await topRes.json())
-        else
-          setTopCategorias([
-            { name: 'Blusas', value: 8 },
-            { name: 'Trajes', value: 6 },
-            { name: 'Carteras', value: 4 },
-            { name: 'Accesorios', value: 3 },
-            { name: 'Otros', value: 2 },
-          ])
+        setLowStock([
+          { id: 'P-101', nombre: 'Blusa roja bordada', stock: 2 },
+          { id: 'P-143', nombre: 'Faja multicolor', stock: 1 },
+        ])
 
-        if (actividadRes.ok) {
-          const json = await actividadRes.json()
-          setActividadReciente(json.items ?? [])
-        } else {
-          setActividadReciente([
-            {
-              id: '1249',
-              cliente: 'Ana López',
-              total: 120,
-              estado: 'Entregado',
-              fecha: '2025-06-24',
-            },
-            {
-              id: '1250',
-              cliente: 'Carlos Pérez',
-              total: 330,
-              estado: 'En camino',
-              fecha: '2025-06-23',
-            },
-            {
-              id: '1251',
-              cliente: 'Luis García',
-              total: 90,
-              estado: 'Pendiente',
-              fecha: '2025-06-22',
-            },
-          ])
-        }
-
-        if (stockRes.ok) setLowStock(await stockRes.json())
-        else
-          setLowStock([
-            { id: 'P-101', nombre: 'Blusa roja bordada', stock: 2 },
-            { id: 'P-143', nombre: 'Faja multicolor', stock: 1 },
-          ])
-
-        if (valRes.ok) setValidacionesPendientes(await valRes.json())
-        else setValidacionesPendientes(['Selfie con DPI (seller#123)'])
-      } catch {
-        // ya tenemos mocks arriba si algo falla
+        setValidacionesPendientes(['Selfie con DPI (seller#123)'])
       }
     })()
   }, [])

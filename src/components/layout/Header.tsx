@@ -1,3 +1,5 @@
+//src/components/layout/Header.tsx
+
 "use client";
 
 import Link from "next/link";
@@ -109,23 +111,20 @@ function CategoriasDropdown() {
 =========================== */
 export default function Header() {
   const { user, logout } = useAuth();
-  const { count } = useCart(); // ✅ contador REAL del carrito
+  const { count } = useCart(); // contador REAL del carrito
 
   const [openCats, setOpenCats] = useState(false);
   const [openCreate, setOpenCreate] = useState(false);
   const [openAccount, setOpenAccount] = useState(false);
   const [helpOpen, setHelpOpen] = useState(false);
 
-  // ✅ mantenemos cartCount como tú lo tenías, pero ahora lo alimentamos del contexto
   const [cartCount, setCartCount] = useState<number>(0);
-
-  // ✅ extra: buscador móvil (para usar ícono Search y no quede import “unused”)
   const [mobileSearchOpen, setMobileSearchOpen] = useState(false);
 
   const helpRef = useRef<HTMLLIElement>(null);
   const catsRef = useRef<HTMLDivElement>(null);
 
-  // ✅ sincroniza contador real
+  // sincroniza contador real
   useEffect(() => {
     setCartCount(count);
   }, [count]);
@@ -160,11 +159,25 @@ export default function Header() {
     };
   }, []);
 
-  // ✅ helper: soporta roles nuevos y viejos (buyer/seller vs comprador/vendedor)
-  const isBuyer =
-    user?.rol === "buyer" || user?.rol === "comprador" || user?.role === "buyer";
-  const isSeller =
-    user?.rol === "seller" || user?.rol === "vendedor" || user?.role === "seller";
+  // ===========================
+  // Normalización de rol
+  // ===========================
+  const normalizedRole = (() => {
+    if (!user) return null;
+
+    const raw = user.role ?? user.rol ?? null;
+    if (!raw) return null;
+
+    if (raw === "buyer" || raw === "comprador") return "buyer";
+    if (raw === "seller" || raw === "vendedor") return "seller";
+
+    return null;
+  })();
+
+  const isBuyer = normalizedRole === "buyer";
+  const isSeller = normalizedRole === "seller";
+
+  // ⬇️ aquí sigue tu return(...)
 
   return (
     <div className="w-full border-b bg-white relative z-50 shadow-sm">
@@ -312,8 +325,7 @@ export default function Header() {
 
               <div className="relative">
                 <button
-                  onClick={() => setOpenCreate((v) => !v)}
-                  onBlur={() => setTimeout(() => setOpenCreate(false), 100)}
+                  onClick={() => setOpenCreate((v) => !v)}                  
                   className="inline-flex items-center gap-1 text-sm hover:text-zinc-900"
                 >
                   Crear cuenta <ChevronDown className="w-4 h-4" />
@@ -323,12 +335,14 @@ export default function Header() {
                   <div className="absolute right-0 mt-2 w-48 rounded-md border bg-white shadow-sm py-1 z-50">
                     <Link
                       href="/register/buyer"
+                      onClick={() => setOpenCreate(false)}
                       className="block px-3 py-2 text-sm hover:bg-zinc-50"
                     >
                       Soy comprador
                     </Link>
                     <Link
                       href="/register/seller"
+                      onClick={() => setOpenCreate(false)}
                       className="block px-3 py-2 text-sm hover:bg-zinc-50"
                     >
                       Soy vendedor
