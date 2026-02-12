@@ -3,7 +3,8 @@
 import Image from "next/image";
 import Link from "next/link";
 
-const BACKEND = process.env.NEXT_PUBLIC_BACKEND_URL || "http://localhost:8800";
+const BACKEND =
+  process.env.NEXT_PUBLIC_BACKEND_URL || "http://localhost:8800";
 
 type SellerProps = {
   vendedor_nombre?: string | null;
@@ -22,6 +23,13 @@ export default function ProductSeller({
 }: SellerProps) {
   if (!vendedor_nombre && !departamento) return null;
 
+  // 🔥 Normalizador inteligente
+  const logoSrc = vendedor_logo_url
+    ? vendedor_logo_url.startsWith("http")
+      ? vendedor_logo_url
+      : `${BACKEND}${vendedor_logo_url}`
+    : "/placeholder.jpg";
+
   return (
     <div className="border rounded-lg p-4 bg-white max-w-xs shadow-sm">
       <h3 className="text-lg font-semibold mb-3">Vendedor</h3>
@@ -29,7 +37,7 @@ export default function ProductSeller({
       <div className="flex items-center gap-3 mb-3">
         <div className="relative w-12 h-12 rounded-full overflow-hidden bg-neutral-200">
           <Image
-            src={vendedor_logo_url ? BACKEND + vendedor_logo_url : "/placeholder.jpg"}
+            src={logoSrc}
             alt="logo vendedor"
             fill
             className="object-cover"
@@ -37,13 +45,20 @@ export default function ProductSeller({
         </div>
 
         <div>
-          <p className="font-medium text-neutral-800">{vendedor_nombre}</p>
-          <p className="text-sm text-neutral-600">{municipio} {departamento}</p>
+          <p className="font-medium text-neutral-800">
+            {vendedor_nombre}
+          </p>
+          <p className="text-sm text-neutral-600">
+            {municipio} {departamento}
+          </p>
         </div>
       </div>
 
       {vendedor_id && (
-        <Link href={`/seller/${vendedor_id}`} className="text-sm underline text-neutral-700">
+        <Link
+          href={`/seller/${vendedor_id}`}
+          className="text-sm underline text-neutral-700"
+        >
           Visitar tienda →
         </Link>
       )}
