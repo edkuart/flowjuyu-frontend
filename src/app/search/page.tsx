@@ -401,7 +401,9 @@ export default function SearchProductsPage() {
     busqueda.trim() !== "";
 
   return (
-    <main className="min-h-screen bg-neutral-50 px-4 py-8 space-y-8">
+    <main className="min-h-screen bg-neutral-50 px-4 sm:px-6 lg:px-10 py-8 space-y-8">
+
+
       {/* HEADER */}
       <section className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
         <div>
@@ -450,9 +452,12 @@ export default function SearchProductsPage() {
         </div>
       )}
 
-      <section className="flex flex-col sm:flex-row gap-6">
+      <section className="grid grid-cols-1 lg:grid-cols-[280px_1fr] gap-8 lg:gap-12">
+
         {/* PANEL FILTROS */}
-        <aside className="sm:w-72 space-y-4">
+        <aside className="space-y-4 lg:sticky lg:top-24 lg:self-start">
+
+
           <Card>
             <CardHeader>
               <CardTitle className="text-base font-semibold">Filtros</CardTitle>
@@ -719,7 +724,9 @@ export default function SearchProductsPage() {
         </aside>
 
         {/* RESULTADOS */}
-        <section className="flex-1 grid gap-6 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
+        <section className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6 lg:gap-10">
+
+
           {/* LOADING SKELETON */}
           {loading &&
             [...Array(8)].map((_, i) => (
