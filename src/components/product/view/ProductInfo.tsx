@@ -1,3 +1,5 @@
+//src/components/product/view/ProductInfo.tsx
+
 "use client";
 
 import { Button } from "@/components/ui/button";
@@ -10,34 +12,36 @@ export default function ProductInfo({
   precio,
   productId,
   imagen_principal,
+  rating_avg = 0,
+  rating_count = 0,
 }: {
   nombre: string;
   descripcion?: string | null;
   precio: any;
   productId: string;
   imagen_principal?: string | null;
+  rating_avg?: number;
+  rating_count?: number;
 }) {
   const { addItem } = useCart();
   const router = useRouter();
 
   const precioNumber = Number(precio || 0);
 
-  // ⚪ Añadir al carrito (NO navega)
   function handleAddToCart() {
     addItem({
       id: productId,
       name: nombre,
-      price: Number(precioNumber), // 🔒 blindado
+      price: Number(precioNumber),
       image: imagen_principal || "/images/categorias/default.jpg",
     });
   }
 
-  // 🟠 Comprar ahora (agrega + navega)
   function handleBuyNow() {
     addItem({
       id: productId,
       name: nombre,
-      price: Number(precioNumber), // 🔒 blindado
+      price: Number(precioNumber),
       image: imagen_principal || "/images/categorias/default.jpg",
     });
 
@@ -52,12 +56,32 @@ export default function ProductInfo({
         Q{precioNumber.toFixed(2)}
       </p>
 
+      {/* ⭐ Rating */}
+      {rating_count > 0 ? (
+        <div className="flex items-center gap-2">
+          <div className="flex text-yellow-500 text-sm">
+            {Array.from({ length: 5 }).map((_, i) => (
+              <span key={i}>
+                {i < Math.round(rating_avg) ? "★" : "☆"}
+              </span>
+            ))}
+          </div>
+
+          <span className="text-sm text-neutral-600">
+            {rating_avg.toFixed(1)} ({rating_count} reseñas)
+          </span>
+        </div>
+      ) : (
+        <p className="text-sm text-neutral-400">
+          Sin reseñas todavía
+        </p>
+      )}
+
       <p className="text-neutral-600 leading-relaxed">
         {descripcion || "Sin descripción disponible"}
       </p>
 
       <div className="space-y-3">
-        {/* 🟠 COMPRAR AHORA */}
         <Button
           className="w-full bg-orange-600 hover:bg-orange-700 text-white font-semibold"
           onClick={handleBuyNow}
@@ -65,7 +89,6 @@ export default function ProductInfo({
           Comprar ahora
         </Button>
 
-        {/* ⚪ AÑADIR AL CARRITO */}
         <Button
           variant="outline"
           className="w-full font-semibold"

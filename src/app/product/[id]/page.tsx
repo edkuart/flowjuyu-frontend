@@ -65,6 +65,8 @@ export default async function ProductPage({
             precio={product.precio}
             productId={product.id}
             imagen_principal={product.imagen_principal}
+            rating_avg={product.rating_avg}
+            rating_count={product.rating_count}
           />
 
           <div className="mt-10">
@@ -85,11 +87,11 @@ export default async function ProductPage({
         {/* VENDEDOR */}
         <div className="lg:col-span-3">
           <ProductSeller
-            vendedor_nombre={product.vendedor_nombre}
-            vendedor_logo_url={product.vendedor_logo_url}
+            vendedor={product.vendedor}
             departamento={product.departamento}
             municipio={product.municipio}
-            vendedor_id={product.vendedor_id}
+            rating_avg={product.rating_avg}
+            rating_count={product.rating_count}
           />
         </div>
       </div>
