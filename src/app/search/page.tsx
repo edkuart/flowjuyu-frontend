@@ -14,6 +14,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Search } from "lucide-react";
 
 import { departamentosConMunicipios } from "@/data/municipios";
+import FilterSidebar from "@/components/product/FilterSidebar";
 
 // 👇 Base del backend (sin /api, eso se añade en cada fetch)
 const API = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8800";
@@ -452,270 +453,36 @@ export default function SearchProductsPage() {
 
       <section className="flex flex-col sm:flex-row gap-6">
         {/* PANEL FILTROS */}
-        <aside className="sm:w-72 space-y-4">
-          <Card>
-            <CardHeader>
-              <CardTitle className="text-base font-semibold">Filtros</CardTitle>
-            </CardHeader>
-
-            <CardContent className="space-y-4 text-sm">
-              {/* CATEGORÍA */}
-              <div>
-                <label className="font-medium">Categoría</label>
-                <select
-                  className="mt-1 w-full border rounded-md p-2 text-sm"
-                  value={categoriaId ?? ""}
-                  onChange={(e) =>
-                    setCategoriaId(e.target.value ? Number(e.target.value) : null)
-                  }
-                >
-                  <option value="">Todas</option>
-                  {categorias.map((c) => (
-                    <option key={c.id} value={c.id}>
-                      {c.nombre}
-                    </option>
-                  ))}
-                </select>
-              </div>
-
-              {/* ORIGEN */}
-              <div className="space-y-2">
-                <p className="font-medium">Origen</p>
-
-                <label className="text-xs text-neutral-600">Departamento</label>
-                <select
-                  className="w-full border rounded-md p-2 text-sm"
-                  value={departamento}
-                  onChange={(e) => setDepartamento(e.target.value)}
-                >
-                  <option value="">-- Seleccione --</option>
-                  {departamentosConMunicipios.map((d) => (
-                    <option key={d.nombre}>{d.nombre}</option>
-                  ))}
-                </select>
-
-                <label className="text-xs text-neutral-600">Municipio</label>
-                <select
-                  className="w-full border rounded-md p-2 text-sm"
-                  value={municipio}
-                  onChange={(e) => setMunicipio(e.target.value)}
-                  disabled={!departamento}
-                >
-                  <option value="">-- Seleccione --</option>
-                  {municipiosDelDepartamento.map((m) => (
-                    <option key={m}>{m}</option>
-                  ))}
-                </select>
-              </div>
-
-              {/* TEXTIL */}
-              {esTextil && !esCalzado && (
-                <div className="space-y-2">
-                  <p className="font-medium">Detalles del textil</p>
-
-                  <label className="text-xs text-neutral-600">Clase</label>
-                  <select
-                    className="w-full border rounded-md p-2 text-sm"
-                    value={claseId ?? ""}
-                    onChange={(e) =>
-                      setClaseId(e.target.value ? Number(e.target.value) : null)
-                    }
-                  >
-                    <option value="">Todas</option>
-                    {clases.map((cls) => (
-                      <option key={cls.id} value={cls.id}>
-                        {cls.nombre}
-                      </option>
-                    ))}
-                  </select>
-
-                  {telas.length > 0 && (
-                    <>
-                      <label className="text-xs text-neutral-600">Tela</label>
-                      <select
-                        className="w-full border rounded-md p-2 text-sm"
-                        value={telaId ?? ""}
-                        onChange={(e) =>
-                          setTelaId(e.target.value ? Number(e.target.value) : null)
-                        }
-                        disabled={!claseId}
-                      >
-                        <option value="">Todas</option>
-                        {telas.map((t) => (
-                          <option key={t.id} value={t.id}>
-                            {t.nombre}
-                          </option>
-                        ))}
-                      </select>
-                    </>
-                  )}
-                </div>
-              )}
-
-              {/* ACCESORIOS */}
-              {esAccesorios && (
-                <div className="space-y-2">
-                  <p className="font-medium">Accesorio</p>
-
-                  <label className="text-xs text-neutral-600">Tipo</label>
-                  <select
-                    className="w-full border rounded-md p-2"
-                    value={accesorioId ?? ""}
-                    onChange={(e) =>
-                      setAccesorioId(e.target.value ? Number(e.target.value) : null)
-                    }
-                  >
-                    <option value="">Todos</option>
-                    {accesorios.map((a) => (
-                      <option key={a.id} value={a.id}>
-                        {a.nombre}
-                      </option>
-                    ))}
-                  </select>
-
-                  {accesorioTipos.length > 0 && (
-                    <>
-                      <label className="text-xs text-neutral-600">
-                        Modelo / estilo
-                      </label>
-                      <select
-                        className="w-full border rounded-md p-2"
-                        value={accesorioTipoId ?? ""}
-                        onChange={(e) =>
-                          setAccesorioTipoId(
-                            e.target.value ? Number(e.target.value) : null
-                          )
-                        }
-                      >
-                        <option value="">Todos</option>
-                        {accesorioTipos.map((t) => (
-                          <option key={t.id} value={t.id}>
-                            {t.nombre}
-                          </option>
-                        ))}
-                      </select>
-                    </>
-                  )}
-
-                  {accesorioMateriales.length > 0 && (
-                    <>
-                      <label className="text-xs text-neutral-600">Material</label>
-                      <select
-                        className="w-full border rounded-md p-2"
-                        value={accesorioMaterialId ?? ""}
-                        onChange={(e) =>
-                          setAccesorioMaterialId(
-                            e.target.value ? Number(e.target.value) : null
-                          )
-                        }
-                      >
-                        <option value="">Todos</option>
-                        {accesorioMateriales.map((m) => (
-                          <option key={m.id} value={m.id}>
-                            {m.nombre}
-                          </option>
-                        ))}
-                      </select>
-                    </>
-                  )}
-                </div>
-              )}
-
-              {/* PRECIO */}
-              <div>
-                <p className="font-medium">Precio</p>
-
-                <div className="flex items-center gap-2 mb-2">
-                  <span className="w-10 text-xs">Mín</span>
-                  <Button
-                    size="icon"
-                    variant="outline"
-                    className="h-8 w-8"
-                    onClick={() => ajustarPrecio("min", -50)}
-                  >
-                    -
-                  </Button>
-                  <Input
-                    type="number"
-                    value={precioMin}
-                    onChange={(e) => setPrecioMin(Number(e.target.value))}
-                    className="h-8"
-                  />
-                  <Button
-                    size="icon"
-                    variant="outline"
-                    className="h-8 w-8"
-                    onClick={() => ajustarPrecio("min", 50)}
-                  >
-                    +
-                  </Button>
-                </div>
-
-                <div className="flex items-center gap-2">
-                  <span className="w-10 text-xs">Máx</span>
-                  <Button
-                    size="icon"
-                    variant="outline"
-                    className="h-8 w-8"
-                    onClick={() => ajustarPrecio("max", -50)}
-                  >
-                    -
-                  </Button>
-                  <Input
-                    type="number"
-                    value={precioMax}
-                    onChange={(e) => setPrecioMax(Number(e.target.value))}
-                    className="h-8"
-                  />
-                  <Button
-                    size="icon"
-                    variant="outline"
-                    className="h-8 w-8"
-                    onClick={() => ajustarPrecio("max", 50)}
-                  >
-                    +
-                  </Button>
-                </div>
-              </div>
-
-              {/* ORDEN */}
-              <div>
-                <label className="font-medium">Ordenar por</label>
-                <select
-                  className="w-full border rounded-md p-2 mt-1"
-                  value={sort}
-                  onChange={(e) => setSort(e.target.value)}
-                >
-                  <option value="">Más recientes</option>
-                  <option value="precio_asc">Precio: menor a mayor</option>
-                  <option value="precio_desc">Precio: mayor a menor</option>
-                </select>
-              </div>
-
-              {/* LIMPIAR */}
-              <Button
-                variant="ghost"
-                className="w-full text-red-500"
-                onClick={() => {
-                  setBusqueda("");
-                  setCategoriaId(null);
-                  setDepartamento("");
-                  setMunicipio("");
-                  setPrecioMin(0);
-                  setPrecioMax(2000);
-                  setSort("");
-                  setClaseId(null);
-                  setTelaId(null);
-                  setAccesorioId(null);
-                  setAccesorioTipoId(null);
-                  setAccesorioMaterialId(null);
-                  fetchProductos(true);
-                }}
-              >
-                Limpiar filtros
-              </Button>
-            </CardContent>
-          </Card>
+        <aside className="sm:w-72">
+          <FilterSidebar
+            categorias={categorias}
+            categoriaId={categoriaId}
+            setCategoriaId={setCategoriaId}
+            departamento={departamento}
+            setDepartamento={setDepartamento}
+            municipio={municipio}
+            setMunicipio={setMunicipio}
+            precioMin={precioMin}
+            precioMax={precioMax}
+            setPrecioMin={setPrecioMin}
+            setPrecioMax={setPrecioMax}
+            sort={sort}
+            setSort={setSort}
+            onReset={() => {
+              setBusqueda("");
+              setCategoriaId(null);
+              setDepartamento("");
+              setMunicipio("");
+              setPrecioMin(0);
+              setPrecioMax(2000);
+              setSort("");
+              setClaseId(null);
+              setTelaId(null);
+              setAccesorioId(null);
+              setAccesorioTipoId(null);
+              setAccesorioMaterialId(null);
+            }}
+          />
         </aside>
 
         {/* RESULTADOS */}
