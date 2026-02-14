@@ -22,7 +22,7 @@ import {
   DialogDescription,
 } from "@/components/ui/dialog"
 import Swal from "sweetalert2"
-import { useRouter, useSearchParams } from "next/navigation"
+import { useSearchParams,useRouter } from "next/navigation"
 
 type Producto = {
   id: string
@@ -40,7 +40,6 @@ export default function SellerProductsPage() {
   const [loading, setLoading] = useState(true)
   const [processingId, setProcessingId] = useState<string | null>(null)
   const [selected, setSelected] = useState<Producto | null>(null)
-  const [producto, setProducto] = useState<any>(null)
   const [imgIndex, setImgIndex] = useState(0)
 
   const [page, setPage] = useState(1)
@@ -53,7 +52,7 @@ export default function SellerProductsPage() {
   const router = useRouter()
   const searchParams = useSearchParams()
   
-  useEffect(() => {
+useEffect(() => {
   const fetchProductos = async () => {
     try {
       const token = localStorage.getItem("token")
@@ -73,12 +72,9 @@ export default function SellerProductsPage() {
       }
 
       const data = await res.json()
-
-      // 🔥 MUY IMPORTANTE
       const productosArray = Array.isArray(data) ? data : data.data || []
 
       setProductos(productosArray)
-
     } catch (error) {
       console.error("❌ Error cargando productos:", error)
     } finally {

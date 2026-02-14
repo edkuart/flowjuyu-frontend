@@ -1,3 +1,4 @@
+// src/components/product/FilterSidebar.tsx
 "use client";
 
 import { Card } from "@/components/ui/card";
@@ -30,6 +31,9 @@ type Props = {
   setSort: (v: string) => void;
 
   onReset: () => void;
+
+  /** NUEVO */
+  variant?: "desktop" | "mobile";
 };
 
 export default function FilterSidebar({
@@ -47,8 +51,8 @@ export default function FilterSidebar({
   sort,
   setSort,
   onReset,
+  variant = "desktop",
 }: Props) {
-
   const municipiosDelDepartamento =
     departamentosConMunicipios.find(
       (d) => d.nombre === departamento
@@ -63,8 +67,12 @@ export default function FilterSidebar({
   };
 
   return (
-    <Card className="rounded-2xl shadow-sm p-6 space-y-6">
-
+    <Card
+      className={[
+        "rounded-2xl shadow-sm space-y-6",
+        variant === "desktop" ? "p-6" : "p-4",
+      ].join(" ")}
+    >
       <h2 className="text-base font-semibold">Filtros</h2>
 
       {/* Categoría */}
@@ -88,7 +96,7 @@ export default function FilterSidebar({
         </select>
       </div>
 
-      {/* ORIGEN */}
+      {/* Origen */}
       <div className="space-y-3">
         <p className="text-sm font-medium">Origen</p>
 
@@ -130,59 +138,49 @@ export default function FilterSidebar({
       <div className="space-y-3">
         <p className="text-sm font-medium">Precio</p>
 
-        {/* Min */}
-        <div className="flex items-center gap-2">
-          <span className="text-xs w-10">Min</span>
-          <Button
-            variant="outline"
-            size="icon"
-            className="h-8 w-8"
-            onClick={() => ajustarPrecio("min", -50)}
-          >
-            -
-          </Button>
-          <Input
-            type="number"
-            value={precioMin}
-            onChange={(e) => setPrecioMin(Number(e.target.value))}
-            className="h-8"
-          />
-          <Button
-            variant="outline"
-            size="icon"
-            className="h-8 w-8"
-            onClick={() => ajustarPrecio("min", 50)}
-          >
-            +
-          </Button>
-        </div>
-
-        {/* Max */}
-        <div className="flex items-center gap-2">
-          <span className="text-xs w-10">Máx</span>
-          <Button
-            variant="outline"
-            size="icon"
-            className="h-8 w-8"
-            onClick={() => ajustarPrecio("max", -50)}
-          >
-            -
-          </Button>
-          <Input
-            type="number"
-            value={precioMax}
-            onChange={(e) => setPrecioMax(Number(e.target.value))}
-            className="h-8"
-          />
-          <Button
-            variant="outline"
-            size="icon"
-            className="h-8 w-8"
-            onClick={() => ajustarPrecio("max", 50)}
-          >
-            +
-          </Button>
-        </div>
+        {(["min", "max"] as const).map((tipo) => (
+          <div key={tipo} className="flex items-center gap-2">
+            <span className="text-xs w-10">
+              {tipo === "min" ? "Min" : "Máx"}
+            </span>
+            <Button
+              variant="outline"
+              size="icon"
+              className="h-8 w-8"
+              onClick={() =>
+                ajustarPrecio(
+                  tipo,
+                  tipo === "min" ? -50 : -50
+                )
+              }
+            >
+              -
+            </Button>
+            <Input
+              type="number"
+              value={tipo === "min" ? precioMin : precioMax}
+              onChange={(e) =>
+                tipo === "min"
+                  ? setPrecioMin(Number(e.target.value))
+                  : setPrecioMax(Number(e.target.value))
+              }
+              className="h-8"
+            />
+            <Button
+              variant="outline"
+              size="icon"
+              className="h-8 w-8"
+              onClick={() =>
+                ajustarPrecio(
+                  tipo,
+                  tipo === "min" ? 50 : 50
+                )
+              }
+            >
+              +
+            </Button>
+          </div>
+        ))}
       </div>
 
       {/* Orden */}

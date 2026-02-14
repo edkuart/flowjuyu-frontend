@@ -1,4 +1,4 @@
-//src/app/product/[id]/page.tsx
+// src/app/product/[id]/page.tsx
 
 import ProductGallery from "@/components/product/view/ProductGallery";
 import ProductInfo from "@/components/product/view/ProductInfo";
@@ -13,6 +13,7 @@ async function fetchProduct(id: string) {
     const res = await fetch(`${API}/api/products/${id}`, {
       cache: "no-store",
     });
+
     if (!res.ok) return null;
     return await res.json();
   } catch (err) {
@@ -43,11 +44,14 @@ export default async function ProductPage({
     ? product.imagenes
     : [];
 
-  const relacionados = Array.isArray(data.related) ? data.related : [];
+  const relacionados = Array.isArray(data.related)
+    ? data.related
+    : [];
 
   return (
     <div className="container mx-auto px-4 py-10 space-y-16">
       <div className="grid grid-cols-1 lg:grid-cols-12 gap-10">
+        
         {/* GALERÍA */}
         <div className="lg:col-span-4">
           <ProductGallery
@@ -57,7 +61,7 @@ export default async function ProductPage({
           />
         </div>
 
-        {/* INFO + BOTÓN NARANJA */}
+        {/* INFO */}
         <div className="lg:col-span-5">
           <ProductInfo
             nombre={product.nombre}
@@ -94,6 +98,7 @@ export default async function ProductPage({
             rating_count={product.rating_count}
           />
         </div>
+
       </div>
 
       {/* RELACIONADOS */}

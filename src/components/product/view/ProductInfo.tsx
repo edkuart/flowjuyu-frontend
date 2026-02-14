@@ -1,5 +1,3 @@
-//src/components/product/view/ProductInfo.tsx
-
 "use client";
 
 import { Button } from "@/components/ui/button";

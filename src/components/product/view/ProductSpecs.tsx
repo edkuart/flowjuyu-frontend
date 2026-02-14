@@ -2,6 +2,7 @@ type SpecsProps = {
   categoria?: any;
   clase?: any;
   tela?: any;
+
   departamento?: string | null;
   municipio?: string | null;
 
@@ -14,17 +15,32 @@ type SpecsProps = {
 function getValue(value: any) {
   if (!value) return null;
   if (typeof value === "string") return value;
-  if (typeof value === "object") return value.nombre;
+  if (typeof value === "object" && "nombre" in value) return value.nombre;
   return null;
 }
 
 export default function ProductSpecs(specs: SpecsProps) {
   const entries = [
-    { label: "Categoría", value: getValue(specs.categoria) || specs.categoria_custom },
-    { label: "Clase", value: getValue(specs.clase) },
-    { label: "Tela", value: getValue(specs.tela) || specs.tela_custom },
-    { label: "Departamento", value: specs.departamento || specs.departamento_custom },
-    { label: "Municipio", value: specs.municipio || specs.municipio_custom },
+    {
+      label: "Categoría",
+      value: getValue(specs.categoria) || specs.categoria_custom,
+    },
+    {
+      label: "Clase",
+      value: getValue(specs.clase),
+    },
+    {
+      label: "Tela",
+      value: getValue(specs.tela) || specs.tela_custom,
+    },
+    {
+      label: "Departamento",
+      value: specs.departamento || specs.departamento_custom,
+    },
+    {
+      label: "Municipio",
+      value: specs.municipio || specs.municipio_custom,
+    },
   ].filter((item) => !!item.value);
 
   if (entries.length === 0) return null;
@@ -50,3 +66,4 @@ export default function ProductSpecs(specs: SpecsProps) {
     </div>
   );
 }
+

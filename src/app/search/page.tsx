@@ -13,7 +13,6 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Search } from "lucide-react";
 
-import { departamentosConMunicipios } from "@/data/municipios";
 import FilterSidebar from "@/components/product/FilterSidebar";
 
 // 👇 Base del backend (sin /api, eso se añade en cada fetch)
@@ -247,27 +246,6 @@ export default function SearchProductsPage() {
   }, [categoriaId]);
 
   // ---------------------------
-  // MUNICIPIOS
-  // ---------------------------
-  const municipiosDelDepartamento = useMemo(() => {
-    const dep = departamentosConMunicipios.find((d) => d.nombre === departamento);
-    return dep ? dep.municipios : [];
-  }, [departamento]);
-
-  useEffect(() => setMunicipio(""), [departamento]);
-
-  // ---------------------------
-  // PRECIOS
-  // ---------------------------
-  const ajustarPrecio = (campo: "min" | "max", delta: number) => {
-    if (campo === "min") {
-      setPrecioMin((p) => Math.max(0, Math.min(p + delta, precioMax)));
-    } else {
-      setPrecioMax((p) => Math.max(p + delta, precioMin));
-    }
-  };
-
-  // ---------------------------
   // FETCH DE PRODUCTOS
   // ---------------------------
   async function fetchProductos(force = false) {
@@ -453,7 +431,7 @@ export default function SearchProductsPage() {
 
       <section className="flex flex-col sm:flex-row gap-6">
         {/* PANEL FILTROS */}
-        <aside className="sm:w-72">
+        <aside className="hidden sm:block sm:w-72">
           <FilterSidebar
             categorias={categorias}
             categoriaId={categoriaId}

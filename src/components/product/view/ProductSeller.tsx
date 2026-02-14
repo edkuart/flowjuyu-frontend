@@ -1,21 +1,21 @@
-"use client"
+"use client";
 
-import Image from "next/image"
-import Link from "next/link"
+import Image from "next/image";
+import Link from "next/link";
 
 type Seller = {
-  id: number
-  nombre_comercio: string
-  logo: string | null
-}
+  id: number;
+  nombre_comercio: string;
+  logo: string | null;
+};
 
 type Props = {
-  vendedor: Seller
-  departamento?: string | null
-  municipio?: string | null
-  rating_avg?: number
-  rating_count?: number
-}
+  vendedor: Seller;
+  departamento?: string | null;
+  municipio?: string | null;
+  rating_avg?: number;
+  rating_count?: number;
+};
 
 export default function ProductSeller({
   vendedor,
@@ -24,12 +24,12 @@ export default function ProductSeller({
   rating_avg,
   rating_count,
 }: Props) {
-  if (!vendedor) return null
+  if (!vendedor) return null;
 
   const logoSrc =
     vendedor.logo && vendedor.logo.startsWith("http")
       ? vendedor.logo
-      : "/images/tiendas/default.jpg"
+      : "/images/tiendas/default.jpg";
 
   return (
     <div className="border rounded-lg p-5 bg-white shadow-sm space-y-4">
@@ -62,7 +62,9 @@ export default function ProductSeller({
 
           {(municipio || departamento) && (
             <p className="text-sm text-neutral-600">
-              📍 {municipio} {departamento}
+              📍 {municipio}
+              {municipio && departamento ? ", " : ""}
+              {departamento}
             </p>
           )}
 
@@ -72,12 +74,11 @@ export default function ProductSeller({
         </div>
       </div>
 
-      {/* 🔥 Ahora apunta correctamente a la tienda pública */}
       <Link href={`/store/${vendedor.id}`}>
-        <button className="w-full bg-black text-white rounded-lg py-2 text-sm hover:bg-neutral-800 transition">
+        <button className="w-full bg-black text-white rounded-lg py-2 text-sm hover:opacity-90 transition">
           Ver tienda
         </button>
       </Link>
     </div>
-  )
+  );
 }

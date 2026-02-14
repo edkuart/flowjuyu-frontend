@@ -19,7 +19,6 @@ export default async function HomePage(): Promise<React.ReactElement> {
 
   return (
     <main className="pb-10 space-y-12">
-
       <HeroSection trendingProducts={trendingProducts} />
 
       <CategoriesSection categorias={categorias} />
@@ -31,7 +30,6 @@ export default async function HomePage(): Promise<React.ReactElement> {
       <ShopsSection tiendas={tiendas} />
 
       <SellerCTASection />
-
     </main>
   );
 }

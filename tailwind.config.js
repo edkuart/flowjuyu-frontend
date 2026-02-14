@@ -4,11 +4,12 @@ module.exports = {
 
   content: [
     "./src/app/**/*.{js,ts,jsx,tsx,mdx}",
-    "./src/components/**/*.{js,ts,jsx,tsx}",
+    "./src/components/**/*.{js,ts,jsx,tsx,mdx}",
     "./src/features/**/*.{js,ts,jsx,tsx}",
     "./src/context/**/*.{js,ts,jsx,tsx}",
     "./src/hooks/**/*.{js,ts,jsx,tsx}",
     "./src/lib/**/*.{js,ts,jsx,tsx}",
+    "./src/stories/**/*.{js,ts,jsx,tsx,mdx}",
   ],
 
   theme: {
@@ -62,5 +63,14 @@ module.exports = {
     require("@tailwindcss/aspect-ratio"),
     require("@tailwindcss/container-queries"),
     require("tailwindcss-animate"),
+  ],
+
+  // 🔥 importante para filtros dinámicos
+  safelist: [
+    {
+      pattern:
+        /^(bg|text|border)-(primary|secondary|accent|neutral)(-(50|100|200|300|400|500|600|700|800|900))?$/,
+      variants: ["hover", "dark"],
+    },
   ],
 };

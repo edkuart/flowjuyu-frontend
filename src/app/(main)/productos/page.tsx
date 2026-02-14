@@ -1,3 +1,4 @@
+// src/app/(main)/productos/page.tsx
 "use client";
 
 import { useEffect, useState } from "react";
@@ -28,8 +29,6 @@ export default function ProductosPage() {
         });
 
         const data = await res.json();
-
-        // El backend devuelve: { data: [...] }
         const lista = data.data || data || [];
 
         if (Array.isArray(lista)) {
@@ -75,13 +74,14 @@ export default function ProductosPage() {
   // ============================
   return (
     <main className="min-h-screen px-6 py-10 bg-neutral-50">
-      <h1 className="text-3xl font-bold mb-8">Productos disponibles</h1>
+      <h1 className="text-3xl font-bold mb-8">
+        Productos disponibles
+      </h1>
 
       <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6">
         {productos.map((p) => (
           <Link href={`/product/${p.id}`} key={p.id}>
             <div className="border rounded-xl bg-white shadow hover:shadow-md transition p-3 cursor-pointer">
-
               {/* Imagen */}
               <div className="relative w-full aspect-square rounded-md overflow-hidden bg-neutral-100">
                 <Image
@@ -93,7 +93,9 @@ export default function ProductosPage() {
               </div>
 
               {/* Nombre */}
-              <h3 className="font-medium mt-2 line-clamp-1">{p.nombre}</h3>
+              <h3 className="font-medium mt-2 line-clamp-1">
+                {p.nombre}
+              </h3>
 
               {/* Precio */}
               <p className="text-orange-600 font-bold text-sm">

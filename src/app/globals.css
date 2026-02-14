@@ -68,7 +68,6 @@
   .no-scrollbar::-webkit-scrollbar {
     display: none;
   }
-
     /* =======================================
      ✨ Animación elegante de entrada
      ======================================= */
@@ -116,8 +115,6 @@
     flex: 0 0 auto; /* ❗ Mantiene visibles solo los 5 items */
   }
 }
-
-/* ======================================================= */
 
 :root {
   --radius: 0.625rem;
@@ -222,4 +219,3 @@
     transform: translateY(0);
   }
 }
-
