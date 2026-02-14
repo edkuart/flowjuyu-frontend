@@ -14,6 +14,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Search } from "lucide-react";
 
 import FilterSidebar from "@/components/product/FilterSidebar";
+import ProductDiscoveryLayout from "@/components/product/discovery/ProductDiscoveryLayout";
 
 // 👇 Base del backend (sin /api, eso se añade en cada fetch)
 const API = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8800";
@@ -380,29 +381,50 @@ export default function SearchProductsPage() {
     busqueda.trim() !== "";
 
   return (
-    <main className="min-h-screen bg-neutral-50 px-4 py-8 space-y-8">
-      {/* HEADER */}
-      <section className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
-        <div>
-          <h1 className="text-3xl font-bold text-neutral-900">
-            {mostrarRelacionados ? "Productos relacionados" : "Resultados de búsqueda"}
-          </h1>
-
-          {productos.length > 0 && (
-            <p className="text-neutral-600 text-sm mt-1">
-              {productos.length} resultados encontrados
-            </p>
-          )}
-
-          {busqueda.trim() !== "" && (
-            <p className="text-neutral-500 mt-1">
-              Resultados para: <strong>"{busqueda}"</strong>
-            </p>
-          )}
-        </div>
-
-        {/* BUSCADOR */}
-        <div className="relative w-full sm:w-96">
+    <ProductDiscoveryLayout
+      title={
+        mostrarRelacionados
+          ? "Productos relacionados"
+          : "Resultados de búsqueda"
+      }
+      subtitle={
+        busqueda.trim()
+          ? `Resultados para "${busqueda}"`
+          : undefined
+      }
+      total={productos.length}
+      categorias={categorias}
+      categoriaId={categoriaId}
+      setCategoriaId={setCategoriaId}
+      departamento={departamento}
+      setDepartamento={setDepartamento}
+      municipio={municipio}
+      setMunicipio={setMunicipio}
+      precioMin={precioMin}
+      precioMax={precioMax}
+      setPrecioMin={setPrecioMin}
+      setPrecioMax={setPrecioMax}
+      sort={sort}
+      setSort={setSort}
+      onReset={() => {
+        setBusqueda("");
+        setCategoriaId(null);
+        setDepartamento("");
+        setMunicipio("");
+        setPrecioMin(0);
+        setPrecioMax(2000);
+        setSort("");
+        setClaseId(null);
+        setTelaId(null);
+        setAccesorioId(null);
+        setAccesorioTipoId(null);
+        setAccesorioMaterialId(null);
+      }}
+    >
+    <div className="space-y-4"></div>
+      {/* 🔍 BUSCADOR */}
+      <div className="mb-6 sticky top-0 bg-neutral-50 z-10 pb-4">
+        <div className="relative w-full sm:max-w-md">
           <Input
             type="text"
             placeholder="Buscar productos..."
@@ -413,11 +435,11 @@ export default function SearchProductsPage() {
           />
           <Search className="absolute left-3 top-3 h-4 w-4 text-neutral-400" />
         </div>
-      </section>
+      </div>
 
-      {/* CHIPS */}
+      {/* 🏷️ CHIPS DE FILTROS */}
       {filtrosActivos.length > 0 && (
-        <div className="flex flex-wrap gap-2 mt-2">
+        <div className="flex flex-wrap gap-2 mb-4">
           {filtrosActivos.map((f, i) => (
             <span
               key={i}
@@ -429,66 +451,77 @@ export default function SearchProductsPage() {
         </div>
       )}
 
-      <section className="flex flex-col sm:flex-row gap-6">
-        {/* PANEL FILTROS */}
-        <aside className="hidden sm:block sm:w-72">
-          <FilterSidebar
-            categorias={categorias}
-            categoriaId={categoriaId}
-            setCategoriaId={setCategoriaId}
-            departamento={departamento}
-            setDepartamento={setDepartamento}
-            municipio={municipio}
-            setMunicipio={setMunicipio}
-            precioMin={precioMin}
-            precioMax={precioMax}
-            setPrecioMin={setPrecioMin}
-            setPrecioMax={setPrecioMax}
-            sort={sort}
-            setSort={setSort}
-            onReset={() => {
-              setBusqueda("");
-              setCategoriaId(null);
-              setDepartamento("");
-              setMunicipio("");
-              setPrecioMin(0);
-              setPrecioMax(2000);
-              setSort("");
-              setClaseId(null);
-              setTelaId(null);
-              setAccesorioId(null);
-              setAccesorioTipoId(null);
-              setAccesorioMaterialId(null);
-            }}
-          />
-        </aside>
+      {/* 🧱 RESULTADOS */}
+      {loading ? (
+        <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-6">
+          {[...Array(8)].map((_, i) => (
+            <div
+              key={i}
+              className="animate-pulse bg-white border rounded-lg p-4 shadow-sm"
+            >
+              <div className="w-full aspect-square bg-neutral-200 rounded-md mb-4" />
+              <div className="h-4 bg-neutral-200 rounded w-3/4 mb-2" />
+              <div className="h-4 bg-neutral-200 rounded w-1/2 mb-4" />
+              <div className="h-5 bg-neutral-200 rounded w-1/3" />
+            </div>
+          ))}
+        </div>
+      ) : productos.length > 0 ? (
+        <div className="grid gap-6 grid-cols-2 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
+          {productos.map((p) => (
+            <Link
+              key={p.id}
+              href={`/product/${p.id}`}
+              className="block hover:opacity-90 transition"
+            >
+              <Card className="border shadow-sm hover:shadow-md transition">
+                <CardContent className="p-4">
+                  <div className="relative w-full aspect-square mb-3">
+                    <Image
+                      src={p.imagen_url || "/placeholder.jpg"}
+                      alt={p.nombre}
+                      fill
+                      className="object-cover rounded-lg"
+                    />
+                  </div>
 
-        {/* RESULTADOS */}
-        <section className="flex-1 grid gap-6 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
-          {/* LOADING SKELETON */}
-          {loading &&
-            [...Array(8)].map((_, i) => (
-              <div
-                key={i}
-                className="animate-pulse bg-white border rounded-lg p-4 shadow-sm"
-              >
-                <div className="w-full aspect-square bg-neutral-200 rounded-md mb-4" />
-                <div className="h-4 bg-neutral-200 rounded w-3/4 mb-2" />
-                <div className="h-4 bg-neutral-200 rounded w-1/2 mb-4" />
-                <div className="h-5 bg-neutral-200 rounded w-1/3" />
-              </div>
-            ))}
+                  <h3 className="font-semibold line-clamp-1">
+                    {p.nombre}
+                  </h3>
 
-          {/* RESULTADOS NORMALES */}
-          {!loading &&
-            productos.length > 0 &&
-            productos.map((p) => (
-              <Link
-                key={p.id}
-                href={`/product/${p.id}`} 
-                className="block hover:opacity-90 transition"
-              >
-                <Card className="border shadow-sm hover:shadow-md transition cursor-pointer">
+                  {p.categoria && (
+                    <p className="text-xs text-neutral-600">
+                      {p.categoria}
+                    </p>
+                  )}
+
+                  {p.departamento && (
+                    <p className="text-xs text-neutral-500 mt-1">
+                      {p.municipio
+                        ? `${p.municipio}, ${p.departamento}`
+                        : p.departamento}
+                    </p>
+                  )}
+
+                  <p className="text-base font-bold mt-2">
+                    Q{Number(p.precio).toFixed(2)}
+                  </p>
+                </CardContent>
+              </Card>
+            </Link>
+          ))}
+        </div>
+      ) : mostrarRelacionados ? (
+        <>
+          <p className="text-neutral-500 mb-4">
+            No encontramos productos exactos para{" "}
+            <strong>"{busqueda}"</strong>. Aquí tienes alternativas:
+          </p>
+
+          <div className="grid gap-6 grid-cols-2 sm:grid-cols-3 lg:grid-cols-4">
+            {relacionados.map((p) => (
+              <Link key={p.id} href={`/product/${p.id}`}>
+                <Card className="border shadow-sm hover:shadow-md transition">
                   <CardContent className="p-4">
                     <div className="relative w-full aspect-square mb-3">
                       <Image
@@ -499,19 +532,9 @@ export default function SearchProductsPage() {
                       />
                     </div>
 
-                    <h3 className="font-semibold line-clamp-1">{p.nombre}</h3>
-
-                    {p.categoria && (
-                      <p className="text-xs text-neutral-600">{p.categoria}</p>
-                    )}
-
-                    {p.departamento && (
-                      <p className="text-xs text-neutral-500 mt-1">
-                        {p.municipio
-                          ? `${p.municipio}, ${p.departamento}`
-                          : p.departamento}
-                      </p>
-                    )}
+                    <h3 className="font-semibold line-clamp-1">
+                      {p.nombre}
+                    </h3>
 
                     <p className="text-base font-bold mt-2">
                       Q{Number(p.precio).toFixed(2)}
@@ -520,51 +543,13 @@ export default function SearchProductsPage() {
                 </Card>
               </Link>
             ))}
-
-          {/* RELACIONADOS */}
-          {!loading && productos.length === 0 && mostrarRelacionados && (
-            <>
-              <p className="col-span-full text-neutral-500">
-                No encontramos productos exactos para{" "}
-                <strong>"{busqueda}"</strong>. Aquí tienes alternativas:
-              </p>
-
-              {relacionados.map((p) => (
-                <Link
-                  key={p.id}
-                  href={`/product/${p.id}`}
-                  className="block hover:opacity-90 transition"
-                >
-                  <Card className="border shadow-sm hover:shadow-md transition">
-                    <CardContent className="p-4">
-                      <div className="relative w-full aspect-square mb-3">
-                        <Image
-                          src={p.imagen_url || "/placeholder.jpg"}
-                          alt={p.nombre}
-                          fill
-                          className="object-cover rounded-lg"
-                        />
-                      </div>
-
-                      <h3 className="font-semibold line-clamp-1">{p.nombre}</h3>
-                      <p className="text-base font-bold mt-2">
-                        Q{Number(p.precio).toFixed(2)}
-                      </p>
-                    </CardContent>
-                  </Card>
-                </Link>
-              ))}
-            </>
-          )}
-
-          {/* SIN RESULTADOS */}
-          {!loading && productos.length === 0 && !mostrarRelacionados && (
-            <p className="col-span-full text-center text-neutral-500">
-              No se encontraron productos.
-            </p>
-          )}
-        </section>
-      </section>
-    </main>
+          </div>
+        </>
+      ) : (
+        <p className="text-center text-neutral-500 py-10">
+          No se encontraron productos.
+        </p>
+      )}
+    </ProductDiscoveryLayout>
   );
 }
