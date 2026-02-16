@@ -1,69 +1,70 @@
-import { apiFetch } from "@/lib/api";
+// src/services/sellerDashboard.ts
+
+import { apiFetch } from '@/lib/api'
 
 /* ===========================
-   Tipos del Dashboard
+   Tipos
 =========================== */
 
 export type KPI = {
-  ventasMes: number;
-  pedidosMes: number;
-  ticketPromedio: number;
-  productosActivos: number;
-};
+  ventasMes: number
+  pedidosMes: number
+  ticketPromedio: number
+  productosActivos: number
+}
 
-export type VentasMes = {
-  mes: string;
-  ventas: number;
-};
-
-export type TopCategoria = {
-  name: string;
-  value: number;
-};
-
-export type PedidoResumen = {
-  id: string;
-  cliente: string;
-  total: number;
-  estado:
-    | "Pendiente"
-    | "En preparación"
-    | "En camino"
-    | "Entregado"
-    | "Cancelado";
-  fecha: string;
-};
-
-export type LowStock = {
-  id: string;
-  nombre: string;
-  stock: number;
-};
+export type ProductoStats = {
+  total: number
+  activos: number
+  inactivos: number
+  stock_bajo: number
+}
 
 export type SellerDashboardResponse = {
-  kpi: KPI;
-  ventasPorMes: VentasMes[];
-  topCategorias: TopCategoria[];
-  actividad: PedidoResumen[];
-  lowStock: LowStock[];
-  validaciones: string[];
-};
+  kpi: KPI
+  productoStats: ProductoStats
+  ventasPorMes: any[]
+  topCategorias: any[]
+  actividad: any[]
+  lowStock: any[]
+  validaciones: string[]
+}
 
 /* ===========================
-   Fetch principal
+   Fetch
 =========================== */
 
 export async function fetchSellerDashboard(): Promise<SellerDashboardResponse> {
-  const base = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8800";
+  const base =
+    process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8800'
 
-  const res = await apiFetch(`${base}/api/seller/dashboard`);
+  const res = await apiFetch(`${base}/api/seller/dashboard`)
 
   if (!res.ok) {
-    const err = await res.json().catch(() => null);
-    throw new Error(
-      err?.message || "No se pudo cargar el dashboard del vendedor"
-    );
+    throw new Error('No se pudo cargar el dashboard')
   }
 
-  return res.json();
+  const data = await res.json()
+
+  return {
+    kpi: data.kpi ?? {
+      ventasMes: 0,
+      pedidosMes: 0,
+      ticketPromedio: 0,
+      productosActivos: 0,
+    },
+
+    productoStats: data.productoStats ?? {
+      total: 0,
+      activos: 0,
+      inactivos: 0,
+      stock_bajo: 0,
+    },
+
+    ventasPorMes: data.ventasPorMes ?? [],
+    topCategorias: data.topCategorias ?? [],
+    actividad: data.actividad ?? [],
+    lowStock: data.lowStock ?? [],
+    validaciones: data.validaciones ?? [],
+  }
 }

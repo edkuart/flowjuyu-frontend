@@ -1,62 +1,84 @@
-//src/services/vendedorPerfil.ts
+// src/services/vendedorPerfil.ts
 
 import type { VendedorPerfil } from "@/types/db";
-
-const API_URL = (process.env.NEXT_PUBLIC_API_URL || "http://localhost:8800").replace(/\/$/, "");
+import { apiFetch } from "./apiClient";
 
 // =====================================================
-// 🔹 Obtener perfil de vendedor
+// 🔹 Obtener perfil autenticado del vendedor
 // =====================================================
-export async function apiGetVendedorPerfil(userId: number): Promise<{
+export async function apiGetVendedorPerfil(): Promise<{
   ok: boolean;
   perfil?: VendedorPerfil | null;
   message?: string;
 }> {
   try {
-    const res = await fetch(`${API_URL}/api/seller/profile/${userId}`, {
+    const res = await apiFetch("/api/seller/profile", {
       method: "GET",
-      credentials: "include",
     });
 
     const json = await res.json().catch(() => ({}));
-    if (!res.ok || json?.ok === false) {
-      return { ok: false, perfil: null, message: json?.message || "Perfil no encontrado" };
+
+    if (!res.ok) {
+      return {
+        ok: false,
+        perfil: null,
+        message: json?.message || "Perfil no encontrado",
+      };
     }
 
-    return { ok: true, perfil: json.perfil ?? json };
-  } catch (err) {
+    return {
+      ok: true,
+      perfil: json ?? null,
+    };
+  } catch (err: any) {
     console.error("❌ Error obteniendo perfil vendedor:", err);
-    return { ok: false, perfil: null, message: "Error de red o servidor" };
+
+    return {
+      ok: false,
+      perfil: null,
+      message: err.message || "Error de red o servidor",
+    };
   }
 }
 
 // =====================================================
 // 🔹 Crear o actualizar perfil de vendedor
 // =====================================================
-export async function apiUpsertVendedorPerfil(formData: FormData): Promise<{
+export async function apiUpsertVendedorPerfil(
+  formData: FormData
+): Promise<{
   ok: boolean;
   perfil?: VendedorPerfil | null;
   message?: string;
 }> {
   try {
-    const res = await fetch(`${API_URL}/api/seller/profile`, {
+    const res = await apiFetch("/api/seller/profile", {
       method: "PUT",
       body: formData,
-      credentials: "include",
     });
 
     const json = await res.json().catch(() => ({}));
-    if (!res.ok || json?.ok === false) {
+
+    if (!res.ok) {
       return {
         ok: false,
         perfil: null,
-        message: json?.message || "Error al guardar el perfil del vendedor",
+        message:
+          json?.message || "Error al guardar el perfil del vendedor",
       };
     }
 
-    return { ok: true, perfil: json.perfil ?? json };
-  } catch (err) {
+    return {
+      ok: true,
+      perfil: json.perfil ?? json,
+    };
+  } catch (err: any) {
     console.error("❌ Error actualizando perfil vendedor:", err);
-    return { ok: false, perfil: null, message: "Error de red o servidor" };
+
+    return {
+      ok: false,
+      perfil: null,
+      message: err.message || "Error de red o servidor",
+    };
   }
 }

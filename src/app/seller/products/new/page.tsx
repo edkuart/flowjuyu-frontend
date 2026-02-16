@@ -19,6 +19,9 @@ import { MaterialSelect } from "@/components/product/form/MaterialSelect"
 import { TelaSelect } from "@/components/product/form/TelaSelect"
 import { OrigenSelect } from "@/components/product/form/OrigenSelect"
 import { useSearchParams } from "next/navigation"
+import { apiGetVendedorPerfil } from "@/services/vendedorPerfil"
+import { Card, CardContent } from "@/components/ui/card"
+import Link from "next/link"
 
 import type { Opcion, Clase, OtroTipo } from "@/types/product"
 
@@ -38,50 +41,63 @@ export default function AddProductPage() {
   const productId = searchParams.get("id")
   const isEditing = Boolean(productId)
 
-    // =========================
-  // Estados principales
   // =========================
-  const [nombre, setNombre] = useState("")
-  const [descripcion, setDescripcion] = useState("")
-  const [precio, setPrecio] = useState("")
-  const [stock, setStock] = useState("")
-  const [activo, setActivo] = useState(false)
+  // 🔒 Estado de validación comercio
+  // =========================
+  type EstadoValidacion = "pendiente" | "aprobado" | "rechazado"
+
+  const [estadoValidacion, setEstadoValidacion] =
+    useState<EstadoValidacion | null>(null)
+
+  const [checkingEstado, setCheckingEstado] = useState<boolean>(true)
+
+  // =========================
+  // Estados principales producto
+  // =========================
+  const [nombre, setNombre] = useState<string>("")
+  const [descripcion, setDescripcion] = useState<string>("")
+  const [precio, setPrecio] = useState<string>("")
+  const [stock, setStock] = useState<string>("")
+  const [activo, setActivo] = useState<boolean>(false)
 
   const [departamento, setDepartamento] = useState<string | null>(null)
   const [municipio, setMunicipio] = useState<string | null>(null)
 
-  const [dataReady, setDataReady] = useState(false)
+  const [dataReady, setDataReady] = useState<boolean>(false)
 
-  const [estado, setEstado] = useState<"idle" | "loading" | "ok" | "error">("idle")
-  const [mensaje, setMensaje] = useState("")
-  const [infoMsg, setInfoMsg] = useState("")
+  const [estado, setEstado] = useState<
+    "idle" | "loading" | "ok" | "error"
+  >("idle")
+
+  const [mensaje, setMensaje] = useState<string>("")
+  const [infoMsg, setInfoMsg] = useState<string>("")
 
   const [categorias, setCategorias] = useState<Opcion[]>([])
   const [clases, setClases] = useState<Clase[]>([])
   const [telas, setTelas] = useState<Opcion[]>([])
 
-  const [categoriaSel, setCategoriaSel] = useState("")
-  const [claseSel, setClaseSel] = useState("")
-  const [telaSel, setTelaSel] = useState("")
+  const [categoriaSel, setCategoriaSel] = useState<string>("")
+  const [claseSel, setClaseSel] = useState<string>("")
+  const [telaSel, setTelaSel] = useState<string>("")
 
   const [accesorios, setAccesorios] = useState<Opcion[]>([])
-  const [accesorioSel, setAccesorioSel] = useState("")
-  const [accesorioInput, setAccesorioInput] = useState("")
+  const [accesorioSel, setAccesorioSel] = useState<string>("")
+  const [accesorioInput, setAccesorioInput] = useState<string>("")
 
   const [tipos, setTipos] = useState<Opcion[]>([])
-  const [tipoSel, setTipoSel] = useState("")
-  const [tipoInput, setTipoInput] = useState("")
+  const [tipoSel, setTipoSel] = useState<string>("")
+  const [tipoInput, setTipoInput] = useState<string>("")
 
   const [materiales, setMateriales] = useState<Opcion[]>([])
-  const [materialSel, setMaterialSel] = useState("")
-  const [materialInput, setMaterialInput] = useState("")
+  const [materialSel, setMaterialSel] = useState<string>("")
+  const [materialInput, setMaterialInput] = useState<string>("")
 
-  const [departamentoSel, setDepartamentoSel] = useState("")
-  const [municipioSel, setMunicipioSel] = useState("")
+  const [departamentoSel, setDepartamentoSel] = useState<string>("")
+  const [municipioSel, setMunicipioSel] = useState<string>("")
   const [municipios, setMunicipios] = useState<string[]>([])
 
-  const [categoriaInput, setCategoriaInput] = useState("")
-  const [telaInput, setTelaInput] = useState("")
+  const [categoriaInput, setCategoriaInput] = useState<string>("")
+  const [telaInput, setTelaInput] = useState<string>("")
 
   const fileRef = useRef<HTMLInputElement>(null)
   const formRef = useRef<HTMLFormElement>(null)
@@ -93,7 +109,11 @@ export default function AddProductPage() {
     { id: number; url: string }[]
   >([])
 
-  const MAX_IMAGES = 5;
+  const MAX_IMAGES = 5
+
+  const esPendiente = estadoValidacion === "pendiente"
+  const esRechazado = estadoValidacion === "rechazado"
+  const esAprobado = estadoValidacion === "aprobado"
 
   const fetchJSON = async <T,>(path: string) => {
     const r = await fetch(`${API}${path}`, {
@@ -208,26 +228,73 @@ export default function AddProductPage() {
   }, [productId, dataReady])    
 
   // ============================
-  // Cargar opciones iniciales
-  // ============================
-  useEffect(() => {
-    ;(async () => {
+    // Cargar opciones iniciales
+    // ============================
+    useEffect(() => {
+      ;(async () => {
+        try {
+          const [cats, cls] = await Promise.all([
+            fetchJSON<Opcion[]>("/api/categorias"),
+            fetchJSON<Clase[]>("/api/clases"),
+          ])
+    
+          setCategorias(cats)
+          setClases(cls)
+    
+          setDataReady(true) 
+        } catch (e: any) {
+          setEstado("error")
+          setMensaje(e.message)
+        }
+      })()
+    }, [])  
+
+    useEffect(() => {
+    async function checkEstado() {
       try {
-        const [cats, cls] = await Promise.all([
-          fetchJSON<Opcion[]>("/api/categorias"),
-          fetchJSON<Clase[]>("/api/clases"),
-        ])
-  
-        setCategorias(cats)
-        setClases(cls)
-  
-        setDataReady(true) 
-      } catch (e: any) {
-        setEstado("error")
-        setMensaje(e.message)
+        const res = await apiGetVendedorPerfil()
+        if (res.ok && res.perfil) {
+          setEstadoValidacion(res.perfil.estado_validacion ?? null)
+        }
+      } catch (err) {
+        console.error("Error verificando estado:", err)
+      } finally {
+        setCheckingEstado(false)
       }
-    })()
-  }, [])  
+    }
+
+    checkEstado()
+  }, [])
+
+    // =========================
+  // 🔒 Verificar estado validación vendedor
+  // =========================
+  useEffect(() => {
+    async function checkEstado() {
+      try {
+        const token = getToken()
+        if (!token) return
+
+        const res = await fetch(`${API}/api/seller/profile`, {
+          headers: {
+            Authorization: `Bearer ${token}`,
+          },
+        })
+
+        if (!res.ok) return
+
+        const perfil = await res.json()
+
+        setEstadoValidacion(perfil.estado_validacion ?? null)
+      } catch (err) {
+        console.error("Error verificando estado:", err)
+      } finally {
+        setCheckingEstado(false)
+      }
+    }
+
+    checkEstado()
+  }, [])
 
   // Telas dependen de la clase
   useEffect(() => {
@@ -511,6 +578,45 @@ export default function AddProductPage() {
     }
   }  
 
+  if (checkingEstado) {
+    return (
+      <main className="min-h-screen flex items-center justify-center">
+        <p className="text-muted-foreground">
+          Verificando estado del comercio…
+        </p>
+      </main>
+    )
+  }
+
+  if (estadoValidacion !== "aprobado") {
+    return (
+      <main className="min-h-screen px-4 py-10 max-w-2xl mx-auto">
+        <Card className="border shadow-sm">
+          <CardContent className="p-8 text-center space-y-4">
+            <h2 className="text-xl font-semibold">
+              Tu comercio está en revisión
+            </h2>
+
+            <p className="text-muted-foreground">
+              Estamos validando tu información.
+              Este proceso puede tardar entre 1 y 24 horas.
+            </p>
+
+            <p className="text-muted-foreground">
+              Te notificaremos por correo cuando tu cuenta sea aprobada.
+            </p>
+
+            <Link href="/seller/my-business">
+              <Button variant="outline">
+                Volver a mi tienda
+              </Button>
+            </Link>
+          </CardContent>
+        </Card>
+      </main>
+    )
+  }
+
   // ============================
   // Render con preview
   // ============================
@@ -784,19 +890,49 @@ export default function AddProductPage() {
                 )}
               </div>
 
+              {/* ===============================
+                  🔒 ESTADO VALIDACIÓN NEGOCIO
+              ================================= */}
+              {checkingEstado && (
+                <div className="bg-gray-100 text-gray-700 text-sm px-4 py-3 rounded-md">
+                  Verificando estado de tu comercio…
+                </div>
+              )}
+
+              {!checkingEstado && esPendiente && (
+                <div className="bg-amber-50 text-amber-700 text-sm px-4 py-3 rounded-md">
+                  Tu comercio está en proceso de validación.
+                  Podrás publicar productos cuando sea aprobado.
+                </div>
+              )}
+
+              {!checkingEstado && esRechazado && (
+                <div className="bg-red-50 text-red-700 text-sm px-4 py-3 rounded-md">
+                  Tu comercio fue rechazado.
+                  Revisa tus datos o contacta soporte.
+                </div>
+              )}
 
               <Button
                 type="submit"
                 className="w-full sm:w-auto bg-sky-600 hover:bg-sky-700 text-white shadow-sm"
-                disabled={estado === "loading"}
+                disabled={
+                  estado === "loading" ||
+                  checkingEstado ||
+                  estadoValidacion !== "aprobado"
+                }
               >
-                {estado === "loading"
-                  ? isEditing
-                    ? "Actualizando…"
-                    : "Guardando borrador…"
-                  : isEditing
-                    ? "Guardar cambios"
-                    : "Guardar como borrador"}
+                {checkingEstado
+                  ? "Verificando estado…"
+                  : estadoValidacion !== "aprobado"
+                    ? "Comercio pendiente de aprobación"
+                    : estado === "loading"
+                      ? isEditing
+                        ? "Actualizando…"
+                        : "Guardando borrador…"
+                      : isEditing
+                        ? "Guardar cambios"
+                        : "Guardar como borrador"}
               </Button>
 
             {mensaje && (

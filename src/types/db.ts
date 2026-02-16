@@ -27,9 +27,9 @@ export interface User {
 // ----------------------------------------------------------------
 export interface VendedorPerfil {
   id: number;
-  user_id: number;          // FK -> users.id
+  user_id: number;
   nombre: string;
-  correo: string;           // mismo valor que en users
+  correo: string;
   telefono?: string | null;
   direccion?: string | null;
   imagen_url?: string | null;
@@ -42,10 +42,14 @@ export interface VendedorPerfil {
   foto_dpi_frente?: string | null;
   foto_dpi_reverso?: string | null;
   selfie_con_dpi?: string | null;
-  estado: EstadoVendedor;   // default 'pendiente'
+
+  // 🔒 Alineado al backend real
+  observaciones?: string | null;
+  estado_validacion?: EstadoVendedor | null;
+  estado?: "activo" | "inactivo" | null;
+
   createdAt?: string;
   updatedAt?: string;
-  // Relación inversa
   user?: User;
 }
 

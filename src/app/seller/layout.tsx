@@ -3,16 +3,16 @@
 import Link from "next/link";
 import { ReactNode } from "react";
 import { usePathname } from "next/navigation";
-import { Home, Package, ShoppingCart, User } from "lucide-react";
+import { Home, Package, ShoppingCart, User,Shield } from "lucide-react";
 import AuthGuard from "@/components/auth/AuthGuard";
 
 const navItems = [
-  { label: "Dashboard", icon: Home, href: "/seller/dashboard" },
+  { label: "Mi tienda", icon: Home, href: "/seller/my-business" },
   { label: "Productos", icon: Package, href: "/seller/products" },
   { label: "Pedidos", icon: ShoppingCart, href: "/seller/orders" },
-  { label: "Perfil público", icon: User, href: "/seller/profile" },
-  { label: "Mi negocio", icon: User, href: "/seller/profile/business" },
-  { label: "Validación", icon: User, href: "/seller/profile/validation" },
+  { label: "Métricas", icon: User, href: "/seller/dashboard" },
+//{ label: "Mi negocio", icon: User, href: "/seller/profile/business" },
+  { label: "Cuenta y seguridad", icon: Shield, href: "/seller/account" },
 ];
 
 export default function SellerLayout({
