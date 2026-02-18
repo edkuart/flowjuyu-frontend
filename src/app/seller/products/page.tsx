@@ -146,7 +146,11 @@ export default function SellerProductsPage() {
         body: JSON.stringify({ activo: !activo }),
       })
 
-      if (!res.ok) throw new Error()
+      const data = await res.json()
+
+      if (!res.ok) {
+        throw new Error(data?.message || "Error actualizando producto")
+      }
 
       setProductos((prev) =>
         prev.map((p) =>
@@ -155,8 +159,12 @@ export default function SellerProductsPage() {
       )
 
       Swal.fire("Actualizado", "Estado actualizado", "success")
-    } catch {
-      Swal.fire("Error", "No se pudo actualizar el estado", "error")
+    } catch (err: any) {
+      Swal.fire(
+        "No se pudo actualizar",
+        err.message || "Error inesperado",
+        "error"
+      )
     } finally {
       setProcessingId(null)
     }

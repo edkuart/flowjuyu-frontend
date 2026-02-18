@@ -1,66 +1,108 @@
+// src/app/seller/account/page.tsx
+
 "use client"
 
 import { useEffect, useState } from "react"
 import {
-  Card,
-  CardContent,
-  CardHeader,
-  CardTitle,
-} from "@/components/ui/card"
+  Shield,
+  Lock,
+  HelpCircle,
+  CheckCircle,
+  AlertCircle,
+  XCircle,
+  FileCheck,
+  FileX,
+} from "lucide-react"
+
+import { Card, CardContent } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Textarea } from "@/components/ui/textarea"
-import { Badge } from "@/components/ui/badge"
-import { apiGetVendedorPerfil } from "@/services/vendedorPerfil"
+import { Label } from "@/components/ui/label"
+
+const API = process.env.NEXT_PUBLIC_API_URL
 
 type EstadoValidacion =
   | "pendiente"
+  | "en_revision"
   | "aprobado"
   | "rechazado"
   | null
 
 export default function SellerAccountPage() {
-  const [estado, setEstado] =
-    useState<EstadoValidacion>(null)
-
-  const [observaciones, setObservaciones] =
-    useState<string | null>(null)
-
   const [loading, setLoading] = useState(true)
 
+  const [estadoAdmin, setEstadoAdmin] = useState<string | null>(null)
+  const [estado, setEstado] = useState<EstadoValidacion>(null)
+  const [observaciones, setObservaciones] = useState<string | null>(null)
+  const [puedePublicar, setPuedePublicar] = useState(false)
+
+  // 🔥 Estado seguro para evitar crash
+  const [documentos, setDocumentos] = useState({
+    dpi_frente: { subido: false },
+    dpi_reverso: { subido: false },
+    selfie_dpi: { subido: false },
+  })
+
   // 🔐 Seguridad
-  const [passwordActual, setPasswordActual] =
-    useState("")
-  const [passwordNueva, setPasswordNueva] =
-    useState("")
-  const [mensajePassword, setMensajePassword] =
-    useState("")
+  const [passwordActual, setPasswordActual] = useState("")
+  const [passwordNueva, setPasswordNueva] = useState("")
+  const [mensajePassword, setMensajePassword] = useState("")
   const [estadoPassword, setEstadoPassword] =
-    useState<"idle" | "loading" | "ok" | "error">(
-      "idle"
-    )
+    useState<"idle" | "loading" | "ok" | "error">("idle")
 
   // 📩 Soporte
-  const [mensajeSoporte, setMensajeSoporte] =
-    useState("")
+  const [mensajeSoporte, setMensajeSoporte] = useState("")
   const [estadoSoporte, setEstadoSoporte] =
-    useState<"idle" | "loading" | "ok" | "error">(
-      "idle"
-    )
+    useState<"idle" | "loading" | "ok" | "error">("idle")
+
+  /* ============================================
+     📡 Cargar estado desde backend
+  ============================================ */
 
   useEffect(() => {
     async function load() {
       try {
-        const res = await apiGetVendedorPerfil()
+        const token =
+          typeof window !== "undefined"
+            ? localStorage.getItem("token")
+            : null
 
-        if (res.ok && res.perfil) {
-          setEstado(
-            res.perfil.estado_validacion ?? null
-          )
-          setObservaciones(
-            res.perfil.observaciones ?? null
-          )
+        const res = await fetch(`${API}/api/seller/account-status`, {
+          headers: {
+            Authorization: token ? `Bearer ${token}` : "",
+          },
+        })
+
+        if (!res.ok) {
+          console.error("Error account-status:", await res.text())
+          setLoading(false)
+          return
         }
+
+        const data = await res.json()
+
+        setEstado(data.estado_validacion ?? null)
+        setObservaciones(data.observaciones ?? null)
+        setPuedePublicar(Boolean(data.puede_publicar))
+
+        // 🔥 Solo si backend manda documentos
+        if (data.documentos) {
+          setDocumentos({
+            dpi_frente: {
+              subido: Boolean(data.documentos?.dpi_frente),
+            },
+            dpi_reverso: {
+              subido: Boolean(data.documentos?.dpi_reverso),
+            },
+            selfie_dpi: {
+              subido: Boolean(data.documentos?.selfie_dpi),
+            },
+          })
+        }
+
+      } catch (err) {
+        console.error("Error cargando cuenta:", err)
       } finally {
         setLoading(false)
       }
@@ -72,20 +114,15 @@ export default function SellerAccountPage() {
   if (loading) {
     return (
       <main className="min-h-screen flex items-center justify-center">
-        <p className="text-muted-foreground">
-          Cargando cuenta…
-        </p>
+        <p className="text-muted-foreground">Cargando cuenta...</p>
       </main>
     )
   }
 
-  const isPendiente = estado === "pendiente"
-  const isAprobado = estado === "aprobado"
-  const isRechazado = estado === "rechazado"
+  /* ============================================
+     🔐 Cambiar contraseña
+  ============================================ */
 
-  // ============================
-  // 🔐 Cambiar contraseña
-  // ============================
   async function handleChangePassword() {
     try {
       setEstadoPassword("loading")
@@ -96,14 +133,12 @@ export default function SellerAccountPage() {
           : null
 
       const res = await fetch(
-        `${process.env.NEXT_PUBLIC_API_URL}/api/users/change-password`,
+        `${API}/api/users/change-password`,
         {
           method: "PATCH",
           headers: {
             "Content-Type": "application/json",
-            Authorization: token
-              ? `Bearer ${token}`
-              : "",
+            Authorization: token ? `Bearer ${token}` : "",
           },
           body: JSON.stringify({
             passwordActual,
@@ -112,29 +147,22 @@ export default function SellerAccountPage() {
         }
       )
 
-      if (!res.ok)
-        throw new Error(
-          "No se pudo actualizar la contraseña"
-        )
+      if (!res.ok) throw new Error()
 
-      setMensajePassword(
-        "Contraseña actualizada correctamente."
-      )
+      setMensajePassword("Contraseña actualizada correctamente.")
       setEstadoPassword("ok")
       setPasswordActual("")
       setPasswordNueva("")
-    } catch (err: any) {
-      setMensajePassword(
-        err.message ||
-          "Error al actualizar contraseña."
-      )
+    } catch {
+      setMensajePassword("Error al actualizar contraseña.")
       setEstadoPassword("error")
     }
   }
 
-  // ============================
-  // 📩 Soporte
-  // ============================
+  /* ============================================
+     📩 Soporte
+  ============================================ */
+
   async function handleSoporte() {
     try {
       setEstadoSoporte("loading")
@@ -145,14 +173,12 @@ export default function SellerAccountPage() {
           : null
 
       const res = await fetch(
-        `${process.env.NEXT_PUBLIC_API_URL}/api/support`,
+        `${API}/api/support`,
         {
           method: "POST",
           headers: {
             "Content-Type": "application/json",
-            Authorization: token
-              ? `Bearer ${token}`
-              : "",
+            Authorization: token ? `Bearer ${token}` : "",
           },
           body: JSON.stringify({
             mensaje: mensajeSoporte,
@@ -160,10 +186,7 @@ export default function SellerAccountPage() {
         }
       )
 
-      if (!res.ok)
-        throw new Error(
-          "No se pudo enviar el mensaje"
-        )
+      if (!res.ok) throw new Error()
 
       setEstadoSoporte("ok")
       setMensajeSoporte("")
@@ -172,169 +195,282 @@ export default function SellerAccountPage() {
     }
   }
 
+  /* ============================================
+     🎨 Render estado badge
+  ============================================ */
+
+  const renderEstado = () => {
+  switch (estado) {
+    case "pendiente":
+      return (
+        <span className="flex items-center gap-1 text-xs px-3 py-1 rounded-full bg-gray-100 text-gray-700 font-medium">
+          <AlertCircle className="w-3 h-3" />
+          Pendiente de envío de documentos
+        </span>
+      )
+
+    case "en_revision":
+      return (
+        <span className="flex items-center gap-1 text-xs px-3 py-1 rounded-full bg-yellow-100 text-yellow-700 font-medium">
+          <AlertCircle className="w-3 h-3" />
+          En revisión
+        </span>
+      )
+
+    case "aprobado":
+      return (
+        <span className="flex items-center gap-1 text-xs px-3 py-1 rounded-full bg-emerald-100 text-emerald-700 font-medium">
+          <CheckCircle className="w-3 h-3" />
+          Verificado
+        </span>
+      )
+
+    case "rechazado":
+      return (
+        <span className="flex items-center gap-1 text-xs px-3 py-1 rounded-full bg-red-100 text-red-700 font-medium">
+          <XCircle className="w-3 h-3" />
+          Rechazado
+        </span>
+      )
+
+    default:
+      return null
+  }
+}
+
   return (
-    <main className="min-h-screen px-4 py-10 max-w-5xl mx-auto space-y-10">
+    <main className="min-h-screen px-6 py-12 space-y-12 max-w-4xl mx-auto bg-[#f8f5ef]">
 
-      {/* ==============================
-          1️⃣ Estado del Comercio
-      ============================== */}
-      <Card>
-        <CardHeader>
-          <CardTitle>
-            Estado de verificación
-          </CardTitle>
-        </CardHeader>
+      {/* HEADER */}
+      <section className="space-y-2">
+        <h1 className="text-3xl font-bold text-neutral-900">
+          Cuenta y seguridad
+        </h1>
+        <p className="text-neutral-600">
+          Gestiona la seguridad de tu cuenta y el estado de verificación.
+        </p>
+      </section>
 
-        <CardContent className="space-y-4">
+      {/* ESTADO VERIFICACIÓN */}
+      <Card className="bg-white border shadow-sm">
+        <CardContent className="p-6 space-y-4">
 
-          {isPendiente && (
-            <>
-              <Badge variant="secondary">
-                En revisión
-              </Badge>
-              <p className="text-sm text-muted-foreground">
-                Estamos revisando tu documentación.
-                Esto puede tardar hasta 24 horas.
-              </p>
-            </>
-          )}
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-2 font-medium">
+              <Shield className="w-5 h-5" />
+              Estado de verificación
+            </div>
+            {renderEstado()}
+          </div>
 
-          {isAprobado && (
-            <>
-              <Badge className="bg-emerald-100 text-emerald-700">
-                Verificado
-              </Badge>
-              <p className="text-sm text-muted-foreground">
-                Tu comercio está activo y puede
-                publicar productos.
-              </p>
-            </>
-          )}
-
-          {isRechazado && (
-            <div className="space-y-2">
-              <Badge className="bg-red-100 text-red-700">
-                Rechazado
-              </Badge>
-
-              {observaciones && (
-                <div className="bg-red-50 border border-red-200 rounded-md p-3 text-sm">
-                  Motivo: {observaciones}
-                </div>
-              )}
+          {(estado === "pendiente" || estado === "en_revision") && (
+            <div className="bg-yellow-50 border border-yellow-200 text-yellow-800 text-sm p-3 rounded-md">
+              Podrás crear y editar productos, pero no podrás activarlos
+              hasta que tu comercio sea aprobado.
             </div>
           )}
+
+          {estado === "pendiente" && (
+            <p className="text-sm text-neutral-600">
+              Debes enviar tus documentos de identificación para activar tu comercio.
+            </p>
+          )}
+
+          {estado === "en_revision" && (
+            <p className="text-sm text-neutral-600">
+              Tus documentos están siendo revisados. Este proceso puede tardar hasta 24 horas.
+            </p>
+          )}
+
+          {estado === "aprobado" && (
+            <p className="text-sm text-neutral-600">
+              Tu comercio está verificado y puede operar normalmente.
+            </p>
+          )}
+
+          {estado === "rechazado" && (
+            <div className="space-y-2">
+              <div className="bg-red-50 border border-red-200 rounded-md p-3 text-sm text-red-700">
+                Tu verificación fue rechazada.
+                {observaciones && (
+                  <>
+                    <br />
+                    <strong>Motivo:</strong> {observaciones}
+                  </>
+                )}
+              </div>
+            </div>
+          )}
+
+          <Card className="bg-white border shadow-sm">
+            <CardContent className="p-6 space-y-4">
+
+              <h3 className="font-medium text-neutral-800">
+                Estado operativo
+              </h3>
+
+              <div className="space-y-2 text-sm">
+
+                <div className="flex justify-between">
+                  <span>Crear productos</span>
+                  <span className="text-green-600 font-medium">Permitido</span>
+                </div>
+
+                <div className="flex justify-between">
+                  <span>Editar productos</span>
+                  <span className="text-green-600 font-medium">Permitido</span>
+                </div>
+
+                <div className="flex justify-between">
+                  <span>Activar productos</span>
+                  {puedePublicar ? (
+                    <span className="text-green-600 font-medium">Permitido</span>
+                  ) : (
+                    <span className="text-red-600 font-medium">Requiere aprobación</span>
+                  )}
+                </div>
+
+                <div className="flex justify-between">
+                  <span>Visible públicamente</span>
+                  {puedePublicar ? (
+                    <span className="text-green-600 font-medium">Sí</span>
+                  ) : (
+                    <span className="text-red-600 font-medium">No</span>
+                  )}
+                </div>
+
+              </div>
+
+            </CardContent>
+          </Card>
+
+          <Card className="bg-white border shadow-sm">
+            <CardContent className="p-6 space-y-4">
+
+              <h3 className="font-medium text-neutral-800">
+                Estado administrativo
+              </h3>
+
+              <div className="flex justify-between text-sm">
+                <span>Estado del comercio</span>
+
+                {estadoAdmin === "activo" && (
+                  <span className="text-green-600 font-medium">Activo</span>
+                )}
+
+                {estadoAdmin === "inactivo" && (
+                  <span className="text-gray-600 font-medium">Inactivo</span>
+                )}
+
+                {estadoAdmin === "suspendido" && (
+                  <span className="text-red-600 font-medium">Suspendido</span>
+                )}
+              </div>
+
+              {estadoAdmin === "suspendido" && (
+                <div className="bg-red-50 border border-red-200 text-red-700 text-sm p-3 rounded-md">
+                  Tu comercio ha sido suspendido. Contacta soporte para más información.
+                </div>
+              )}
+
+            </CardContent>
+          </Card>
+
+          {/* Documentos */}
+          <div className="pt-4 space-y-2 text-sm text-neutral-700">
+            <div className="flex items-center gap-2">
+              {documentos.dpi_frente.subido ? 
+                <FileCheck className="w-4 h-4 text-green-600" /> 
+                : 
+                <FileX className="w-4 h-4 text-red-600" />
+              }
+              DPI frente
+            </div>
+
+            <div className="flex items-center gap-2">
+              {documentos.dpi_reverso.subido ? 
+                <FileCheck className="w-4 h-4 text-green-600" /> 
+                : 
+                <FileX className="w-4 h-4 text-red-600" />
+              }
+              DPI reverso
+            </div>
+
+            <div className="flex items-center gap-2">
+              {documentos.selfie_dpi.subido ? 
+                <FileCheck className="w-4 h-4 text-green-600" /> 
+                : 
+                <FileX className="w-4 h-4 text-red-600" />
+              }
+              Selfie con DPI
+            </div>
+          </div>
 
         </CardContent>
       </Card>
 
-      {/* ==============================
-          2️⃣ Seguridad
-      ============================== */}
-      <Card>
-        <CardHeader>
-          <CardTitle>
+      {/* SEGURIDAD */}
+      <Card className="bg-white border shadow-sm">
+        <CardContent className="p-6 space-y-4">
+          <div className="flex items-center gap-2 font-medium">
+            <Lock className="w-5 h-5" />
             Seguridad de la cuenta
-          </CardTitle>
-        </CardHeader>
+          </div>
 
-        <CardContent className="space-y-4">
-
-          <div>
-            <label className="text-sm">
-              Contraseña actual
-            </label>
+          <div className="space-y-2">
+            <Label>Contraseña actual</Label>
             <Input
               type="password"
               value={passwordActual}
-              onChange={(e) =>
-                setPasswordActual(e.target.value)
-              }
+              onChange={(e) => setPasswordActual(e.target.value)}
             />
           </div>
 
-          <div>
-            <label className="text-sm">
-              Nueva contraseña
-            </label>
+          <div className="space-y-2">
+            <Label>Nueva contraseña</Label>
             <Input
               type="password"
               value={passwordNueva}
-              onChange={(e) =>
-                setPasswordNueva(e.target.value)
-              }
+              onChange={(e) => setPasswordNueva(e.target.value)}
             />
           </div>
 
-          <Button
-            onClick={handleChangePassword}
-            disabled={
-              estadoPassword === "loading"
-            }
-          >
-            {estadoPassword === "loading"
-              ? "Actualizando..."
-              : "Cambiar contraseña"}
+          <Button onClick={handleChangePassword}>
+            Cambiar contraseña
           </Button>
 
           {mensajePassword && (
-            <p
-              className={`text-sm ${
-                estadoPassword === "error"
-                  ? "text-red-600"
-                  : "text-green-600"
-              }`}
-            >
+            <p className={`text-sm ${
+              estadoPassword === "error"
+                ? "text-red-600"
+                : "text-green-600"
+            }`}>
               {mensajePassword}
             </p>
           )}
         </CardContent>
       </Card>
 
-      {/* ==============================
-          3️⃣ Soporte
-      ============================== */}
-      <Card>
-        <CardHeader>
-          <CardTitle>
+      {/* SOPORTE */}
+      <Card className="bg-white border shadow-sm">
+        <CardContent className="p-6 space-y-4">
+          <div className="flex items-center gap-2 font-medium">
+            <HelpCircle className="w-5 h-5" />
             Soporte técnico
-          </CardTitle>
-        </CardHeader>
-
-        <CardContent className="space-y-4">
+          </div>
 
           <Textarea
-            placeholder="Describe tu problema..."
             value={mensajeSoporte}
-            onChange={(e) =>
-              setMensajeSoporte(e.target.value)
-            }
+            onChange={(e) => setMensajeSoporte(e.target.value)}
+            placeholder="Describe tu problema..."
           />
 
-          <Button
-            onClick={handleSoporte}
-            disabled={
-              estadoSoporte === "loading"
-            }
-          >
-            {estadoSoporte === "loading"
-              ? "Enviando..."
-              : "Contactar soporte"}
+          <Button variant="secondary" onClick={handleSoporte}>
+            Contactar soporte
           </Button>
-
-          {estadoSoporte === "ok" && (
-            <p className="text-green-600 text-sm">
-              Mensaje enviado correctamente.
-            </p>
-          )}
-
-          {estadoSoporte === "error" && (
-            <p className="text-red-600 text-sm">
-              Error al enviar el mensaje.
-            </p>
-          )}
         </CardContent>
       </Card>
+
 
     </main>
   )

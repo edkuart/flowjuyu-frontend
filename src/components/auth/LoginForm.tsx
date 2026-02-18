@@ -61,7 +61,7 @@ export function LoginForm() {
       const rawRole = json.user.role ?? json.user.rol ?? null;
 
       if (rawRole === 'seller' || rawRole === 'vendedor') {
-        router.push('/seller/dashboard');
+        router.push('/seller/my-business');
       } else if (rawRole === 'admin') {
         router.push('/admin/dashboard');
       } else {
