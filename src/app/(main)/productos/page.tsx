@@ -1,39 +1,48 @@
+// src/app/(main)/productos/page.tsx
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
+import { useSearchParams, useRouter } from "next/navigation";
 import Image from "next/image";
 import Link from "next/link";
 import FilterSidebar from "@/components/product/FilterSidebar";
 
-// --- HOOK PERSONALIZADO: DEBOUNCE (Igual que antes) ---
-function useDebounce<T>(value: T, delay: number): T {
-  const [debouncedValue, setDebouncedValue] = useState(value);
-  useEffect(() => {
-    const handler = setTimeout(() => setDebouncedValue(value), delay);
-    return () => clearTimeout(handler);
-  }, [value, delay]);
-  return debouncedValue;
-}
+import { Card, CardContent } from "@/components/ui/card";
+import ProductDiscoveryLayout from "@/components/product/discovery/ProductDiscoveryLayout";
 
 const API = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8800";
+
+// --- TIPOS ---
+type Categoria = { id: number; nombre: string };
+type Clase = { id: number; nombre: string };
+type Tela = { id: number; nombre: string };
+
+type Accesorio = { id: number; nombre: string };
+type AccesorioTipo = { id: number; nombre: string };
+type AccesorioMaterial = { id: number; nombre: string };
 
 type Producto = {
   id: number;
   nombre: string;
   precio: number;
   imagen_url?: string | null;
-};
-
-type Categoria = {
-  id: number;
-  nombre: string;
+  categoria?: string;
+  departamento?: string;
+  municipio?: string;
 };
 
 export default function ProductosPage() {
+  const searchParams = useSearchParams();
+  const router = useRouter();
+
+  // ---------------------------
+  // 1. ESTADOS
+  // ---------------------------
   const [productos, setProductos] = useState<Producto[]>([]);
-  const [categorias, setCategorias] = useState<Categoria[]>([]);
   const [loading, setLoading] = useState(true);
 
+  // Filtros Básicos
+  // NOTA: Leemos "categoria" (del link del home) o "categoria_id" (si vienes de otro lado)
   const [categoriaId, setCategoriaId] = useState<number | null>(null);
   const [precioMin, setPrecioMin] = useState(0);
   const [precioMax, setPrecioMax] = useState(2000);
@@ -41,41 +50,185 @@ export default function ProductosPage() {
   const [departamento, setDepartamento] = useState("");
   const [municipio, setMunicipio] = useState("");
 
-  const [showMobileFilters, setShowMobileFilters] = useState(false);
+  // Catálogos
+  const [categorias, setCategorias] = useState<Categoria[]>([]);
+  const [clases, setClases] = useState<Clase[]>([]);
+  const [telas, setTelas] = useState<Tela[]>([]);
+  
+  // Filtros Específicos (Textil)
+  const [claseId, setClaseId] = useState<number | null>(null);
+  const [telaId, setTelaId] = useState<number | null>(null);
 
-  const debouncedPrecioMin = useDebounce(precioMin, 500);
-  const debouncedPrecioMax = useDebounce(precioMax, 500);
+  // Filtros Específicos (Accesorios)
+  const [accesorios, setAccesorios] = useState<Accesorio[]>([]);
+  const [accesorioTipos, setAccesorioTipos] = useState<AccesorioTipo[]>([]);
+  const [accesorioMateriales, setAccesorioMateriales] = useState<AccesorioMaterial[]>([]);
+  
+  const [accesorioId, setAccesorioId] = useState<number | null>(null);
+  const [accesorioTipoId, setAccesorioTipoId] = useState<number | null>(null);
+  const [accesorioMaterialId, setAccesorioMaterialId] = useState<number | null>(null);
 
+  // ---------------------------
+  // 2. INICIALIZAR DESDE URL
+  // ---------------------------
   useEffect(() => {
-    fetch(`${API}/api/categorias`)
-      .then((r) => r.json())
-      .then((data) => setCategorias(data || []))
-      .catch(() => setCategorias([]));
+    // Categoría: Puede venir como "categoria" (Home) o "categoria_id" (Search)
+    const cat = searchParams.get("categoria") || searchParams.get("categoria_id");
+    if (cat) setCategoriaId(Number(cat));
+
+    const cla = searchParams.get("clase_id");
+    if (cla) setClaseId(Number(cla));
+
+    const tel = searchParams.get("tela_id");
+    if (tel) setTelaId(Number(tel));
+
+    const dep = searchParams.get("departamento");
+    if (dep) setDepartamento(dep);
+
+    const mun = searchParams.get("municipio");
+    if (mun) setMunicipio(mun);
+
+    const min = searchParams.get("precioMin");
+    if (min) setPrecioMin(Number(min));
+
+    const max = searchParams.get("precioMax");
+    if (max) setPrecioMax(Number(max));
+
+    const s = searchParams.get("sort");
+    if (s) setSort(s);
+  }, [searchParams]);
+
+  // ---------------------------
+  // 3. CARGAR CATÁLOGOS BASE
+  // ---------------------------
+  useEffect(() => {
+    async function loadCatalogos() {
+      try {
+        const [catData, clsData] = await Promise.all([
+          fetch(`${API}/api/categorias`).then((r) => r.json()),
+          fetch(`${API}/api/clases`).then((r) => r.json()),
+        ]);
+        setCategorias(catData || []);
+        setClases(clsData || []);
+      } catch (e) {
+        console.error("Error cargando catálogos:", e);
+      }
+    }
+    loadCatalogos();
   }, []);
 
+  // ---------------------------
+  // 4. LÓGICA DE TIPO DE CATEGORÍA
+  // ---------------------------
+  const categoriaSeleccionada = categorias.find((c) => c.id === categoriaId);
+  const categoriaNombre = (categoriaSeleccionada?.nombre || "").toLowerCase();
+
+  const esTextil = useMemo(
+    () =>
+      categoriaNombre.includes("huipil") ||
+      categoriaNombre.includes("hupil") ||
+      categoriaNombre.includes("corte"),
+    [categoriaNombre]
+  );
+
+  const esAccesorios = useMemo(
+    () =>
+      categoriaNombre.includes("accesorio") ||
+      categoriaNombre.includes("accesorios típico"),
+    [categoriaNombre]
+  );
+
+  const esCalzado = useMemo(() => categoriaNombre.includes("calzado"), [categoriaNombre]);
+
+  // ---------------------------
+  // 5. CARGA DINÁMICA (Sub-catálogos)
+  // ---------------------------
+  
+  // A. Accesorios
   useEffect(() => {
-    let isMounted = true;
-    async function loadProducts() {
+    if (!esAccesorios) {
+      setAccesorios([]);
+      return;
+    }
+    const tipo = categoriaNombre.includes("típic") ? "tipico" : "normal";
+    fetch(`${API}/api/accesorios?tipo=${tipo}`)
+      .then(r => r.json())
+      .then(setAccesorios)
+      .catch(() => setAccesorios([]));
+  }, [esAccesorios, categoriaNombre]);
+
+  // B. Telas
+  useEffect(() => {
+    if (!esTextil || !claseId || esCalzado) {
+      setTelas([]);
+      return;
+    }
+    fetch(`${API}/api/telas?clase_id=${claseId}`)
+      .then(r => r.json())
+      .then(setTelas)
+      .catch(() => setTelas([]));
+  }, [esTextil, claseId, esCalzado]);
+
+  // C. Tipos/Materiales de Accesorio
+  useEffect(() => {
+    if (!accesorioId) {
+      setAccesorioTipos([]);
+      setAccesorioMateriales([]);
+      return;
+    }
+    Promise.all([
+      fetch(`${API}/api/accesorio-tipos?accesorio_id=${accesorioId}`).then(r => r.json()),
+      fetch(`${API}/api/accesorio-materiales?accesorio_id=${accesorioId}`).then(r => r.json())
+    ]).then(([tips, mats]) => {
+      setAccesorioTipos(tips);
+      setAccesorioMateriales(mats);
+    }).catch(console.error);
+  }, [accesorioId]);
+
+  // ---------------------------
+  // 6. FETCH PRODUCTOS (EL NÚCLEO)
+  // ---------------------------
+  useEffect(() => {
+    async function fetchProductos() {
       try {
         setLoading(true);
         const params = new URLSearchParams();
 
-        if (categoriaId) params.append("categoria_id", String(categoriaId));
-        if (departamento) params.append("departamento", departamento);
-        if (municipio) params.append("municipio", municipio);
-        params.append("precioMin", String(debouncedPrecioMin));
-        params.append("precioMax", String(debouncedPrecioMax));
-        if (sort) params.append("sort", sort);
+        const params = new URLSearchParams();
 
-        const res = await fetch(`${API}/api/products?${params.toString()}`, {
-          cache: "no-store",
-        });
+        // IMPORTANTE: Mapear categoriaId (estado) -> categoria_id (API param)
+        if (categoriaId) params.set("categoria_id", String(categoriaId));
+        
+        if (precioMin > 0) params.set("precioMin", String(precioMin));
+        if (precioMax < 2000) params.set("precioMax", String(precioMax));
+        if (sort) params.set("sort", sort);
+        if (departamento) params.set("departamento", departamento);
+        if (municipio) params.set("municipio", municipio);
 
-        if (!res.ok) throw new Error("Error en la respuesta");
+        // Sub-filtros
+        if (esTextil && !esCalzado && claseId) params.set("clase_id", String(claseId));
+        if (esTextil && !esCalzado && telaId) params.set("tela_id", String(telaId));
+
+        if (esAccesorios && accesorioId) params.set("accesorio_id", String(accesorioId));
+        if (esAccesorios && accesorioTipoId) params.set("accesorio_tipo_id", String(accesorioTipoId));
+        if (esAccesorios && accesorioMaterialId) params.set("accesorio_material_id", String(accesorioMaterialId));
+
+        // Actualizamos URL del navegador (sin recargar)
+        // Usamos "categoria" para mantener consistencia con el Home, pero internamente usamos ID
+        const browserParams = new URLSearchParams(params.toString());
+        if (categoriaId) {
+            browserParams.delete("categoria_id");
+            browserParams.set("categoria", String(categoriaId));
+        }
+        router.replace(`/productos?${browserParams.toString()}`, { scroll: false });
+
+        // Llamada API (Usando los params correctos para el backend)
+        const res = await fetch(`${API}/api/products?${params.toString()}`, { cache: "no-store" });
         const data = await res.json();
+        
         const lista = data.data || data || [];
+        setProductos(Array.isArray(lista) ? lista : []);
 
-        if (isMounted) setProductos(Array.isArray(lista) ? lista : []);
       } catch (error) {
         console.error("Error cargando productos:", error);
         if (isMounted) setProductos([]);
@@ -83,10 +236,21 @@ export default function ProductosPage() {
         if (isMounted) setLoading(false);
       }
     }
-    loadProducts();
-    return () => { isMounted = false; };
-  }, [categoriaId, debouncedPrecioMin, debouncedPrecioMax, sort, departamento, municipio]);
 
+    // Usamos debounce o llamada directa dependiendo de la necesidad. 
+    // Aquí lo hacemos directo al cambiar filtros.
+    fetchProductos();
+
+  }, [
+    categoriaId, precioMin, precioMax, sort, departamento, municipio,
+    claseId, telaId, accesorioId, accesorioTipoId, accesorioMaterialId,
+    esTextil, esAccesorios, esCalzado, router
+  ]);
+
+
+  // ---------------------------
+  // 7. RESET
+  // ---------------------------
   const handleReset = () => {
     setCategoriaId(null);
     setPrecioMin(0);
@@ -94,182 +258,116 @@ export default function ProductosPage() {
     setSort("");
     setDepartamento("");
     setMunicipio("");
-    setShowMobileFilters(false);
+    setClaseId(null);
+    setTelaId(null);
+    setAccesorioId(null);
+    setAccesorioTipoId(null);
+    setAccesorioMaterialId(null);
   };
 
   return (
-    <main className="min-h-screen bg-neutral-50 px-3 sm:px-6 lg:px-10 py-6 sm:py-8">
+    <ProductDiscoveryLayout
+      title="Nuestros Productos"
+      subtitle="Explora la mejor artesanía de Guatemala"
+      total={productos.length}
       
-      {/* HEADER */}
-      <div className="flex flex-col sm:flex-row justify-between items-start sm:items-end mb-6 sm:mb-8 gap-4">
-        <h1 className="text-2xl sm:text-3xl font-bold text-gray-900">Productos</h1>
-        
-        <button
-          onClick={() => setShowMobileFilters(true)}
-          className="lg:hidden w-full sm:w-auto flex items-center justify-center gap-2 bg-white border border-gray-300 text-gray-700 font-medium py-2.5 px-4 rounded-lg shadow-sm hover:bg-gray-50 active:scale-95 transition-all"
-        >
-          <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-            <polygon points="22 3 2 3 10 12.46 10 19 14 21 14 12.46 22 3"/>
-          </svg>
-          Filtrar y Ordenar
-        </button>
+      // Props de Filtros
+      categorias={categorias}
+      categoriaId={categoriaId}
+      setCategoriaId={setCategoriaId}
+
+      precioMin={precioMin}
+      setPrecioMin={setPrecioMin}
+      precioMax={precioMax}
+      setPrecioMax={setPrecioMax}
+      
+      sort={sort}
+      setSort={setSort}
+      
+      departamento={departamento}
+      setDepartamento={setDepartamento}
+      municipio={municipio}
+      setMunicipio={setMunicipio}
+
+      // Props de Sub-filtros (Nuevos)
+      clases={clases}
+      claseId={claseId}
+      setClaseId={setClaseId}
+      
+      telas={telas}
+      telaId={telaId}
+      setTelaId={setTelaId}
+
+      accesorios={accesorios}
+      accesorioId={accesorioId}
+      setAccesorioId={setAccesorioId}
+
+      accesorioTipos={accesorioTipos}
+      accesorioTipoId={accesorioTipoId}
+      setAccesorioTipoId={setAccesorioTipoId}
+
+      accesorioMateriales={accesorioMateriales}
+      accesorioMaterialId={accesorioMaterialId}
+      setAccesorioMaterialId={setAccesorioMaterialId}
+
+      onReset={handleReset}
+    >
+      
+      {/* GRID RESULTADOS */}
+      <div className="grid grid-cols-2 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4 sm:gap-6">
+        {loading && [...Array(8)].map((_, i) => (
+           <div key={i} className="animate-pulse bg-white border rounded-lg p-3 sm:p-4 shadow-sm">
+             <div className="w-full aspect-square bg-neutral-200 rounded-md mb-3" />
+             <div className="h-4 bg-neutral-200 rounded w-3/4 mb-2" />
+             <div className="h-4 bg-neutral-200 rounded w-1/2" />
+           </div>
+        ))}
+
+        {!loading && productos.map((p) => (
+          <Link key={p.id} href={`/product/${p.id}`} className="group block">
+             <Card className="h-full border shadow-sm hover:shadow-md transition duration-300">
+               <CardContent className="p-3 sm:p-4 flex flex-col h-full">
+                 <div className="relative w-full aspect-square bg-neutral-100 rounded-md overflow-hidden mb-3">
+                   <Image
+                     src={p.imagen_url || "/placeholder.jpg"}
+                     alt={p.nombre}
+                     fill
+                     className="object-cover group-hover:scale-105 transition-transform duration-500"
+                   />
+                 </div>
+                 
+                 <div className="mb-2">
+                    <h3 className="text-sm sm:text-base font-medium line-clamp-2 text-neutral-800">
+                        {p.nombre}
+                    </h3>
+                    {p.categoria && (
+                        <span className="text-xs text-neutral-500">{p.categoria}</span>
+                    )}
+                 </div>
+
+                 <div className="mt-auto pt-2 border-t border-neutral-100">
+                   <p className="text-base sm:text-lg font-bold text-neutral-900">
+                     Q{Number(p.precio).toFixed(2)}
+                   </p>
+                 </div>
+               </CardContent>
+             </Card>
+          </Link>
+        ))}
       </div>
 
-      <div className="grid grid-cols-1 lg:grid-cols-[280px_1fr] gap-8">
-        
-        {/* SIDEBAR DESKTOP */}
-        <aside className="hidden lg:block lg:sticky lg:top-24 self-start">
-          <FilterSidebar
-            categorias={categorias}
-            categoriaId={categoriaId}
-            setCategoriaId={setCategoriaId}
-            precioMin={precioMin}
-            precioMax={precioMax}
-            setPrecioMin={setPrecioMin}
-            setPrecioMax={setPrecioMax}
-            sort={sort}
-            setSort={setSort}
-            departamento={departamento}
-            setDepartamento={setDepartamento}
-            municipio={municipio}
-            setMunicipio={setMunicipio}
-            onReset={handleReset}
-          />
-        </aside>
+      {!loading && productos.length === 0 && (
+        <div className="py-20 text-center text-neutral-500">
+          <p className="text-lg">No encontramos productos con estos filtros.</p>
+          <button 
+            onClick={handleReset} 
+            className="mt-4 text-blue-600 hover:underline"
+          >
+            Limpiar filtros
+          </button>
+        </div>
+      )}
 
-        {/* SIDEBAR MÓVIL (DRAWER) */}
-        {showMobileFilters && (
-          <div className="relative z-50 lg:hidden" aria-labelledby="slide-over-title" role="dialog" aria-modal="true">
-            <div 
-              className="fixed inset-0 bg-gray-900/50 backdrop-blur-sm transition-opacity"
-              onClick={() => setShowMobileFilters(false)}
-            />
-            <div className="fixed inset-0 overflow-hidden">
-              <div className="absolute inset-0 overflow-hidden">
-                <div className="pointer-events-none fixed inset-y-0 right-0 flex max-w-full pl-10">
-                  <div className="pointer-events-auto w-screen max-w-xs transform transition-transform bg-white shadow-xl flex flex-col h-full">
-                    <div className="flex items-center justify-between px-4 py-6 border-b">
-                      <h2 className="text-lg font-semibold text-gray-900">Filtros</h2>
-                      <button
-                        type="button"
-                        className="rounded-md text-gray-400 hover:text-gray-500 focus:outline-none"
-                        onClick={() => setShowMobileFilters(false)}
-                      >
-                        <span className="sr-only">Cerrar</span>
-                        <svg className="h-6 w-6" fill="none" viewBox="0 0 24 24" strokeWidth="1.5" stroke="currentColor">
-                          <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
-                        </svg>
-                      </button>
-                    </div>
-                    <div className="flex-1 overflow-y-auto px-4 py-6">
-                      <FilterSidebar
-                        categorias={categorias}
-                        categoriaId={categoriaId}
-                        setCategoriaId={setCategoriaId}
-                        precioMin={precioMin}
-                        precioMax={precioMax}
-                        setPrecioMin={setPrecioMin}
-                        setPrecioMax={setPrecioMax}
-                        sort={sort}
-                        setSort={setSort}
-                        departamento={departamento}
-                        setDepartamento={setDepartamento}
-                        municipio={municipio}
-                        setMunicipio={setMunicipio}
-                        onReset={handleReset}
-                      />
-                    </div>
-                    <div className="border-t p-4">
-                      <button 
-                        onClick={() => setShowMobileFilters(false)}
-                        className="w-full bg-black text-white py-3 rounded-lg font-bold hover:bg-gray-800 transition"
-                      >
-                        Ver resultados
-                      </button>
-                    </div>
-                  </div>
-                </div>
-              </div>
-            </div>
-          </div>
-        )}
-
-        {/* --- AQUÍ ESTÁ EL CAMBIO CLAVE PARA LA GRILLA --- */}
-        <section className="
-          grid 
-          grid-cols-2          /* MÓVIL: 2 columnas */
-          sm:grid-cols-2 
-          lg:grid-cols-3 
-          xl:grid-cols-4 
-          gap-3                /* MÓVIL: Espacio pequeño (12px) */
-          sm:gap-6             /* DESKTOP: Espacio normal (24px) */
-          content-start
-        ">
-          
-          {loading &&
-            [...Array(8)].map((_, i) => (
-              <div key={i} className="animate-pulse bg-white border rounded-xl p-2 sm:p-4 shadow-sm">
-                <div className="w-full aspect-square bg-neutral-200 rounded-lg mb-2 sm:mb-4" />
-                <div className="h-3 sm:h-4 bg-neutral-200 rounded w-3/4 mb-2" />
-                <div className="h-3 sm:h-4 bg-neutral-200 rounded w-1/2" />
-              </div>
-            ))}
-
-          {!loading && productos.map((p) => (
-            <Link href={`/product/${p.id}`} key={p.id} className="group block">
-              <div className="
-                bg-white 
-                border border-gray-200 
-                rounded-lg sm:rounded-xl 
-                shadow-sm hover:shadow-lg 
-                hover:-translate-y-1 transition-all duration-300 
-                p-2 sm:p-4           /* Relleno más pequeño en móvil */
-                h-full flex flex-col
-              ">
-                <div className="relative w-full aspect-square rounded-md sm:rounded-lg overflow-hidden bg-neutral-100 mb-2 sm:mb-4">
-                  <Image
-                    src={p.imagen_url || "/placeholder.jpg"}
-                    alt={p.nombre}
-                    fill
-                    sizes="(max-width: 640px) 50vw, (max-width: 1024px) 33vw, 25vw"
-                    className="object-cover group-hover:scale-105 transition-transform duration-500"
-                  />
-                </div>
-                
-                {/* Título más pequeño en móvil (text-sm) */}
-                <h3 className="text-sm sm:text-base font-medium text-gray-900 line-clamp-2 mb-1 group-hover:text-blue-600 transition-colors">
-                  {p.nombre}
-                </h3>
-                
-                <div className="mt-auto pt-1 sm:pt-2">
-                  {/* Precio ajustado */}
-                  <p className="text-base sm:text-lg font-bold text-gray-900">
-                    Q{Number(p.precio).toFixed(2)}
-                  </p>
-                </div>
-              </div>
-            </Link>
-          ))}
-
-          {!loading && productos.length === 0 && (
-            <div className="col-span-full py-12 flex flex-col items-center justify-center text-center">
-              <div className="bg-neutral-100 p-4 rounded-full mb-4">
-                 <svg className="w-8 h-8 text-neutral-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"></path></svg>
-              </div>
-              <h3 className="text-lg font-medium text-gray-900">No encontramos productos</h3>
-              <p className="text-gray-500 max-w-md mt-1 px-4">
-                Intenta ajustar tus filtros.
-              </p>
-              <button 
-                onClick={handleReset}
-                className="mt-4 text-blue-600 font-medium hover:underline"
-              >
-                Limpiar filtros
-              </button>
-            </div>
-          )}
-        </section>
-      </div>
-    </main>
+    </ProductDiscoveryLayout>
   );
 }
