@@ -1,4 +1,5 @@
 // src/components/product/FilterSidebar.tsx
+
 "use client";
 
 import { Card } from "@/components/ui/card";
@@ -6,10 +7,12 @@ import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { departamentosConMunicipios } from "@/data/municipios";
 
-type Categoria = {
-  id: number;
-  nombre: string;
-};
+type Categoria = { id: number; nombre: string };
+type Clase = { id: number; nombre: string };
+type Tela = { id: number; nombre: string };
+type Accesorio = { id: number; nombre: string };
+type AccesorioTipo = { id: number; nombre: string };
+type AccesorioMaterial = { id: number; nombre: string };
 
 type Props = {
   categorias?: Categoria[];
@@ -30,9 +33,28 @@ type Props = {
   sort: string;
   setSort: (v: string) => void;
 
-  onReset: () => void;
+  // 🔥 NUEVOS
+  clases?: Clase[];
+  claseId?: number | null;
+  setClaseId?: (v: number | null) => void;
 
-  /** NUEVO */
+  telas?: Tela[];
+  telaId?: number | null;
+  setTelaId?: (v: number | null) => void;
+
+  accesorios?: Accesorio[];
+  accesorioId?: number | null;
+  setAccesorioId?: (v: number | null) => void;
+
+  accesorioTipos?: AccesorioTipo[];
+  accesorioTipoId?: number | null;
+  setAccesorioTipoId?: (v: number | null) => void;
+
+  accesorioMateriales?: AccesorioMaterial[];
+  accesorioMaterialId?: number | null;
+  setAccesorioMaterialId?: (v: number | null) => void;
+
+  onReset: () => void;
   variant?: "desktop" | "mobile";
 };
 
@@ -40,16 +62,40 @@ export default function FilterSidebar({
   categorias = [],
   categoriaId,
   setCategoriaId,
+
   departamento,
   setDepartamento,
   municipio,
   setMunicipio,
+
   precioMin,
   precioMax,
   setPrecioMin,
   setPrecioMax,
+
   sort,
   setSort,
+
+  clases = [],
+  claseId = null,
+  setClaseId,
+
+  telas = [],
+  telaId = null,
+  setTelaId,
+
+  accesorios = [],
+  accesorioId = null,
+  setAccesorioId,
+
+  accesorioTipos = [],
+  accesorioTipoId = null,
+  setAccesorioTipoId,
+
+  accesorioMateriales = [],
+  accesorioMaterialId = null,
+  setAccesorioMaterialId,
+
   onReset,
   variant = "desktop",
 }: Props) {
@@ -96,43 +142,74 @@ export default function FilterSidebar({
         </select>
       </div>
 
-      {/* Origen */}
-      <div className="space-y-3">
-        <p className="text-sm font-medium">Origen</p>
-
+      {/* 🔥 CLASES (TEXTIL) */}
+      {clases.length > 0 && setClaseId && (
         <div className="space-y-2">
-          <label className="text-xs text-neutral-600">
-            Departamento
-          </label>
+          <label className="text-sm font-medium">Clase</label>
           <select
             className="w-full border rounded-lg p-2 text-sm bg-white"
-            value={departamento}
-            onChange={(e) => setDepartamento(e.target.value)}
+            value={claseId ?? ""}
+            onChange={(e) =>
+              setClaseId(
+                e.target.value ? Number(e.target.value) : null
+              )
+            }
           >
-            <option value="">-- Seleccione --</option>
-            {departamentosConMunicipios.map((d) => (
-              <option key={d.nombre}>{d.nombre}</option>
+            <option value="">Todas</option>
+            {clases.map((c) => (
+              <option key={c.id} value={c.id}>
+                {c.nombre}
+              </option>
             ))}
           </select>
         </div>
+      )}
 
+      {/* 🔥 TELAS */}
+      {telas.length > 0 && setTelaId && (
         <div className="space-y-2">
-          <label className="text-xs text-neutral-600">
-            Municipio
-          </label>
+          <label className="text-sm font-medium">Tela</label>
           <select
             className="w-full border rounded-lg p-2 text-sm bg-white"
-            value={municipio}
-            onChange={(e) => setMunicipio(e.target.value)}
-            disabled={!departamento}
+            value={telaId ?? ""}
+            onChange={(e) =>
+              setTelaId(
+                e.target.value ? Number(e.target.value) : null
+              )
+            }
           >
-            <option value="">-- Seleccione --</option>
-            {municipiosDelDepartamento.map((m) => (
-              <option key={m}>{m}</option>
+            <option value="">Todas</option>
+            {telas.map((t) => (
+              <option key={t.id} value={t.id}>
+                {t.nombre}
+              </option>
             ))}
           </select>
         </div>
-      </div>
+      )}
+
+      {/* 🔥 ACCESORIOS */}
+      {accesorios.length > 0 && setAccesorioId && (
+        <div className="space-y-2">
+          <label className="text-sm font-medium">Accesorio</label>
+          <select
+            className="w-full border rounded-lg p-2 text-sm bg-white"
+            value={accesorioId ?? ""}
+            onChange={(e) =>
+              setAccesorioId(
+                e.target.value ? Number(e.target.value) : null
+              )
+            }
+          >
+            <option value="">Todos</option>
+            {accesorios.map((a) => (
+              <option key={a.id} value={a.id}>
+                {a.nombre}
+              </option>
+            ))}
+          </select>
+        </div>
+      )}
 
       {/* Precio */}
       <div className="space-y-3">
@@ -143,19 +220,16 @@ export default function FilterSidebar({
             <span className="text-xs w-10">
               {tipo === "min" ? "Min" : "Máx"}
             </span>
+
             <Button
               variant="outline"
               size="icon"
               className="h-8 w-8"
-              onClick={() =>
-                ajustarPrecio(
-                  tipo,
-                  tipo === "min" ? -50 : -50
-                )
-              }
+              onClick={() => ajustarPrecio(tipo, -50)}
             >
               -
             </Button>
+
             <Input
               type="number"
               value={tipo === "min" ? precioMin : precioMax}
@@ -166,16 +240,12 @@ export default function FilterSidebar({
               }
               className="h-8"
             />
+
             <Button
               variant="outline"
               size="icon"
               className="h-8 w-8"
-              onClick={() =>
-                ajustarPrecio(
-                  tipo,
-                  tipo === "min" ? 50 : 50
-                )
-              }
+              onClick={() => ajustarPrecio(tipo, 50)}
             >
               +
             </Button>
@@ -185,25 +255,18 @@ export default function FilterSidebar({
 
       {/* Orden */}
       <div className="space-y-2">
-        <label className="text-sm font-medium">
-          Ordenar por
-        </label>
+        <label className="text-sm font-medium">Ordenar por</label>
         <select
           className="w-full border rounded-lg p-2 text-sm bg-white"
           value={sort}
           onChange={(e) => setSort(e.target.value)}
         >
           <option value="">Más recientes</option>
-          <option value="precio_asc">
-            Precio: menor a mayor
-          </option>
-          <option value="precio_desc">
-            Precio: mayor a menor
-          </option>
+          <option value="precio_asc">Precio: menor a mayor</option>
+          <option value="precio_desc">Precio: mayor a menor</option>
         </select>
       </div>
 
-      {/* Reset */}
       <button
         onClick={onReset}
         className="w-full text-red-500 text-sm font-medium hover:underline"

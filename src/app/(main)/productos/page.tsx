@@ -194,8 +194,6 @@ export default function ProductosPage() {
         setLoading(true);
         const params = new URLSearchParams();
 
-        const params = new URLSearchParams();
-
         // IMPORTANTE: Mapear categoriaId (estado) -> categoria_id (API param)
         if (categoriaId) params.set("categoria_id", String(categoriaId));
         

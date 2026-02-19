@@ -8,6 +8,9 @@ import ProductRelated from "@/components/product/view/ProductRelated";
 
 const API = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8800";
 
+/* =====================================================
+   🔹 Fetch producto
+===================================================== */
 async function fetchProduct(id: string) {
   try {
     const res = await fetch(`${API}/api/products/${id}`, {
@@ -15,6 +18,7 @@ async function fetchProduct(id: string) {
     });
 
     if (!res.ok) return null;
+
     return await res.json();
   } catch (err) {
     console.error("❌ Error obteniendo producto:", err);
@@ -22,6 +26,9 @@ async function fetchProduct(id: string) {
   }
 }
 
+/* =====================================================
+   🔹 Página
+===================================================== */
 export default async function ProductPage({
   params,
 }: {
@@ -40,10 +47,34 @@ export default async function ProductPage({
 
   const product = data.product;
 
-  const imagenes = Array.isArray(product.imagenes)
-    ? product.imagenes
-    : [];
+  /* =====================================================
+     🖼️ Normalizar imágenes (ANTI-CRASH)
+  ===================================================== */
+  const imagenes: string[] = (() => {
+    const lista: string[] = [];
 
+    // Caso 1: backend devuelve array
+    if (Array.isArray(product.imagenes)) {
+      lista.push(...product.imagenes.filter(Boolean));
+    }
+
+    // Caso 2: backend devuelve imagen_url
+    if (product.imagen_url) {
+      lista.push(product.imagen_url);
+    }
+
+    // Caso 3: backend devuelve imagen_principal
+    if (product.imagen_principal) {
+      lista.unshift(product.imagen_principal);
+    }
+
+    // Eliminar duplicados y valores falsy
+    return [...new Set(lista.filter(Boolean))];
+  })();
+
+  /* =====================================================
+     🔹 Productos relacionados
+  ===================================================== */
   const relacionados = Array.isArray(data.related)
     ? data.related
     : [];
@@ -51,24 +82,23 @@ export default async function ProductPage({
   return (
     <div className="container mx-auto px-4 py-10 space-y-16">
       <div className="grid grid-cols-1 lg:grid-cols-12 gap-10">
-        
-        {/* GALERÍA */}
+
+        {/* 🖼️ GALERÍA */}
         <div className="lg:col-span-4">
           <ProductGallery
             imagenes={imagenes}
             titulo={product.nombre}
-            imagen_principal={product.imagen_principal}
           />
         </div>
 
-        {/* INFO */}
+        {/* 🧾 INFO */}
         <div className="lg:col-span-5">
           <ProductInfo
             nombre={product.nombre}
             descripcion={product.descripcion}
             precio={product.precio}
             productId={product.id}
-            imagen_principal={product.imagen_principal}
+            imagen_principal={imagenes[0] || "/placeholder.jpg"}
             rating_avg={product.rating_avg}
             rating_count={product.rating_count}
           />
@@ -88,7 +118,7 @@ export default async function ProductPage({
           </div>
         </div>
 
-        {/* VENDEDOR */}
+        {/* 🏪 VENDEDOR */}
         <div className="lg:col-span-3">
           <ProductSeller
             vendedor={product.vendedor}
@@ -101,8 +131,10 @@ export default async function ProductPage({
 
       </div>
 
-      {/* RELACIONADOS */}
-      <ProductRelated productos={relacionados} />
+      {/* 🔗 RELACIONADOS */}
+      {relacionados.length > 0 && (
+        <ProductRelated productos={relacionados} />
+      )}
     </div>
   );
 }

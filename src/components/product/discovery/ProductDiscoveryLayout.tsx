@@ -1,14 +1,25 @@
-// src/components/product/discovery/ProductDiscoveryLayout.tsx
+//src/components/product/discovery/ProductDiscoveryLayout.tsx
 
 "use client";
 
 import { ReactNode, useEffect, useState } from "react";
 import FilterSidebar from "@/components/product/FilterSidebar";
 
+/* ============================
+   TIPOS
+============================ */
+
 type ActiveFilter = {
   key: string;
   label: string;
 };
+
+type Categoria = { id: number; nombre: string };
+type Clase = { id: number; nombre: string };
+type Tela = { id: number; nombre: string };
+type Accesorio = { id: number; nombre: string };
+type AccesorioTipo = { id: number; nombre: string };
+type AccesorioMaterial = { id: number; nombre: string };
 
 type Props = {
   title: string;
@@ -16,8 +27,8 @@ type Props = {
   total?: number;
   activeFilters?: ActiveFilter[];
 
-  categorias?: any[];
-
+  // BASE
+  categorias?: Categoria[];
   categoriaId?: number | null;
   setCategoriaId?: (v: number | null) => void;
 
@@ -35,6 +46,28 @@ type Props = {
   municipio?: string;
   setMunicipio?: (v: string) => void;
 
+  // TEXTIL
+  clases?: Clase[];
+  claseId?: number | null;
+  setClaseId?: (v: number | null) => void;
+
+  telas?: Tela[];
+  telaId?: number | null;
+  setTelaId?: (v: number | null) => void;
+
+  // ACCESORIOS
+  accesorios?: Accesorio[];
+  accesorioId?: number | null;
+  setAccesorioId?: (v: number | null) => void;
+
+  accesorioTipos?: AccesorioTipo[];
+  accesorioTipoId?: number | null;
+  setAccesorioTipoId?: (v: number | null) => void;
+
+  accesorioMateriales?: AccesorioMaterial[];
+  accesorioMaterialId?: number | null;
+  setAccesorioMaterialId?: (v: number | null) => void;
+
   onReset?: () => void;
 
   children: ReactNode;
@@ -47,7 +80,6 @@ export default function ProductDiscoveryLayout({
   activeFilters = [],
 
   categorias = [],
-
   categoriaId = null,
   setCategoriaId = () => {},
 
@@ -65,13 +97,32 @@ export default function ProductDiscoveryLayout({
   municipio = "",
   setMunicipio = () => {},
 
+  clases = [],
+  claseId = null,
+  setClaseId = () => {},
+
+  telas = [],
+  telaId = null,
+  setTelaId = () => {},
+
+  accesorios = [],
+  accesorioId = null,
+  setAccesorioId = () => {},
+
+  accesorioTipos = [],
+  accesorioTipoId = null,
+  setAccesorioTipoId = () => {},
+
+  accesorioMateriales = [],
+  accesorioMaterialId = null,
+  setAccesorioMaterialId = () => {},
+
   onReset = () => {},
 
   children,
 }: Props) {
   const [showMobileFilters, setShowMobileFilters] = useState(false);
 
-  // 🔔 listener global (botón "Filtrar")
   useEffect(() => {
     const open = () => setShowMobileFilters(true);
     document.addEventListener("open-filters", open);
@@ -80,7 +131,7 @@ export default function ProductDiscoveryLayout({
 
   return (
     <main className="min-h-screen bg-neutral-50 px-3 sm:px-6 lg:px-10 py-6 sm:py-8">
-      {/* 🧭 HEADER */}
+      {/* HEADER */}
       <header className="mb-6 space-y-3">
         <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
           <div>
@@ -97,7 +148,6 @@ export default function ProductDiscoveryLayout({
             )}
           </div>
 
-          {/* 📱 Botón móvil */}
           <button
             className="lg:hidden border rounded-lg px-4 py-2 text-sm font-medium"
             onClick={() => setShowMobileFilters(true)}
@@ -106,7 +156,6 @@ export default function ProductDiscoveryLayout({
           </button>
         </div>
 
-        {/* 🧩 Chips */}
         {activeFilters.length > 0 && (
           <div className="flex flex-wrap gap-2">
             {activeFilters.map((f) => (
@@ -129,7 +178,7 @@ export default function ProductDiscoveryLayout({
       </header>
 
       <div className="grid grid-cols-1 lg:grid-cols-[280px_1fr] gap-8">
-        {/* 🧱 Sidebar desktop */}
+        {/* Sidebar */}
         <aside className="hidden lg:block lg:sticky lg:top-24 self-start">
           <FilterSidebar
             categorias={categorias}
@@ -145,49 +194,33 @@ export default function ProductDiscoveryLayout({
             setDepartamento={setDepartamento}
             municipio={municipio}
             setMunicipio={setMunicipio}
+
+            clases={clases}
+            claseId={claseId}
+            setClaseId={setClaseId}
+
+            telas={telas}
+            telaId={telaId}
+            setTelaId={setTelaId}
+
+            accesorios={accesorios}
+            accesorioId={accesorioId}
+            setAccesorioId={setAccesorioId}
+
+            accesorioTipos={accesorioTipos}
+            accesorioTipoId={accesorioTipoId}
+            setAccesorioTipoId={setAccesorioTipoId}
+
+            accesorioMateriales={accesorioMateriales}
+            accesorioMaterialId={accesorioMaterialId}
+            setAccesorioMaterialId={setAccesorioMaterialId}
+
             onReset={onReset}
           />
         </aside>
 
-        {/* 🧾 Resultados */}
         <section>{children}</section>
       </div>
-
-      {/* 📱 Drawer móvil */}
-      {showMobileFilters && (
-        <div className="fixed inset-0 z-50 lg:hidden">
-          <div
-            className="absolute inset-0 bg-black/40"
-            onClick={() => setShowMobileFilters(false)}
-          />
-
-          <div className="absolute right-0 top-0 h-full w-80 bg-white shadow-xl p-4 overflow-y-auto">
-            <FilterSidebar
-              categorias={categorias}
-              categoriaId={categoriaId}
-              setCategoriaId={setCategoriaId}
-              precioMin={precioMin}
-              precioMax={precioMax}
-              setPrecioMin={setPrecioMin}
-              setPrecioMax={setPrecioMax}
-              sort={sort}
-              setSort={setSort}
-              departamento={departamento}
-              setDepartamento={setDepartamento}
-              municipio={municipio}
-              setMunicipio={setMunicipio}
-              onReset={onReset}
-            />
-
-            <button
-              className="w-full mt-4 bg-black text-white py-2 rounded-lg"
-              onClick={() => setShowMobileFilters(false)}
-            >
-              Ver resultados
-            </button>
-          </div>
-        </div>
-      )}
     </main>
   );
 }

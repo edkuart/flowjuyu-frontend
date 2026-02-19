@@ -1,54 +1,49 @@
-//src/components/product/view/ProductGallery.tsx
+// src/components/product/view/ProductGallery.tsx
 
 "use client";
 
 import { useState, useRef, useMemo, useEffect } from "react";
 import Image from "next/image";
 
-export type ProductImage = {
-  id: number;
-  url: string;
-};
-
 type ProductGalleryProps = {
-  imagenes: ProductImage[];
+  imagenes: string[]; // 🔥 ahora es string[]
   titulo: string;
-  imagen_principal?: string | null;
-  isSeller?: boolean; // 🔥 nuevo
-  onMakePrincipal?: (url: string) => void; // 🔥 nuevo
+  isSeller?: boolean;
+  onMakePrincipal?: (url: string) => void;
 };
 
 export default function ProductGallery({
-  imagenes,
+  imagenes = [],
   titulo,
-  imagen_principal,
   isSeller = false,
   onMakePrincipal,
 }: ProductGalleryProps) {
-  const [active, setActive] = useState<number>(0);
-  const [zoomVisible, setZoomVisible] = useState<boolean>(false);
+  const [active, setActive] = useState(0);
+  const [zoomVisible, setZoomVisible] = useState(false);
   const [zoomPos, setZoomPos] = useState({ x: 0, y: 0 });
   const [zoomLevel, setZoomLevel] = useState(2);
-  const [fullscreen, setFullscreen] = useState<boolean>(false);
+  const [fullscreen, setFullscreen] = useState(false);
   const [fade, setFade] = useState(false);
   const [zoomShape, setZoomShape] = useState<"circle" | "square">("circle");
 
   const containerRef = useRef<HTMLDivElement | null>(null);
 
-  // 🔥 Construcción limpia + orden principal primero
+  // 🔥 limpiar valores falsy y duplicados
   const imageUrls = useMemo(() => {
-    return Array.from(
-      new Set([
-        ...(imagen_principal ? [imagen_principal] : []),
-        ...(imagenes?.map((img) => img.url) ?? []),
-      ])
-    ).slice(0, 5);
-  }, [imagen_principal, imagenes]);
+    return [...new Set(imagenes.filter(Boolean))];
+  }, [imagenes]);
 
-  // 🔥 Resetear imagen activa cuando cambia la principal  
   useEffect(() => {
     setActive(0);
-  }, [imagen_principal]);
+  }, [imagenes]);
+
+  if (!imageUrls.length) {
+    return (
+      <div className="w-full h-[500px] bg-neutral-100 flex items-center justify-center rounded-2xl">
+        <p className="text-neutral-400">Sin imágenes</p>
+      </div>
+    );
+  }
 
   const changeImage = (index: number) => {
     setFade(true);
@@ -87,42 +82,22 @@ export default function ProductGallery({
         {/* MINIATURAS */}
         <div className="flex flex-col gap-3">
           {imageUrls.map((src, index) => (
-            <div key={index} className="relative group">
-
-              <button
-                onClick={() => changeImage(index)}
-                className={`w-16 h-16 relative overflow-hidden rounded-lg border shadow-sm transition-all hover:scale-[1.05]
-                  ${
-                    index === active
-                      ? "border-orange-600 shadow-md"
-                      : "border-gray-300"
-                  }`}
-              >
-                <Image
-                  src={src}
-                  alt={`thumb-${titulo}`}
-                  fill
-                  className="object-cover"
-                />
-              </button>
-
-              {/* 🔥 BOTÓN HACER PRINCIPAL */}
-              {isSeller && src !== imagen_principal && (
-                <button
-                  onClick={() => onMakePrincipal?.(src)}
-                  className="absolute -top-2 -right-2 text-xs bg-white shadow px-2 py-1 rounded-full hover:bg-yellow-100 transition"
-                >
-                  ⭐
-                </button>
-              )}
-
-              {/* Indicador visual principal */}
-              {src === imagen_principal && (
-                <span className="absolute -top-2 -right-2 text-xs bg-yellow-400 text-white px-2 py-1 rounded-full shadow">
-                  Principal
-                </span>
-              )}
-            </div>
+            <button
+              key={index}
+              onClick={() => changeImage(index)}
+              className={`w-16 h-16 relative overflow-hidden rounded-lg border shadow-sm transition-all hover:scale-[1.05]
+                ${index === active
+                  ? "border-orange-600 shadow-md"
+                  : "border-gray-300"
+                }`}
+            >
+              <Image
+                src={src}
+                alt={`thumb-${titulo}`}
+                fill
+                className="object-cover"
+              />
+            </button>
           ))}
         </div>
 
