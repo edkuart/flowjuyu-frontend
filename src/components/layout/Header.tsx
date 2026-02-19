@@ -1,5 +1,3 @@
-//src/components/layout/Header.tsx
-
 "use client";
 
 import Link from "next/link";
@@ -25,7 +23,7 @@ import { useCart } from "@/context/CartContext";
 import SearchBar from "@/components/ui/SearchBar";
 
 /* ===========================
-   🔹 Subcomponente: Categorías dinámicas
+   Subcomponente: Categorias dinamicas
 =========================== */
 type Categoria = {
   id: number;
@@ -107,7 +105,7 @@ function CategoriasDropdown() {
 }
 
 /* ===========================
-   🔸 Componente principal: Header
+   Componente principal: Header
 =========================== */
 export default function Header() {
   const { user, logout } = useAuth();
@@ -177,20 +175,18 @@ export default function Header() {
   const isBuyer = normalizedRole === "buyer";
   const isSeller = normalizedRole === "seller";
 
-  // ⬇️ aquí sigue tu return(...)
-
   return (
     <div className="w-full border-b bg-white relative z-50 shadow-sm">
       {/* ================= Barra superior ================= */}
       <div className="max-w-screen-xl mx-auto h-16 px-3 md:px-6 flex items-center gap-3">
         {/* Izquierda */}
         <div className="flex items-center gap-3">
-          {/* Sidebar (móvil) */}
+          {/* Sidebar (movil) */}
           <div className="md:hidden flex items-center gap-2">
-            {/* Mantengo SidebarTrigger como lo tenías */}
+            {/* Mantengo SidebarTrigger como lo tenias */}
             <SidebarTrigger className="text-zinc-700" />
 
-            {/* ✅ Uso Menu para que no quede import sin usar (opcional UX) */}
+            {/* Uso Menu para que no quede import sin usar (opcional UX) */}
             <button
               type="button"
               onClick={() => setOpenCats((v) => !v)}
@@ -215,7 +211,7 @@ export default function Header() {
             </span>
           </Link>
 
-          {/* 🔹 Categorías dinámicas (CLICK) */}
+          {/* Categorias dinamicas (CLICK) */}
           <div ref={catsRef} className="relative hidden md:block">
             <button
               type="button"
@@ -236,7 +232,7 @@ export default function Header() {
             {openCats && <CategoriasDropdown />}
           </div>
 
-          {/* ✅ Categorías dropdown en móvil también (cuando presionas Menu) */}
+          {/* Categorias dropdown en movil tambien (cuando presionas Menu) */}
           <div className="relative md:hidden">
             {openCats && <CategoriasDropdown />}
           </div>
@@ -247,7 +243,7 @@ export default function Header() {
           <SearchBar />
         </div>
 
-        {/* ✅ Botón de búsqueda móvil (usa icono Search del import) */}
+        {/* Boton de busqueda movil (usa icono Search del import) */}
         <button
           type="button"
           onClick={() => setMobileSearchOpen((v) => !v)}
@@ -277,43 +273,46 @@ export default function Header() {
               </button>
 
               {openAccount && (
-                <div className="absolute right-0 mt-2 w-56 rounded-md border bg-white shadow-sm py-1 z-50">
-                  {isBuyer && (
-                    <Link
-                      href="/buyer/orders"
-                      className="block px-3 py-2 text-sm hover:bg-zinc-50"
+                // CORRECCION: Usamos pt-2 en lugar de mt-2 para conectar el area del mouse
+                <div className="absolute right-0 top-full pt-2 w-56 z-50">
+                  <div className="bg-white border rounded-md shadow-sm py-1">
+                    {isBuyer && (
+                      <Link
+                        href="/buyer/orders"
+                        className="block px-3 py-2 text-sm hover:bg-zinc-50"
+                      >
+                        Mis pedidos
+                      </Link>
+                    )}
+
+                    {isSeller && (
+                      <>
+                        <Link
+                          href="/seller/dashboard"
+                          className="flex gap-2 px-3 py-2 text-sm hover:bg-zinc-50"
+                        >
+                          <LayoutDashboard className="w-4 h-4" />
+                          Dashboard vendedor
+                        </Link>
+
+                        <Link
+                          href="/seller/products"
+                          className="flex gap-2 px-3 py-2 text-sm hover:bg-zinc-50"
+                        >
+                          <Store className="w-4 h-4" />
+                          Mis productos
+                        </Link>
+                      </>
+                    )}
+
+                    <button
+                      onClick={logout}
+                      className="w-full flex items-center gap-2 px-3 py-2 text-left text-sm hover:bg-zinc-50"
                     >
-                      Mis pedidos
-                    </Link>
-                  )}
-
-                  {isSeller && (
-                    <>
-                      <Link
-                        href="/seller/dashboard"
-                        className="flex gap-2 px-3 py-2 text-sm hover:bg-zinc-50"
-                      >
-                        <LayoutDashboard className="w-4 h-4" />
-                        Dashboard vendedor
-                      </Link>
-
-                      <Link
-                        href="/seller/products"
-                        className="flex gap-2 px-3 py-2 text-sm hover:bg-zinc-50"
-                      >
-                        <Store className="w-4 h-4" />
-                        Mis productos
-                      </Link>
-                    </>
-                  )}
-
-                  <button
-                    onClick={logout}
-                    className="w-full flex items-center gap-2 px-3 py-2 text-left text-sm hover:bg-zinc-50"
-                  >
-                    <LogOut className="w-4 h-4" />
-                    Cerrar sesión
-                  </button>
+                      <LogOut className="w-4 h-4" />
+                      Cerrar sesión
+                    </button>
+                  </div>
                 </div>
               )}
             </div>
@@ -325,7 +324,7 @@ export default function Header() {
 
               <div className="relative">
                 <button
-                  onClick={() => setOpenCreate((v) => !v)}                  
+                  onClick={() => setOpenCreate((v) => !v)}
                   className="inline-flex items-center gap-1 text-sm hover:text-zinc-900"
                 >
                   Crear cuenta <ChevronDown className="w-4 h-4" />
@@ -374,18 +373,20 @@ export default function Header() {
         </div>
       </div>
 
-      {/* ✅ SearchBar en móvil desplegable */}
+      {/* SearchBar en movil desplegable */}
       {mobileSearchOpen && (
         <div className="sm:hidden px-3 pb-3">
           <SearchBar />
         </div>
       )}
 
-      {/* ================= Línea inferior ================= */}
+      {/* ================= Linea inferior ================= */}
       <nav className="border-t">
         <div className="max-w-7xl mx-auto h-10 px-3 md:px-6 flex items-center justify-between text-sm">
           <ul className="flex items-center gap-4 text-zinc-700">
-            <li>
+            
+            {/* Comentado temporalmente: Aún en desarrollo */}
+            {/* <li>
               <Link className="hover:underline" href="/offers">
                 Ofertas
               </Link>
@@ -394,7 +395,9 @@ export default function Header() {
               <Link className="hover:underline" href="/shipments">
                 Envíos
               </Link>
-            </li>
+            </li> 
+            */}
+
             <li>
               <Link className="hover:underline" href="/new-arrivals">
                 Lo + nuevo
@@ -441,7 +444,7 @@ export default function Header() {
           </ul>
 
           <div className="hidden md:flex items-center gap-6 text-xs text-zinc-600">
-            <span>🇬🇹 100% chapines</span>
+            <span>100% chapines</span>
           </div>
         </div>
       </nav>

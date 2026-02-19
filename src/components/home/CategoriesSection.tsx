@@ -1,5 +1,3 @@
-//src/components/home/CategoriesSection.tsx
-
 "use client";
 
 import Link from "next/link";
@@ -17,21 +15,19 @@ export default function CategoriesSection({ categorias }: Props) {
     <section className="px-4 md:px-12">
       <div className="max-w-7xl mx-auto space-y-10">
 
-        {/* Header */}
         <SectionHeader
-        eyebrow="Explora por estilo"
-        title="Categorías"
-        linkHref="/categorias"
-        linkLabel="Ver todas"
+          eyebrow="Explora por estilo"
+          title="Categorías"
+          linkHref="/categorias"
+          linkLabel="Ver todas"
         />
 
-        {/* Carrusel */}
         {categorias.length > 0 ? (
           <Carousel itemsVisible={5} itemWidth={220}>
             {categorias.slice(0, 20).map((cat: Categoria) => (
               <Link
                 key={cat.id}
-                href={`/categorias/${cat.nombre.toLowerCase()}`}
+                href={`/productos?categoria=${cat.id}`}
                 className="flex-none w-[220px]"
               >
                 <div className="group rounded-2xl overflow-hidden bg-neutral-50 hover:bg-neutral-100 transition-all duration-300 shadow-sm hover:shadow-md">

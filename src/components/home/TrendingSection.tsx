@@ -29,10 +29,10 @@ export default function TrendingSection({ trendingProducts }: Props) {
       <div className="max-w-7xl mx-auto space-y-10">
 
         <SectionHeader
-        eyebrow="Lo más visto"
-        title="🔥 Tendencia esta semana"
-        linkHref="/productos?sort=trending"
-        linkLabel="Ver más"
+          eyebrow="Lo más visto"
+          title="Tendencia esta semana"
+          linkHref="/productos?sort=trending"
+          linkLabel="Ver más"
         />
 
         <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-8">

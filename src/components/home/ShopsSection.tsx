@@ -25,7 +25,11 @@ export default function ShopsSection({
 
         <SectionHeader
           eyebrow="Confianza y calidad"
+<<<<<<< HEAD
           title="⭐ Tiendas mejor valoradas"
+=======
+          title=" Tiendas mejor valoradas"
+>>>>>>> filtros
         />
 
         <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-10">

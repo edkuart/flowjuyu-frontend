@@ -25,8 +25,8 @@ export default function NewProductsSection({
 
         {/* Header */}
         <SectionHeader
-        eyebrow="Recién agregados"
-        title="🆕 Nuevos productos"
+          eyebrow="Recién agregados"
+          title="Nuevos productos"
         />
 
         {/* Grid */}
