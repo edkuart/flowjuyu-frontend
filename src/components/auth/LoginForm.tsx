@@ -58,6 +58,8 @@ export function LoginForm() {
 
       login(json.user, json.token);
 
+      localStorage.setItem("token", json.token);
+
       const rawRole = json.user.role ?? json.user.rol ?? null;
 
       if (rawRole === 'seller' || rawRole === 'vendedor') {
@@ -101,6 +103,8 @@ export function LoginForm() {
       }
 
       login(json.user, json.token);
+
+      localStorage.setItem("token", json.token);
 
       const rawRole = json.user.role ?? json.user.rol ?? null;
 

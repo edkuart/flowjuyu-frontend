@@ -19,6 +19,7 @@ import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Textarea } from "@/components/ui/textarea"
 import { Label } from "@/components/ui/label"
+import { useRouter } from "next/navigation"
 
 const API = process.env.NEXT_PUBLIC_API_URL
 
@@ -31,6 +32,7 @@ type EstadoValidacion =
 
 export default function SellerAccountPage() {
   const [loading, setLoading] = useState(true)
+  const router = useRouter()
 
   const [estadoAdmin, setEstadoAdmin] = useState<string | null>(null)
   const [estado, setEstado] = useState<EstadoValidacion>(null)
@@ -465,8 +467,8 @@ export default function SellerAccountPage() {
             placeholder="Describe tu problema..."
           />
 
-          <Button variant="secondary" onClick={handleSoporte}>
-            Contactar soporte
+          <Button onClick={() => router.push("/seller/tickets")}>
+            Gestionar soporte
           </Button>
         </CardContent>
       </Card>
