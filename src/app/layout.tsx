@@ -8,6 +8,7 @@ import { AppSidebar } from "@/components/ui/sidebar/AppSidebar"
 import Header from "@/components/layout/Header"
 import { AuthProvider } from "@/context/AuthContext"
 import { CartProvider } from "@/context/CartContext"
+import { Toaster } from "sonner" // 👈 NUEVO
 
 const inter = Inter({
   subsets: ["latin"],
@@ -51,6 +52,9 @@ export default function RootLayout({
             </CartProvider>
           </ClientProviders>
         </AuthProvider>
+
+        {/* 🔥 Toast global */}
+        <Toaster richColors position="top-right" />
       </body>
     </html>
   )

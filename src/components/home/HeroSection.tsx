@@ -1,4 +1,4 @@
-//src/components/home/HeroSection.tsx
+// src/components/home/HeroSection.tsx
 
 import Image from "next/image";
 import Link from "next/link";
@@ -15,24 +15,31 @@ type Props = {
 
 export default function HeroSection({ trendingProducts }: Props) {
   return (
-    <section className="bg-[#f8f5ef] py-28 px-6 md:px-16">
-      <div className="max-w-7xl mx-auto grid grid-cols-1 lg:grid-cols-2 items-center gap-16">
+    <section className="bg-[#f6f2ea] py-32 px-6 md:px-16">
+      <div className="max-w-7xl mx-auto grid grid-cols-1 lg:grid-cols-2 items-center gap-20">
 
         {/* TEXTO */}
-        <div className="space-y-6 text-center lg:text-left">
-          <h1 className="text-5xl md:text-7xl leading-[1.05] font-semibold tracking-tight text-neutral-900">
-            Descubre la riqueza textil de Guatemala
+        <div className="space-y-8 text-center lg:text-left">
+
+          <h1 className="text-4xl md:text-6xl leading-[1.1] font-medium tracking-tight text-neutral-900">
+            Explora diferentes estilos en un solo mercado
           </h1>
 
-          <p className="text-lg md:text-xl text-neutral-600 max-w-xl leading-relaxed">
-            Compra directamente a vendedores locales y explora diferentes estilos culturales en un solo mercado digital.
+          <p className="text-lg md:text-xl text-neutral-600 max-w-xl leading-relaxed mx-auto lg:mx-0">
+            Vendedores locales reunidos en una plataforma donde puedes descubrir,
+            comparar y comprar con tranquilidad.
           </p>
 
-          <Link href="/productos">
-            <button className="bg-amber-500 hover:bg-amber-600 text-white px-10 py-4 rounded-full text-lg font-medium shadow-md hover:shadow-lg transition-all">
-              Explorar productos
-            </button>
-          </Link>
+          <div>
+            <Link href="/productos">
+              <button className="bg-amber-500 hover:bg-amber-600 text-white px-10 py-4 rounded-full text-lg font-medium transition-all shadow-sm hover:shadow-md">
+                Explorar catálogo
+              </button>
+            </Link>
+          </div>
+
+          {/* Micro detalle cultural sutil */}
+          <div className="h-[2px] w-16 bg-rose-700 mx-auto lg:mx-0 rounded-full" />
         </div>
 
         {/* IMÁGENES */}
@@ -40,7 +47,8 @@ export default function HeroSection({ trendingProducts }: Props) {
 
           {trendingProducts.length >= 3 && (
             <>
-              <div className="rounded-3xl overflow-hidden shadow-2xl w-[420px] h-[420px]">
+              {/* Imagen principal */}
+              <div className="rounded-3xl overflow-hidden shadow-lg w-[420px] h-[420px]">
                 <Image
                   src={trendingProducts[0].imagen_url || "/images/productos/default.jpg"}
                   alt={trendingProducts[0].nombre}
@@ -50,7 +58,8 @@ export default function HeroSection({ trendingProducts }: Props) {
                 />
               </div>
 
-              <div className="absolute -top-12 -right-8 w-[180px] h-[180px] rounded-3xl overflow-hidden shadow-xl">
+              {/* Imagen superior */}
+              <div className="absolute -top-10 -right-6 w-[180px] h-[180px] rounded-3xl overflow-hidden shadow-md">
                 <Image
                   src={trendingProducts[1].imagen_url || "/images/productos/default.jpg"}
                   alt={trendingProducts[1].nombre}
@@ -60,7 +69,8 @@ export default function HeroSection({ trendingProducts }: Props) {
                 />
               </div>
 
-              <div className="absolute -bottom-16 left-14 w-[240px] h-[240px] rounded-3xl overflow-hidden shadow-xl">
+              {/* Imagen inferior */}
+              <div className="absolute -bottom-14 left-12 w-[240px] h-[240px] rounded-3xl overflow-hidden shadow-md">
                 <Image
                   src={trendingProducts[2].imagen_url || "/images/productos/default.jpg"}
                   alt={trendingProducts[2].nombre}
@@ -71,8 +81,8 @@ export default function HeroSection({ trendingProducts }: Props) {
               </div>
             </>
           )}
-
         </div>
+
       </div>
     </section>
   );
