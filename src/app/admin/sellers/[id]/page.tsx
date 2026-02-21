@@ -7,6 +7,7 @@ import { Button } from "@/components/ui/button"
 import { authFetch } from "@/lib/authFetch"
 import { toast } from "sonner"
 import { Loader2 } from "lucide-react"
+import SellerKYCPanel from "@/components/admin/SellerKYCPanel"
 
 const API_URL = "http://localhost:8800"
 
@@ -27,10 +28,20 @@ interface SellerDetail {
   estado_admin: string
   observaciones: string | null
   createdAt: string
+
+  dpi: string | null
+  foto_dpi_frente: string | null
+  foto_dpi_reverso: string | null
+  selfie_con_dpi: string | null
+  logo: string | null
+  departamento: string | null
+  municipio: string | null
+
   user: {
     nombre: string
     correo: string
   }
+
   audit_log: AuditEvent[]
 }
 
@@ -190,6 +201,71 @@ export default function AdminSellerDetailPage() {
           </div>
         </div>
       </div>
+
+      {/* ================= DOCUMENTOS KYC ================= */}
+      <div className="bg-white p-6 rounded-xl border space-y-6">
+        <div>
+          <h3 className="text-base font-semibold tracking-tight">
+            Documentos KYC
+          </h3>
+          <p className="text-sm text-gray-500 mt-1">
+            Información legal y verificación de identidad del vendedor.
+          </p>
+        </div>
+
+        <div className="grid md:grid-cols-2 gap-6 text-sm">
+
+          <div>
+            <p className="text-gray-500">DPI</p>
+            <p className="mt-1 font-medium">
+              {seller.dpi || "No proporcionado"}
+            </p>
+          </div>
+
+          <div>
+            <p className="text-gray-500">Ubicación</p>
+            <p className="mt-1">
+              {seller.departamento || "—"} / {seller.municipio || "—"}
+            </p>
+          </div>
+
+        </div>
+
+        {/* IMÁGENES */}
+        <div className="grid md:grid-cols-2 lg:grid-cols-4 gap-6">
+
+          {[
+            { label: "Logo", url: seller.logo },
+            { label: "DPI Frente", url: seller.foto_dpi_frente },
+            { label: "DPI Reverso", url: seller.foto_dpi_reverso },
+            { label: "Selfie con DPI", url: seller.selfie_con_dpi },
+          ].map((doc) => (
+            <div key={doc.label} className="space-y-2">
+              <p className="text-xs text-gray-500">{doc.label}</p>
+
+              {doc.url ? (
+                <a href={doc.url} target="_blank" rel="noopener noreferrer">
+                  <img
+                    src={doc.url}
+                    alt={doc.label}
+                    className="w-full h-40 object-cover rounded-lg border hover:opacity-90 transition"
+                  />
+                </a>
+              ) : (
+                <div className="w-full h-40 flex items-center justify-center bg-gray-100 text-xs text-gray-400 rounded-lg border">
+                  No disponible
+                </div>
+              )}
+            </div>
+          ))}
+
+        </div>
+      </div>
+
+      {/* ================= PANEL KYC REVIEW ================= */}
+      <SellerKYCPanel
+        sellerId={seller.user_id}
+      />
 
       {/* ================= GOBERNANZA ================= */}
       <div className="bg-white p-6 rounded-xl border space-y-4">
