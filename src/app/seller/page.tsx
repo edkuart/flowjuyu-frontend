@@ -1,10 +1,20 @@
-import { redirect } from "next/navigation"
-import AuthGuard from "@/components/auth/AuthGuard"
+"use client";
+
+import { useEffect } from "react";
+import { useRouter } from "next/navigation";
+import { useAuth } from "@/context/AuthContext";
 
 export default function SellerPage() {
-  return (
-    <AuthGuard allowedRoles={["vendedor"]}>
-      {redirect("/seller/my-business")}
-    </AuthGuard>
-  )
+  const router = useRouter();
+  const { ready, user } = useAuth();
+
+  useEffect(() => {
+    if (!ready) return;
+
+    if (user?.rol === "seller") {
+      router.replace("/seller/my-business");
+    }
+  }, [ready, user, router]);
+
+  return null;
 }

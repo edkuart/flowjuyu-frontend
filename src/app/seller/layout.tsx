@@ -9,9 +9,15 @@ import {
   ShoppingCart,
   BarChart3,
   Shield,
+  Menu,
 } from "lucide-react";
 
 import AuthGuard from "@/components/auth/AuthGuard";
+import {
+  Sheet,
+  SheetContent,
+  SheetTrigger,
+} from "@/components/ui/sheet";
 
 const navItems = [
   { label: "Mi tienda", icon: Home, href: "/seller/my-business" },
@@ -29,13 +35,12 @@ export default function SellerLayout({
   const pathname = usePathname();
 
   return (
-    <AuthGuard allowedRoles={["vendedor"]}>
+    <AuthGuard allowedRoles={["seller"]}>
       <div className="min-h-screen flex bg-[#f8f5ef]">
 
-        {/* SIDEBAR */}
+        {/* SIDEBAR DESKTOP */}
         <aside className="w-64 bg-white/90 backdrop-blur border-r border-neutral-200 shadow-sm hidden md:flex flex-col">
 
-          {/* HEADER */}
           <div className="p-6 border-b border-neutral-100">
             <h2 className="text-lg font-semibold text-neutral-900 tracking-tight">
               Flowjuyu
@@ -45,7 +50,6 @@ export default function SellerLayout({
             </p>
           </div>
 
-          {/* NAV */}
           <nav className="flex-1 p-4 space-y-1">
             {navItems.map(({ label, icon: Icon, href }) => {
               const isActive = pathname === href;
@@ -54,14 +58,12 @@ export default function SellerLayout({
                 <Link
                   key={href}
                   href={href}
-                  className={`
-                    flex items-center gap-3 text-sm font-medium px-3 py-2 rounded-xl transition-all
+                  className={`flex items-center gap-3 text-sm font-medium px-3 py-2 rounded-xl transition-all
                     ${
                       isActive
                         ? "bg-amber-100 text-amber-700 shadow-sm"
                         : "text-neutral-600 hover:text-neutral-900 hover:bg-neutral-100"
-                    }
-                  `}
+                    }`}
                 >
                   <Icon className="w-4 h-4" />
                   {label}
@@ -70,7 +72,6 @@ export default function SellerLayout({
             })}
           </nav>
 
-          {/* FOOTER */}
           <div className="p-4 border-t border-neutral-100 text-xs text-neutral-400">
             Flowjuyu © {new Date().getFullYear()}
           </div>
@@ -78,6 +79,46 @@ export default function SellerLayout({
 
         {/* CONTENIDO */}
         <main className="flex-1 p-6 md:p-10">
+
+          {/* 🔥 MOBILE HEADER */}
+          <div className="md:hidden mb-6 flex items-center justify-between">
+
+            <h2 className="text-lg font-semibold">Panel vendedor</h2>
+
+            <Sheet>
+              <SheetTrigger asChild>
+                <button className="p-2 rounded-lg hover:bg-neutral-200 transition">
+                  <Menu className="w-6 h-6" />
+                </button>
+              </SheetTrigger>
+
+              <SheetContent side="left" className="w-72">
+                <div className="mt-8 space-y-2">
+                  {navItems.map(({ label, icon: Icon, href }) => {
+                    const isActive = pathname === href;
+
+                    return (
+                      <Link
+                        key={href}
+                        href={href}
+                        className={`flex items-center gap-3 text-sm font-medium px-3 py-2 rounded-xl transition-all
+                          ${
+                            isActive
+                              ? "bg-amber-100 text-amber-700"
+                              : "text-neutral-600 hover:text-neutral-900 hover:bg-neutral-100"
+                          }`}
+                      >
+                        <Icon className="w-4 h-4" />
+                        {label}
+                      </Link>
+                    );
+                  })}
+                </div>
+              </SheetContent>
+            </Sheet>
+
+          </div>
+
           <div className="max-w-6xl mx-auto">
             {children}
           </div>

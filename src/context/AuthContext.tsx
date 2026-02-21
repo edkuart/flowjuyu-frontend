@@ -9,60 +9,40 @@ import {
 } from "react";
 import { useRouter } from "next/navigation";
 
-/* ===========================
-   Roles
-=========================== */
-export type Rol =
-  | "comprador"
+/* ===================================================
+   🎯 ROLES (UNIFICADOS CON BACKEND)
+=================================================== */
+
+export type Role =
   | "buyer"
-  | "vendedor"
   | "seller"
   | "admin"
-  | "soporte"
   | "support";
 
-export type RolNormalized = "comprador" | "vendedor" | "admin" | "soporte";
+/* ===================================================
+   👤 USER TYPES
+=================================================== */
 
-export function normalizeRole(rol?: string): RolNormalized | undefined {
-  if (!rol) return undefined;
-
-  const r = rol.toLowerCase().trim();
-
-  if (r === "buyer") return "comprador";
-  if (r === "seller") return "vendedor";
-  if (r === "support") return "soporte";
-
-  if (r === "comprador") return "comprador";
-  if (r === "vendedor") return "vendedor";
-  if (r === "admin") return "admin";
-  if (r === "soporte") return "soporte";
-
-  return undefined;
-}
-
-/* ===========================
-   User types
-=========================== */
 export interface User {
   id: string;
   nombre: string;
   correo?: string;
-  rol: RolNormalized; // siempre normalizado
+  rol: Role;
   [key: string]: any;
 }
 
-// Usuario crudo que viene del backend
 type RawUser = {
   id: string;
   nombre: string;
   correo?: string;
-  rol?: string;
+  rol: Role;
   [key: string]: any;
 };
 
-/* ===========================
-   Context
-=========================== */
+/* ===================================================
+   🧠 CONTEXT
+=================================================== */
+
 interface AuthContextProps {
   user: User | null;
   token: string | null;
@@ -72,13 +52,12 @@ interface AuthContextProps {
   logout: () => void;
 }
 
-const AuthContext = createContext<AuthContextProps | undefined>(
-  undefined
-);
+const AuthContext = createContext<AuthContextProps | undefined>(undefined);
 
-/* ===========================
-   Provider
-=========================== */
+/* ===================================================
+   🚀 PROVIDER
+=================================================== */
+
 export function AuthProvider({ children }: { children: ReactNode }) {
   const router = useRouter();
 
@@ -86,9 +65,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const [token, setToken] = useState<string | null>(null);
   const [ready, setReady] = useState(false);
 
-  // ===========================
-  // Restaurar sesión
-  // ===========================
+  // 🔁 Restaurar sesión
   useEffect(() => {
     try {
       const storedUser = localStorage.getItem("user");
@@ -96,17 +73,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
       if (storedUser && storedToken) {
         const parsed: RawUser = JSON.parse(storedUser);
-        const rolNorm = normalizeRole(parsed?.rol);
-
-        if (!rolNorm) {
-          localStorage.removeItem("user");
-          localStorage.removeItem("token");
-          setUser(null);
-          setToken(null);
-        } else {
-          setUser({ ...parsed, rol: rolNorm });
-          setToken(storedToken);
-        }
+        setUser(parsed);
+        setToken(storedToken);
       }
     } catch (error) {
       console.error("Error restaurando sesión:", error);
@@ -117,29 +85,16 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     }
   }, []);
 
-  // ===========================
-  // Login
-  // ===========================
-  const login = (u: RawUser, t: string) => {
-    const rolNorm = normalizeRole(u?.rol);
-    if (!rolNorm) {
-      throw new Error(`Rol inválido recibido: ${u?.rol}`);
-    }
+  // 🔐 Login
+  const login = (user: RawUser, token: string) => {
+    setUser(user);
+    setToken(token);
 
-    const userToStore: User = {
-      ...u,
-      rol: rolNorm,
-    };
-
-    setUser(userToStore);
-    setToken(t);
-    localStorage.setItem("user", JSON.stringify(userToStore));
-    localStorage.setItem("token", t);
+    localStorage.setItem("user", JSON.stringify(user));
+    localStorage.setItem("token", token);
   };
 
-  // ===========================
-  // Logout
-  // ===========================
+  // 🚪 Logout
   const logout = () => {
     setUser(null);
     setToken(null);
@@ -164,13 +119,16 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   );
 }
 
-/* ===========================
-   Hook
-=========================== */
-export function useAuth() {
+/* ===================================================
+   🪝 HOOK
+=================================================== */
+
+export const useAuth = () => {
   const ctx = useContext(AuthContext);
+
   if (!ctx) {
     throw new Error("useAuth debe usarse dentro de AuthProvider");
   }
+
   return ctx;
-}
+};

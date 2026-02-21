@@ -82,7 +82,7 @@ export async function getHomeData(): Promise<{
     fetchJSON<Categoria>("/api/categorias"),
     fetchJSON<TrendingProducto>("/api/products/trending"),
     fetchJSON<Producto>("/api/productos/nuevos"),
-    fetchJSON<Tienda>("/api/vendedores/destacados"),
+    fetchJSON<Tienda>("/api/seller/sellers/top"),
   ]);
 
   return {

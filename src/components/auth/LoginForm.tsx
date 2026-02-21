@@ -11,10 +11,6 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 
-// 🔹 Firebase Google Login
-import { auth } from '@/lib/firebase';
-import { GoogleAuthProvider, signInWithPopup } from 'firebase/auth';
-
 const API_URL =
   process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8800';
 
@@ -31,7 +27,6 @@ export function LoginForm() {
   });
 
   const [loginError, setLoginError] = useState<string | null>(null);
-  const [googleLoading, setGoogleLoading] = useState(false);
 
   // ===========================
   // Login normal
@@ -51,14 +46,15 @@ export function LoginForm() {
 
       const json = await res.json();
 
+      console.log("ROL BACKEND:", json.user?.rol);
+
       if (!res.ok || !json.token || !json.user) {
         setLoginError(json.message || 'Credenciales incorrectas');
         return;
       }
 
       login(json.user, json.token);
-
-      localStorage.setItem("token", json.token);
+      localStorage.setItem('token', json.token);
 
       const rawRole = json.user.role ?? json.user.rol ?? null;
 
@@ -76,77 +72,38 @@ export function LoginForm() {
   };
 
   // ===========================
-  // Google Login
+  // Google (placeholder)
   // ===========================
   const handleGoogleLogin = async () => {
-    setLoginError(null);
-    setGoogleLoading(true);
-
-    try {
-      const provider = new GoogleAuthProvider();
-      const result = await signInWithPopup(auth, provider);
-      const { email, displayName } = result.user;
-
-      const response = await fetch(`${API_URL}/api/login/google`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ email, nombre: displayName }),
-      });
-
-      const json = await response.json();
-
-      if (!response.ok || !json.token || !json.user) {
-        setLoginError(
-          json.message || 'No se pudo iniciar sesión con Google.'
-        );
-        return;
-      }
-
-      login(json.user, json.token);
-
-      localStorage.setItem("token", json.token);
-
-      const rawRole = json.user.role ?? json.user.rol ?? null;
-
-      if (rawRole === 'seller' || rawRole === 'vendedor') {
-        router.push('/seller/dashboard');
-      } else if (rawRole === 'admin') {
-        router.push('/admin/dashboard');
-      } else {
-        router.push('/');
-      }
-    } catch (error: any) {
-      setLoginError(
-        'Error con Google: ' + (error?.message || error)
-      );
-    } finally {
-      setGoogleLoading(false);
-    }
+    // Por ahora solo placeholder
+    alert('Google login próximamente disponible');
   };
 
   return (
     <form
       onSubmit={handleSubmit(onSubmit)}
-      className="flex flex-col gap-6 w-full"
+      className="flex flex-col gap-7 w-full"
     >
       {/* HEADER */}
       <div className="space-y-1">
-        <h2 className="text-xl font-semibold text-neutral-900">
+        <h2 className="text-2xl font-semibold text-neutral-900 tracking-tight">
           Inicia sesión
         </h2>
         <p className="text-sm text-neutral-500">
-          Ingresa tus credenciales para continuar
+          Accede a tu cuenta Flowjuyu
         </p>
       </div>
 
       {/* EMAIL */}
       <div className="space-y-2">
-        <Label htmlFor="email">Correo electrónico</Label>
+        <Label htmlFor="email" className="text-sm text-neutral-700">
+          Correo electrónico
+        </Label>
         <Input
           id="email"
           type="email"
           placeholder="correo@ejemplo.com"
-          className="h-11 rounded-xl"
+          className="h-11 rounded-xl border-neutral-200 focus-visible:ring-2 focus-visible:ring-[#0F3D3A] focus-visible:ring-offset-0 transition-all"
           {...register('email')}
         />
         {errors.email && (
@@ -159,10 +116,12 @@ export function LoginForm() {
       {/* PASSWORD */}
       <div className="space-y-2">
         <div className="flex items-center justify-between">
-          <Label htmlFor="password">Contraseña</Label>
+          <Label htmlFor="password" className="text-sm text-neutral-700">
+            Contraseña
+          </Label>
           <a
             href="/recuperar-password"
-            className="text-xs text-neutral-500 hover:text-neutral-900 transition"
+            className="text-xs text-neutral-500 hover:text-[#0F3D3A] transition"
           >
             ¿Olvidaste tu contraseña?
           </a>
@@ -171,7 +130,7 @@ export function LoginForm() {
         <Input
           id="password"
           type="password"
-          className="h-11 rounded-xl"
+          className="h-11 rounded-xl border-neutral-200 focus-visible:ring-2 focus-visible:ring-[#0F3D3A] focus-visible:ring-offset-0 transition-all"
           {...register('password')}
         />
 
@@ -193,35 +152,32 @@ export function LoginForm() {
       <Button
         type="submit"
         disabled={isSubmitting}
-        className="h-11 rounded-xl bg-neutral-900 hover:bg-black text-white font-medium tracking-wide transition-all duration-200"
+        className="h-11 rounded-xl bg-[#0F3D3A] hover:bg-[#0c322f] text-white font-medium tracking-wide transition-all duration-200 shadow-sm hover:shadow-md"
       >
         {isSubmitting ? 'Ingresando...' : 'Iniciar sesión'}
       </Button>
 
       {/* DIVIDER */}
       <div className="relative text-center text-xs text-neutral-400 my-2">
-        <span className="bg-white px-2 relative z-10">
+        <span className="bg-white px-3 relative z-10">
           O continúa con
         </span>
-        <div className="absolute left-0 right-0 top-1/2 border-t border-neutral-200 -z-10" />
+        <div className="absolute left-0 right-0 top-1/2 border-t border-neutral-200" />
       </div>
 
       {/* GOOGLE BUTTON */}
       <Button
         type="button"
         variant="outline"
-        className="h-11 rounded-xl flex items-center justify-center gap-2"
+        className="h-11 rounded-xl flex items-center justify-center gap-2 border-neutral-200 hover:bg-neutral-50 transition"
         onClick={handleGoogleLogin}
-        disabled={googleLoading}
       >
         <img
           src="/icons/google.svg"
           alt="Google"
           className="w-4 h-4"
         />
-        {googleLoading
-          ? 'Conectando con Google...'
-          : 'Iniciar sesión con Google'}
+        Iniciar sesión con Google
       </Button>
     </form>
   );

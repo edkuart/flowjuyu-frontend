@@ -1,11 +1,7 @@
-// src/app/(auth)/register/page.tsx
+// src/app/(auth)/register/buyer/page.tsx
 
-import RegisterCompradorForm from "@/features/auth/RegisterCompradorForm"
+import RegisterForm from "@/features/auth/RegisterCompradorForm";
 
 export default function RegisterPage() {
-  return (
-    <main className="flex min-h-screen items-center justify-center p-6 bg-background">
-      <RegisterCompradorForm />
-    </main>
-  )
+  return <RegisterForm />;
 }

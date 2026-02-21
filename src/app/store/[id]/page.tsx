@@ -4,49 +4,34 @@ import StoreClient from "./StoreClient";
 
 const API = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8800";
 
-type Producto = {
-  id: string;
-  nombre: string;
-  precio: number | string;
-  imagen_url?: string | null;
-};
-
-type Seller = {
-  id: number;
-  nombre_comercio: string;
-  descripcion?: string;
-  logo?: string | null;
-  departamento?: string;
-  municipio?: string;
-  rating_avg?: number | null;
-  rating_count?: number | null;
-};
-
 async function fetchStore(id: string) {
+  if (!id) return null;
+
   const res = await fetch(`${API}/api/public/seller/${id}`, {
     cache: "no-store",
   });
 
   if (!res.ok) return null;
 
-  const json = await res.json();
-
-  return {
-    seller: json.seller as Seller,
-    initialProducts: json.products as Producto[],
-  };
+  return await res.json();
 }
 
 export default async function StorePage({
   params,
-  searchParams,
 }: {
   params: { id: string };
-  searchParams?: { preview?: string };
 }) {
-  const preview = searchParams?.preview === "true";
+  const id = String(params?.id ?? "");
 
-  const data = await fetchStore(params.id);
+  if (!id) {
+    return (
+      <div className="container mx-auto py-20 text-center">
+        ID inválido
+      </div>
+    );
+  }
+
+  const data = await fetchStore(id);
 
   if (!data) {
     return (
@@ -59,8 +44,8 @@ export default async function StorePage({
   return (
     <StoreClient
       seller={data.seller}
-      initialProducts={data.initialProducts}
-      previewMode={preview}
+      initialProducts={data.products}
+      previewMode={false}
     />
   );
 }
