@@ -1,5 +1,7 @@
 "use client";
 
+// 1. Agregamos la importación de Image de Next.js
+import Image from "next/image";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useRouter } from "next/navigation";
@@ -17,6 +19,7 @@ import { useAuth } from "@/context/AuthContext";
 import { auth } from "@/lib/firebase";
 import { GoogleAuthProvider, signInWithPopup } from "firebase/auth";
 import { useState } from "react";
+import Link from "next/link";
 
 export function RegisterForm({ className, ...props }: React.ComponentProps<"div">) {
   const router = useRouter();
@@ -72,7 +75,6 @@ export function RegisterForm({ className, ...props }: React.ComponentProps<"div"
       const result = await signInWithPopup(auth, provider);
       const { email, displayName } = result.user;
 
-      // Cambia el endpoint por el que uses realmente en tu backend
       const response = await fetch("http://localhost:8800/api/login/google", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -108,84 +110,135 @@ export function RegisterForm({ className, ...props }: React.ComponentProps<"div"
 
   return (
     <div
-      className={cn("flex flex-col gap-6 items-center justify-center", className)}
+      className={cn("flex flex-col items-center justify-center min-h-[calc(100vh-100px)] px-4 py-12 bg-gray-50/50", className)}
       {...props}
     >
-      <form
-        onSubmit={handleSubmit(onSubmit)}
-        className="space-y-6 w-full max-w-screen-md"
-      >
-        <header className="flex flex-col items-center gap-2">
-          <GalleryVerticalEnd className="size-8 text-primary" />
-          <h1 className="text-2xl font-bold">Crea tu cuenta</h1>
-          <p className="text-sm text-muted-foreground">
+      <div className="w-full max-w-2xl bg-white border border-gray-100 rounded-2xl shadow-sm p-6 sm:p-10">
+        
+        <header className="flex flex-col items-center gap-3 mb-8">
+          <div className="bg-orange-50 p-3 rounded-2xl">
+            <GalleryVerticalEnd className="size-8 text-orange-500" />
+          </div>
+          <h1 className="text-3xl font-bold tracking-tight text-gray-900">Crea tu cuenta</h1>
+          <p className="text-sm text-gray-500">
             ¿Ya tienes cuenta?{" "}
-            <a href="/login" className="underline underline-offset-4">
+            <Link 
+              href="/login" 
+              className="font-medium text-orange-500 hover:text-orange-600 transition-colors"
+            >
               Inicia sesión
-            </a>
+            </Link>
           </p>
         </header>
 
-        {/* Campos */}
-        <div className="grid md:grid-cols-2 gap-4">
-          <div className="space-y-2">
-            <Label htmlFor="nombre">Nombre</Label>
-            <Input id="nombre" {...register("nombre")} />
-            {errors.nombre && <p className="text-sm text-red-500">{errors.nombre.message}</p>}
+        <form onSubmit={handleSubmit(onSubmit)} className="space-y-6">
+          <div className="grid sm:grid-cols-2 gap-5">
+            <div className="space-y-2">
+              <Label htmlFor="nombre" className="text-gray-700 font-medium">Nombre</Label>
+              <Input 
+                id="nombre" 
+                className="rounded-xl border-gray-200 focus-visible:ring-orange-500" 
+                {...register("nombre")} 
+              />
+              {errors.nombre && <p className="text-sm text-red-500">{errors.nombre.message}</p>}
+            </div>
+            
+            <div className="space-y-2">
+              <Label htmlFor="email" className="text-gray-700 font-medium">Correo electrónico</Label>
+              <Input 
+                id="email" 
+                type="email" 
+                className="rounded-xl border-gray-200 focus-visible:ring-orange-500" 
+                {...register("email")} 
+              />
+              {errors.email && <p className="text-sm text-red-500">{errors.email.message}</p>}
+            </div>
+            
+            <div className="space-y-2">
+              <Label htmlFor="password" className="text-gray-700 font-medium">Contraseña</Label>
+              <Input 
+                id="password" 
+                type="password" 
+                className="rounded-xl border-gray-200 focus-visible:ring-orange-500" 
+                {...register("password")} 
+              />
+              {errors.password && <p className="text-sm text-red-500">{errors.password.message}</p>}
+            </div>
+            
+            <div className="space-y-2">
+              <Label htmlFor="confirmarPassword" className="text-gray-700 font-medium">Confirmar contraseña</Label>
+              <Input 
+                id="confirmarPassword" 
+                type="password" 
+                className="rounded-xl border-gray-200 focus-visible:ring-orange-500" 
+                {...register("confirmarPassword")} 
+              />
+              {errors.confirmarPassword && (
+                <p className="text-sm text-red-500">{errors.confirmarPassword.message}</p>
+              )}
+            </div>
+            
+            <div className="space-y-2">
+              <Label htmlFor="telefono" className="text-gray-700 font-medium">Teléfono (opcional)</Label>
+              <Input 
+                id="telefono" 
+                className="rounded-xl border-gray-200 focus-visible:ring-orange-500" 
+                {...register("telefono")} 
+              />
+            </div>
+            
+            <div className="space-y-2">
+              <Label htmlFor="direccion" className="text-gray-700 font-medium">Dirección (opcional)</Label>
+              <Input 
+                id="direccion" 
+                className="rounded-xl border-gray-200 focus-visible:ring-orange-500" 
+                {...register("direccion")} 
+              />
+            </div>
           </div>
-          <div className="space-y-2">
-            <Label htmlFor="email">Correo electrónico</Label>
-            <Input id="email" type="email" {...register("email")} />
-            {errors.email && <p className="text-sm text-red-500">{errors.email.message}</p>}
+
+          {errors.root && (
+            <div className="p-3 text-sm text-center text-red-600 bg-red-50 rounded-lg">
+              {errors.root.message}
+            </div>
+          )}
+
+          <Button 
+            type="submit" 
+            disabled={isSubmitting} 
+            className="w-full py-6 text-base font-semibold rounded-xl bg-orange-500 hover:bg-orange-600 text-white transition-colors"
+          >
+            {isSubmitting ? "Creando cuenta..." : "Registrarse"}
+          </Button>
+        </form>
+
+        <div className="relative my-8">
+          <div className="absolute inset-0 flex items-center">
+            <span className="w-full border-t border-gray-200" />
           </div>
-          <div className="space-y-2">
-            <Label htmlFor="password">Contraseña</Label>
-            <Input id="password" type="password" {...register("password")} />
-            {errors.password && <p className="text-sm text-red-500">{errors.password.message}</p>}
-          </div>
-          <div className="space-y-2">
-            <Label htmlFor="confirmarPassword">Confirmar contraseña</Label>
-            <Input id="confirmarPassword" type="password" {...register("confirmarPassword")} />
-            {errors.confirmarPassword && (
-              <p className="text-sm text-red-500">{errors.confirmarPassword.message}</p>
-            )}
-          </div>
-          <div className="space-y-2">
-            <Label htmlFor="telefono">Teléfono (opcional)</Label>
-            <Input id="telefono" {...register("telefono")} />
-          </div>
-          <div className="space-y-2">
-            <Label htmlFor="direccion">Dirección (opcional)</Label>
-            <Input id="direccion" {...register("direccion")} />
+          <div className="relative flex justify-center text-xs uppercase">
+            <span className="bg-white px-4 text-gray-500 font-medium">O continúa con</span>
           </div>
         </div>
 
-        {errors.root && <p className="text-sm text-center text-red-600">{errors.root.message}</p>}
-
-        <Button type="submit" disabled={isSubmitting} className="w-full">
-          {isSubmitting ? "Creando cuenta..." : "Registrarse"}
-        </Button>
-      </form>
-
-      {/* Separador y botón de Google */}
-      <div className="w-full max-w-screen-md flex flex-col gap-2 mt-6">
-        <div className="relative text-center text-xs text-muted-foreground my-2">
-          <span className="bg-background px-2 z-10 relative">O usa</span>
-          <div className="absolute left-0 right-0 top-1/2 border-t border-muted-foreground opacity-30 -z-10"></div>
-        </div>
         <Button
           type="button"
           variant="outline"
-          className="w-full flex items-center justify-center"
+          className="w-full py-6 text-base font-medium rounded-xl border-gray-200 hover:bg-gray-50 text-gray-700 transition-colors"
           onClick={handleGoogleSignup}
           disabled={googleLoading}
         >
-          <img
+          {
+                
+          }
+          <Image
             src="/icons/google.svg"
             alt="Google"
-            className="w-5 h-5 mr-2"
+            width={20} 
+            height={20} 
+            className="mr-3"
           />
-          {googleLoading ? "Conectando con Google..." : "Registrarse / Iniciar sesión con Google"}
+          {googleLoading ? "Conectando..." : "Google"}
         </Button>
       </div>
     </div>

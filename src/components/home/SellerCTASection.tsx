@@ -20,7 +20,8 @@ export default function SellerCTASection() {
           Publica tus productos y forma parte del mercado digital guatemalteco.
         </p>
 
-        <Link href="/registro?vendedor=1">
+        {}
+        <Link href="/register/seller">
           <button className="bg-amber-500 hover:bg-amber-600 text-white font-semibold px-10 py-4 rounded-full text-lg shadow-md hover:shadow-lg hover:-translate-y-1 transition-all duration-300">
             Crear mi tienda
           </button>
