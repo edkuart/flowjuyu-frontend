@@ -19,8 +19,7 @@ export default function BuyerNotificationsPage() {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    // Simulación temporal 
-    const fake = [
+    const fake: Notificacion[] = [
       {
         id: "1",
         tipo: "pedido",

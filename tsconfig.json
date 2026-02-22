@@ -5,7 +5,12 @@
     "types": ["next-auth"],
     "allowJs": true,
     "skipLibCheck": true,
-    "baseUrl": ".",                     // ✅ Base para alias
+
+    "baseUrl": ".",
+    "paths": {
+      "@/*": ["src/*"]
+    },
+
     "strict": true,
     "noEmit": true,
     "esModuleInterop": true,
@@ -15,21 +20,24 @@
     "isolatedModules": true,
     "jsx": "preserve",
     "incremental": true,
+
     "plugins": [
       {
         "name": "next"
       }
-    ],
-    "paths": {
-      "@/*": ["src/*"]                  // ✅ Alias para imports
-    }
+    ]
   },
+
   "include": [
     "next-env.d.ts",
     "**/*.ts",
     "**/*.tsx",
-    ".next/types/**/*.ts",
-    "src/types/**/*.d.ts"
-, "src/app/buyer/orders"  ],
-  "exclude": ["node_modules"]
+    ".next/types/**/*.ts"
+  ],
+
+  "exclude": [
+    "node_modules",
+    "src/tests",
+    "tests"
+  ]
 }
