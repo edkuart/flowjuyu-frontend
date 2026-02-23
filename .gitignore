@@ -44,3 +44,4 @@ next-env.d.ts
 AllCode.txt
 
 AllCode.txt
+.env*.local

@@ -19,6 +19,7 @@ import { SidebarTrigger } from "@/components/ui/sidebar/SidebarTrigger";
 import { useAuth } from "@/context/AuthContext";
 import { useCart } from "@/context/CartContext";
 import SearchBar from "@/components/ui/SearchBar";
+import SellerTopbar from "@/components/seller/SellerTopbar";
 
 export default function Header() {
   const { user, logout } = useAuth();
