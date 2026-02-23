@@ -18,7 +18,7 @@ export async function apiRegisterComprador(data: {
         nombre: data.nombre,
         correo: data.email,
         contraseña: data.password,
-        rol: "comprador",
+        rol: "buyer",
         telefono: data.telefono?.trim() || null,
         direccion: data.direccion?.trim() || null,
       }),

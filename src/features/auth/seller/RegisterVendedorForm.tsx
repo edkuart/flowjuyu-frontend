@@ -1,3 +1,5 @@
+//src/features/auth/seller/RegisterVendedorForm.tsx
+
 "use client"
 
 import { useCallback, useState } from "react"
@@ -90,14 +92,31 @@ export default function RegisterVendedorForm() {
   const onSubmit = useCallback(
     async (data: RegisterVendedorValues) => {
       const form = new FormData()
-      Object.entries(data).forEach(([k, v]) => form.append(k, v as any))
 
+      // 🔥 Agregar solo campos de texto manualmente
+      form.append("nombre", data.nombre)
+      form.append("correo", data.correo)
+      form.append("telefono", data.telefono)
+      form.append("password", data.password)
+      form.append("dpi", data.dpi)
+      form.append("nombreComercio", data.nombreComercio)
+      form.append("direccion", data.direccion)
+      form.append("telefonoComercio", data.telefonoComercio)
+      form.append("departamento", data.departamento)
+      form.append("municipio", data.municipio)
+      form.append("descripcion", data.descripcion)
+
+      // 🔥 Archivos en snake_case
       if (files.logo) form.append("logo", files.logo)
-      if (files.fotoDPIFrente) form.append("fotoDPIFrente", files.fotoDPIFrente)
-      if (files.fotoDPIReverso) form.append("fotoDPIReverso", files.fotoDPIReverso)
-      if (files.selfieConDPI) form.append("selfieConDPI", files.selfieConDPI)
+      if (files.fotoDPIFrente)
+        form.append("foto_dpi_frente", files.fotoDPIFrente)
+      if (files.fotoDPIReverso)
+        form.append("foto_dpi_reverso", files.fotoDPIReverso)
+      if (files.selfieConDPI)
+        form.append("selfie_con_dpi", files.selfieConDPI)
 
       const res = await apiRegisterSeller(form)
+
       if (res.ok) router.push("/login")
     },
     [router, files]
