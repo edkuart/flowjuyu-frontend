@@ -1,6 +1,6 @@
 // src/services/sellerDashboard.ts
 
-import { apiFetch } from '@/lib/api'
+import { apiFetch } from "@/lib/api"
 
 /* ===========================
    Tipos
@@ -35,13 +35,12 @@ export type SellerDashboardResponse = {
 =========================== */
 
 export async function fetchSellerDashboard(): Promise<SellerDashboardResponse> {
-  const base =
-    process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8800'
+  const API = process.env.NEXT_PUBLIC_API_URL!
 
-  const res = await apiFetch(`${base}/api/seller/dashboard`)
+  const res = await apiFetch(`${API}/api/seller/dashboard`)
 
   if (!res.ok) {
-    throw new Error('No se pudo cargar el dashboard')
+    throw new Error("No se pudo cargar el dashboard")
   }
 
   const data = await res.json()

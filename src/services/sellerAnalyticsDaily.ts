@@ -1,4 +1,4 @@
-const API = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8800"
+const API = process.env.NEXT_PUBLIC_API_URL!
 
 export async function fetchSellerAnalyticsDaily(token: string) {
   const res = await fetch(`${API}/api/seller/analytics/daily`, {

@@ -1,7 +1,7 @@
 // src/services/sellerAnalytics.ts
 
 const API =
-  process.env.NEXT_PUBLIC_API_URL || "http://localhost:8800";
+  process.env.NEXT_PUBLIC_API_URL!;
 
 /* ======================================================
    📊 Tipos

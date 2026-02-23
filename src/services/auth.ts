@@ -1,15 +1,20 @@
 //src/services/auth.ts
 
+const API = process.env.NEXT_PUBLIC_API_URL!
+
+// =====================
+// Registro de comprador
+// =====================
 export async function apiRegisterComprador(data: {
-  nombre: string;
-  email: string;
-  password: string;
-  confirmarPassword?: string;
-  telefono?: string;
-  direccion?: string;
+  nombre: string
+  email: string
+  password: string
+  confirmarPassword?: string
+  telefono?: string
+  direccion?: string
 }) {
   try {
-    const res = await fetch("http://localhost:8800/api/register", {
+    const res = await fetch(`${API}/api/register`, {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
@@ -22,22 +27,21 @@ export async function apiRegisterComprador(data: {
         telefono: data.telefono?.trim() || null,
         direccion: data.direccion?.trim() || null,
       }),
-    });
+    })
 
-    const json = await res.json();
-    console.log("Respuesta backend (comprador):", json);
+    const json = await res.json()
 
     if (!res.ok) {
-      return { ok: false, message: json.message || "Error desconocido" };
+      return { ok: false, message: json.message || "Error desconocido" }
     }
 
     return {
       ok: true,
-      user: json.user,      // { id, nombre, rol }
-      token: json.token,    // JWT devuelto por backend
-    };
+      user: json.user,
+      token: json.token,
+    }
   } catch (error) {
-    return { ok: false, message: "Error de red o servidor" };
+    return { ok: false, message: "Error de red o servidor" }
   }
 }
 
@@ -46,37 +50,39 @@ export async function apiRegisterComprador(data: {
 // =====================
 export async function apiRegisterSeller(formData: FormData) {
   try {
-    const res = await fetch("http://localhost:8800/api/register/seller", {
+    const res = await fetch(`${API}/api/register/seller`, {
       method: "POST",
       body: formData,
-    });
+    })
 
-    const json = await res.json();
-    console.log("Respuesta backend (vendedor):", json);
+    const json = await res.json()
 
     if (!res.ok) {
       return {
         ok: false,
         message: json.message || "Error al registrar vendedor",
-      };
+      }
     }
 
     return {
       ok: true,
       user: json.user,
       token: json.token,
-    };
+    }
   } catch (error) {
-    return { ok: false, message: "Error de red o servidor" };
+    return { ok: false, message: "Error de red o servidor" }
   }
 }
 
 // =====================
 // Login
 // =====================
-export async function apiLogin(data: { correo: string; password: string }) {
+export async function apiLogin(data: {
+  correo: string
+  password: string
+}) {
   try {
-    const res = await fetch("http://localhost:8800/api/login", {
+    const res = await fetch(`${API}/api/login`, {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
@@ -88,13 +94,14 @@ export async function apiLogin(data: { correo: string; password: string }) {
     })
 
     const json = await res.json()
-    console.log("Respuesta backend (login):", json)
 
     if (!res.ok) {
-      return { ok: false, message: json.message || "Credenciales incorrectas" }
+      return {
+        ok: false,
+        message: json.message || "Credenciales incorrectas",
+      }
     }
 
-    // 🔐 Guardamos el token para futuras requests
     localStorage.setItem("token", json.token)
 
     return {
@@ -108,22 +115,25 @@ export async function apiLogin(data: { correo: string; password: string }) {
 }
 
 // =====================
-// Logout (cerrar sesión en backend y frontend)
+// Logout
 // =====================
 export async function apiLogout() {
   try {
-    const res = await fetch("http://localhost:8800/api/logout", {
+    const res = await fetch(`${API}/api/logout`, {
       method: "POST",
-      credentials: "include", //  importante para enviar cookie de sesión
-    });
+      credentials: "include",
+    })
 
-    const json = await res.json();
+    const json = await res.json()
+
     if (!res.ok) {
-      return { ok: false, message: json.message || "Error al cerrar sesión" };
+      return { ok: false, message: json.message || "Error al cerrar sesión" }
     }
 
-    return { ok: true };
+    localStorage.removeItem("token")
+
+    return { ok: true }
   } catch (error) {
-    return { ok: false, message: "Error de red o servidor" };
+    return { ok: false, message: "Error de red o servidor" }
   }
 }
