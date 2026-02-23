@@ -2,8 +2,14 @@
 
 import { signOut } from "next-auth/react"
 
+const BASE_URL = process.env.NEXT_PUBLIC_API_URL
+
+if (!BASE_URL) {
+  throw new Error("NEXT_PUBLIC_API_URL no está configurado")
+}
+
 export async function apiFetch(
-  input: RequestInfo,
+  input: string,
   init: RequestInit = {}
 ) {
   const token =
@@ -11,9 +17,15 @@ export async function apiFetch(
       ? localStorage.getItem("token")
       : null
 
-  const res = await fetch(input, {
+  const url =
+    input.startsWith("http")
+      ? input
+      : `${BASE_URL}${input}`
+
+  const res = await fetch(url, {
     ...init,
     headers: {
+      "Content-Type": "application/json",
       ...(init.headers || {}),
       ...(token ? { Authorization: `Bearer ${token}` } : {}),
     },
