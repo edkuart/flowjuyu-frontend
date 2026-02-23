@@ -237,7 +237,7 @@ export default function AdminSellersPage() {
                   {/* Comercio */}
                   <TableCell className="font-medium">
                     <Link
-                      href={`/admin/sellers/${seller.id}`}
+                      href={`/admin/sellers/${seller.user_id}`}
                       className="text-amber-600 hover:underline"
                     >
                       {seller.nombre_comercio}
@@ -274,7 +274,7 @@ export default function AdminSellersPage() {
                       size="sm"
                       variant="outline"
                       onClick={() =>
-                        router.push(`/admin/sellers/${seller.id}`)
+                        router.push(`/admin/sellers/${seller.user_id}`)
                       }
                     >
                       Ver detalle
