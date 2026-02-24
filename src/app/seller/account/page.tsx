@@ -48,7 +48,7 @@ export default function SellerAccountPage() {
   const [documentos, setDocumentos] = useState({
     dpi_frente: { subido: false },
     dpi_reverso: { subido: false },
-    selfie_dpi: { subido: false },
+    selfie_con_dpi: { subido: false },
   })
 
   // 🔐 Seguridad
@@ -103,8 +103,8 @@ export default function SellerAccountPage() {
             dpi_reverso: {
               subido: Boolean(data.documentos?.dpi_reverso?.subido),
             },
-            selfie_dpi: {
-              subido: Boolean(data.documentos?.selfie_dpi?.subido),
+            selfie_con_dpi: {
+              subido: Boolean(data.documentos?.selfie_con_dpi?.subido),
             },
           })
         }
@@ -155,15 +155,20 @@ export default function SellerAccountPage() {
         }
       )
 
-      if (!res.ok) throw new Error()
+      if (!res.ok) {
+        const errorData = await res.json().catch(() => null)
+        console.error("Upload error:", errorData)
+        throw new Error(errorData?.message || "Error upload")
+      }
 
       setMensajePassword("Contraseña actualizada correctamente.")
       setEstadoPassword("ok")
       setPasswordActual("")
       setPasswordNueva("")
-    } catch {
-      setMensajePassword("Error al actualizar contraseña.")
-      setEstadoPassword("error")
+    } catch (error: any) {
+      console.error(error)
+      alert(error?.message || "Error al enviar documentos")
+      setEstadoUpload("error")
     }
   }
 
@@ -330,7 +335,7 @@ export default function SellerAccountPage() {
           {estado === "pendiente" &&
             (!documentos.dpi_frente.subido ||
             !documentos.dpi_reverso.subido ||
-            !documentos.selfie_dpi.subido) && (
+            !documentos.selfie_con_dpi.subido) && (
             <div className="bg-red-50 border border-red-200 p-3 rounded-md text-sm text-red-700">
               El equipo de Flowjuyu solicita que vuelvas a subir tus documentos
               de identificación para continuar con el proceso de verificación.
@@ -458,7 +463,7 @@ export default function SellerAccountPage() {
             </div>
 
             <div className="flex items-center gap-2">
-              {documentos.selfie_dpi.subido ? 
+              {documentos.selfie_con_dpi.subido ?
                 <FileCheck className="w-4 h-4 text-green-600" /> 
                 : 
                 <FileX className="w-4 h-4 text-red-600" />
