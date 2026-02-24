@@ -87,23 +87,24 @@ export default function SellerAccountPage() {
           return
         }
 
-        const data = await res.json()
+        const response = await res.json()
+        const data = response.data
 
         setEstado(data.estado_validacion ?? null)
-        setObservaciones(data.observaciones ?? null)
+        setEstadoAdmin(data.estado_admin ?? null)
+        setObservaciones(data.observaciones_generales ?? null)
         setPuedePublicar(Boolean(data.puede_publicar))
 
-        // 🔥 Solo si backend manda documentos
         if (data.documentos) {
           setDocumentos({
             dpi_frente: {
-              subido: Boolean(data.documentos?.dpi_frente),
+              subido: Boolean(data.documentos?.dpi_frente?.subido),
             },
             dpi_reverso: {
-              subido: Boolean(data.documentos?.dpi_reverso),
+              subido: Boolean(data.documentos?.dpi_reverso?.subido),
             },
             selfie_dpi: {
-              subido: Boolean(data.documentos?.selfie_dpi),
+              subido: Boolean(data.documentos?.selfie_dpi?.subido),
             },
           })
         }
@@ -222,7 +223,7 @@ export default function SellerAccountPage() {
       formData.append("selfie_con_dpi", selfieDpi)
 
       const res = await fetch(
-        `${API}/api/seller/validate-business`,
+        `${API}/api/seller/validar`,
         {
           method: "POST",
           headers: {
@@ -324,6 +325,16 @@ export default function SellerAccountPage() {
             <p className="text-sm text-neutral-600">
               Debes enviar tus documentos de identificación para activar tu comercio.
             </p>
+          )}
+
+          {estado === "pendiente" &&
+            (!documentos.dpi_frente.subido ||
+            !documentos.dpi_reverso.subido ||
+            !documentos.selfie_dpi.subido) && (
+            <div className="bg-red-50 border border-red-200 p-3 rounded-md text-sm text-red-700">
+              El equipo de Flowjuyu solicita que vuelvas a subir tus documentos
+              de identificación para continuar con el proceso de verificación.
+            </div>
           )}
 
           {estado === "en_revision" && (

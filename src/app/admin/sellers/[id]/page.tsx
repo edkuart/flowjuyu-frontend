@@ -11,6 +11,16 @@ import SellerKYCPanel from "@/components/admin/SellerKYCPanel"
 
 const API_URL = "http://localhost:8800"
 
+const resolveImageUrl = (url?: string | null) => {
+  if (!url) return null
+
+  // Si ya es URL completa (Supabase por ejemplo)
+  if (url.startsWith("http")) return url
+
+  // Si viene como /uploads/...
+  return `${API_URL}${url}`
+}
+
 interface AuditEvent {
   id: number
   action: string
@@ -244,9 +254,13 @@ export default function AdminSellerDetailPage() {
               <p className="text-xs text-gray-500">{doc.label}</p>
 
               {doc.url ? (
-                <a href={doc.url} target="_blank" rel="noopener noreferrer">
+                <a
+                  href={resolveImageUrl(doc.url) || "#"}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                >
                   <img
-                    src={doc.url}
+                    src={resolveImageUrl(doc.url) || ""}
                     alt={doc.label}
                     className="w-full h-40 object-cover rounded-lg border hover:opacity-90 transition"
                   />

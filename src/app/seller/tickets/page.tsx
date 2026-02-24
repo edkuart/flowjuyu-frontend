@@ -21,6 +21,7 @@ interface Ticket {
   asunto: string
   estado: string
   prioridad: string
+  tipo: string
   createdAt: string
 }
 
@@ -46,6 +47,9 @@ export default function SellerTicketsPage() {
     fetchTickets()
   }, [])
 
+  /* ================================
+     🎨 Colores estado
+  ================================= */
   function statusColor(status: string) {
     switch (status) {
       case "abierto":
@@ -61,8 +65,44 @@ export default function SellerTicketsPage() {
     }
   }
 
+  /* ================================
+     🎨 Colores tipo
+  ================================= */
+  function tipoColor(tipo: string) {
+    switch (tipo) {
+      case "verificacion":
+        return "bg-purple-100 text-purple-700"
+      case "soporte":
+        return "bg-gray-100 text-gray-700"
+      case "incidencia":
+        return "bg-red-100 text-red-700"
+      default:
+        return "bg-gray-100 text-gray-700"
+    }
+  }
+
+  /* ================================
+     🔔 Detectar KYC pendiente
+  ================================= */
+  const hasKycPending = tickets.some(
+    (t) =>
+      t.tipo === "verificacion" &&
+      (t.estado === "abierto" || t.estado === "esperando_usuario")
+  )
+
+  /* ================================
+    🔔 Detectar KYC pendiente
+  ================================= */
+  const openKycTicket = tickets.find(
+    (t) =>
+      t.tipo === "verificacion" &&
+      (t.estado === "abierto" || t.estado === "esperando_usuario")
+  )
+
   return (
     <div className="min-h-screen bg-[#f8f5ef] p-10 space-y-6">
+
+      {/* HEADER */}
       <div className="flex justify-between items-center">
         <h1 className="text-2xl font-bold">
           Mis tickets de soporte
@@ -73,6 +113,17 @@ export default function SellerTicketsPage() {
         </Link>
       </div>
 
+      {/* ALERTA KYC */}
+      {openKycTicket && (
+        <Link href={`/seller/tickets/${openKycTicket.id}`}>
+          <div className="bg-purple-50 border border-purple-200 text-purple-800 p-4 rounded-xl cursor-pointer hover:bg-purple-100 transition">
+            El equipo de Flowjuyu requiere información adicional para completar tu verificación.
+            Haz clic aquí para revisar tu ticket KYC.
+          </div>
+        </Link>
+      )}
+
+      {/* TABLA */}
       <div className="bg-white rounded-3xl shadow-sm p-6">
         <Table>
           <TableHeader>
@@ -80,6 +131,7 @@ export default function SellerTicketsPage() {
               <TableHead>ID</TableHead>
               <TableHead>Asunto</TableHead>
               <TableHead>Estado</TableHead>
+              <TableHead>Tipo</TableHead>
               <TableHead>Prioridad</TableHead>
             </TableRow>
           </TableHeader>
@@ -87,19 +139,21 @@ export default function SellerTicketsPage() {
           <TableBody>
             {loading ? (
               <TableRow>
-                <TableCell colSpan={4}>
+                <TableCell colSpan={5}>
                   Cargando...
                 </TableCell>
               </TableRow>
             ) : tickets.length === 0 ? (
               <TableRow>
-                <TableCell colSpan={4}>
+                <TableCell colSpan={5}>
                   No tienes tickets aún
                 </TableCell>
               </TableRow>
             ) : (
               tickets.map((ticket) => (
                 <TableRow key={ticket.id}>
+
+                  {/* ID */}
                   <TableCell>
                     <Link
                       href={`/seller/tickets/${ticket.id}`}
@@ -109,6 +163,7 @@ export default function SellerTicketsPage() {
                     </Link>
                   </TableCell>
 
+                  {/* Asunto */}
                   <TableCell>
                     <Link
                       href={`/seller/tickets/${ticket.id}`}
@@ -118,15 +173,27 @@ export default function SellerTicketsPage() {
                     </Link>
                   </TableCell>
 
+                  {/* Estado */}
                   <TableCell>
                     <Badge className={statusColor(ticket.estado)}>
                       {ticket.estado}
                     </Badge>
                   </TableCell>
 
+                  {/* Tipo */}
+                  <TableCell>
+                    <Badge className={tipoColor(ticket.tipo)}>
+                      {ticket.tipo === "verificacion"
+                        ? "KYC"
+                        : ticket.tipo}
+                    </Badge>
+                  </TableCell>
+
+                  {/* Prioridad */}
                   <TableCell>
                     {ticket.prioridad}
                   </TableCell>
+
                 </TableRow>
               ))
             )}

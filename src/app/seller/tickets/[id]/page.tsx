@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from "react"
 import { useParams, useRouter } from "next/navigation"
+import Link from "next/link"
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
 import { authFetch } from "@/lib/authFetch"
@@ -13,6 +14,7 @@ interface Ticket {
   asunto: string
   estado: string
   prioridad: string
+  tipo: string
 }
 
 interface Message {
@@ -78,6 +80,7 @@ export default function SellerTicketDetailPage() {
     <div className="min-h-screen bg-[#f8f5ef] p-10">
       <div className="max-w-4xl mx-auto bg-white rounded-3xl shadow-sm p-8 space-y-6">
 
+        {/* HEADER */}
         <div className="flex justify-between items-center">
           <h2 className="text-xl font-semibold">
             {ticket.asunto}
@@ -85,6 +88,7 @@ export default function SellerTicketDetailPage() {
           <Badge>{ticket.estado}</Badge>
         </div>
 
+        {/* MENSAJES */}
         <div className="space-y-4">
           {messages.map((msg) => (
             <div
@@ -103,8 +107,22 @@ export default function SellerTicketDetailPage() {
           ))}
         </div>
 
+        {/* BOTÓN SUBIR DOCUMENTOS SI ES KYC */}
+        {ticket.tipo === "verificacion" &&
+          (ticket.estado === "abierto" ||
+           ticket.estado === "esperando_usuario") && (
+          <div className="mt-6">
+            <Link href="/seller/account">
+              <Button className="bg-purple-600 hover:bg-purple-700">
+                Subir documentos solicitados
+              </Button>
+            </Link>
+          </div>
+        )}
+
+        {/* RESPUESTA */}
         {ticket.estado !== "cerrado" && (
-          <div className="flex gap-4">
+          <div className="flex gap-4 mt-6">
             <input
               value={reply}
               onChange={(e) => setReply(e.target.value)}
@@ -117,6 +135,7 @@ export default function SellerTicketDetailPage() {
           </div>
         )}
 
+        {/* VOLVER */}
         <Button
           variant="outline"
           onClick={() => router.push("/seller/tickets")}

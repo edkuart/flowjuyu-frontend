@@ -32,6 +32,7 @@ interface DashboardData {
     vendedor_nombre: string
   }[]
   ultimosSellers: {
+    id: number 
     user_id: number
     nombre_comercio: string
     estado_validacion: string
@@ -201,11 +202,11 @@ export default function AdminDashboardPage() {
 
           {data.ultimosSellers?.map((s) => (
             <div
-              key={s.user_id}
+              key={s.id}
               className="flex justify-between items-center p-4"
             >
               <Link
-                href={`/admin/sellers/${s.user_id}`}
+                href={`/admin/sellers/${s.id}`}
                 className="font-medium hover:underline"
               >
                 {s.nombre_comercio}
