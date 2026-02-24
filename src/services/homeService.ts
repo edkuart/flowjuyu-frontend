@@ -7,6 +7,12 @@ const API =
    Tipos
 ================================ */
 
+console.log("API DESDE ENV >>>", API);
+
+if (!API) {
+  throw new Error("NEXT_PUBLIC_API_URL no configurada");
+}
+
 export type Categoria = {
   id: number;
   nombre: string;

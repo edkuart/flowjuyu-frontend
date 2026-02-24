@@ -38,6 +38,11 @@ export default function SellerAccountPage() {
   const [estado, setEstado] = useState<EstadoValidacion>(null)
   const [observaciones, setObservaciones] = useState<string | null>(null)
   const [puedePublicar, setPuedePublicar] = useState(false)
+  const [dpiFrente, setDpiFrente] = useState<File | null>(null)
+  const [dpiReverso, setDpiReverso] = useState<File | null>(null)
+  const [selfieDpi, setSelfieDpi] = useState<File | null>(null)
+  const [estadoUpload, setEstadoUpload] =
+    useState<"idle" | "loading" | "ok" | "error">("idle")
 
   // 🔥 Estado seguro para evitar crash
   const [documentos, setDocumentos] = useState({
@@ -194,6 +199,49 @@ export default function SellerAccountPage() {
       setMensajeSoporte("")
     } catch {
       setEstadoSoporte("error")
+    }
+  }
+
+  async function handleUploadDocuments() {
+    try {
+      if (!dpiFrente || !dpiReverso || !selfieDpi) {
+        alert("Debes subir los 3 documentos.")
+        return
+      }
+
+      setEstadoUpload("loading")
+
+      const token =
+        typeof window !== "undefined"
+          ? localStorage.getItem("token")
+          : null
+
+      const formData = new FormData()
+      formData.append("foto_dpi_frente", dpiFrente)
+      formData.append("foto_dpi_reverso", dpiReverso)
+      formData.append("selfie_con_dpi", selfieDpi)
+
+      const res = await fetch(
+        `${API}/api/seller/validate-business`,
+        {
+          method: "POST",
+          headers: {
+            Authorization: token ? `Bearer ${token}` : "",
+          },
+          body: formData,
+        }
+      )
+
+      if (!res.ok) throw new Error()
+
+      setEstadoUpload("ok")
+
+      // Recargar estado
+      window.location.reload()
+
+    } catch (error) {
+      console.error(error)
+      setEstadoUpload("error")
     }
   }
 
@@ -407,6 +455,72 @@ export default function SellerAccountPage() {
               Selfie con DPI
             </div>
           </div>
+          {(estado === "pendiente" || estado === "rechazado") && (
+          <div className="space-y-4 pt-6 border-t mt-4">
+
+            <h4 className="font-medium text-neutral-800">
+              Subir documentos de verificación
+            </h4>
+
+            <div className="space-y-3">
+
+              <div>
+                <Label>DPI Frente</Label>
+                <Input
+                  type="file"
+                  accept="image/*"
+                  onChange={(e) =>
+                    setDpiFrente(e.target.files?.[0] || null)
+                  }
+                />
+              </div>
+
+              <div>
+                <Label>DPI Reverso</Label>
+                <Input
+                  type="file"
+                  accept="image/*"
+                  onChange={(e) =>
+                    setDpiReverso(e.target.files?.[0] || null)
+                  }
+                />
+              </div>
+
+              <div>
+                <Label>Selfie con DPI</Label>
+                <Input
+                  type="file"
+                  accept="image/*"
+                  onChange={(e) =>
+                    setSelfieDpi(e.target.files?.[0] || null)
+                  }
+                />
+              </div>
+
+              <Button
+                onClick={handleUploadDocuments}
+                disabled={estadoUpload === "loading"}
+              >
+                {estadoUpload === "loading"
+                  ? "Enviando..."
+                  : "Enviar documentos"}
+              </Button>
+
+              {estadoUpload === "ok" && (
+                <p className="text-green-600 text-sm">
+                  Documentos enviados correctamente.
+                </p>
+              )}
+
+              {estadoUpload === "error" && (
+                <p className="text-red-600 text-sm">
+                  Error al enviar documentos.
+                </p>
+              )}
+
+            </div>
+          </div>
+        )}
 
         </CardContent>
       </Card>
