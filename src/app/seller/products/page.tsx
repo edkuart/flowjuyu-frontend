@@ -1,3 +1,5 @@
+//src/app/seller/products/page.tsx
+
 "use client"
 
 import { useEffect, useState, useMemo } from "react"
@@ -10,6 +12,7 @@ import {
   ChevronLeft,
   ChevronRight,
   X,
+  PackagePlus,
 } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import {
@@ -20,6 +23,7 @@ import {
   DialogDescription,
 } from "@/components/ui/dialog"
 import Swal from "sweetalert2"
+import { useRouter } from "next/navigation"
 
 type Producto = {
   id: string
@@ -37,56 +41,52 @@ export default function SellerProductsPage() {
   const [loading, setLoading] = useState(true)
   const [processingId, setProcessingId] = useState<string | null>(null)
   const [selected, setSelected] = useState<Producto | null>(null)
+  const [selectedImage, setSelectedImage] = useState<{
+  url: string
+  nombre: string
+  id: string
+} | null>(null)
   const [imgIndex, setImgIndex] = useState(0)
 
   const [page, setPage] = useState(1)
   const [perPage, setPerPage] = useState(10)
+
   const API = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8800"
+  const router = useRouter()
 
-  // ==============================
-  // Obtener productos del vendedor
-  // ==============================
-useEffect(() => {
-  const fetchProductos = async () => {
-    try {
-      const token = localStorage.getItem("token")
-      console.log("📦 Token enviado:", token) // 👈 para depurar en consola
+  /* ==============================
+     Fetch productos del vendedor
+  ============================== */
+  useEffect(() => {
+    const fetchProductos = async () => {
+      try {
+        const token = localStorage.getItem("token")
+        if (!token) {
+          router.push("/login")
+          return
+        }
 
-      if (!token) {
-        console.warn("⚠️ No se encontró token en localStorage")
+        const res = await fetch(`${API}/api/seller/products`, {
+          headers: { Authorization: `Bearer ${token}` },
+        })
+
+        if (!res.ok) throw new Error("Error al cargar productos")
+
+        const data = await res.json()
+        setProductos(Array.isArray(data) ? data : data.data || [])
+      } catch (error) {
+        console.error("❌ Error cargando productos:", error)
+      } finally {
         setLoading(false)
-        return
       }
-
-      const res = await fetch(`${API}/api/seller/products`, {
-        method: "GET",
-        headers: {
-          "Content-Type": "application/json",
-          Authorization: `Bearer ${token}`, // 👈 muy importante
-        },
-      })
-
-      if (!res.ok) {
-        const errText = await res.text()
-        throw new Error(`Error al cargar productos: ${errText}`)
-      }
-
-      const data = await res.json()
-      console.log("✅ Productos recibidos:", data)
-      setProductos(Array.isArray(data) ? data : data.data || [])
-    } catch (e) {
-      console.error("Error cargando productos:", e)
-    } finally {
-      setLoading(false)
     }
-  }
 
-  fetchProductos()
-}, [API])
+    fetchProductos()
+  }, [API, router])
 
-  // ==============================
-  // Paginación
-  // ==============================
+  /* ==============================
+     Paginación
+  ============================== */
   const totalPages = useMemo(
     () => Math.ceil(productos.length / perPage),
     [productos, perPage]
@@ -97,63 +97,51 @@ useEffect(() => {
     return productos.slice(start, start + perPage)
   }, [productos, page, perPage])
 
-  // ==============================
-  // Eliminar producto
-  // ==============================
+  /* ==============================
+     Acciones
+  ============================== */
   const handleDelete = async (id: string) => {
     const confirm = await Swal.fire({
       title: "¿Eliminar producto?",
       text: "Esta acción no se puede deshacer",
       icon: "warning",
       showCancelButton: true,
-      confirmButtonText: "Sí, eliminar",
-      cancelButtonText: "Cancelar",
-      confirmButtonColor: "#d33",
-      cancelButtonColor: "#3085d6",
+      confirmButtonText: "Eliminar",
     })
 
     if (!confirm.isConfirmed) return
 
     try {
       const token = localStorage.getItem("token")
-      if (!token) throw new Error("No hay token")
-
       const res = await fetch(`${API}/api/productos/${id}`, {
         method: "DELETE",
         headers: { Authorization: `Bearer ${token}` },
       })
-      if (!res.ok) throw new Error("Error al eliminar producto")
+
+      if (!res.ok) throw new Error()
 
       setProductos((prev) => prev.filter((p) => p.id !== id))
-      Swal.fire("Eliminado", "El producto fue eliminado correctamente", "success")
-    } catch (e) {
-      console.error("Error eliminando producto:", e)
+      Swal.fire("Eliminado", "Producto eliminado correctamente", "success")
+    } catch {
       Swal.fire("Error", "No se pudo eliminar el producto", "error")
     }
   }
 
-  // ==============================
-  // Activar / Desactivar producto
-  // ==============================
   const handleToggleActivo = async (id: string, activo: boolean) => {
-    const accion = activo ? "desactivar" : "activar"
+    const accion = activo ? "despublicar" : "publicar"
     const confirm = await Swal.fire({
-      title: `¿Seguro que deseas ${accion} este producto?`,
+      title: `¿Deseas ${accion} este producto?`,
       icon: "question",
       showCancelButton: true,
       confirmButtonText: `Sí, ${accion}`,
-      cancelButtonText: "Cancelar",
-      confirmButtonColor: activo ? "#d33" : "#3085d6",
-      cancelButtonColor: "#6c757d",
     })
 
     if (!confirm.isConfirmed) return
 
     setProcessingId(id)
+
     try {
       const token = localStorage.getItem("token")
-      if (!token) throw new Error("No hay token")
-
       const res = await fetch(`${API}/api/productos/${id}/activo`, {
         method: "PATCH",
         headers: {
@@ -163,304 +151,325 @@ useEffect(() => {
         body: JSON.stringify({ activo: !activo }),
       })
 
-      if (!res.ok) throw new Error("Error al actualizar estado")
+      const data = await res.json()
+
+      if (!res.ok) {
+        throw new Error(data?.message || "Error actualizando producto")
+      }
 
       setProductos((prev) =>
-        prev.map((p) => (p.id === id ? { ...p, activo: !p.activo } : p))
+        prev.map((p) =>
+          p.id === id ? { ...p, activo: !p.activo } : p
+        )
       )
 
-      Swal.fire("Actualizado", `El producto fue ${accion} correctamente`, "success")
-    } catch (e) {
-      console.error("Error cambiando estado:", e)
-      Swal.fire("Error", "No se pudo actualizar el estado", "error")
+      Swal.fire("Actualizado", "Estado actualizado", "success")
+    } catch (err: any) {
+      Swal.fire(
+        "No se pudo actualizar",
+        err.message || "Error inesperado",
+        "error"
+      )
     } finally {
       setProcessingId(null)
     }
   }
 
-  // ==============================
-  // Render principal
-  // ==============================
+  /* ==============================
+     Render
+  ============================== */
   return (
-    <main className="min-h-screen px-4 py-10">
-      {/* Header */}
-      <div className="flex items-center justify-between mb-6 flex-wrap gap-3">
-        <h1 className="text-2xl font-bold">Mis productos</h1>
-        <p className="text-sm text-muted-foreground">
-          Los productos en <strong>borrador</strong> no aparecen en la tienda hasta que los publiques.
-        </p>
+    <main className="min-h-screen bg-gradient-to-b from-neutral-50 to-white px-4 py-10">
+      <div className="max-w-7xl mx-auto space-y-8">
 
-        <div className="flex items-center gap-4">
-          <label className="text-sm text-muted-foreground">
-            Mostrar{" "}
-            <select
-              value={perPage}
-              onChange={(e) => {
-                setPerPage(Number(e.target.value))
-                setPage(1)
-              }}
-              className="ml-2 border rounded-md px-2 py-1 text-sm"
-            >
-              {[10, 25, 50, 100].map((n) => (
-                <option key={n} value={n}>
-                  {n}
-                </option>
-              ))}
-            </select>{" "}
-            por página
-          </label>
+        {/* ================= HEADER ================= */}
+        <header className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
+          <div>
+            <h1 className="text-3xl font-bold tracking-tight">
+              Gestión de productos
+            </h1>
+            <p className="text-sm text-neutral-500 mt-1">
+              Administra tu inventario y controla qué productos están visibles.
+            </p>
+          </div>
 
           <Link href="/seller/products/new">
-            <Button className="text-sm">Agregar producto</Button>
-          </Link>
-        </div>
-      </div>
-
-      {/* Tabla */}
-      {loading ? (
-        <p>Cargando productos...</p>
-      ) : productos.length === 0 ? (
-        <p>No tienes productos aún.</p>
-      ) : (
-        <>
-          <div className="w-full overflow-x-auto">
-            <table className="w-full text-sm border rounded-md overflow-hidden">
-              <thead className="bg-muted text-muted-foreground">
-                <tr>
-                  <th className="text-left px-4 py-3">Imagen</th>
-                  <th className="text-left px-4 py-3">Nombre</th>
-                  <th className="text-left px-4 py-3">Precio</th>
-                  <th className="text-left px-4 py-3">Stock</th>
-                  <th className="text-left px-4 py-3">Estado</th>
-                  <th className="text-right px-4 py-3">Acciones</th>
-                </tr>
-              </thead>
-              <tbody>
-                {currentProducts.map((p) => {
-                  const imageUrl = p.imagen_url || "/images/placeholder.jpg"
-
-                  return (
-                    <tr key={p.id} className="border-t hover:bg-gray-50">
-                      <td
-                        className="px-4 py-2 cursor-pointer"
-                        onClick={() => {
-                          setSelected(p)
-                          setImgIndex(0)
-                        }}
-                      >
-                        <div className="relative w-12 h-12 rounded overflow-hidden border">
-                          <Image
-                            src={imageUrl}
-                            alt={p.nombre}
-                            fill
-                            sizes="48px"
-                            className="object-cover"
-                          />
-                        </div>
-                      </td>
-                      <td
-                        className="px-4 py-2 cursor-pointer"
-                        onClick={() => {
-                          setSelected(p)
-                          setImgIndex(0)
-                        }}
-                      >
-                        {p.nombre}
-                      </td>
-                      <td className="px-4 py-2">
-                      Q {Number(p.precio).toLocaleString("es-GT", { minimumFractionDigits: 2 })}
-                      </td>
-
-                      <td className="px-4 py-2">{p.stock}</td>
-                      <td className="px-4 py-2">
-                        <span
-                          className={`text-xs font-medium px-2 py-1 rounded-full ${
-                            p.activo
-                              ? "bg-green-100 text-green-700"
-                              : "bg-red-100 text-red-700"
-                          }`}
-                        >
-                          {p.activo ? "Publicado" : "Borrador"}
-                        </span>
-                      </td>
-                      <td className="px-4 py-2 text-right space-x-2">
-                      <Link href={`/seller/products/new?id=${p.id}`}>
-                          <Button variant="outline" size="icon">
-                            <Pencil className="w-4 h-4" />
-                          </Button>
-                        </Link>
-                        <Button
-                          variant={p.activo ? "secondary" : "default"}
-                          size="sm"
-                          disabled={processingId === p.id}
-                          onClick={() => handleToggleActivo(p.id, p.activo)}
-                          title={p.activo ? "Despublicar producto" : "Publicar producto"}
-                        >
-                          <Power className="w-4 h-4 mr-1" />
-                          {p.activo ? "Despublicar" : "Publicar"}
-                        </Button>
-                        <Button
-                          variant="destructive"
-                          size="icon"
-                          onClick={() => handleDelete(p.id)}
-                        >
-                          <Trash2 className="w-4 h-4" />
-                        </Button>
-                      </td>
-                    </tr>
-                  )
-                })}
-              </tbody>
-            </table>
-          </div>
-
-          {/* Paginación */}
-          <div className="flex items-center justify-between mt-4">
-            <p className="text-sm text-muted-foreground">
-              Mostrando {Math.min(productos.length, (page - 1) * perPage + 1)}–
-              {Math.min(page * perPage, productos.length)} de {productos.length} productos
-            </p>
-
-            <div className="flex items-center gap-2">
-              <Button
-                variant="outline"
-                size="sm"
-                disabled={page === 1}
-                onClick={() => setPage((p) => p - 1)}
-              >
-                <ChevronLeft className="w-4 h-4 mr-1" /> Anterior
-              </Button>
-              <span className="text-sm font-medium">
-                Página {page} de {totalPages}
-              </span>
-              <Button
-                variant="outline"
-                size="sm"
-                disabled={page === totalPages}
-                onClick={() => setPage((p) => p + 1)}
-              >
-                Siguiente <ChevronRight className="w-4 h-4 ml-1" />
-              </Button>
-            </div>
-          </div>
-        </>
-      )}
-{/* ==============================
-     Modal de detalle del producto
-   ============================== */}
-<Dialog open={!!selected} onOpenChange={() => setSelected(null)}>
-  <DialogContent className="max-w-2xl">
-    {selected && (
-      <>
-        <DialogHeader>
-          <DialogTitle className="capitalize">{selected.nombre}</DialogTitle>
-          <DialogDescription>
-            Detalles completos del producto
-          </DialogDescription>
-        </DialogHeader>
-
-        {/* 📸 Carrusel de imágenes */}
-        <div className="relative w-full h-72 rounded-lg overflow-hidden mb-4 bg-gray-100">
-          <Image
-            src={
-              selected.imagenes?.[imgIndex] ||
-              selected.imagen_url ||
-              "/images/placeholder.jpg"
-            }
-            alt={selected.nombre}
-            fill
-            className="object-cover"
-          />
-
-          {selected.imagenes && selected.imagenes.length > 1 && (
-            <>
-              <button
-                type="button"
-                onClick={() =>
-                  setImgIndex((i) =>
-                    i === 0 ? selected.imagenes!.length - 1 : i - 1
-                  )
-                }
-                className="absolute top-1/2 left-3 -translate-y-1/2 bg-black/50 text-white p-1 rounded-full"
-              >
-                <ChevronLeft className="w-5 h-5" />
-              </button>
-
-              <button
-                type="button"
-                onClick={() =>
-                  setImgIndex((i) =>
-                    i === selected.imagenes!.length - 1 ? 0 : i + 1
-                  )
-                }
-                className="absolute top-1/2 right-3 -translate-y-1/2 bg-black/50 text-white p-1 rounded-full"
-              >
-                <ChevronRight className="w-5 h-5" />
-              </button>
-
-              {/* Pequeños indicadores debajo */}
-              <div className="absolute bottom-2 w-full flex justify-center gap-1">
-                {selected.imagenes.map((_, i) => (
-                  <span
-                    key={i}
-                    className={`w-2 h-2 rounded-full ${
-                      i === imgIndex ? "bg-white" : "bg-gray-400/60"
-                    }`}
-                  />
-                ))}
-              </div>
-            </>
-          )}
-        </div>
-
-        {/* 🧾 Detalles del producto */}
-        <div className="space-y-2 text-sm">
-          <p>
-            <strong>Precio:</strong> Q{" "}
-            {Number(selected.precio).toLocaleString("es-GT", {
-              minimumFractionDigits: 2,
-            })}
-          </p>
-          <p>
-            <strong>Stock:</strong> {selected.stock}
-          </p>
-          <p>
-            <strong>Estado:</strong>{" "}
-            <span
-              className={`px-2 py-1 rounded-full text-xs ${
-                selected.activo
-                  ? "bg-green-100 text-green-700"
-                  : "bg-red-100 text-red-700"
-              }`}
-            >
-              {selected.activo ? "Activo" : "Inactivo"}
-            </span>
-          </p>
-
-
-          {selected.descripcion && (
-            <p className="pt-2 text-gray-700 dark:text-gray-300">
-              <strong>Descripción:</strong> {selected.descripcion}
-            </p>
-          )}
-        </div>
-
-        {/* 🔘 Botones */}
-        <div className="flex justify-end pt-4 gap-2">
-          <Button variant="outline" onClick={() => setSelected(null)}>
-            <X className="w-4 h-4 mr-1" /> Cerrar
-          </Button>
-          <Link href={`/seller/products/edit/${selected.id}`}>
-            <Button>
-              <Pencil className="w-4 h-4 mr-1" /> Editar
+            <Button className="bg-[#0F3D3A] hover:bg-[#0C2F2C] text-white rounded-xl px-5 py-2.5 shadow-sm">
+              <PackagePlus className="w-4 h-4 mr-2" />
+              Nuevo producto
             </Button>
           </Link>
-        </div>
-      </>
-    )}
-  </DialogContent>
-</Dialog>
+        </header>
 
+        {/* ================= CONTENT ================= */}
+        {loading ? (
+          <div className="text-center py-20 text-neutral-500">
+            Cargando productos…
+          </div>
+        ) : productos.length === 0 ? (
+          <div className="bg-white rounded-2xl border border-neutral-200 p-12 text-center shadow-sm">
+            <h2 className="text-lg font-semibold mb-2">
+              Aún no tienes productos
+            </h2>
+            <p className="text-neutral-500 mb-6">
+              Agrega tu primer producto y comienza a vender.
+            </p>
+            <Link href="/seller/products/new">
+              <Button className="bg-[#0F3D3A] hover:bg-[#0C2F2C] text-white">
+                Agregar producto
+              </Button>
+            </Link>
+          </div>
+        ) : (
+          <>
+            {/* ================= DESKTOP CARDS ================= */}
+            <div className="hidden md:flex flex-col gap-4">
+              {currentProducts.map((p) => (
+                <div
+                  key={p.id}
+                  className="bg-white rounded-2xl border border-neutral-200 shadow-sm hover:shadow-md transition p-5 flex justify-between items-center"
+                >
+                  {/* LEFT */}
+                  <div className="flex items-center gap-4">
+
+                    {/* Imagen clickeable */}
+                    <div
+                      onClick={() =>
+                        setSelectedImage({
+                          url: p.imagen_url || "/images/placeholder.jpg",
+                          nombre: p.nombre,
+                          id: p.id,
+                        })
+                      }
+                      className="relative w-16 h-16 rounded-xl overflow-hidden border border-neutral-200 cursor-pointer group transition"
+                    >
+                      <Image
+                        src={p.imagen_url || "/images/placeholder.jpg"}
+                        alt={p.nombre}
+                        fill
+                        className="object-cover group-hover:scale-110 transition duration-300"
+                      />
+
+                      {/* Overlay sutil en hover */}
+                      <div className="absolute inset-0 bg-black/0 group-hover:bg-black/10 transition" />
+                    </div>
+
+                    {/* Info */}
+                    <div>
+                      <h3 className="font-semibold text-lg leading-tight">
+                        {p.nombre}
+                      </h3>
+
+                      <p className="text-sm text-neutral-600 mt-1">
+                        Q {Number(p.precio).toLocaleString("es-GT", {
+                          minimumFractionDigits: 2,
+                        })}
+                      </p>
+
+                      <p
+                        className={`text-xs mt-1 ${
+                          p.stock > 5
+                            ? "text-neutral-400"
+                            : p.stock > 0
+                            ? "text-amber-600"
+                            : "text-red-600"
+                        }`}
+                      >
+                        {p.stock > 0 ? `Stock: ${p.stock}` : "Sin stock"}
+                      </p>
+                    </div>
+                  </div>
+
+                  {/* RIGHT */}
+                  <div className="flex items-center gap-3">
+
+                    <span
+                      className={`px-3 py-1 text-xs rounded-full border ${
+                        p.activo
+                          ? "bg-green-50 text-green-700 border-green-200"
+                          : "bg-amber-50 text-amber-700 border-amber-200"
+                      }`}
+                    >
+                      {p.activo ? "Publicado" : "Borrador"}
+                    </span>
+
+                    <Link href={`/seller/products/new?id=${p.id}`}>
+                      <Button size="icon" variant="outline" className="rounded-lg">
+                        <Pencil className="w-4 h-4" />
+                      </Button>
+                    </Link>
+
+                    <Button
+                      size="sm"
+                      variant="outline"
+                      disabled={processingId === p.id}
+                      onClick={() => handleToggleActivo(p.id, p.activo)}
+                      className="rounded-lg"
+                    >
+                      <Power className="w-4 h-4 mr-1" />
+                      {p.activo ? "Despublicar" : "Publicar"}
+                    </Button>
+
+                    <Button
+                      size="icon"
+                      variant="destructive"
+                      className="rounded-lg"
+                      onClick={() => handleDelete(p.id)}
+                    >
+                      <Trash2 className="w-4 h-4" />
+                    </Button>
+                  </div>
+                </div>
+              ))}
+            </div>
+
+            {/* ================= MOBILE CARDS ================= */}
+            <div className="md:hidden flex flex-col gap-5">
+              {currentProducts.map((p) => (
+                <div
+                  key={p.id}
+                  className="bg-white rounded-2xl border border-neutral-200 shadow-sm p-4 space-y-4"
+                >
+                  <div className="relative w-full h-40 rounded-xl overflow-hidden">
+                    <Image
+                      src={p.imagen_url || "/images/placeholder.jpg"}
+                      alt={p.nombre}
+                      fill
+                      className="object-cover"
+                    />
+                  </div>
+
+                  <div>
+                    <h3 className="font-semibold text-lg">
+                      {p.nombre}
+                    </h3>
+
+                    <p className="text-neutral-600">
+                      Q {Number(p.precio).toLocaleString("es-GT", {
+                        minimumFractionDigits: 2,
+                      })}
+                    </p>
+                  </div>
+
+                  <div className="flex justify-between text-sm text-neutral-500">
+                    <span>Stock: {p.stock}</span>
+
+                    <span
+                      className={`px-2 py-1 rounded-full text-xs border ${
+                        p.activo
+                          ? "bg-green-50 text-green-700 border-green-200"
+                          : "bg-amber-50 text-amber-700 border-amber-200"
+                      }`}
+                    >
+                      {p.activo ? "Publicado" : "Borrador"}
+                    </span>
+                  </div>
+
+                  <div className="grid grid-cols-2 gap-2">
+                    <Link href={`/seller/products/new?id=${p.id}`}>
+                      <Button variant="outline" className="w-full">
+                        Editar
+                      </Button>
+                    </Link>
+
+                    <Button
+                      variant="outline"
+                      onClick={() => handleToggleActivo(p.id, p.activo)}
+                      className="w-full"
+                    >
+                      {p.activo ? "Despublicar" : "Publicar"}
+                    </Button>
+
+                    <Button
+                      variant="destructive"
+                      className="col-span-2"
+                      onClick={() => handleDelete(p.id)}
+                    >
+                      Eliminar
+                    </Button>
+                  </div>
+                </div>
+              ))}
+            </div>
+
+            {/* ================= PAGINATION ================= */}
+            <div className="flex justify-between items-center text-sm pt-4">
+              <span className="text-neutral-500">
+                Página {page} de {totalPages}
+              </span>
+
+              <div className="flex gap-2">
+                <Button
+                  size="sm"
+                  variant="outline"
+                  disabled={page === 1}
+                  onClick={() => setPage((p) => p - 1)}
+                >
+                  <ChevronLeft className="w-4 h-4 mr-1" />
+                  Anterior
+                </Button>
+
+                <Button
+                  size="sm"
+                  variant="outline"
+                  disabled={page === totalPages}
+                  onClick={() => setPage((p) => p + 1)}
+                >
+                  Siguiente
+                  <ChevronRight className="w-4 h-4 ml-1" />
+                </Button>
+              </div>
+            </div>
+          </>
+        )}
+      </div>
+      {/* ================= IMAGE MODAL ================= */}
+      <Dialog
+        open={!!selectedImage}
+        onOpenChange={(open) => {
+          if (!open) setSelectedImage(null)
+        }}
+      >
+        <DialogContent className="max-w-3xl p-6">
+
+          {selectedImage && (
+            <div className="space-y-4">
+
+              <DialogHeader>
+                <DialogTitle className="text-lg font-semibold">
+                  {selectedImage.nombre}
+                </DialogTitle>
+              </DialogHeader>
+
+              <div className="relative w-full h-[450px]">
+                <Image
+                  src={selectedImage.url}
+                  alt={selectedImage.nombre}
+                  fill
+                  className="object-contain rounded-lg"
+                />
+              </div>
+
+              <div className="flex justify-end gap-3">
+                <Button
+                  variant="outline"
+                  onClick={() => setSelectedImage(null)}
+                >
+                  Cerrar
+                </Button>
+
+                <Link href={`/seller/products/new?id=${selectedImage.id}`}>
+                  <Button className="bg-[#0F3D3A] hover:bg-[#0C2F2C] text-white">
+                    Editar producto
+                  </Button>
+                </Link>
+              </div>
+
+            </div>
+          )}
+
+        </DialogContent>
+      </Dialog>
     </main>
   )
 }

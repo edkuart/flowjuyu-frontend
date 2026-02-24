@@ -19,6 +19,9 @@ import { MaterialSelect } from "@/components/product/form/MaterialSelect"
 import { TelaSelect } from "@/components/product/form/TelaSelect"
 import { OrigenSelect } from "@/components/product/form/OrigenSelect"
 import { useSearchParams } from "next/navigation"
+import { apiGetVendedorPerfil } from "@/services/vendedorPerfil"
+import { Card, CardContent } from "@/components/ui/card"
+import Link from "next/link"
 
 import type { Opcion, Clase, OtroTipo } from "@/types/product"
 
@@ -38,58 +41,80 @@ export default function AddProductPage() {
   const productId = searchParams.get("id")
   const isEditing = Boolean(productId)
 
-    // =========================
-  // Estados principales
   // =========================
-  const [nombre, setNombre] = useState("")
-  const [descripcion, setDescripcion] = useState("")
-  const [precio, setPrecio] = useState("")
-  const [stock, setStock] = useState("")
-  const [activo, setActivo] = useState(false)
+  // 🔒 Estado de validación comercio
+  // =========================
+  type EstadoValidacion = "pendiente" | "aprobado" | "rechazado"
+
+  const [estadoValidacion, setEstadoValidacion] =
+    useState<EstadoValidacion | null>(null)
+
+  const [checkingEstado, setCheckingEstado] = useState<boolean>(true)
+
+  // =========================
+  // Estados principales producto
+  // =========================
+  const [nombre, setNombre] = useState<string>("")
+  const [descripcion, setDescripcion] = useState<string>("")
+  const [precio, setPrecio] = useState<string>("")
+  const [stock, setStock] = useState<string>("")
+  const [activo, setActivo] = useState<boolean>(false)
 
   const [departamento, setDepartamento] = useState<string | null>(null)
   const [municipio, setMunicipio] = useState<string | null>(null)
 
-  const [dataReady, setDataReady] = useState(false)
+  const [dataReady, setDataReady] = useState<boolean>(false)
 
-  const [estado, setEstado] = useState<"idle" | "loading" | "ok" | "error">("idle")
-  const [mensaje, setMensaje] = useState("")
-  const [infoMsg, setInfoMsg] = useState("")
+  const [estado, setEstado] = useState<
+    "idle" | "loading" | "ok" | "error"
+  >("idle")
+
+  const [mensaje, setMensaje] = useState<string>("")
+  const [infoMsg, setInfoMsg] = useState<string>("")
 
   const [categorias, setCategorias] = useState<Opcion[]>([])
   const [clases, setClases] = useState<Clase[]>([])
   const [telas, setTelas] = useState<Opcion[]>([])
 
-  const [categoriaSel, setCategoriaSel] = useState("")
-  const [claseSel, setClaseSel] = useState("")
-  const [telaSel, setTelaSel] = useState("")
+  const [categoriaSel, setCategoriaSel] = useState<string>("")
+  const [claseSel, setClaseSel] = useState<string>("")
+  const [telaSel, setTelaSel] = useState<string>("")
 
   const [accesorios, setAccesorios] = useState<Opcion[]>([])
-  const [accesorioSel, setAccesorioSel] = useState("")
-  const [accesorioInput, setAccesorioInput] = useState("")
+  const [accesorioSel, setAccesorioSel] = useState<string>("")
+  const [accesorioInput, setAccesorioInput] = useState<string>("")
 
   const [tipos, setTipos] = useState<Opcion[]>([])
-  const [tipoSel, setTipoSel] = useState("")
-  const [tipoInput, setTipoInput] = useState("")
+  const [tipoSel, setTipoSel] = useState<string>("")
+  const [tipoInput, setTipoInput] = useState<string>("")
 
   const [materiales, setMateriales] = useState<Opcion[]>([])
-  const [materialSel, setMaterialSel] = useState("")
-  const [materialInput, setMaterialInput] = useState("")
+  const [materialSel, setMaterialSel] = useState<string>("")
+  const [materialInput, setMaterialInput] = useState<string>("")
 
-  const [departamentoSel, setDepartamentoSel] = useState("")
-  const [municipioSel, setMunicipioSel] = useState("")
+  const [departamentoSel, setDepartamentoSel] = useState<string>("")
+  const [municipioSel, setMunicipioSel] = useState<string>("")
   const [municipios, setMunicipios] = useState<string[]>([])
 
-  const [categoriaInput, setCategoriaInput] = useState("")
-  const [telaInput, setTelaInput] = useState("")
+  const [categoriaInput, setCategoriaInput] = useState<string>("")
+  const [telaInput, setTelaInput] = useState<string>("")
 
   const fileRef = useRef<HTMLInputElement>(null)
   const formRef = useRef<HTMLFormElement>(null)
   const [previews, setPreviews] = useState<string[]>([])
 
+  const [imagenPrincipal, setImagenPrincipal] = useState<string | null>(null)
+  const [imagenesAEliminar, setImagenesAEliminar] = useState<number[]>([])
+
   const [imagenesExistentes, setImagenesExistentes] = useState<
     { id: number; url: string }[]
   >([])
+
+  const MAX_IMAGES = 5
+
+  const esPendiente = estadoValidacion === "pendiente"
+  const esRechazado = estadoValidacion === "rechazado"
+  const esAprobado = estadoValidacion === "aprobado"
 
   const fetchJSON = async <T,>(path: string) => {
     const r = await fetch(`${API}${path}`, {
@@ -111,57 +136,166 @@ export default function AddProductPage() {
         const token = getToken()
         if (!token) return
   
-        const res = await fetch(`${API}/api/productos/${productId}`, {
-          headers: { Authorization: `Bearer ${token}` },
-        })        
+        const res = await fetch(`${API}/api/productos/${productId}/edit`, {
+          headers: {
+            Authorization: `Bearer ${token}`,
+          },
+        })
   
         if (!res.ok) return
   
         const { product } = await res.json()
   
+        // =============================
+        // Básicos
+        // =============================
         setNombre(product.nombre ?? "")
         setDescripcion(product.descripcion ?? "")
         setPrecio(String(product.precio ?? ""))
         setStock(String(product.stock ?? ""))
         setActivo(Boolean(product.activo))
+        setImagenPrincipal(product.imagen_principal ?? null)
   
-        setCategoriaSel(product.categoria_id ? String(product.categoria_id) : "")
-        setClaseSel(product.clase_id ? String(product.clase_id) : "")
-        setTelaSel(product.tela_id ? String(product.tela_id) : "")
+        // =============================
+        // Categoría / Clase / Tela
+        // =============================
+        setCategoriaSel(
+          product.categoria_id ? String(product.categoria_id) : ""
+        )
   
-        setDepartamentoSel(product.departamento ?? "")
-        setMunicipioSel(product.municipio ?? "")
+        setClaseSel(
+          product.clase_id ? String(product.clase_id) : ""
+        )
   
-        setImagenesExistentes(Array.isArray(product.imagenes) ? product.imagenes : [])
+        if (product.tela_custom) {
+          setTelaSel(OTROS)
+          setTelaInput(product.tela_custom)
+        } else {
+          setTelaSel(
+            product.tela_id ? String(product.tela_id) : ""
+          )
+        }
+  
+        // =============================
+        // Departamento / Municipio
+        // =============================
+        if (product.departamento) {
+          handleDepartamentoChange(product.departamento)
+          setMunicipioSel(product.municipio ?? "")
+        }
+  
+        // =============================
+        // Accesorio
+        // =============================
+        if (product.accesorio_custom) {
+          setAccesorioSel(OTROS)
+          setAccesorioInput(product.accesorio_custom)
+        } else if (product.accesorio_id) {
+          setAccesorioSel(String(product.accesorio_id))
+        }
+  
+        // ⚠️ Delay para esperar que carguen tipos/materiales
+        setTimeout(() => {
+          // Tipo
+          if (product.accesorio_tipo_custom) {
+            setTipoSel(OTROS)
+            setTipoInput(product.accesorio_tipo_custom)
+          } else if (product.accesorio_tipo_id) {
+            setTipoSel(String(product.accesorio_tipo_id))
+          }
+  
+          // Material
+          if (product.accesorio_material_custom) {
+            setMaterialSel(OTROS)
+            setMaterialInput(product.accesorio_material_custom)
+          } else if (product.accesorio_material_id) {
+            setMaterialSel(String(product.accesorio_material_id))
+          }
+        }, 200)
+  
+        // =============================
+        // Imágenes
+        // =============================
+        setImagenesExistentes(
+          Array.isArray(product.imagenes) ? product.imagenes : []
+        )
+  
       } catch (err) {
         console.error("Error cargando producto:", err)
       }
     }
   
     fetchProduct()
-  }, [productId, dataReady])  
+  }, [productId, dataReady])    
 
   // ============================
-  // Cargar opciones iniciales
-  // ============================
-  useEffect(() => {
-    ;(async () => {
+    // Cargar opciones iniciales
+    // ============================
+    useEffect(() => {
+      ;(async () => {
+        try {
+          const [cats, cls] = await Promise.all([
+            fetchJSON<Opcion[]>("/api/categorias"),
+            fetchJSON<Clase[]>("/api/clases"),
+          ])
+    
+          setCategorias(cats)
+          setClases(cls)
+    
+          setDataReady(true) 
+        } catch (e: any) {
+          setEstado("error")
+          setMensaje(e.message)
+        }
+      })()
+    }, [])  
+
+    useEffect(() => {
+    async function checkEstado() {
       try {
-        const [cats, cls] = await Promise.all([
-          fetchJSON<Opcion[]>("/api/categorias"),
-          fetchJSON<Clase[]>("/api/clases"),
-        ])
-  
-        setCategorias(cats)
-        setClases(cls)
-  
-        setDataReady(true) 
-      } catch (e: any) {
-        setEstado("error")
-        setMensaje(e.message)
+        const res = await apiGetVendedorPerfil()
+        if (res.ok && res.perfil) {
+          setEstadoValidacion(res.perfil.estado_validacion ?? null)
+        }
+      } catch (err) {
+        console.error("Error verificando estado:", err)
+      } finally {
+        setCheckingEstado(false)
       }
-    })()
-  }, [])  
+    }
+
+    checkEstado()
+  }, [])
+
+    // =========================
+  // 🔒 Verificar estado validación vendedor
+  // =========================
+  useEffect(() => {
+    async function checkEstado() {
+      try {
+        const token = getToken()
+        if (!token) return
+
+        const res = await fetch(`${API}/api/seller/profile`, {
+          headers: {
+            Authorization: `Bearer ${token}`,
+          },
+        })
+
+        if (!res.ok) return
+
+        const perfil = await res.json()
+
+        setEstadoValidacion(perfil.estado_validacion ?? null)
+      } catch (err) {
+        console.error("Error verificando estado:", err)
+      } finally {
+        setCheckingEstado(false)
+      }
+    }
+
+    checkEstado()
+  }, [])
 
   // Telas dependen de la clase
   useEffect(() => {
@@ -266,7 +400,11 @@ export default function AddProductPage() {
   const confirmarOtro = (tipo: OtroTipo, valor: string) => {
     if (!valor.trim()) return
     setInfoMsg(`"${valor}" agregado como información en ${tipo}.`)
-    setTimeout(() => setInfoMsg(""), 4000)
+    setEstado("ok")
+
+    setTimeout(() => {
+      router.push("/seller/products")
+    }, 1200)
   }
 
   const handleDepartamentoChange = (dep: string) => {
@@ -289,72 +427,77 @@ export default function AddProductPage() {
   async function onSubmit(e: React.FormEvent<HTMLFormElement>) {
     e.preventDefault()
 
-    const fd = new FormData(e.currentTarget)
-    fd.set("precio", toDecimal(String(fd.get("precio") || "")))
-    fd.set("activo", "false")
-
-    // -------------------------------
-    // 1. Categoría
-    // -------------------------------
-    if (categoriaSel === OTROS) fd.set("categoria_custom", categoriaInput)
-    else fd.set("categoria_id", categoriaSel)
-
-    // Clase (aunque después se borre si no aplica)
-    fd.set("clase_id", claseSel)
-
-    // Tela (aunque después se borre si no aplica)
-    if (telaSel === OTROS) fd.set("tela_custom", telaInput)
-    else if (telaSel && telaSel !== NA) fd.set("tela_id", telaSel)
-
-    // Accesorio (aunque luego se borre si no aplica)
-    if ((esAccesorio || esAccesorioTipico) && accesorioSel) {
-      if (accesorioSel === OTROS) fd.set("accesorio_custom", accesorioInput)
-      else fd.set("accesorio_id", accesorioSel)
-
-      if (esAccesorio && tipoSel) {
-        if (tipoSel === OTROS) fd.set("accesorio_tipo_custom", tipoInput)
-        else fd.set("accesorio_tipo_id", tipoSel)
-      }
-
-      if (materialSel) {
-        if (materialSel === OTROS) fd.set("accesorio_material_custom", materialInput)
-        else fd.set("accesorio_material_id", materialSel)
-      }
-    }
-
-    fd.set("departamento", departamentoSel || "")
-    fd.set("municipio", municipioSel || "")
-
-    // --------------------------------
-    // 2. LIMPIAR CAMPOS SEGÚN REGLA
-    // --------------------------------
-    if (!reglas.clase) {
-      fd.delete("clase_id")
-    }
-
-    if (!reglas.tela) {
-      fd.delete("tela_id")
-      fd.delete("tela_custom")
-    }
-
-    if (!reglas.accesorio) {
-      fd.delete("accesorio_id")
-      fd.delete("accesorio_custom")
-      fd.delete("accesorio_tipo_id")
-      fd.delete("accesorio_tipo_custom")
-      fd.delete("accesorio_material_id")
-      fd.delete("accesorio_material_custom")
-    }
-
-    // --------------------------------
-    // 3. Imágenes
-    // --------------------------------
-    const files = fileRef.current?.files
-    if (files) Array.from(files).slice(0, 9).forEach((f) => fd.append("imagenes[]", f))
-
     try {
       setEstado("loading")
+
       const token = getToken()
+      if (!token) throw new Error("Sesión expirada")
+
+      const fd = new FormData(e.currentTarget)
+
+      fd.set("precio", toDecimal(String(fd.get("precio") || "")))
+      fd.set("activo", activo ? "true" : "false")
+
+      // -------------------------------
+      // 1. Categoría
+      // -------------------------------
+      if (categoriaSel === OTROS) fd.set("categoria_custom", categoriaInput)
+      else fd.set("categoria_id", categoriaSel)
+
+      fd.set("clase_id", claseSel)
+
+      if (telaSel === OTROS) fd.set("tela_custom", telaInput)
+      else if (telaSel && telaSel !== NA) fd.set("tela_id", telaSel)
+
+      if ((esAccesorio || esAccesorioTipico) && accesorioSel) {
+        if (accesorioSel === OTROS) fd.set("accesorio_custom", accesorioInput)
+        else fd.set("accesorio_id", accesorioSel)
+
+        if (esAccesorio && tipoSel) {
+          if (tipoSel === OTROS) fd.set("accesorio_tipo_custom", tipoInput)
+          else fd.set("accesorio_tipo_id", tipoSel)
+        }
+
+        if (materialSel) {
+          if (materialSel === OTROS) fd.set("accesorio_material_custom", materialInput)
+          else fd.set("accesorio_material_id", materialSel)
+        }
+      }
+
+      fd.set("departamento", departamentoSel || "")
+      fd.set("municipio", municipioSel || "")
+
+      // --------------------------------
+      // 2. LIMPIAR CAMPOS SEGÚN REGLA
+      // --------------------------------
+      if (!reglas.clase) {
+        fd.delete("clase_id")
+      }
+
+      if (!reglas.tela) {
+        fd.delete("tela_id")
+        fd.delete("tela_custom")
+      }
+
+      if (!reglas.accesorio) {
+        fd.delete("accesorio_id")
+        fd.delete("accesorio_custom")
+        fd.delete("accesorio_tipo_id")
+        fd.delete("accesorio_tipo_custom")
+        fd.delete("accesorio_material_id")
+        fd.delete("accesorio_material_custom")
+      }
+
+      // --------------------------------
+      // 3. NUEVAS IMÁGENES
+      // --------------------------------
+      const files = fileRef.current?.files
+      if (files) {
+        Array.from(files)
+          .slice(0, 9)
+          .forEach((f) => fd.append("imagenes[]", f))
+      }
+
       const url = isEditing
         ? `${API}/api/productos/${productId}`
         : `${API}/api/productos`
@@ -364,52 +507,142 @@ export default function AddProductPage() {
       const res = await fetch(url, {
         method,
         body: fd,
-        headers: token ? { Authorization: `Bearer ${token}` } : {},
+        headers: { Authorization: `Bearer ${token}` },
         credentials: "include",
       })
+
       if (!res.ok) throw new Error(await res.text())
-        setMensaje(
-          isEditing
-            ? "✅ Producto actualizado correctamente."
-            : "✅ Producto creado como borrador."
-        )        
+
+      // --------------------------------
+      // 4. ELIMINAR IMÁGENES PENDIENTES
+      // (SOLO EN EDICIÓN)
+      // --------------------------------
+      if (isEditing && imagenesAEliminar.length > 0) {
+        for (const imageId of imagenesAEliminar) {
+          await fetch(
+            `${API}/api/productos/${productId}/imagenes/${imageId}`,
+            {
+              method: "DELETE",
+              headers: {
+                Authorization: `Bearer ${token}`,
+              },
+            }
+          )
+        }
+      }
+
+      // --------------------------------
+      // 5. FINALIZAR
+      // --------------------------------
+      setMensaje(
+        isEditing
+          ? "✅ Producto actualizado correctamente."
+          : "✅ Producto creado como borrador."
+      )
+
       setEstado("ok")
-      if (formRef.current) formRef.current.reset()
-      setPreviews([])
+
+      if (!isEditing && formRef.current) {
+        formRef.current.reset()
+        setPreviews([])
+      }
+
+      setTimeout(() => {
+        router.push("/seller/products")
+        router.refresh()
+      }, 800)
+
     } catch (err: any) {
       setMensaje(err.message || "Error al guardar el producto.")
       setEstado("error")
     }
   }
 
-  const eliminarImagen = async (imageId: number) => {
+  const eliminarImagen = (imageId: number) => {
+    // Confirmación visual (opcional pero recomendado)
+    const confirmDelete = window.confirm(
+      "Esta imagen se eliminará cuando guardes los cambios. ¿Continuar?"
+    )
+
+    if (!confirmDelete) return
+
+    // Marcar como pendiente de eliminación
+    setImagenesAEliminar((prev) => [...prev, imageId])
+
+    // Quitarla visualmente del estado
+    setImagenesExistentes((prev) =>
+      prev.filter((img) => img.id !== imageId)
+    )
+  }  
+
+  const hacerPrincipal = async (url: string) => {
     try {
       const token = getToken()
       if (!token || !productId) return
   
       const res = await fetch(
-        `${API}/api/productos/${productId}/imagenes/${imageId}`,
+        `${API}/api/productos/${productId}/set-principal`,
         {
-          method: "DELETE",
+          method: "PATCH",
           headers: {
+            "Content-Type": "application/json",
             Authorization: `Bearer ${token}`,
           },
+          body: JSON.stringify({ imagen_url: url }),
         }
       )
   
       if (!res.ok) {
-        console.error("Error eliminando imagen")
+        console.error("Error cambiando imagen principal")
         return
       }
   
-      // 🔹 quitar del estado
-      setImagenesExistentes((prev) =>
-        prev.filter((img) => img.id !== imageId)
-      )
+      // 🔥 Actualizar visualmente
+      setImagenesExistentes((prev) => [...prev])
+  
     } catch (err) {
-      console.error("Error eliminando imagen:", err)
+      console.error("Error cambiando principal:", err)
     }
   }  
+
+  if (checkingEstado) {
+    return (
+      <main className="min-h-screen flex items-center justify-center">
+        <p className="text-muted-foreground">
+          Verificando estado del comercio…
+        </p>
+      </main>
+    )
+  }
+
+  if (estadoValidacion !== "aprobado") {
+    return (
+      <main className="min-h-screen px-4 py-10 max-w-2xl mx-auto">
+        <Card className="border shadow-sm">
+          <CardContent className="p-8 text-center space-y-4">
+            <h2 className="text-xl font-semibold">
+              Tu comercio está en revisión
+            </h2>
+
+            <p className="text-muted-foreground">
+              Estamos validando tu información.
+              Este proceso puede tardar entre 1 y 24 horas.
+            </p>
+
+            <p className="text-muted-foreground">
+              Te notificaremos por correo cuando tu cuenta sea aprobada.
+            </p>
+
+            <Link href="/seller/my-business">
+              <Button variant="outline">
+                Volver a mi tienda
+              </Button>
+            </Link>
+          </CardContent>
+        </Card>
+      </main>
+    )
+  }
 
   // ============================
   // Render con preview
@@ -426,9 +659,15 @@ export default function AddProductPage() {
             <ArrowLeft className="w-5 h-5" />
             Volver
           </Button>
-          <h1 className="text-2xl font-semibold text-gray-900 dark:text-white">
-            Agregar nuevo producto
+          <h1 className="text-2xl font-semibold tracking-tight">
+            {isEditing ? "Editar producto" : "Nuevo producto"}
           </h1>
+
+          {isEditing && (
+            <p className="text-sm text-neutral-500 mt-1">
+              Estás modificando un producto existente.
+            </p>
+          )}
         </div>
 
         <form
@@ -584,8 +823,8 @@ export default function AddProductPage() {
               />
             </div>
 
-           <div>
-                <Label>Imágenes (máx. 9)</Label>
+            <div>
+              <label>Imágenes (máx. {MAX_IMAGES})</label>
                 <Input
                   ref={fileRef}
                   type="file"
@@ -601,29 +840,65 @@ export default function AddProductPage() {
                     const newPreviews = newFiles.map((f) => URL.createObjectURL(f))
                     setPreviews((prev) => [...prev, ...newPreviews])
                   }}
-                />
+              />
 
                 {/* 🖼️ Imágenes existentes (modo edición) */}
                 {imagenesExistentes.length > 0 && (
-                  <div className="mt-3 grid grid-cols-3 sm:grid-cols-4 gap-3">
-                    {imagenesExistentes.map((img) => (
-                      <div key={img.id} className="relative group rounded-md overflow-hidden">
-                        <img
-                          src={img.url}
-                          className="w-full h-24 object-cover"
-                        />
+                <div className="mt-3 grid grid-cols-3 sm:grid-cols-4 gap-3">
+                  {imagenesExistentes.map((img) => (
+                    <div
+                      key={img.id}
+                      className="relative group rounded-lg overflow-hidden border border-neutral-200"
+                    >
+                      <img
+                        src={img.url}
+                        className="w-full h-24 object-cover"
+                      />
 
+                      {/* Overlay suave en hover */}
+                      <div className="absolute inset-0 bg-black/0 group-hover:bg-black/20 transition" />
+
+                      {/* ⭐ Principal */}
+                      {img.url !== imagenPrincipal && (
                         <button
                           type="button"
-                          onClick={() => eliminarImagen(img.id)}
-                          className="absolute top-1 right-1 bg-black/60 text-white text-xs rounded-full px-2 opacity-0 group-hover:opacity-100 transition"
+                          onClick={() => {
+                            hacerPrincipal(img.url)
+                            setImagenPrincipal(img.url)
+                          }}
+                          className="absolute bottom-2 left-2 bg-white/90 text-xs px-2 py-1 rounded shadow opacity-0 group-hover:opacity-100 transition"
                         >
-                          ✕
+                          ⭐ Principal
                         </button>
-                      </div>
-                    ))}
-                  </div>
-                )}
+                      )}
+
+                      {img.url === imagenPrincipal && (
+                        <span className="absolute bottom-2 left-2 bg-yellow-400 text-white text-xs px-2 py-1 rounded shadow">
+                          ⭐ Principal
+                        </span>
+                      )}
+
+                      {/* ❌ Eliminar */}
+                      <button
+                        type="button"
+                        onClick={() => eliminarImagen(img.id)}
+                        className="
+                          absolute top-2 right-2
+                          bg-red-600 text-white
+                          text-xs rounded-full w-6 h-6
+                          flex items-center justify-center
+                          transition hover:bg-red-700
+
+                          opacity-100 md:opacity-0
+                          md:group-hover:opacity-100
+                        "
+                      >
+                        ✕
+                      </button>
+                    </div>
+                  ))}
+                </div>
+              )}
 
                 {/* 🖼️ Previews con botón ❌ */}
                 {previews.length > 0 && (
@@ -662,19 +937,49 @@ export default function AddProductPage() {
                 )}
               </div>
 
+              {/* ===============================
+                  🔒 ESTADO VALIDACIÓN NEGOCIO
+              ================================= */}
+              {checkingEstado && (
+                <div className="bg-gray-100 text-gray-700 text-sm px-4 py-3 rounded-md">
+                  Verificando estado de tu comercio…
+                </div>
+              )}
+
+              {!checkingEstado && esPendiente && (
+                <div className="bg-amber-50 text-amber-700 text-sm px-4 py-3 rounded-md">
+                  Tu comercio está en proceso de validación.
+                  Podrás publicar productos cuando sea aprobado.
+                </div>
+              )}
+
+              {!checkingEstado && esRechazado && (
+                <div className="bg-red-50 text-red-700 text-sm px-4 py-3 rounded-md">
+                  Tu comercio fue rechazado.
+                  Revisa tus datos o contacta soporte.
+                </div>
+              )}
 
               <Button
                 type="submit"
                 className="w-full sm:w-auto bg-sky-600 hover:bg-sky-700 text-white shadow-sm"
-                disabled={estado === "loading"}
+                disabled={
+                  estado === "loading" ||
+                  checkingEstado ||
+                  estadoValidacion !== "aprobado"
+                }
               >
-                {estado === "loading"
-                  ? isEditing
-                    ? "Actualizando…"
-                    : "Guardando borrador…"
-                  : isEditing
-                    ? "Guardar cambios"
-                    : "Guardar como borrador"}
+                {checkingEstado
+                  ? "Verificando estado…"
+                  : estadoValidacion !== "aprobado"
+                    ? "Comercio pendiente de aprobación"
+                    : estado === "loading"
+                      ? isEditing
+                        ? "Actualizando…"
+                        : "Guardando borrador…"
+                      : isEditing
+                        ? "Guardar cambios"
+                        : "Guardar como borrador"}
               </Button>
 
             {mensaje && (

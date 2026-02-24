@@ -10,6 +10,7 @@ import {
   PieChart,
   Pie,
   Cell,
+  PieLabelRenderProps,
 } from 'recharts';
 
 import {
@@ -20,6 +21,7 @@ import {
   CardContent,
 } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
+import { Progress } from '@/components/ui/progress';
 import Link from 'next/link';
 import { Badge } from '@/components/ui/badge';
 import {
@@ -34,40 +36,6 @@ import { useState } from 'react';
 // ✅ Barra de progreso dinámica
 import * as React from 'react';
 import { cn } from '@/lib/utils';
-
-export interface ProgressProps
-  extends React.HTMLAttributes<HTMLDivElement> {
-  value?: number;
-}
-
-export function Progress({ value = 0, className, ...props }: ProgressProps) {
-  const getColor = (val: number) => {
-    if (val < 25) return 'bg-rose-500';
-    if (val < 50) return 'bg-amber-500';
-    if (val < 75) return 'bg-lime-500';
-    return 'bg-sky-500';
-  };
-
-  return (
-    <div
-      className={cn(
-        'relative h-2 w-full overflow-hidden rounded-full bg-muted',
-        className
-      )}
-      {...props}
-    >
-      <div
-        className={cn(
-          'h-full flex-1 transition-all duration-500 ease-in-out rounded-full',
-          getColor(value || 0)
-        )}
-        style={{
-          width: `${Math.min(100, Math.max(0, value || 0))}%`,
-        }}
-      />
-    </div>
-  );
-}
 
 export default function SellerBusinessPage() {
   // KPIs principales
@@ -284,9 +252,24 @@ export default function SellerBusinessPage() {
                     cy="50%"
                     outerRadius={85}
                     dataKey="value"
-                    label={({ name, percent }) =>
-                      `${name} ${(percent * 100).toFixed(1)}%`
-                    }
+                    label={(props: PieLabelRenderProps) => {
+                      const { name, percent } = props;
+
+                      if (!name || typeof percent !== 'number') return null;
+
+                      const pct = percent * 100;
+
+                      return (
+                        <text
+                          fill="#111"
+                          fontSize={12}
+                          textAnchor="middle"
+                          dominantBaseline="middle"
+                        >
+                          {name} {pct.toFixed(1)}%
+                        </text>
+                      );
+                    }}
                   >
                     {currentData.map((_, i) => (
                       <Cell key={i} fill={PIE_COLORS[i % PIE_COLORS.length]} />

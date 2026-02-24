@@ -68,6 +68,28 @@
   .no-scrollbar::-webkit-scrollbar {
     display: none;
   }
+    /* =======================================
+     ✨ Animación elegante de entrada
+     ======================================= */
+
+  .fade-up {
+    animation: fadeUp 0.7s ease-out forwards;
+  }
+
+  .fade-delay-1 {
+    animation: fadeUp 0.7s ease-out forwards;
+    animation-delay: 0.1s;
+  }
+
+  .fade-delay-2 {
+    animation: fadeUp 0.7s ease-out forwards;
+    animation-delay: 0.2s;
+  }
+
+  .fade-delay-3 {
+    animation: fadeUp 0.7s ease-out forwards;
+    animation-delay: 0.3s;
+  }
 
   /* Carrusel */
   .carousel-track {
@@ -93,8 +115,6 @@
     flex: 0 0 auto; /* ❗ Mantiene visibles solo los 5 items */
   }
 }
-
-/* ======================================================= */
 
 :root {
   --radius: 0.625rem;
@@ -182,6 +202,17 @@
   from {
     opacity: 0;
     transform: translateY(-5px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes fadeUp {
+  from {
+    opacity: 0;
+    transform: translateY(20px);
   }
   to {
     opacity: 1;

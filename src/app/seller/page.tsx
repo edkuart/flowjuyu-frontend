@@ -1,12 +1,20 @@
+"use client";
 
-import AuthGuard from "@/components/auth/AuthGuard";
+import { useEffect } from "react";
+import { useRouter } from "next/navigation";
+import { useAuth } from "@/context/AuthContext";
 
 export default function SellerPage() {
-  return (
-    <AuthGuard allowedRoles={["vendedor"]}>
-      <div className="p-4">
-        <h1>Zona privada del vendedor 🛍️</h1>
-      </div>
-    </AuthGuard>
-  );
+  const router = useRouter();
+  const { ready, user } = useAuth();
+
+  useEffect(() => {
+    if (!ready) return;
+
+    if (user?.rol === "seller") {
+      router.replace("/seller/my-business");
+    }
+  }, [ready, user, router]);
+
+  return null;
 }

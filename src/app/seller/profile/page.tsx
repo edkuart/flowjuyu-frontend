@@ -1,4 +1,5 @@
-'use client'
+// src/app/seller/profile/page.tsx
+"use client"
 
 import { useEffect, useState, useRef } from "react"
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
@@ -10,8 +11,8 @@ import { Label } from "@/components/ui/label"
 import { useAuth } from "@/context/AuthContext"
 import Link from "next/link"
 import { useFileUpload } from "@/hooks/useFileUpload"
+import { departamentos } from "@/lib/guatemala"
 
-// 🔹 Datos de ejemplo temporal (luego vendrán del backend)
 const reseñasSimuladas = [
   {
     id: 1,
@@ -41,31 +42,25 @@ export default function SellerPublicProfilePage() {
     ? (reseñasSimuladas.reduce((a, r) => a + r.calificacion, 0) / reseñasSimuladas.length).toFixed(1)
     : "-"
 
-  // 🔹 Cargar perfil del vendedor autenticado
   useEffect(() => {
     const fetchPerfil = async () => {
       try {
         const token = localStorage.getItem("token")
-        if (!token) {
-          console.warn("⚠️ No hay token de autenticación en localStorage.")
-          return
-        }
+        if (!token) return
 
-        const res = await fetch(`${API}/vendedores`, {
+        const res = await fetch(`${API}/seller/profile`, {
           headers: { Authorization: `Bearer ${token}` },
         })
 
-        if (!res.ok) {
-          console.error("❌ Error al obtener el perfil:", res.status, await res.text())
-          setLoading(false)
-          return
-        }
+        if (!res.ok) return
 
         const data = await res.json()
-        setVendedor(data)
-        setFormData(data)
+        const perfil = data.perfil || data
+
+        setVendedor(perfil)
+        setFormData(perfil)
       } catch (err) {
-        console.error("Error al obtener perfil:", err)
+        console.error(err)
       } finally {
         setLoading(false)
       }
@@ -74,135 +69,222 @@ export default function SellerPublicProfilePage() {
     fetchPerfil()
   }, [])
 
-  // 🔹 Cambiar valores de inputs
   const onChange = (field: string, value: string) => {
     setFormData((prev: any) => ({ ...prev, [field]: value }))
   }
 
-  // 🔹 Enviar actualización de perfil
   const onSubmit = async () => {
     const token = localStorage.getItem("token")
-    if (!token) {
-      alert("No hay sesión activa.")
-      return
-    }
-
-    try {
-      const body = new FormData()
-      Object.entries(formData).forEach(([key, val]) => {
-        if (val !== undefined && val !== null) body.append(key, val as string)
-      })
-
-      if (files.fotoPerfil) body.append("logo", files.fotoPerfil)
-
-      const res = await fetch(`${API}/seller`, {
-        method: "PATCH",
-        headers: { Authorization: `Bearer ${token}` },
-        body,
-      })
-
-      if (res.ok) {
-        const updated = await res.json()
-        setVendedor(updated.perfil || updated)
-        setEditando(false)
-      } else {
-        console.error("Error al actualizar perfil:", await res.text())
-        alert("❌ No se pudo guardar los cambios")
-      }
-    } catch (error) {
-      console.error("Error al guardar:", error)
+    if (!token) return
+  
+    const body = new FormData()
+    Object.entries(formData).forEach(([key, val]) => {
+      if (val !== undefined && val !== null) body.append(key, val as string)
+    })
+  
+    if (files.fotoPerfil) body.append("logo", files.fotoPerfil)
+  
+    const res = await fetch(`${API}/seller/profile`, {
+      method: "PATCH",
+      headers: { Authorization: `Bearer ${token}` },
+      body,
+    })
+  
+    if (res.ok) {
+      const data = await res.json()
+      const perfil = data.perfil || data
+  
+      setVendedor(perfil)
+      setFormData(perfil)
+      setEditando(false)
     }
   }
+  
 
   if (loading) return <p className="p-8 text-center">Cargando perfil...</p>
-  if (!vendedor) return <p className="p-8 text-center text-red-500">No se encontró el perfil del vendedor</p>
+  if (!vendedor) return <p className="p-8 text-center text-red-500">Perfil no encontrado</p>
 
-  // Solo el dueño puede editar
-  const esPropietario = user?.id === vendedor.user_id
+  const esPropietario =
+    Number(user?.id) === Number(vendedor.user_id)
 
   return (
-    <main className="max-w-4xl mx-auto px-4 py-10 space-y-10">
-      {/* Encabezado */}
-      <header className="text-center">
-        <h1 className="text-3xl font-bold text-neutral-900">Perfil del vendedor</h1>
-        <p className="text-muted-foreground text-sm mt-1">
-          Información pública visible para los compradores
-        </p>
-      </header>
+    <main className="max-w-4xl mx-auto px-4 py-10 space-y-12">
 
-      {/* Logo y botón de cambio */}
-      <section className="flex flex-col items-center gap-4">
-        <Avatar className="w-28 h-28">
-          <AvatarImage
-            src={previews["fotoPerfil"] || vendedor.logo || "/avatar-placeholder.png"}
-            alt="Logo del negocio"
-          />
-          <AvatarFallback>TX</AvatarFallback>
-        </Avatar>
+      {/* ================= HERO ================= */}
+      <section className="relative bg-[#F8F5F0] rounded-2xl overflow-hidden shadow-sm">
 
-        {esPropietario && editando && (
-          <>
-            <input
-              type="file"
-              accept="image/*"
-              ref={inputFileRef}
-              onChange={(e) => handleFile(e, "fotoPerfil", "perfil-vendedor")}
-              className="hidden"
-            />
-            <Button variant="outline" size="sm" onClick={() => inputFileRef.current?.click()}>
-              Cambiar logo
-            </Button>
-          </>
-        )}
-      </section>
+        <div className="h-52 md:h-64 bg-gradient-to-r from-orange-100 via-amber-50 to-rose-100" />
 
-      {/* Datos del vendedor */}
-      <div className="space-y-6">
-        <div className="space-y-2">
-          <Label>Nombre del comercio</Label>
+        <div className="relative -mt-16 px-6 pb-10 flex flex-col items-center text-center space-y-4">
+
+          {/* Logo */}
+          <div className="relative">
+            <Avatar className="w-32 h-32 border-4 border-white shadow-xl">
+              <AvatarImage
+                src={previews["fotoPerfil"] || vendedor.logo || "/avatar-placeholder.png"}
+              />
+              <AvatarFallback>TX</AvatarFallback>
+            </Avatar>
+
+            {esPropietario && editando && (
+              <>
+                <input
+                  type="file"
+                  accept="image/*"
+                  ref={inputFileRef}
+                  onChange={(e) => handleFile(e, "fotoPerfil", "perfil-vendedor")}
+                  className="hidden"
+                />
+                <Button
+                  size="sm"
+                  variant="outline"
+                  className="absolute -bottom-2 left-1/2 -translate-x-1/2"
+                  onClick={() => inputFileRef.current?.click()}
+                >
+                  Cambiar logo
+                </Button>
+              </>
+            )}
+          </div>
+
+          {/* Nombre */}
           {editando ? (
             <Input
               value={formData.nombre_comercio || ""}
               onChange={(e) => onChange("nombre_comercio", e.target.value)}
+              className="text-center text-2xl font-semibold max-w-sm"
             />
           ) : (
-            <p className="text-lg font-semibold">{vendedor.nombre_comercio || "Sin nombre"}</p>
+            <h1 className="text-3xl font-semibold text-neutral-800">
+              {vendedor.nombre_comercio || "Tienda sin nombre"}
+            </h1>
+          )}
+
+          {/* Ubicación */}
+          <p className="text-sm text-neutral-500">
+            📍 {vendedor.departamento || "—"}, {vendedor.municipio || "—"}
+          </p>
+
+          {/* Badges */}
+          <div className="flex gap-3 flex-wrap justify-center">
+            <Badge
+              variant="outline"
+              className={
+                vendedor.estado_validacion === "verificado"
+                  ? "bg-green-100 text-green-700"
+                  : "bg-yellow-100 text-yellow-700"
+              }
+            >
+              {vendedor.estado_validacion || "Pendiente"}
+            </Badge>
+            <Badge variant="outline">
+              {vendedor.estado || "Activo"}
+            </Badge>
+          </div>
+
+          {/* Botones */}
+          {esPropietario && (
+            <div className="flex gap-4 pt-4">
+              <Button
+                variant="secondary"
+                onClick={() => setEditando(!editando)}
+              >
+                {editando ? "Cancelar" : "Editar perfil"}
+              </Button>
+
+              {editando && (
+                <Button onClick={onSubmit}>
+                  Guardar cambios
+                </Button>
+              )}
+            </div>
           )}
         </div>
+      </section>
 
-        <div className="space-y-2">
+      {/* ================= INFO ================= */}
+      <section className="space-y-6">
+
+        <div>
           <Label>Descripción</Label>
           {editando ? (
             <Textarea
               value={formData.descripcion || ""}
               onChange={(e) => onChange("descripcion", e.target.value)}
-              rows={3}
             />
           ) : (
             <p>{vendedor.descripcion || "Sin descripción"}</p>
           )}
         </div>
 
-        <div className="space-y-2">
+        {/* Departamento */}
+          <div>
+            <Label>Departamento</Label>
+
+            {editando ? (
+              <select
+                value={formData.departamento || ""}
+                onChange={(e) => {
+                  onChange("departamento", e.target.value)
+                  onChange("municipio", "") // reset municipio
+                }}
+                className="w-full border rounded-md px-3 py-2 mt-1"
+              >
+                <option value="">Seleccionar departamento</option>
+                {departamentos.map((dep) => (
+                  <option key={dep.nombre} value={dep.nombre}>
+                    {dep.nombre}
+                  </option>
+                ))}
+              </select>
+            ) : (
+              <p>{vendedor.departamento || "—"}</p>
+            )}
+          </div>
+
+          {/* Municipio */}
+          <div>
+            <Label>Municipio</Label>
+
+            {editando ? (
+              <select
+                value={formData.municipio || ""}
+                onChange={(e) => onChange("municipio", e.target.value)}
+                disabled={!formData.departamento}
+                className="w-full border rounded-md px-3 py-2 mt-1 disabled:bg-gray-100"
+              >
+                <option value="">Seleccionar municipio</option>
+                {departamentos
+                  .find((d) => d.nombre === formData.departamento)
+                  ?.municipios.map((mun) => (
+                    <option key={mun} value={mun}>
+                      {mun}
+                    </option>
+                  ))}
+              </select>
+            ) : (
+              <p>{vendedor.municipio || "—"}</p>
+            )}
+          </div>
+
+        <div>
           <Label>Dirección</Label>
           {editando ? (
             <Textarea
               value={formData.direccion || ""}
               onChange={(e) => onChange("direccion", e.target.value)}
-              rows={2}
             />
           ) : (
             <p>{vendedor.direccion || "Sin dirección"}</p>
           )}
         </div>
 
-        <div className="space-y-2">
+        <div>
           <Label>Teléfono</Label>
           {editando ? (
             <Input
               value={formData.telefono_comercio || ""}
               onChange={(e) => onChange("telefono_comercio", e.target.value)}
-              placeholder="Ej: 12345678"
               className="w-40"
             />
           ) : (
@@ -210,56 +292,33 @@ export default function SellerPublicProfilePage() {
           )}
         </div>
 
-        <div className="space-y-2">
-          <Label>Estado de verificación</Label>
-          <Badge
-            className={
-              vendedor.estado_validacion === "verificado"
-                ? "bg-green-100 text-green-700"
-                : "bg-yellow-100 text-yellow-700"
-            }
-            variant="outline"
-          >
-            {vendedor.estado_validacion || "Pendiente"}
-          </Badge>
-        </div>
-
-        {/* Botones */}
-        {esPropietario && (
-          <div className="flex gap-4">
-            <Button onClick={() => setEditando(!editando)} variant="secondary">
-              {editando ? "Cancelar edición" : "Editar perfil"}
-            </Button>
-            {editando && <Button onClick={onSubmit}>Guardar cambios</Button>}
-          </div>
-        )}
-      </div>
-
-      {/* ⭐ Reseñas simuladas */}
-      <section className="space-y-6">
-        <h2 className="text-xl font-semibold">⭐ Calificación general: {promedio} / 5</h2>
-        <div className="space-y-4">
-          <h3 className="text-lg font-bold">Reseñas recientes</h3>
-          {reseñasSimuladas.map((r) => (
-            <div key={r.id} className="flex items-start gap-4 border p-4 rounded-md">
-              <Link href={`/product/${r.producto.id}`}>
-                <img
-                  src={r.producto.imagen}
-                  alt={r.producto.nombre}
-                  className="w-16 h-16 rounded object-cover"
-                />
-              </Link>
-              <div>
-                <p className="font-medium">{r.producto.nombre}</p>
-                <p className="text-sm text-muted-foreground">
-                  {"★".repeat(r.calificacion)}{"☆".repeat(5 - r.calificacion)}
-                </p>
-                <p className="text-sm mt-1">{r.comentario}</p>
-              </div>
-            </div>
-          ))}
-        </div>
       </section>
+
+      {/* ================= RESEÑAS ================= */}
+      <section className="space-y-6">
+        <h2 className="text-xl font-semibold">
+          ⭐ Calificación general: {promedio} / 5
+        </h2>
+
+        {reseñasSimuladas.map((r) => (
+          <div key={r.id} className="flex items-start gap-4 border p-4 rounded-md">
+            <Link href={`/product/${r.producto.id}`}>
+              <img
+                src={r.producto.imagen}
+                className="w-16 h-16 rounded object-cover"
+              />
+            </Link>
+            <div>
+              <p className="font-medium">{r.producto.nombre}</p>
+              <p className="text-sm text-muted-foreground">
+                {"★".repeat(r.calificacion)}{"☆".repeat(5 - r.calificacion)}
+              </p>
+              <p className="text-sm mt-1">{r.comentario}</p>
+            </div>
+          </div>
+        ))}
+      </section>
+
     </main>
   )
 }

@@ -1,366 +1,333 @@
-'use client'
+// src/app/seller/dashboard/page.tsx
 
-import { useEffect, useState } from 'react'
-import Link from 'next/link'
+"use client"
+
+import { useEffect, useState, useMemo } from "react"
+import Link from "next/link"
 import {
-  BarChart as BarChartIcon,
-  ShoppingCart,
+  Eye,
+  Store,
+  Star,
   Package,
-  DollarSign,
   TrendingUp,
-  Users,
-  AlertTriangle,
-  PlusCircle,
-  Boxes,
-} from 'lucide-react'
-
-import { Card, CardContent } from '@/components/ui/card'
-import { Button } from '@/components/ui/button'
-import { Badge } from '@/components/ui/badge'
+} from "lucide-react"
 
 import {
-  ResponsiveContainer,
-  BarChart,
-  Bar,
+  LineChart,
+  Line,
   XAxis,
   YAxis,
-  Tooltip,
-  PieChart,
-  Pie,
-  Cell,
   CartesianGrid,
-} from 'recharts'
+  Tooltip,
+  ResponsiveContainer,
+  Legend,
+} from "recharts"
 
-// 🔑 Servicio centralizado del dashboard
-import {
-  fetchSellerDashboard,
-  KPI,
-  VentasMes,
-  PedidoResumen,
-  TopCategoria,
-  LowStock,
-} from '@/services/sellerDashboard'
+import { Card, CardContent } from "@/components/ui/card"
+import { Button } from "@/components/ui/button"
 
-const colores = ['#3b82f6', '#22c55e', '#f59e0b', '#ef4444', '#a855f7']
+import { fetchSellerDashboard } from "@/services/sellerDashboard"
+import { fetchSellerAnalytics } from "@/services/sellerAnalytics"
 
-const Q = (n: number) =>
-  `Q ${n.toLocaleString('es-GT', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`
+type Analytics = {
+  totalProductViews: number
+  totalProfileViews: number
+  topProducts: {
+    id: string
+    nombre: string
+    total_views: number
+  }[]
+  last30Days: {
+    date: string
+    product_views: number
+    profile_views: number
+  }[]
+}
 
 export default function SellerDashboardPage() {
-  const [kpi, setKpi] = useState<KPI>({
-    ventasMes: 0,
-    pedidosMes: 0,
-    ticketPromedio: 0,
-    productosActivos: 0,
+  const [loading, setLoading] = useState(true)
+
+  const [catalogo, setCatalogo] = useState({
+    total: 0,
+    activos: 0,
+    inactivos: 0,
   })
 
-  const [ventasPorMes, setVentasPorMes] = useState<VentasMes[]>([])
-  const [topCategorias, setTopCategorias] = useState<TopCategoria[]>([])
-  const [actividadReciente, setActividadReciente] = useState<PedidoResumen[]>([])
-  const [lowStock, setLowStock] = useState<LowStock[]>([])
-  const [validacionesPendientes, setValidacionesPendientes] = useState<string[]>([])
+  const [analytics, setAnalytics] = useState<Analytics>({
+    totalProductViews: 0,
+    totalProfileViews: 0,
+    topProducts: [],
+    last30Days: [],
+  })
 
   useEffect(() => {
-    ;(async () => {
+    async function load() {
       try {
-        const data = await fetchSellerDashboard()
+        const dash = await fetchSellerDashboard()
+        const analyticsData = await fetchSellerAnalytics()
 
-        setKpi(data.kpi)
-        setVentasPorMes(data.ventasPorMes)
-        setTopCategorias(data.topCategorias)
-        setActividadReciente(data.actividad)
-        setLowStock(data.lowStock)
-        setValidacionesPendientes(data.validaciones)
-      } catch {
-        // 🔁 Fallback a MOCKS
-
-        setKpi({
-          ventasMes: 3200,
-          pedidosMes: 22,
-          ticketPromedio: 145.45,
-          productosActivos: 10,
+        setCatalogo({
+          total: dash.productoStats?.total ?? 0,
+          activos: dash.productoStats?.activos ?? 0,
+          inactivos: dash.productoStats?.inactivos ?? 0,
         })
 
-        setVentasPorMes([
-          { mes: 'Ene', ventas: 800 },
-          { mes: 'Feb', ventas: 1100 },
-          { mes: 'Mar', ventas: 950 },
-          { mes: 'Abr', ventas: 1200 },
-          { mes: 'May', ventas: 600 },
-          { mes: 'Jun', ventas: 1300 },
-          { mes: 'Jul', ventas: 500 },
-          { mes: 'Ago', ventas: 1000 },
-          { mes: 'Sep', ventas: 1150 },
-          { mes: 'Oct', ventas: 950 },
-          { mes: 'Nov', ventas: 1250 },
-          { mes: 'Dic', ventas: 1400 },
-        ])
-
-        setTopCategorias([
-          { name: 'Blusas', value: 8 },
-          { name: 'Trajes', value: 6 },
-          { name: 'Carteras', value: 4 },
-          { name: 'Accesorios', value: 3 },
-          { name: 'Otros', value: 2 },
-        ])
-
-        setActividadReciente([
-          {
-            id: '1249',
-            cliente: 'Ana López',
-            total: 120,
-            estado: 'Entregado',
-            fecha: '2025-06-24',
-          },
-          {
-            id: '1250',
-            cliente: 'Carlos Pérez',
-            total: 330,
-            estado: 'En camino',
-            fecha: '2025-06-23',
-          },
-          {
-            id: '1251',
-            cliente: 'Luis García',
-            total: 90,
-            estado: 'Pendiente',
-            fecha: '2025-06-22',
-          },
-        ])
-
-        setLowStock([
-          { id: 'P-101', nombre: 'Blusa roja bordada', stock: 2 },
-          { id: 'P-143', nombre: 'Faja multicolor', stock: 1 },
-        ])
-
-        setValidacionesPendientes(['Selfie con DPI (seller#123)'])
+        setAnalytics({
+          totalProductViews: analyticsData.totalProductViews ?? 0,
+          totalProfileViews: analyticsData.totalProfileViews ?? 0,
+          topProducts: analyticsData.topProducts ?? [],
+          last30Days: analyticsData.last30Days ?? [],
+        })
+      } catch (e) {
+        console.error("Error cargando dashboard:", e)
+      } finally {
+        setLoading(false)
       }
-    })()
+    }
+
+    load()
   }, [])
 
+  /* ===============================
+     📊 MÉTRICAS DERIVADAS
+  =============================== */
+
+  const topProduct = analytics.topProducts[0]
+
+  const totalTrend = useMemo(() => {
+    return analytics.last30Days.reduce(
+      (acc, d) => acc + d.product_views + d.profile_views,
+      0
+    )
+  }, [analytics.last30Days])
+
+  // Crecimiento semanal inteligente
+  const { growth, bestDay } = useMemo(() => {
+    const last7 = analytics.last30Days.slice(-7)
+    const prev7 = analytics.last30Days.slice(-14, -7)
+
+    const totalLast7 = last7.reduce(
+      (acc, d) => acc + d.product_views + d.profile_views,
+      0
+    )
+
+    const totalPrev7 = prev7.reduce(
+      (acc, d) => acc + d.product_views + d.profile_views,
+      0
+    )
+
+    const growth =
+      totalPrev7 > 0
+        ? Math.round(((totalLast7 - totalPrev7) / totalPrev7) * 100)
+        : totalLast7 > 0
+        ? 100
+        : 0
+
+    const best = [...last7].sort(
+      (a, b) =>
+        b.product_views + b.profile_views -
+        (a.product_views + a.profile_views)
+    )[0]
+
+    return { growth, bestDay: best }
+  }, [analytics.last30Days])
+
+  if (loading) {
+    return (
+      <main className="min-h-screen flex items-center justify-center bg-[#f8f5ef]">
+        <p className="text-muted-foreground">Cargando métricas…</p>
+      </main>
+    )
+  }
+
   return (
-    <main className="min-h-screen px-4 py-8 space-y-8">
-      {/* Header + acción rápida */}
-      <section className="flex items-start justify-between gap-4">
-        <div>
-          <h1 className="text-3xl font-bold text-neutral-900 mb-2">
-            Bienvenido al Panel del Vendedor
-          </h1>
-          <p className="text-muted-foreground text-sm">
-            Consulta métricas generales de tu tienda y gestiona tus productos y pedidos.
+    <main className="min-h-screen px-6 py-12 space-y-14 max-w-6xl mx-auto bg-[#f8f5ef]">
+
+      {/* HEADER */}
+      <section className="space-y-2">
+        <h1 className="text-3xl font-bold text-neutral-900">
+          Métricas de tu tienda
+        </h1>
+        <p className="text-neutral-600">
+          Analiza la visibilidad y crecimiento de tu negocio.
+        </p>
+      </section>
+
+      {/* CRECIMIENTO SEMANAL */}
+      <Card className="bg-white border shadow-sm">
+        <CardContent className="p-6 space-y-3">
+          <div className="flex items-center gap-2 text-sm text-muted-foreground">
+            <TrendingUp className="w-4 h-4" />
+            Crecimiento semanal
+          </div>
+
+          <p className="text-3xl font-bold text-neutral-900">
+            {growth >= 0 ? "+" : ""}
+            {growth}%
           </p>
+
+          <p className="text-sm text-neutral-500">
+            Comparado con los 7 días anteriores.
+          </p>
+
+          {bestDay && (
+            <p className="text-sm text-neutral-600">
+              🔥 Mejor día: {bestDay.date}
+            </p>
+          )}
+        </CardContent>
+      </Card>
+
+      {/* VISIBILIDAD GENERAL */}
+      <section className="space-y-4">
+        <h2 className="text-lg font-semibold text-neutral-800">
+          Visibilidad general
+        </h2>
+
+        <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
+          <Stat
+            label="Vistas de productos"
+            value={analytics.totalProductViews}
+            icon={<Eye className="w-4 h-4" />}
+          />
+
+          <Stat
+            label="Visitas a tu perfil"
+            value={analytics.totalProfileViews}
+            icon={<Store className="w-4 h-4" />}
+          />
+
+          <Stat
+            label="Producto más visto"
+            value={topProduct?.total_views ?? 0}
+            subtitle={topProduct?.nombre ?? "—"}
+            icon={<Star className="w-4 h-4" />}
+          />
+        </div>
+      </section>
+
+      {/* TENDENCIA 30 DÍAS */}
+      <section className="space-y-4">
+        <h2 className="text-lg font-semibold text-neutral-800">
+          Tendencia últimos 30 días
+        </h2>
+
+        <Card className="bg-white border shadow-sm">
+          <CardContent className="p-6 space-y-4">
+            <p className="text-sm text-neutral-600">
+              Total acumulado: {totalTrend} vistas
+            </p>
+
+            {analytics.last30Days.length > 0 ? (
+              <div className="h-[280px]">
+                <ResponsiveContainer width="100%" height="100%">
+                  <LineChart data={analytics.last30Days}>
+                    <CartesianGrid strokeDasharray="3 3" />
+                    <XAxis dataKey="date" tick={{ fontSize: 12 }} />
+                    <YAxis />
+                    <Tooltip />
+                    <Legend />
+
+                    <Line
+                      type="monotone"
+                      dataKey="product_views"
+                      stroke="#f59e0b"
+                      strokeWidth={3}
+                      dot={false}
+                      name="Vistas productos"
+                    />
+
+                    <Line
+                      type="monotone"
+                      dataKey="profile_views"
+                      stroke="#111827"
+                      strokeWidth={2}
+                      dot={false}
+                      name="Visitas perfil"
+                    />
+                  </LineChart>
+                </ResponsiveContainer>
+              </div>
+            ) : (
+              <div className="text-sm text-neutral-500 text-center">
+                Aún no hay datos suficientes para mostrar tendencia.
+              </div>
+            )}
+          </CardContent>
+        </Card>
+      </section>
+
+      {/* CATÁLOGO */}
+      <section className="space-y-4">
+        <h2 className="text-lg font-semibold text-neutral-800">
+          Estado del catálogo
+        </h2>
+
+        <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
+          <Stat label="Total productos" value={catalogo.total} icon={<Package className="w-4 h-4" />} />
+          <Stat label="Activos" value={catalogo.activos} />
+          <Stat label="Inactivos" value={catalogo.inactivos} />
+        </div>
+      </section>
+
+      {/* ACCIONES */}
+      <section className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+        <Action href="/seller/my-business" text="Ir a Mi tienda" />
+        <Action href="/seller/products" text="Gestionar productos" />
+        <Action href="/seller/products/new" text="Agregar producto" />
+      </section>
+
+    </main>
+  )
+}
+
+/* COMPONENTES */
+
+function Stat({
+  label,
+  value,
+  subtitle,
+  icon,
+}: {
+  label: string
+  value: number
+  subtitle?: string
+  icon?: React.ReactNode
+}) {
+  return (
+    <Card className="bg-white border shadow-sm hover:shadow-md transition">
+      <CardContent className="p-5 space-y-2">
+        <div className="flex items-center justify-between text-sm text-muted-foreground">
+          <span>{label}</span>
+          {icon}
         </div>
 
-        <Link href="/seller/reports">
-          <Button className="gap-2">
-            <BarChartIcon className="w-4 h-4" />
-            Reportes
-          </Button>
-        </Link>
-      </section>
+        <p className="text-2xl font-bold text-neutral-900">
+          {value}
+        </p>
 
-      {/* KPIs */}
-      <section className="grid gap-6 sm:grid-cols-2 lg:grid-cols-4">
-        <Card className="border border-muted/30 shadow-sm">
-          <CardContent className="p-5">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-sm text-muted-foreground">Ventas del mes</p>
-                <h2 className="text-2xl font-bold text-neutral-900">{Q(kpi.ventasMes)}</h2>
-              </div>
-              <DollarSign className="w-6 h-6 text-primary" />
-            </div>
-          </CardContent>
-        </Card>
+        {subtitle && (
+          <p className="text-xs text-neutral-500 truncate">
+            {subtitle}
+          </p>
+        )}
+      </CardContent>
+    </Card>
+  )
+}
 
-        <Card className="border border-muted/30 shadow-sm">
-          <CardContent className="p-5">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-sm text-muted-foreground">Pedidos del mes</p>
-                <h2 className="text-2xl font-bold text-neutral-900">{kpi.pedidosMes}</h2>
-              </div>
-              <ShoppingCart className="w-6 h-6 text-primary" />
-            </div>
-          </CardContent>
-        </Card>
-
-        <Card className="border border-muted/30 shadow-sm">
-          <CardContent className="p-5">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-sm text-muted-foreground">Ticket promedio</p>
-                <h2 className="text-2xl font-bold text-neutral-900">{Q(kpi.ticketPromedio)}</h2>
-              </div>
-              <TrendingUp className="w-6 h-6 text-primary" />
-            </div>
-          </CardContent>
-        </Card>
-
-        <Card className="border border-muted/30 shadow-sm">
-          <CardContent className="p-5">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-sm text-muted-foreground">Productos activos</p>
-                <h2 className="text-2xl font-bold text-neutral-900">{kpi.productosActivos}</h2>
-              </div>
-              <Package className="w-6 h-6 text-primary" />
-            </div>
-          </CardContent>
-        </Card>
-      </section>
-
-      {/* Gráficos */}
-      <section className="grid gap-6 lg:grid-cols-3">
-        {/* Ventas por mes */}
-        <Card className="p-4 lg:col-span-2">
-          <div className="flex items-center justify-between mb-2">
-            <h2 className="text-lg font-bold">Ventas por mes</h2>
-          </div>
-          <ResponsiveContainer width="100%" height={260}>
-            <BarChart data={ventasPorMes}>
-              <CartesianGrid strokeDasharray="3 3" />
-              <XAxis dataKey="mes" />
-              <YAxis />
-              <Tooltip formatter={(v: any) => Q(Number(v))} />
-              <Bar dataKey="ventas" fill="#3b82f6" />
-            </BarChart>
-          </ResponsiveContainer>
-        </Card>
-
-        {/* Top categorías */}
-        <Card className="p-4">
-          <h2 className="text-lg font-bold mb-2">Top categorías</h2>
-          <ResponsiveContainer width="100%" height={260}>
-            <PieChart>
-              <Pie
-                data={topCategorias}
-                dataKey="value"
-                nameKey="name"
-                cx="50%"
-                cy="50%"
-                outerRadius={80}
-                label
-              >
-                {topCategorias.map((_, i) => (
-                  <Cell key={i} fill={colores[i % colores.length]} />
-                ))}
-              </Pie>
-              <Tooltip />
-            </PieChart>
-          </ResponsiveContainer>
-        </Card>
-      </section>
-
-      {/* Actividad reciente + Alertas */}
-      <section className="grid gap-6 lg:grid-cols-3">
-        {/* Actividad reciente */}
-        <Card className="p-4 lg:col-span-2">
-          <div className="flex items-center justify-between mb-2">
-            <h2 className="text-lg font-bold">Actividad reciente</h2>
-            <Link href="/seller/orders">
-              <Button variant="outline" className="h-8">Ver todos</Button>
-            </Link>
-          </div>
-          <div className="divide-y">
-            {actividadReciente.map((p) => (
-              <div key={p.id} className="py-3 flex items-center justify-between text-sm">
-                <div className="flex items-center gap-3">
-                  <Users className="w-4 h-4 text-muted-foreground" />
-                  <div>
-                    <div className="font-medium">Pedido #{p.id} — {p.cliente}</div>
-                    <div className="text-muted-foreground">
-                      {new Date(p.fecha).toLocaleDateString('es-ES', { day: '2-digit', month: 'short' })}
-                    </div>
-                  </div>
-                </div>
-                <div className="flex items-center gap-3">
-                  <div className="font-semibold">{Q(p.total)}</div>
-                  <Badge
-                    variant="outline"
-                    className={
-                      p.estado === 'Entregado' ? 'border-green-600 text-green-700' :
-                      p.estado === 'En camino' ? 'border-orange-500 text-orange-600' :
-                      p.estado === 'En preparación' ? 'border-blue-500 text-blue-600' :
-                      p.estado === 'Pendiente' ? 'border-amber-500 text-amber-600' :
-                      'border-red-600 text-red-700'
-                    }
-                  >
-                    {p.estado}
-                  </Badge>
-                </div>
-              </div>
-            ))}
-            {actividadReciente.length === 0 && (
-              <div className="py-8 text-center text-muted-foreground">Sin actividad reciente.</div>
-            )}
-          </div>
-        </Card>
-
-        {/* Alertas */}
-        <Card className="p-4 space-y-4">
-          <h2 className="text-lg font-bold">Alertas</h2>
-
-          {/* Stock bajo */}
-          <div className="space-y-2">
-            <div className="flex items-center gap-2 text-amber-700">
-              <AlertTriangle className="w-4 h-4" />
-              <span className="font-medium">Stock bajo</span>
-            </div>
-            {lowStock.length ? (
-              <ul className="text-sm space-y-1">
-                {lowStock.map((p) => (
-                  <li key={p.id} className="flex items-center justify-between">
-                    <span className="truncate">{p.nombre}</span>
-                    <Badge variant="outline" className="border-amber-500 text-amber-700">
-                      {p.stock} uds
-                    </Badge>
-                  </li>
-                ))}
-              </ul>
-            ) : (
-              <div className="text-sm text-muted-foreground">Todo OK.</div>
-            )}
-          </div>
-
-          {/* Validaciones pendientes */}
-          <div className="space-y-2">
-            <div className="flex items-center gap-2 text-blue-700">
-              <AlertTriangle className="w-4 h-4" />
-              <span className="font-medium">Validaciones pendientes</span>
-            </div>
-            {validacionesPendientes.length ? (
-              <ul className="list-disc pl-5 text-sm">
-                {validacionesPendientes.map((m, i) => <li key={i}>{m}</li>)}
-              </ul>
-            ) : (
-              <div className="text-sm text-muted-foreground">Sin pendientes.</div>
-            )}
-          </div>
-        </Card>
-      </section>
-
-      {/* Atajos */}
-      <section className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
-        <Link href="/seller/products/new">
-          <Button className="w-full justify-start gap-2" variant="secondary">
-            <PlusCircle className="w-4 h-4" />
-            Publicar nuevo producto
-          </Button>
-        </Link>
-        <Link href="/seller/products">
-          <Button className="w-full justify-start gap-2" variant="secondary">
-            <Boxes className="w-4 h-4" />
-            Gestionar inventario
-          </Button>
-        </Link>
-        <Link href="/seller/reports">
-          <Button className="w-full justify-start gap-2" variant="secondary">
-            <BarChartIcon className="w-4 h-4" />
-            Ver reportes detallados
-          </Button>
-        </Link>
-      </section>
-    </main>
+function Action({
+  href,
+  text,
+}: {
+  href: string
+  text: string
+}) {
+  return (
+    <Link href={href}>
+      <Button variant="secondary" className="w-full justify-start">
+        {text}
+      </Button>
+    </Link>
   )
 }

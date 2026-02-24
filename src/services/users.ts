@@ -1,39 +1,61 @@
 // src/services/users.ts
 
 import type { User } from "@/types/db";
-
-const API_URL = (process.env.NEXT_PUBLIC_API_URL || "http://localhost:8800").replace(/\/$/, "");
+import { apiFetch } from "./apiClient";
 
 // =====================================================
-// 🔹 Obtener usuario autenticado (por cookie o token)
+// 🔹 Obtener usuario autenticado
 // =====================================================
-export async function apiGetUser(): Promise<{ ok: boolean; user?: User | null; message?: string }> {
+export async function apiGetUser(): Promise<{
+  ok: boolean;
+  user?: User | null;
+  message?: string;
+}> {
   try {
-    const res = await fetch(`${API_URL}/api/me`, {
+    const res = await apiFetch("/api/me", {
       method: "GET",
-      credentials: "include", // importante para JWT cookie
+      credentials: "include", // importante si usas cookie JWT
     });
 
     const json = await res.json().catch(() => ({}));
+
     if (!res.ok || json?.ok === false) {
-      return { ok: false, user: null, message: json?.message || "No autenticado" };
+      return {
+        ok: false,
+        user: null,
+        message: json?.message || "No autenticado",
+      };
     }
 
-    return { ok: true, user: json.user ?? null };
-  } catch (err) {
+    return {
+      ok: true,
+      user: json.user ?? null,
+    };
+  } catch (err: any) {
     console.error("❌ Error obteniendo usuario:", err);
-    return { ok: false, user: null, message: "Error de red o servidor" };
+
+    return {
+      ok: false,
+      user: null,
+      message: err.message || "Error de red o servidor",
+    };
   }
 }
 
 // =====================================================
-// 🔹 Validar token manualmente (si se usa Bearer)
+// 🔹 Validar token manualmente
 // =====================================================
-export async function apiValidateToken(token: string): Promise<boolean> {
+export async function apiValidateToken(
+  token: string
+): Promise<boolean> {
   try {
-    const res = await fetch(`${API_URL}/api/me`, {
-      headers: { Authorization: `Bearer ${token}` },
+    const res = await apiFetch("/api/me", {
+      method: "GET",
+      headers: {
+        Authorization: `Bearer ${token}`,
+      },
     });
+
     return res.ok;
   } catch {
     return false;

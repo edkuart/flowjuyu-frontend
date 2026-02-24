@@ -1,3 +1,5 @@
+//src/components/product/view/ProductRelated.tsx
+
 "use client";
 
 import Link from "next/link";

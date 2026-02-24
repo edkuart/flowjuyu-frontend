@@ -1,3 +1,5 @@
+//src/components/product/ProductCard.tsx
+
 "use client"
 
 import { useState } from "react"
@@ -20,6 +22,12 @@ function formatPrice(v: number | string) {
 export function ProductCard({ product, canEdit = false, onAddToCart }: Props) {
   const [adding, setAdding] = useState(false)
   const [added, setAdded] = useState(false)
+
+  // 🔥 PROTECCIÓN CRÍTICA
+  if (!product?.id) {
+    console.warn("Product sin id:", product)
+    return null
+  }
 
   const addToCart = () => {
     try {
@@ -58,7 +66,7 @@ export function ProductCard({ product, canEdit = false, onAddToCart }: Props) {
   return (
     <div className="group rounded-2xl border bg-white dark:bg-zinc-900 shadow-sm hover:shadow-md transition-shadow overflow-hidden flex flex-col">
 
-      {/* Imagen rectangular responsiva */}
+      {/* Imagen */}
       <div className="relative aspect-[4/5] w-full bg-muted overflow-hidden">
         <Image
           src={product.image || "/images/placeholder.jpg"}
@@ -98,7 +106,6 @@ export function ProductCard({ product, canEdit = false, onAddToCart }: Props) {
       {/* Acciones */}
       <div className="p-4 pt-0 flex gap-2">
 
-        {/* ✅ Ruta corregida (/product/${id}) */}
         <Link href={`/product/${product.id}`} className="w-1/2">
           <Button variant="outline" className="w-full">
             Ver detalles
