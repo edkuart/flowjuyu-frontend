@@ -1,29 +1,59 @@
 "use client";
 
-import { useState, useMemo } from "react";
+import { useState, useMemo, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
+import { authFetch } from "@/lib/authFetch";
+
+interface Checklist {
+  dpi_legible: boolean;
+  selfie_coincide: boolean;
+  datos_coinciden: boolean;
+  comercio_legitimo: boolean;
+  ubicacion_coherente: boolean;
+}
 
 interface Props {
   sellerId: number;
+  initialChecklist?: Partial<Checklist> | null;
 }
 
-export default function SellerKYCPanel({ sellerId }: Props) {
-  const [checks, setChecks] = useState({
+export default function SellerKYCPanel({
+  sellerId,
+  initialChecklist,
+}: Props) {
+  // 🔹 Estado por defecto
+  const defaultChecks: Checklist = {
     dpi_legible: false,
     selfie_coincide: false,
     datos_coinciden: false,
     comercio_legitimo: false,
     ubicacion_coherente: false,
+  };
+
+  // 🔹 State principal
+  const [checks, setChecks] = useState<Checklist>({
+    ...defaultChecks,
+    ...initialChecklist,
   });
 
   const [loading, setLoading] = useState(false);
 
+  // 🔥 IMPORTANTE: sincronizar si cambia el seller o el checklist
+  useEffect(() => {
+    setChecks({
+      ...defaultChecks,
+      ...initialChecklist,
+    });
+  }, [initialChecklist, sellerId]);
+
+  // 🔹 Score dinámico
   const score = useMemo(() => {
     const total = Object.values(checks).filter(Boolean).length;
     return Math.round((total / 5) * 100);
   }, [checks]);
 
+  // 🔹 Riesgo dinámico
   const riesgo = useMemo(() => {
     if (score >= 80) return "bajo";
     if (score >= 50) return "medio";
@@ -37,25 +67,24 @@ export default function SellerKYCPanel({ sellerId }: Props) {
       ? "bg-yellow-100 text-yellow-700"
       : "bg-red-100 text-red-700";
 
-  const toggle = (key: keyof typeof checks) => {
+  const toggle = (key: keyof Checklist) => {
     setChecks((prev) => ({
       ...prev,
       [key]: !prev[key],
     }));
   };
 
+  // 🔹 Guardar revisión
   const saveReview = async () => {
     try {
       setLoading(true);
 
-      const res = await fetch(
+      console.log(process.env.NEXT_PUBLIC_API_URL);
+
+      const res = await authFetch(
         `${process.env.NEXT_PUBLIC_API_URL}/api/admin/sellers/${sellerId}/kyc-review`,
         {
           method: "PATCH",
-          credentials: "include", // 🔥 usamos cookies httpOnly
-          headers: {
-            "Content-Type": "application/json",
-          },
           body: JSON.stringify(checks),
         }
       );
@@ -83,13 +112,14 @@ export default function SellerKYCPanel({ sellerId }: Props) {
           </p>
         </div>
 
+        {/* Checklist */}
         <div className="space-y-3 text-sm">
-          {Object.keys(checks).map((key) => (
+          {Object.keys(defaultChecks).map((key) => (
             <label key={key} className="flex items-center gap-3">
               <input
                 type="checkbox"
-                checked={checks[key as keyof typeof checks]}
-                onChange={() => toggle(key as keyof typeof checks)}
+                checked={checks[key as keyof Checklist]}
+                onChange={() => toggle(key as keyof Checklist)}
                 className="h-4 w-4"
               />
               <span className="capitalize">
@@ -99,6 +129,7 @@ export default function SellerKYCPanel({ sellerId }: Props) {
           ))}
         </div>
 
+        {/* Score y riesgo */}
         <div className="flex items-center gap-6">
           <div className="text-lg font-bold">
             Score: {score}%
@@ -111,6 +142,7 @@ export default function SellerKYCPanel({ sellerId }: Props) {
           </div>
         </div>
 
+        {/* Botón guardar */}
         <Button
           onClick={saveReview}
           disabled={loading}

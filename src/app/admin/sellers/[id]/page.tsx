@@ -11,13 +11,10 @@ import SellerKYCPanel from "@/components/admin/SellerKYCPanel"
 
 const API_URL = "http://localhost:8800"
 
+// 🔥 Mantener soporte para rutas relativas y URLs completas
 const resolveImageUrl = (url?: string | null) => {
   if (!url) return null
-
-  // Si ya es URL completa (Supabase por ejemplo)
   if (url.startsWith("http")) return url
-
-  // Si viene como /uploads/...
   return `${API_URL}${url}`
 }
 
@@ -27,6 +24,7 @@ interface AuditEvent {
   comment: string | null
   performed_by: number
   created_at: string
+  metadata?: any
 }
 
 interface SellerDetail {
@@ -52,6 +50,17 @@ interface SellerDetail {
     correo: string
   }
 
+    kyc_checklist: {
+    dpi_legible?: boolean
+    selfie_coincide?: boolean
+    datos_coinciden?: boolean
+    comercio_legitimo?: boolean
+    ubicacion_coherente?: boolean
+  } | null
+
+  kyc_score: number
+  kyc_riesgo: "bajo" | "medio" | "alto"
+
   audit_log: AuditEvent[]
 }
 
@@ -71,12 +80,23 @@ export default function AdminSellerDetailPage() {
   async function fetchDetail() {
     try {
       setLoading(true)
+
       const res = await authFetch(`${API_URL}/api/admin/sellers/${id}`)
-      if (!res.ok) return
+
+      if (!res.ok) {
+        toast.error("Error cargando vendedor")
+        return
+      }
+
       const data = await res.json()
+
+      // 🔥 DEBUG TEMPORAL
+      console.log("SELLER DATA:", data.data)
+
       setSeller(data.data)
     } catch (err) {
       console.error(err)
+      toast.error("Error inesperado")
     } finally {
       setLoading(false)
     }
@@ -125,13 +145,8 @@ export default function AdminSellerDetailPage() {
     }
   }
 
-  if (loading) {
-    return <div className="p-10">Cargando...</div>
-  }
-
-  if (!seller) {
-    return <div className="p-10">Vendedor no encontrado</div>
-  }
+  if (loading) return <div className="p-10">Cargando...</div>
+  if (!seller) return <div className="p-10">Vendedor no encontrado</div>
 
   // =========================
   // Colores dinámicos
@@ -279,10 +294,11 @@ export default function AdminSellerDetailPage() {
       {/* ================= PANEL KYC REVIEW ================= */}
       <SellerKYCPanel
         sellerId={seller.user_id}
+        initialChecklist={seller.kyc_checklist}
       />
 
       {/* ================= GOBERNANZA ================= */}
-      <div className="bg-white p-6 rounded-xl border space-y-4">
+      <div className="bg-white p-6 rounded-xl border space-y-5">
         <div>
           <h3 className="text-base font-semibold tracking-tight">
             Gobernanza
@@ -294,13 +310,19 @@ export default function AdminSellerDetailPage() {
 
         <div className="flex gap-3 flex-wrap">
 
-          {seller.estado_validacion === "pendiente" && (
+          {/* ================= APROBAR / RECHAZAR ================= */}
+          {seller.estado_validacion === "en_revision" && (
             <>
               <Button
+                className="bg-green-600 hover:bg-green-700 text-white"
                 disabled={processing === "approve"}
                 onClick={() => {
-                  if (!confirm("¿Aprobar vendedor?")) return
-                  handleAction("approve")
+                  if (seller.kyc_score < 80) {
+                    alert("No se puede aprobar. Score KYC menor a 80%");
+                    return;
+                  }
+                  if (!confirm("¿Aprobar vendedor?")) return;
+                  handleAction("approve");
                 }}
               >
                 {processing === "approve" ? (
@@ -312,6 +334,7 @@ export default function AdminSellerDetailPage() {
 
               <Button
                 variant="destructive"
+                disabled={processing === "reject"}
                 onClick={() => setAction("reject")}
               >
                 Rechazar
@@ -319,6 +342,7 @@ export default function AdminSellerDetailPage() {
             </>
           )}
 
+          {/* ================= SUSPENDER ================= */}
           {seller.estado_admin === "activo" && (
             <Button
               variant="destructive"
@@ -333,12 +357,14 @@ export default function AdminSellerDetailPage() {
             </Button>
           )}
 
+          {/* ================= REACTIVAR ================= */}
           {seller.estado_admin === "suspendido" && (
             <Button
+              className="bg-green-600 hover:bg-green-700 text-white"
               disabled={processing === "reactivate"}
               onClick={() => {
-                if (!confirm("¿Reactivar vendedor?")) return
-                handleAction("reactivate")
+                if (!confirm("¿Reactivar vendedor?")) return;
+                handleAction("reactivate");
               }}
             >
               {processing === "reactivate" ? (
@@ -350,29 +376,42 @@ export default function AdminSellerDetailPage() {
           )}
         </div>
 
+        {/* ================= FORMULARIO DE COMENTARIO ================= */}
         {(action === "reject" || action === "suspend") && (
-          <div className="space-y-3 pt-4 border-t">
+          <div className="space-y-4 pt-4 border-t">
             <textarea
               placeholder="Comentario obligatorio"
               value={comment}
               onChange={(e) => setComment(e.target.value)}
-              className="w-full border rounded-lg p-3 text-sm"
+              className="w-full border rounded-lg p-3 text-sm focus:outline-none focus:ring-2 focus:ring-red-400"
             />
 
-            <Button
-              variant="destructive"
-              disabled={processing === action || !comment.trim()}
-              onClick={() => {
-                if (!confirm("¿Confirmar acción?")) return
-                handleAction(action, { comment })
-              }}
-            >
-              {processing === action ? (
-                <Loader2 className="w-4 h-4 animate-spin" />
-              ) : (
-                "Confirmar acción"
-              )}
-            </Button>
+            <div className="flex gap-3">
+              <Button
+                variant="destructive"
+                disabled={processing === action || !comment.trim()}
+                onClick={() => {
+                  if (!confirm("¿Confirmar acción?")) return;
+                  handleAction(action, { comment });
+                }}
+              >
+                {processing === action ? (
+                  <Loader2 className="w-4 h-4 animate-spin" />
+                ) : (
+                  "Confirmar acción"
+                )}
+              </Button>
+
+              <Button
+                variant="outline"
+                onClick={() => {
+                  setAction(null);
+                  setComment("");
+                }}
+              >
+                Cancelar
+              </Button>
+            </div>
           </div>
         )}
       </div>
@@ -389,22 +428,64 @@ export default function AdminSellerDetailPage() {
           </p>
         )}
 
-        {seller.audit_log?.map((event) => (
-          <div
-            key={event.id}
-            className="border-l-2 border-amber-500 pl-4 py-2"
-          >
-            <p className="font-medium">{event.action}</p>
-            <p className="text-xs text-gray-500">
-              {new Date(event.created_at).toLocaleString()}
-            </p>
-            {event.comment && (
-              <p className="text-sm mt-1">
-                Comentario: {event.comment}
-              </p>
-            )}
-          </div>
-        ))}
+        {seller.audit_log?.map((event) => {
+          let color = "border-gray-300";
+          let label = event.action;
+
+          switch (event.action) {
+            case "KYC_REVIEW_UPDATED":
+              color = "border-blue-500";
+              label = "KYC actualizado";
+              break;
+
+            case "KYC_APPROVED":
+              color = "border-green-500";
+              label = "KYC aprobado";
+              break;
+
+            case "KYC_REJECTED":
+              color = "border-red-500";
+              label = "KYC rechazado";
+              break;
+
+            case "SELLER_SUSPENDED":
+              color = "border-red-500";
+              label = "Vendedor suspendido";
+              break;
+
+            case "SELLER_REACTIVATED":
+              color = "border-green-500";
+              label = "Vendedor reactivado";
+              break;
+          }
+
+          return (
+            <div
+              key={event.id}
+              className={`border-l-4 ${color} pl-4 py-3 bg-white rounded-md shadow-sm`}
+            >
+              <div className="flex justify-between items-center">
+                <p className="font-semibold text-sm">{label}</p>
+                <p className="text-xs text-gray-500">
+                  {new Date(event.created_at).toLocaleString()}
+                </p>
+              </div>
+
+              {event.metadata?.after?.kyc_score && (
+                <p className="text-xs mt-1 text-gray-600">
+                  Score: {event.metadata.after.kyc_score}% — Riesgo:{" "}
+                  {event.metadata.after.kyc_riesgo}
+                </p>
+              )}
+
+              {event.comment && (
+                <p className="text-sm mt-2 text-gray-700">
+                  {event.comment}
+                </p>
+              )}
+            </div>
+          );
+        })}
       </div>
 
     </div>
