@@ -36,7 +36,7 @@ export default function SellerPublicProfilePage() {
   const [formData, setFormData] = useState<any>({})
   const inputFileRef = useRef<HTMLInputElement>(null)
   const { previews, files, handleFile } = useFileUpload()
-  const API = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8800/api"
+  const API = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8800"
 
   const promedio = reseñasSimuladas.length
     ? (reseñasSimuladas.reduce((a, r) => a + r.calificacion, 0) / reseñasSimuladas.length).toFixed(1)
@@ -48,7 +48,7 @@ export default function SellerPublicProfilePage() {
         const token = localStorage.getItem("token")
         if (!token) return
 
-        const res = await fetch(`${API}/seller/profile`, {
+        const res = await fetch(`${API}/api/seller/profile`, {
           headers: { Authorization: `Bearer ${token}` },
         })
 
@@ -84,7 +84,7 @@ export default function SellerPublicProfilePage() {
   
     if (files.fotoPerfil) body.append("logo", files.fotoPerfil)
   
-    const res = await fetch(`${API}/seller/profile`, {
+    const res = await fetch(`${API}/api/seller/profile`, {
       method: "PATCH",
       headers: { Authorization: `Bearer ${token}` },
       body,
@@ -111,15 +111,16 @@ export default function SellerPublicProfilePage() {
     <main className="max-w-4xl mx-auto px-4 py-10 space-y-12">
 
       {/* ================= HERO ================= */}
-      <section className="relative bg-[#F8F5F0] rounded-2xl overflow-hidden shadow-sm">
+      <section className="relative overflow-hidden rounded-3xl text-white min-h-[280px] md:min-h-[240px]">
 
-        <div className="h-52 md:h-64 bg-gradient-to-r from-orange-100 via-amber-50 to-rose-100" />
+        {/* Fondo */}
+        <div className="absolute inset-0 bg-gradient-to-br from-emerald-900 via-emerald-800 to-emerald-700" />
 
-        <div className="relative -mt-16 px-6 pb-10 flex flex-col items-center text-center space-y-4">
+        <div className="relative p-8 flex flex-col items-center text-center space-y-4">
 
           {/* Logo */}
           <div className="relative">
-            <Avatar className="w-32 h-32 border-4 border-white shadow-xl">
+            <Avatar className="w-28 h-28 md:w-36 md:h-36 border-4 border-white shadow-2xl">
               <AvatarImage
                 src={previews["fotoPerfil"] || vendedor.logo || "/avatar-placeholder.png"}
               />
@@ -137,7 +138,7 @@ export default function SellerPublicProfilePage() {
                 />
                 <Button
                   size="sm"
-                  variant="outline"
+                  variant="secondary"
                   className="absolute -bottom-2 left-1/2 -translate-x-1/2"
                   onClick={() => inputFileRef.current?.click()}
                 >
@@ -152,39 +153,32 @@ export default function SellerPublicProfilePage() {
             <Input
               value={formData.nombre_comercio || ""}
               onChange={(e) => onChange("nombre_comercio", e.target.value)}
-              className="text-center text-2xl font-semibold max-w-sm"
+              className="text-center text-2xl font-semibold max-w-sm bg-white text-black"
             />
           ) : (
-            <h1 className="text-3xl font-semibold text-neutral-800">
+            <h1 className="text-3xl font-semibold">
               {vendedor.nombre_comercio || "Tienda sin nombre"}
             </h1>
           )}
 
           {/* Ubicación */}
-          <p className="text-sm text-neutral-500">
+          <p className="text-sm opacity-90">
             📍 {vendedor.departamento || "—"}, {vendedor.municipio || "—"}
           </p>
 
           {/* Badges */}
-          <div className="flex gap-3 flex-wrap justify-center">
-            <Badge
-              variant="outline"
-              className={
-                vendedor.estado_validacion === "verificado"
-                  ? "bg-green-100 text-green-700"
-                  : "bg-yellow-100 text-yellow-700"
-              }
-            >
+          <div className="flex gap-3 flex-wrap justify-center pt-2">
+            <Badge className="bg-white/20 text-white border-white/30">
               {vendedor.estado_validacion || "Pendiente"}
             </Badge>
-            <Badge variant="outline">
+            <Badge className="bg-white/20 text-white border-white/30">
               {vendedor.estado || "Activo"}
             </Badge>
           </div>
 
           {/* Botones */}
           {esPropietario && (
-            <div className="flex gap-4 pt-4">
+            <div className="flex gap-4 pt-4 flex-wrap justify-center">
               <Button
                 variant="secondary"
                 onClick={() => setEditando(!editando)}
@@ -193,17 +187,18 @@ export default function SellerPublicProfilePage() {
               </Button>
 
               {editando && (
-                <Button onClick={onSubmit}>
+                <Button className="bg-white text-emerald-900" onClick={onSubmit}>
                   Guardar cambios
                 </Button>
               )}
             </div>
           )}
+
         </div>
       </section>
 
       {/* ================= INFO ================= */}
-      <section className="space-y-6">
+      <section className="space-y-6 bg-white rounded-3xl p-8 shadow-sm border">
 
         <div>
           <Label>Descripción</Label>

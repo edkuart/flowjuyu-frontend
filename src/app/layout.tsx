@@ -2,7 +2,7 @@
 
 import "./globals.css";
 import type { Metadata } from "next";
-import { Inter } from "next/font/google";
+import { Inter, Playfair_Display } from "next/font/google";
 import { ClientProviders } from "@/providers/ClientProviders";
 import Header from "@/components/layout/Header";
 import { AuthProvider } from "@/context/AuthContext";
@@ -14,9 +14,15 @@ const inter = Inter({
   variable: "--font-inter",
 });
 
+const playfair = Playfair_Display({
+  subsets: ["latin"],
+  variable: "--font-playfair",
+  weight: ["400", "500", "600", "700"],
+});
+
 export const metadata: Metadata = {
-  title: "Flowjuyu | Cortes Marketplace",
-  description: "Compra directo al productor",
+  title: "Flowjuyu | Catálogo Cultural",
+  description: "Artesanía y diseño tradicional en formato digital.",
 };
 
 export default function RootLayout({
@@ -27,14 +33,14 @@ export default function RootLayout({
   return (
     <html lang="es">
       <body
-        className={`${inter.className} font-sans antialiased bg-background text-foreground min-h-screen`}
+        className={`${inter.variable} ${playfair.variable} font-sans antialiased bg-[#f6f2ea] text-neutral-900 min-h-screen`}
       >
         <AuthProvider>
           <ClientProviders>
             <CartProvider>
 
-              {/* HEADER SIEMPRE VISIBLE */}
-              <header className="sticky top-0 z-50 bg-white shadow md:px-6 px-3 py-2">
+              {/* HEADER */}
+              <header className="sticky top-0 z-50 bg-white/80 backdrop-blur-md border-b border-neutral-200 md:px-6 px-3 py-3">
                 <Header />
               </header>
 

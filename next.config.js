@@ -14,7 +14,14 @@ module.exports = withIntl({
         pathname: "/storage/v1/object/public/**",
       },
 
-      // 🔥 Backend local (si usas uploads locales)
+      // 🔥 Dominio principal Flowjuyu (para banners externos)
+      {
+        protocol: "https",
+        hostname: "flowjuyu.com",
+        pathname: "/**",
+      },
+
+      // 🔥 Backend local (uploads en desarrollo)
       {
         protocol: "http",
         hostname: "localhost",
@@ -23,12 +30,8 @@ module.exports = withIntl({
       },
     ],
 
-    // ⚠️ Solo si realmente necesitas SVG
     dangerouslyAllowSVG: true,
-
-    // 🔥 Mejora compatibilidad cuando la imagen externa falla
     contentDispositionType: "inline",
-
     contentSecurityPolicy:
       "default-src 'self'; script-src 'none'; sandbox;",
   },

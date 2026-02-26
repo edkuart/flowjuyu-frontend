@@ -1,7 +1,6 @@
 // src/components/home/TrendingSection.tsx
 
 import Link from "next/link";
-import FallbackImg from "@/components/FallbackImg";
 import { TrendingProducto } from "@/types/home";
 import ProductCard from "@/components/ui/ProductCard";
 import SectionHeader from "@/components/ui/SectionHeader";
@@ -12,40 +11,32 @@ type Props = {
 
 export default function TrendingSection({ trendingProducts }: Props) {
 
-  const renderStars = (rating: number) => {
-    const full = Math.round(Math.max(0, Math.min(5, rating)));
-    return (
-      <span className="text-sm text-yellow-600">
-        {"★".repeat(full)}
-        <span className="text-gray-300">
-          {"★".repeat(5 - full)}
-        </span>
-      </span>
-    );
-  };
+  if (!trendingProducts || trendingProducts.length === 0) {
+    return null;
+  }
 
   return (
-    <section className="px-4 md:px-12 fade-delay-2">
-      <div className="max-w-7xl mx-auto space-y-10">
+    <section className="py-20 px-4 md:px-12 bg-white">
+      <div className="max-w-7xl mx-auto space-y-12">
 
         <SectionHeader
-          eyebrow="Lo más visto"
-          title="Tendencia esta semana"
-          linkHref="/productos?sort=trending"
-          linkLabel="Ver más"
+          eyebrow="Selección Flowjuyu"
+          title="Piezas destacadas"
+          linkHref="/productos"
+          linkLabel="Explorar más"
         />
 
         <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-8">
-        {trendingProducts.slice(0, 5).map((p) => (
+          {trendingProducts.slice(0, 5).map((p) => (
             <ProductCard
-            key={p.id}
-            product={p}
-            showRating
+              key={p.id}
+              product={p}
+              showRating
             />
-        ))}
+          ))}
         </div>
 
       </div>
     </section>
-    );
+  );
 }

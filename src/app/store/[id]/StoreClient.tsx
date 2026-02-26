@@ -1,11 +1,10 @@
-// src/app/store/[id]/StoreClient.tsx
+//src/app/store/[id]/StoreClient.tsx
 
 "use client";
 
 import { useMemo, useState } from "react";
 import Image from "next/image";
 import Link from "next/link";
-
 import ProductDiscoveryLayout from "@/components/product/discovery/ProductDiscoveryLayout";
 
 /* =====================================================
@@ -19,12 +18,6 @@ type Producto = {
   imagen_url?: string | null;
 };
 
-type SellerStats = {
-  total_profile_views?: number;
-  total_products?: number;
-  total_reviews?: number;
-};
-
 type Seller = {
   id: number;
   nombre_comercio: string;
@@ -32,10 +25,20 @@ type Seller = {
   logo?: string | null;
   departamento?: string | null;
   municipio?: string | null;
-  rating_avg?: number | null;
-  rating_count?: number | null;
-  estado_validacion?: string | null;
-  stats?: SellerStats;
+  banner_url?: string | null;
+
+  identidad_tags?: string[] | null;
+  productos_destacados?: string[] | null;
+
+  mensaje_destacado?: string | null;
+
+  created_at?: string | null;
+
+  whatsapp?: string | null;
+  plan?: "free" | "founder";
+  plan_activo?: boolean;
+
+  estado_validacion?: "pendiente" | "aprobado" | "rechazado";
 };
 
 /* =====================================================
@@ -45,24 +48,18 @@ type Seller = {
 export default function StoreClient({
   seller,
   initialProducts,
-  previewMode = false,
 }: {
   seller: Seller;
   initialProducts: Producto[];
-  previewMode?: boolean;
 }) {
-  /* =============================
-     FILTER STATE
-  ============================== */
 
   const [precioMin, setPrecioMin] = useState(0);
   const [precioMax, setPrecioMax] = useState(2000);
   const [sort, setSort] = useState("");
 
-  /* =============================
-     FILTER + SORT
-  ============================== */
-
+  /* =====================================================
+     FILTROS + SORT
+  ===================================================== */
   const productos = useMemo(() => {
     let list = [...initialProducts];
 
@@ -83,11 +80,37 @@ export default function StoreClient({
   }, [initialProducts, precioMin, precioMax, sort]);
 
   /* =====================================================
+     DESTACADOS
+  ===================================================== */
+  const destacados =
+    seller.productos_destacados && seller.productos_destacados.length > 0
+      ? productos.filter((p) =>
+          seller.productos_destacados?.includes(p.id)
+        )
+      : [];
+
+  /* =====================================================
+     MEMBER SINCE
+  ===================================================== */
+  const memberSince = seller.created_at
+    ? new Date(seller.created_at).getFullYear()
+    : null;
+
+  /* =====================================================
+     WHATSAPP PREMIUM
+  ===================================================== */
+  const showWhatsapp =
+    seller.plan === "founder" &&
+    seller.plan_activo === true &&
+    !!seller.whatsapp;
+
+  /* =====================================================
      RENDER
   ===================================================== */
 
   return (
     <ProductDiscoveryLayout
+      hideHeader={true}
       title={seller.nombre_comercio}
       subtitle={seller.descripcion ?? undefined}
       total={productos.length}
@@ -103,91 +126,189 @@ export default function StoreClient({
         setSort("");
       }}
     >
-      {/* =====================================================
-          HERO ARTESANAL
-      ===================================================== */}
-      <div className="bg-[#f8f5ef] -mx-6 -mt-6 px-6 py-16 mb-16 border-b">
-        <div className="max-w-6xl mx-auto flex flex-col md:flex-row items-start md:items-center gap-10">
 
-          {/* LOGO */}
-          <div className="relative w-28 h-28 rounded-3xl overflow-hidden shadow-lg border bg-white">
+      {/* =====================================================
+          HERO CINEMÁTICO MEJORADO
+      ===================================================== */}
+
+      <div className="relative -mx-6 mb-20 overflow-hidden rounded-b-[40px]">
+
+        {seller.banner_url ? (
+          <div className="relative h-[340px] md:h-[520px] w-full">
             <Image
-              src={seller.logo || "/placeholder.jpg"}
-              alt={seller.nombre_comercio}
+              src={seller.banner_url}
+              alt="Banner tienda"
               fill
               className="object-cover"
+              priority
             />
+
+            {/* Capas visuales */}
+            <div className="absolute inset-0 bg-emerald-900/70 mix-blend-multiply" />
+            <div className="absolute inset-0 bg-gradient-to-br from-emerald-950/60 via-emerald-900/40 to-emerald-800/60" />
           </div>
+        ) : (
+          <div className="h-[460px] bg-gradient-to-br from-emerald-950 via-emerald-900 to-emerald-800" />
+        )}
 
-          {/* INFO */}
-          <div className="flex-1">
-            <div className="flex flex-wrap items-center gap-4">
-              <h1 className="text-4xl md:text-5xl font-semibold tracking-tight text-neutral-900">
-                {seller.nombre_comercio}
-              </h1>
+        <div className="absolute inset-0 flex items-center">
+          <div className="max-w-6xl mx-auto px-6 pt-10 md:pt-0 text-white">
 
-              {seller.estado_validacion === "aprobado" && (
-                <span className="text-xs px-3 py-1 bg-emerald-100 text-emerald-700 rounded-full font-medium">
-                  Verificado
-                </span>
+            <div className="flex items-center gap-8">
+
+              {seller.logo && (
+                <div className="relative w-28 h-28 md:w-48 md:h-48 rounded-3xl border-4 border-white shadow-2xl">
+                  <Image
+                    src={seller.logo}
+                    alt={seller.nombre_comercio}
+                    fill
+                    className="object-cover"
+                  />
+                </div>
               )}
 
-              {previewMode && (
-                <span className="text-xs px-3 py-1 bg-amber-100 text-amber-700 rounded-full font-medium">
-                  Vista previa
-                </span>
-              )}
+              <div>
+
+                <h1 className="text-3xl md:text-6xl font-bold tracking-tight leading-tight">
+                  {seller.nombre_comercio}
+                </h1>
+
+                <div className="mt-5 h-[4px] w-24 bg-amber-400 rounded-full" />
+
+                {(seller.municipio || seller.departamento) && (
+                  <p className="mt-5 text-sm opacity-90">
+                    📍 {[seller.municipio, seller.departamento]
+                      .filter(Boolean)
+                      .join(", ")}
+                  </p>
+                )}
+
+                {seller.mensaje_destacado && (
+                  <p className="mt-6 max-w-2xl text-sm md:text-base opacity-95 leading-relaxed text-neutral-100">
+                    {seller.mensaje_destacado}
+                  </p>
+                )}
+
+                <div className="flex flex-wrap gap-6 text-sm mt-5 opacity-90">
+                  <span>🛍 {productos.length} productos activos</span>
+                  {memberSince && <span>📅 Desde {memberSince}</span>}
+                </div>
+
+                <div className="flex flex-wrap gap-3 mt-6">
+
+                  {seller.estado_validacion === "aprobado" && (
+                    <span className="inline-flex items-center gap-1 px-4 py-1 bg-blue-600 text-white text-xs font-semibold rounded-full shadow">
+                      ✔ Vendedor verificado
+                    </span>
+                  )}
+
+                  {seller.plan === "founder" && seller.plan_activo && (
+                    <span className="px-4 py-1 bg-amber-500 text-black text-xs font-semibold rounded-full shadow">
+                      Founder
+                    </span>
+                  )}
+
+                </div>
+
+                {showWhatsapp && (
+                  <a
+                    href={`https://wa.me/${seller.whatsapp}`}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="inline-flex items-center gap-2 mt-8 px-7 py-3 bg-green-600 hover:bg-green-700 rounded-full text-sm font-semibold transition shadow-xl"
+                  >
+                    💬 Contactar por WhatsApp
+                  </a>
+                )}
+
+              </div>
             </div>
 
-            {seller.descripcion && (
-              <p className="text-neutral-600 mt-4 max-w-2xl leading-relaxed">
-                {seller.descripcion}
-              </p>
+            {seller.identidad_tags && seller.identidad_tags.length > 0 && (
+              <div className="flex flex-wrap gap-3 mt-10">
+                {seller.identidad_tags.slice(0, 4).map((tag, index) => (
+                  <span
+                    key={index}
+                    className="px-4 py-2 bg-white/15 backdrop-blur-md border border-white/20 rounded-full text-sm font-medium hover:bg-white/25 transition"
+                  >
+                    {tag}
+                  </span>
+                ))}
+              </div>
             )}
 
-            <div className="flex flex-wrap items-center gap-6 mt-5 text-sm text-neutral-600">
-
-              {(seller.municipio || seller.departamento) && (
-                <span>
-                  📍 {[seller.municipio, seller.departamento]
-                    .filter(Boolean)
-                    .join(", ")}
-                </span>
-              )}
-
-              {typeof seller.rating_avg === "number" && (
-                <span>
-                  ⭐ {seller.rating_avg.toFixed(1)} (
-                  {seller.rating_count ?? 0} reseñas)
-                </span>
-              )}
-
-              {seller.stats?.total_profile_views !== undefined && (
-                <span>
-                  👁 {seller.stats.total_profile_views} visitas
-                </span>
-              )}
-            </div>
           </div>
         </div>
+
       </div>
 
       {/* =====================================================
-          PRODUCT GRID
+          DESTACADOS SHOWCASE
       ===================================================== */}
-      <section className="grid grid-cols-2 md:grid-cols-3 xl:grid-cols-4 gap-8">
+
+      {destacados.length > 0 && (
+        <section className="mb-28">
+          <h2 className="text-2xl font-semibold mb-12">
+            Productos destacados
+          </h2>
+
+          <div className="grid md:grid-cols-3 gap-8">
+
+            {destacados.map((p, index) => (
+              <Link key={p.id} href={`/product/${p.id}`}>
+                <div
+                  className={`group relative rounded-3xl overflow-hidden shadow-xl hover:shadow-2xl transition duration-500 ${
+                    index === 0 ? "md:col-span-2 md:row-span-2" : ""
+                  }`}
+                >
+
+                  <div className="relative aspect-[4/3]">
+                    <Image
+                      src={p.imagen_url || "/placeholder.jpg"}
+                      alt={p.nombre}
+                      fill
+                      className="object-cover group-hover:scale-105 transition-transform duration-700"
+                    />
+                  </div>
+
+                  <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition flex items-end p-8">
+                    <div className="text-white">
+                      <h3 className="text-xl font-semibold">
+                        {p.nombre}
+                      </h3>
+                      <p className="text-sm opacity-80 mt-1">
+                        Ver producto
+                      </p>
+                    </div>
+                  </div>
+
+                </div>
+              </Link>
+            ))}
+
+          </div>
+        </section>
+      )}
+
+      {/* =====================================================
+          PRODUCT GRID PREMIUM
+      ===================================================== */}
+
+      <section className="grid grid-cols-2 md:grid-cols-3 xl:grid-cols-4 gap-10">
+
         {productos.map((p) => {
           const precio = Number(p.precio);
 
           return (
             <Link key={p.id} href={`/product/${p.id}`}>
-              <div className="bg-white rounded-2xl border border-neutral-200 p-4 hover:shadow-lg hover:-translate-y-1 transition-all duration-300">
-                <div className="relative w-full aspect-square rounded-xl overflow-hidden mb-4 bg-neutral-100">
+              <div className="group bg-white rounded-3xl border border-neutral-200 p-5 hover:shadow-2xl transition-all duration-500">
+
+                <div className="relative w-full aspect-square rounded-2xl overflow-hidden mb-5 bg-neutral-100">
                   <Image
                     src={p.imagen_url || "/placeholder.jpg"}
                     alt={p.nombre}
                     fill
-                    className="object-cover hover:scale-105 transition-transform duration-300"
+                    className="object-cover group-hover:scale-105 transition-transform duration-700"
                   />
                 </div>
 
@@ -195,20 +316,23 @@ export default function StoreClient({
                   {p.nombre}
                 </h3>
 
-                <p className="font-semibold text-lg mt-2 tracking-tight">
+                <p className="font-semibold text-xl mt-4 tracking-tight text-emerald-700">
                   Q{precio.toFixed(2)}
                 </p>
+
               </div>
             </Link>
           );
         })}
 
         {productos.length === 0 && (
-          <div className="col-span-full text-center text-neutral-500 py-16">
-            Este vendedor no tiene productos con estos filtros.
+          <div className="col-span-full text-center text-neutral-500 py-20">
+            Este vendedor aún no tiene productos activos.
           </div>
         )}
+
       </section>
+
     </ProductDiscoveryLayout>
   );
 }

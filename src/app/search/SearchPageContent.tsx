@@ -384,16 +384,8 @@ export default function SearchProductsPage() {
 
   return (
     <ProductDiscoveryLayout
-      title={
-        mostrarRelacionados
-          ? "Productos relacionados"
-          : "Resultados de búsqueda"
-      }
-      subtitle={
-        busqueda.trim()
-          ? `Resultados para "${busqueda}"`
-          : undefined
-      }
+      title={mostrarRelacionados ? "Productos relacionados" : "Resultados de búsqueda"}
+      subtitle={busqueda.trim() ? `Resultados para "${busqueda}"` : undefined}
       total={productos.length}
       categorias={categorias}
       categoriaId={categoriaId}
@@ -423,122 +415,82 @@ export default function SearchProductsPage() {
         setAccesorioMaterialId(null);
       }}
     >
-    <div className="space-y-4"></div>
-      {/* 🔍 BUSCADOR */}
-      <div className="mb-6 sticky top-0 bg-neutral-50 z-10 pb-4">
-        <div className="relative w-full sm:max-w-md">
-          <Input
-            type="text"
-            placeholder="Buscar productos..."
-            value={busqueda}
-            onChange={(e) => setBusqueda(e.target.value)}
-            onKeyDown={onEnter}
-            className="pl-10"
-          />
-          <Search className="absolute left-3 top-3 h-4 w-4 text-neutral-400" />
-        </div>
-      </div>
+      <div className="space-y-6">
 
-      {/* 🏷️ CHIPS DE FILTROS */}
-      {filtrosActivos.length > 0 && (
-        <div className="flex flex-wrap gap-2 mb-4">
-          {filtrosActivos.map((f, i) => (
-            <span
-              key={i}
-              className="px-3 py-1 bg-neutral-200 text-neutral-700 rounded-full text-xs"
-            >
-              {f}
-            </span>
-          ))}
-        </div>
-      )}
+        {/* 🔍 BUSCADOR (NO STICKY para que no descoordine con el sidebar) */}
+        <div className="sticky top-20 bg-white border border-neutral-200 rounded-2xl p-4 shadow-sm z-10">
+          <div className="relative w-full sm:max-w-md">
+            <Input
+              type="text"
+              placeholder="Buscar productos, categorías o estilos..."
+              value={busqueda}
+              onChange={(e) => setBusqueda(e.target.value)}
+              onKeyDown={onEnter}
+              className="pl-10 rounded-xl"
+            />
+            <Search className="absolute left-3 top-3.5 h-4 w-4 text-neutral-400" />
+          </div>
 
-      {/* 🧱 RESULTADOS */}
-      {loading ? (
-        <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-6">
-          {[...Array(8)].map((_, i) => (
-            <div
-              key={i}
-              className="animate-pulse bg-white border rounded-lg p-4 shadow-sm"
-            >
-              <div className="w-full aspect-square bg-neutral-200 rounded-md mb-4" />
-              <div className="h-4 bg-neutral-200 rounded w-3/4 mb-2" />
-              <div className="h-4 bg-neutral-200 rounded w-1/2 mb-4" />
-              <div className="h-5 bg-neutral-200 rounded w-1/3" />
+          {/* 🏷️ CHIPS DE FILTROS */}
+          {filtrosActivos.length > 0 && (
+            <div className="flex flex-wrap gap-2 mt-4">
+              {filtrosActivos.map((f, i) => (
+                <span
+                  key={i}
+                  className="px-3 py-1 bg-neutral-100 border border-neutral-200 text-neutral-700 rounded-full text-xs"
+                >
+                  {f}
+                </span>
+              ))}
             </div>
-          ))}
+          )}
         </div>
-      ) : productos.length > 0 ? (
-        <div className="grid gap-6 grid-cols-2 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
-          {productos.map((p) => (
-            <Link
-              key={p.id}
-              href={`/product/${p.id}`}
-              className="block hover:opacity-90 transition"
-            >
-              <Card className="border shadow-sm hover:shadow-md transition">
-                <CardContent className="p-4">
-                  <div className="relative w-full aspect-square mb-3">
-                    <Image
-                      src={p.imagen_url || "/placeholder.jpg"}
-                      alt={p.nombre}
-                      fill
-                      className="object-cover rounded-lg"
-                    />
-                  </div>
 
-                  <h3 className="font-semibold line-clamp-1">
-                    {p.nombre}
-                  </h3>
-
-                  {p.categoria && (
-                    <p className="text-xs text-neutral-600">
-                      {p.categoria}
-                    </p>
-                  )}
-
-                  {p.departamento && (
-                    <p className="text-xs text-neutral-500 mt-1">
-                      {p.municipio
-                        ? `${p.municipio}, ${p.departamento}`
-                        : p.departamento}
-                    </p>
-                  )}
-
-                  <p className="text-base font-bold mt-2">
-                    Q{Number(p.precio).toFixed(2)}
-                  </p>
-                </CardContent>
-              </Card>
-            </Link>
-          ))}
-        </div>
-      ) : mostrarRelacionados ? (
-        <>
-          <p className="text-neutral-500 mb-4">
-            No encontramos productos exactos para{" "}
-            <strong>"{busqueda}"</strong>. Aquí tienes alternativas:
-          </p>
-
-          <div className="grid gap-6 grid-cols-2 sm:grid-cols-3 lg:grid-cols-4">
-            {relacionados.map((p) => (
-              <Link key={p.id} href={`/product/${p.id}`}>
-                <Card className="border shadow-sm hover:shadow-md transition">
-                  <CardContent className="p-4">
-                    <div className="relative w-full aspect-square mb-3">
+        {/* 🧱 RESULTADOS */}
+        {loading ? (
+          <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-6">
+            {[...Array(8)].map((_, i) => (
+              <div
+                key={i}
+                className="animate-pulse bg-white border border-neutral-200 rounded-2xl p-4 shadow-sm"
+              >
+                <div className="w-full aspect-square bg-neutral-200 rounded-xl mb-4" />
+                <div className="h-4 bg-neutral-200 rounded w-3/4 mb-2" />
+                <div className="h-4 bg-neutral-200 rounded w-1/2 mb-4" />
+                <div className="h-5 bg-neutral-200 rounded w-1/3" />
+              </div>
+            ))}
+          </div>
+        ) : productos.length > 0 ? (
+          <div className="grid gap-8 grid-cols-2 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
+            {productos.map((p) => (
+              <Link
+                key={p.id}
+                href={`/product/${p.id}`}
+                className="block"
+              >
+                <Card className="rounded-3xl border border-neutral-200 shadow-sm hover:shadow-xl transition-all duration-300 hover:-translate-y-1">
+                  <CardContent className="p-5">
+                    <div className="relative w-full aspect-square mb-4 rounded-2xl overflow-hidden bg-neutral-100">
                       <Image
                         src={p.imagen_url || "/placeholder.jpg"}
                         alt={p.nombre}
                         fill
-                        className="object-cover rounded-lg"
+                        className="object-cover hover:scale-105 transition-transform duration-500"
                       />
                     </div>
 
-                    <h3 className="font-semibold line-clamp-1">
+                    <h3 className="font-medium text-neutral-900 line-clamp-2">
                       {p.nombre}
                     </h3>
 
-                    <p className="text-base font-bold mt-2">
+                    {(p.municipio || p.departamento) && (
+                      <p className="text-xs text-neutral-500 mt-2">
+                        {[p.municipio, p.departamento].filter(Boolean).join(", ")}
+                      </p>
+                    )}
+
+                    <p className="text-lg font-semibold mt-3 tracking-tight text-emerald-700">
                       Q{Number(p.precio).toFixed(2)}
                     </p>
                   </CardContent>
@@ -546,12 +498,46 @@ export default function SearchProductsPage() {
               </Link>
             ))}
           </div>
-        </>
-      ) : (
-        <p className="text-center text-neutral-500 py-10">
-          No se encontraron productos.
-        </p>
-      )}
+        ) : mostrarRelacionados ? (
+          <>
+            <div className="bg-amber-50 border border-amber-200 rounded-2xl p-4 text-amber-800">
+              No encontramos coincidencias exactas para <strong>"{busqueda}"</strong>.
+              Aquí tienes alternativas:
+            </div>
+
+            <div className="grid gap-8 grid-cols-2 sm:grid-cols-3 lg:grid-cols-4">
+              {relacionados.map((p) => (
+                <Link key={p.id} href={`/product/${p.id}`}>
+                  <Card className="rounded-3xl border border-neutral-200 shadow-sm hover:shadow-xl transition-all duration-300 hover:-translate-y-1">
+                    <CardContent className="p-5">
+                      <div className="relative w-full aspect-square mb-4 rounded-2xl overflow-hidden bg-neutral-100">
+                        <Image
+                          src={p.imagen_url || "/placeholder.jpg"}
+                          alt={p.nombre}
+                          fill
+                          className="object-cover hover:scale-105 transition-transform duration-500"
+                        />
+                      </div>
+
+                      <h3 className="font-medium text-neutral-900 line-clamp-2">
+                        {p.nombre}
+                      </h3>
+
+                      <p className="text-lg font-semibold mt-3 tracking-tight text-emerald-700">
+                        Q{Number(p.precio).toFixed(2)}
+                      </p>
+                    </CardContent>
+                  </Card>
+                </Link>
+              ))}
+            </div>
+          </>
+        ) : (
+          <div className="text-center text-neutral-500 py-16">
+            No se encontraron productos.
+          </div>
+        )}
+      </div>
     </ProductDiscoveryLayout>
   );
 }

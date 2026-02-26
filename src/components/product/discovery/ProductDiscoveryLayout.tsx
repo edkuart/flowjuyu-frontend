@@ -26,6 +26,7 @@ type Props = {
   subtitle?: string;
   total?: number;
   activeFilters?: ActiveFilter[];
+  hideHeader?: boolean;
 
   // BASE
   categorias?: Categoria[];
@@ -78,6 +79,7 @@ export default function ProductDiscoveryLayout({
   subtitle,
   total,
   activeFilters = [],
+  hideHeader = false,
 
   categorias = [],
   categoriaId = null,
@@ -130,9 +132,10 @@ export default function ProductDiscoveryLayout({
   }, []);
 
   return (
-    <main className="min-h-screen bg-neutral-50 px-3 sm:px-6 lg:px-10 py-6 sm:py-8">
+    <main className="min-h-screen bg-neutral-50 px-3 sm:px-6 lg:px-10 pt-0 pb-6 sm:pb-8">
       {/* HEADER */}
-      <header className="mb-6 space-y-3">
+      {!hideHeader && (
+      <header className="pt-6 sm:pt-8 mb-6 space-y-3">
         <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
           <div>
             <h1 className="text-2xl sm:text-3xl font-bold">{title}</h1>
@@ -175,7 +178,8 @@ export default function ProductDiscoveryLayout({
             </button>
           </div>
         )}
-      </header>
+        </header>
+      )}
 
       <div className="grid grid-cols-1 lg:grid-cols-[280px_1fr] gap-8">
         {/* Sidebar */}
