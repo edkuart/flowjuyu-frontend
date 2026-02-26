@@ -45,7 +45,6 @@ export default async function StorePage({
     <StoreClient
       seller={data.seller}
       initialProducts={data.products}
-      previewMode={false}
     />
   );
 }
