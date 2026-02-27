@@ -15,6 +15,7 @@ import {
 import {
   LineChart,
   Line,
+  Area,
   XAxis,
   YAxis,
   CartesianGrid,
@@ -32,10 +33,17 @@ import { fetchSellerAnalytics } from "@/services/sellerAnalytics"
 type Analytics = {
   totalProductViews: number
   totalProfileViews: number
+  totalIntentions: number
+  conversionRatio: number
   topProducts: {
     id: string
     nombre: string
     total_views: number
+  }[]
+  topIntentedProducts: {
+    id: string
+    nombre: string
+    total_intentions: number
   }[]
   last30Days: {
     date: string
@@ -56,9 +64,25 @@ export default function SellerDashboardPage() {
   const [analytics, setAnalytics] = useState<Analytics>({
     totalProductViews: 0,
     totalProfileViews: 0,
+    totalIntentions: 0,
+    conversionRatio: 0,
     topProducts: [],
+    topIntentedProducts: [],
     last30Days: [],
   })
+
+  const [isMobile, setIsMobile] = useState(false)
+
+  useEffect(() => {
+    const handleResize = () => {
+      setIsMobile(window.innerWidth < 768)
+    }
+
+    handleResize()
+    window.addEventListener("resize", handleResize)
+
+    return () => window.removeEventListener("resize", handleResize)
+  }, [])
 
   useEffect(() => {
     async function load() {
@@ -75,7 +99,10 @@ export default function SellerDashboardPage() {
         setAnalytics({
           totalProductViews: analyticsData.totalProductViews ?? 0,
           totalProfileViews: analyticsData.totalProfileViews ?? 0,
+          totalIntentions: analyticsData.totalIntentions ?? 0,
+          conversionRatio: analyticsData.conversionRatio ?? 0,
           topProducts: analyticsData.topProducts ?? [],
+          topIntentedProducts: analyticsData.topIntentedProducts ?? [],
           last30Days: analyticsData.last30Days ?? [],
         })
       } catch (e) {
@@ -89,56 +116,102 @@ export default function SellerDashboardPage() {
   }, [])
 
   /* ===============================
-     📊 MÉTRICAS DERIVADAS
-  =============================== */
+    📊 MÉTRICAS DERIVADAS PRO
+  ================================ */
 
-  const topProduct = analytics.topProducts[0]
+  const topProduct = analytics.topProducts?.[0] ?? null
+
+  /* ===============================
+    🎯 CONVERSIÓN
+  ================================ */
+
+  const conversionPercent = useMemo(() => {
+    if (!analytics.totalProductViews) return 0
+    return Number((analytics.conversionRatio * 100).toFixed(2))
+  }, [analytics.totalProductViews, analytics.conversionRatio])
+
+  const conversionColor =
+    conversionPercent < 3
+      ? "text-red-600"
+      : conversionPercent < 7
+      ? "text-amber-600"
+      : "text-emerald-600"
+
+  const conversionLabel =
+    conversionPercent < 3
+      ? "Necesita optimización"
+      : conversionPercent < 7
+      ? "Rendimiento aceptable"
+      : "Excelente conversión"
+
+  /* ===============================
+    📈 TOTAL 30 DÍAS
+  ================================ */
 
   const totalTrend = useMemo(() => {
+    if (!analytics.last30Days?.length) return 0
+
     return analytics.last30Days.reduce(
-      (acc, d) => acc + d.product_views + d.profile_views,
+      (acc, d) => acc + (d.product_views ?? 0) + (d.profile_views ?? 0),
       0
     )
   }, [analytics.last30Days])
 
-  // Crecimiento semanal inteligente
-  const { growth, bestDay } = useMemo(() => {
+  /* ===============================
+    🚀 CRECIMIENTO SEMANAL INTELIGENTE
+  ================================ */
+
+  const { growthPercent, growthStatus, bestDay } = useMemo(() => {
+    if (!analytics.last30Days?.length) {
+      return {
+        growthPercent: 0,
+        growthStatus: "neutral",
+        bestDay: null,
+      }
+    }
+
     const last7 = analytics.last30Days.slice(-7)
     const prev7 = analytics.last30Days.slice(-14, -7)
 
-    const totalLast7 = last7.reduce(
-      (acc, d) => acc + d.product_views + d.profile_views,
-      0
-    )
+    const sum = (arr: typeof last7) =>
+      arr.reduce(
+        (acc, d) => acc + (d.product_views ?? 0) + (d.profile_views ?? 0),
+        0
+      )
 
-    const totalPrev7 = prev7.reduce(
-      (acc, d) => acc + d.product_views + d.profile_views,
-      0
-    )
+    const totalLast7 = sum(last7)
+    const totalPrev7 = sum(prev7)
 
-    const growth =
-      totalPrev7 > 0
-        ? Math.round(((totalLast7 - totalPrev7) / totalPrev7) * 100)
-        : totalLast7 > 0
-        ? 100
-        : 0
+    let growth = 0
 
-    const best = [...last7].sort(
-      (a, b) =>
-        b.product_views + b.profile_views -
-        (a.product_views + a.profile_views)
-    )[0]
+    if (totalPrev7 > 0) {
+      growth = Math.round(
+        ((totalLast7 - totalPrev7) / totalPrev7) * 100
+      )
+    } else if (totalLast7 > 0) {
+      growth = 100
+    }
 
-    return { growth, bestDay: best }
+    let growthStatus: "up" | "down" | "neutral" = "neutral"
+
+    if (growth > 5) growthStatus = "up"
+    else if (growth < -5) growthStatus = "down"
+
+    const best =
+      last7.length > 0
+        ? [...last7].sort(
+            (a, b) =>
+              (b.product_views + b.profile_views) -
+              (a.product_views + a.profile_views)
+          )[0]
+        : null
+
+    return {
+      growthPercent: growth,
+      growthStatus,
+      bestDay: best ?? null,
+    }
   }, [analytics.last30Days])
-
-  if (loading) {
-    return (
-      <main className="min-h-screen flex items-center justify-center bg-[#f8f5ef]">
-        <p className="text-muted-foreground">Cargando métricas…</p>
-      </main>
-    )
-  }
 
   return (
     <main className="min-h-screen px-6 py-12 space-y-14 max-w-6xl mx-auto bg-[#f8f5ef]">
@@ -162,8 +235,8 @@ export default function SellerDashboardPage() {
           </div>
 
           <p className="text-3xl font-bold text-neutral-900">
-            {growth >= 0 ? "+" : ""}
-            {growth}%
+            {growthPercent >= 0 ? "+" : ""}
+            {growthPercent}%
           </p>
 
           <p className="text-sm text-neutral-500">
@@ -206,6 +279,123 @@ export default function SellerDashboardPage() {
         </div>
       </section>
 
+      {/* ===============================
+        💬 INTERACCIÓN COMERCIAL
+      =============================== */}
+      <section className="space-y-6">
+
+        <Card className="bg-white border shadow-sm">
+          <CardContent className="p-8 space-y-6">
+
+            <div className="flex justify-between items-center">
+              <h2 className="text-xl font-semibold text-neutral-900">
+                Interacción comercial
+              </h2>
+
+              <span className="text-xs text-neutral-500">
+                Últimos datos disponibles
+              </span>
+            </div>
+
+            {/* GRID PRINCIPAL */}
+            <div className="grid gap-8 sm:grid-cols-3">
+
+              {/* INTENCIONES */}
+              <div>
+                <p className="text-sm text-muted-foreground">
+                  Intenciones comerciales
+                </p>
+                <p className="text-3xl font-bold text-neutral-900">
+                  {analytics.totalIntentions}
+                </p>
+              </div>
+
+              {/* CONVERSIÓN */}
+              {(() => {
+                const conversionPercent = Number(
+                  (analytics.conversionRatio * 100).toFixed(2)
+                )
+
+                const conversionColor =
+                  conversionPercent < 3
+                    ? "text-red-600"
+                    : conversionPercent < 7
+                    ? "text-amber-600"
+                    : "text-emerald-600"
+
+                return (
+                  <div>
+                    <p className="text-sm text-muted-foreground">
+                      Ratio de conversión
+                    </p>
+                    <p className={`text-3xl font-bold ${conversionColor}`}>
+                      {conversionPercent}%
+                    </p>
+
+                    <p className="text-xs mt-1 text-neutral-500">
+                      {conversionPercent < 3 && "Necesita optimización"}
+                      {conversionPercent >= 3 &&
+                        conversionPercent < 7 &&
+                        "Buen rendimiento"}
+                      {conversionPercent >= 7 &&
+                        "Excelente conversión"}
+                    </p>
+                  </div>
+                )
+              })()}
+
+              {/* TOP PRODUCTO */}
+              <div>
+                <p className="text-sm text-muted-foreground">
+                  Producto con más intención
+                </p>
+                <p className="text-lg font-semibold text-neutral-900">
+                  {analytics.topIntentedProducts[0]?.nombre ?? "—"}
+                </p>
+                <p className="text-sm text-neutral-500">
+                  {analytics.topIntentedProducts[0]?.total_intentions ?? 0} intención
+                </p>
+              </div>
+
+            </div>
+
+          </CardContent>
+        </Card>
+
+      </section>
+
+      {/* ===============================
+        🏆 TOP PRODUCTOS CON INTENCIÓN
+      =============================== */}
+      {analytics.topIntentedProducts.length > 0 && (
+        <section className="space-y-4">
+          <h2 className="text-lg font-semibold text-neutral-800">
+            Productos con mayor interés
+          </h2>
+
+          <Card className="bg-white border shadow-sm">
+            <CardContent className="p-6 space-y-4">
+
+              {analytics.topIntentedProducts.map((p) => (
+                <div
+                  key={p.id}
+                  className="flex justify-between items-center border-b pb-3 last:border-none last:pb-0"
+                >
+                  <span className="text-sm text-neutral-700">
+                    {p.nombre}
+                  </span>
+
+                  <span className="text-sm font-semibold text-neutral-900">
+                    {p.total_intentions} intención{p.total_intentions !== 1 && "es"}
+                  </span>
+                </div>
+              ))}
+
+            </CardContent>
+          </Card>
+        </section>
+      )}
+
       {/* TENDENCIA 30 DÍAS */}
       <section className="space-y-4">
         <h2 className="text-lg font-semibold text-neutral-800">
@@ -219,37 +409,125 @@ export default function SellerDashboardPage() {
             </p>
 
             {analytics.last30Days.length > 0 ? (
-              <div className="h-[280px]">
+              <div className="h-[240px] md:h-[320px]">
                 <ResponsiveContainer width="100%" height="100%">
-                  <LineChart data={analytics.last30Days}>
-                    <CartesianGrid strokeDasharray="3 3" />
-                    <XAxis dataKey="date" tick={{ fontSize: 12 }} />
-                    <YAxis />
-                    <Tooltip />
-                    <Legend />
+                  <LineChart
+                    data={analytics.last30Days}
+                    margin={{
+                      top: 10,
+                      right: 15,
+                      left: -10,
+                      bottom: 25,
+                    }}
+                  >
+                    {/* 🔥 Gradiente premium */}
+                    <defs>
+                      <linearGradient id="productGradient" x1="0" y1="0" x2="0" y2="1">
+                        <stop offset="5%" stopColor="#f59e0b" stopOpacity={0.35} />
+                        <stop offset="95%" stopColor="#f59e0b" stopOpacity={0} />
+                      </linearGradient>
+                    </defs>
 
+                    <CartesianGrid
+                      strokeDasharray="3 3"
+                      stroke="#e5e7eb"
+                      vertical={false}
+                    />
+
+                    <XAxis
+                      dataKey="date"
+                      tick={{ fontSize: 11 }}
+                      interval={isMobile ? 5 : 0}
+                      axisLine={false}
+                      tickLine={false}
+                      tickFormatter={(value: string) => {
+                        const date = new Date(value)
+                        return isMobile
+                          ? String(date.getDate())
+                          : date.toLocaleDateString("es-ES", {
+                              day: "2-digit",
+                              month: "2-digit",
+                            })
+                      }}
+                    />
+
+                    <YAxis
+                      tick={{ fontSize: 11 }}
+                      width={35}
+                      axisLine={false}
+                      tickLine={false}
+                    />
+
+                    <Tooltip
+                      contentStyle={{
+                        borderRadius: "12px",
+                        border: "1px solid #e5e7eb",
+                        fontSize: "13px",
+                      }}
+                      labelFormatter={(value: string) => {
+                        const date = new Date(value)
+                        return date.toLocaleDateString("es-ES", {
+                          day: "2-digit",
+                          month: "long",
+                          year: "numeric",
+                        })
+                      }}
+                      formatter={(value: number, name: string) => {
+                        if (name === "Vistas productos") {
+                          return [`${value}`, "Vistas productos"]
+                        }
+                        if (name === "Visitas perfil") {
+                          return [`${value}`, "Visitas perfil"]
+                        }
+                        return [value, name]
+                      }}
+                    />
+
+                    {/* 🔥 Área suave bajo línea principal */}
+                    <Area
+                      type="natural"
+                      dataKey="product_views"
+                      stroke="none"
+                      fill="url(#productGradient)"
+                      legendType="none"
+                    />
+
+                    {/* 🔥 Línea principal */}
                     <Line
-                      type="monotone"
+                      type="natural"
                       dataKey="product_views"
                       stroke="#f59e0b"
                       strokeWidth={3}
                       dot={false}
+                      activeDot={{ r: 6 }}
                       name="Vistas productos"
+                      isAnimationActive={true}
+                      animationDuration={800}
                     />
 
+                    {/* 🔥 Línea secundaria sutil */}
                     <Line
-                      type="monotone"
+                      type="natural"
                       dataKey="profile_views"
                       stroke="#111827"
-                      strokeWidth={2}
+                      strokeWidth={1.5}
+                      opacity={0.6}
                       dot={false}
                       name="Visitas perfil"
                     />
+
+                    {!isMobile && (
+                      <Legend
+                        wrapperStyle={{
+                          fontSize: 12,
+                        }}
+                      />
+                    )}
                   </LineChart>
                 </ResponsiveContainer>
               </div>
             ) : (
-              <div className="text-sm text-neutral-500 text-center">
+              <div className="text-sm text-neutral-500 text-center py-10">
                 Aún no hay datos suficientes para mostrar tendencia.
               </div>
             )}

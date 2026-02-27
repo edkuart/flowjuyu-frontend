@@ -104,6 +104,43 @@ export default function StoreClient({
     seller.plan_activo === true &&
     !!seller.whatsapp;
 
+  const handleWhatsappClick = async () => {
+    try {
+      await fetch(
+        `${process.env.NEXT_PUBLIC_API_URL}/api/intentions`,
+        {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify({
+            seller_id: seller.id,
+            source: "store_whatsapp",
+          }),
+        }
+      );
+
+      const mensaje = `
+  Hola 👋
+
+  Estoy interesado en los productos de "${seller.nombre_comercio}" que vi en Flowjuyu.
+
+  ¿Podrías brindarme más información?
+      `.trim();
+
+      const url = `https://wa.me/${seller.whatsapp}?text=${encodeURIComponent(
+        mensaje
+      )}`;
+
+      window.open(url, "_blank");
+    } catch (error) {
+      console.error("Error registrando intención:", error);
+
+      // fallback
+      window.open(`https://wa.me/${seller.whatsapp}`, "_blank");
+    }
+  };
+
   /* =====================================================
      RENDER
   ===================================================== */
@@ -211,14 +248,13 @@ export default function StoreClient({
                 </div>
 
                 {showWhatsapp && (
-                  <a
-                    href={`https://wa.me/${seller.whatsapp}`}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="inline-flex items-center gap-2 mt-8 px-7 py-3 bg-green-600 hover:bg-green-700 rounded-full text-sm font-semibold transition shadow-xl"
+                  <button
+                    onClick={handleWhatsappClick}
+                    className="inline-flex items-center gap-3 mt-8 px-8 py-3 bg-emerald-600 hover:bg-emerald-700 border border-emerald-400/30 backdrop-blur-md rounded-full text-sm font-semibold transition-all duration-300 shadow-xl hover:shadow-2xl active:scale-95"
                   >
-                    💬 Contactar por WhatsApp
-                  </a>
+                    <span className="text-lg">💬</span>
+                    Contactar por WhatsApp
+                  </button>
                 )}
 
               </div>

@@ -53,22 +53,18 @@ export default async function ProductPage({
   const imagenes: string[] = (() => {
     const lista: string[] = [];
 
-    // Caso 1: backend devuelve array
     if (Array.isArray(product.imagenes)) {
       lista.push(...product.imagenes.filter(Boolean));
     }
 
-    // Caso 2: backend devuelve imagen_url
     if (product.imagen_url) {
       lista.push(product.imagen_url);
     }
 
-    // Caso 3: backend devuelve imagen_principal
     if (product.imagen_principal) {
       lista.unshift(product.imagen_principal);
     }
 
-    // Eliminar duplicados y valores falsy
     return [...new Set(lista.filter(Boolean))];
   })();
 
@@ -78,6 +74,11 @@ export default async function ProductPage({
   const relacionados = Array.isArray(data.related)
     ? data.related
     : [];
+
+  /* =====================================================
+     🔹 Datos vendedor (para WhatsApp)
+  ===================================================== */
+  const vendedor = product.vendedor || {};
 
   return (
     <div className="container mx-auto px-4 py-10 space-y-16">
@@ -101,6 +102,12 @@ export default async function ProductPage({
             imagen_principal={imagenes[0] || "/placeholder.jpg"}
             rating_avg={product.rating_avg}
             rating_count={product.rating_count}
+
+            /* 🔥 NUEVAS PROPS PARA WHATSAPP */
+            sellerId={vendedor.id}
+            sellerWhatsapp={vendedor.whatsapp}
+            sellerPlan={vendedor.plan}
+            sellerPlanActivo={vendedor.plan_activo}
           />
 
           <div className="mt-10">

@@ -12,6 +12,12 @@ export default function ProductInfo({
   imagen_principal,
   rating_avg = 0,
   rating_count = 0,
+
+  sellerId,
+  sellerWhatsapp,
+  sellerPlan,
+  sellerPlanActivo,
+
 }: {
   nombre: string;
   descripcion?: string | null;
@@ -20,12 +26,28 @@ export default function ProductInfo({
   imagen_principal?: string | null;
   rating_avg?: number;
   rating_count?: number;
+
+  sellerId?: number;
+  sellerWhatsapp?: string | null;
+  sellerPlan?: "free" | "founder";
+  sellerPlanActivo?: boolean;
 }) {
   const { addItem } = useCart();
   const router = useRouter();
 
   const precioNumber = Number(precio || 0);
 
+  /* =====================================================
+     🟢 WHATSAPP VISIBILITY (FOUNDER ONLY)
+  ===================================================== */
+  const showWhatsapp =
+    !!sellerWhatsapp &&
+    sellerPlan === "founder" &&
+    sellerPlanActivo === true;
+
+  /* =====================================================
+     🛒 CART ACTIONS
+  ===================================================== */
   function handleAddToCart() {
     addItem({
       id: productId,
@@ -46,6 +68,48 @@ export default function ProductInfo({
     router.push("/carrito");
   }
 
+  /* =====================================================
+     💬 WHATSAPP ACTION + TRACKING
+  ===================================================== */
+  async function handleWhatsappClick() {
+    try {
+      await fetch(
+        `${process.env.NEXT_PUBLIC_API_URL}/api/intentions`,
+        {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify({
+            product_id: productId,
+            seller_id: sellerId,
+            source: "product_whatsapp",
+          }),
+        }
+      );
+
+      const mensaje = `
+Hola 👋
+
+Estoy interesado en el producto "${nombre}" que vi en Flowjuyu.
+
+¿Sigue disponible?
+      `.trim();
+
+      const url = `https://wa.me/${sellerWhatsapp}?text=${encodeURIComponent(
+        mensaje
+      )}`;
+
+      window.open(url, "_blank");
+    } catch (error) {
+      // fallback si falla el tracking
+      window.open(`https://wa.me/${sellerWhatsapp}`, "_blank");
+    }
+  }
+
+  /* =====================================================
+     🎨 RENDER
+  ===================================================== */
   return (
     <section className="space-y-6">
       <h1 className="text-3xl font-bold text-neutral-900">{nombre}</h1>
@@ -79,7 +143,12 @@ export default function ProductInfo({
         {descripcion || "Sin descripción disponible"}
       </p>
 
+      {/* =====================================================
+         ACTION BUTTONS
+      ===================================================== */}
       <div className="space-y-3">
+
+        {/* Comprar ahora */}
         <Button
           className="w-full bg-orange-600 hover:bg-orange-700 text-white font-semibold"
           onClick={handleBuyNow}
@@ -87,6 +156,7 @@ export default function ProductInfo({
           Comprar ahora
         </Button>
 
+        {/* Añadir carrito */}
         <Button
           variant="outline"
           className="w-full font-semibold"
@@ -94,6 +164,17 @@ export default function ProductInfo({
         >
           Añadir al carrito
         </Button>
+
+        {/* WhatsApp Founder */}
+        {showWhatsapp && (
+          <Button
+            className="w-full bg-green-600 hover:bg-green-700 text-white font-semibold"
+            onClick={handleWhatsappClick}
+          >
+            💬 Comprar por WhatsApp
+          </Button>
+        )}
+
       </div>
     </section>
   );

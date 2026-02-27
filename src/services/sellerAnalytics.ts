@@ -1,7 +1,6 @@
 // src/services/sellerAnalytics.ts
 
-const API =
-  process.env.NEXT_PUBLIC_API_URL!;
+const API = process.env.NEXT_PUBLIC_API_URL!;
 
 /* ======================================================
    📊 Tipos
@@ -13,10 +12,19 @@ export type SellerAnalyticsResponse = {
   totalProductViews: number;
   totalProfileViews: number;
 
+  totalIntentions: number;
+  conversionRatio: number;
+
   topProducts: {
     id: string;
     nombre: string;
     total_views: number;
+  }[];
+
+  topIntentedProducts: {
+    id: string;
+    nombre: string;
+    total_intentions: number;
   }[];
 
   last30Days: {
@@ -51,12 +59,19 @@ export async function fetchSellerAnalytics(): Promise<SellerAnalyticsResponse> {
 
   const data = await res.json();
 
-  // 🔒 Seguridad defensiva por si backend cambia algo
+  // 🔒 Seguridad defensiva
   return {
     success: data.success ?? true,
+
     totalProductViews: data.totalProductViews ?? 0,
     totalProfileViews: data.totalProfileViews ?? 0,
+
+    totalIntentions: data.totalIntentions ?? 0,
+    conversionRatio: data.conversionRatio ?? 0,
+
     topProducts: data.topProducts ?? [],
+    topIntentedProducts: data.topIntentedProducts ?? [],
+
     last30Days: data.last30Days ?? [],
   };
 }
