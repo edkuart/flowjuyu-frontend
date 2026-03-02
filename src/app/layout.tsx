@@ -33,19 +33,19 @@ export default function RootLayout({
   return (
     <html lang="es">
       <body
-        className={`${inter.variable} ${playfair.variable} font-sans antialiased bg-[#f6f2ea] text-neutral-900 min-h-screen`}
+        className={`${inter.variable} ${playfair.variable} font-sans antialiased bg-[#f6f2ea] text-neutral-900 min-h-screen m-0 p-0`}
       >
         <AuthProvider>
           <ClientProviders>
             <CartProvider>
 
-              {/* HEADER */}
-              <header className="sticky top-0 z-50 bg-white/80 backdrop-blur-md border-b border-neutral-200 md:px-6 px-3 py-3">
+              {/* HEADER CORREGIDO: Eliminamos el padding, el fondo blanco y el borde */}
+              <header className="sticky top-0 z-50 w-full">
                 <Header />
               </header>
 
               {/* CONTENIDO */}
-              <main className="min-h-[calc(100vh-72px)]">
+              <main className="min-h-[calc(100vh-72px)] w-full">
                 {children}
               </main>
 
