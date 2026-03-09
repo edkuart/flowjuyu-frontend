@@ -20,9 +20,39 @@ const playfair = Playfair_Display({
   weight: ["400", "500", "600", "700"],
 });
 
+const siteUrl = "https://www.flowjuyu.com";
+
 export const metadata: Metadata = {
+  metadataBase: new URL(siteUrl),
   title: "Flowjuyu | Catálogo Cultural",
   description: "Artesanía y diseño tradicional en formato digital.",
+  openGraph: {
+    title: "Flowjuyu | Catálogo Cultural",
+    description: "Artesanía y diseño tradicional en formato digital.",
+    url: siteUrl,
+    siteName: "Flowjuyu",
+    locale: "es_GT",
+    type: "website",
+    images: [
+      {
+        url: "/flowjuyu-logo-completo.png",
+        width: 1024,
+        height: 1024,
+        alt: "Logo de Flowjuyu",
+      },
+    ],
+  },
+  twitter: {
+    card: "summary_large_image",
+    title: "Flowjuyu | Catálogo Cultural",
+    description: "Artesanía y diseño tradicional en formato digital.",
+    images: ["/flowjuyu-logo-completo.png"],
+  },
+  icons: {
+    icon: "/flowjuyu-isotipo.png",
+    shortcut: "/flowjuyu-isotipo.png",
+    apple: "/flowjuyu-isotipo.png",
+  },
 };
 
 export default function RootLayout({
@@ -38,17 +68,13 @@ export default function RootLayout({
         <AuthProvider>
           <ClientProviders>
             <CartProvider>
-
-              {/* HEADER CORREGIDO: Eliminamos el padding, el fondo blanco y el borde */}
               <header className="sticky top-0 z-50 w-full">
                 <Header />
               </header>
 
-              {/* CONTENIDO */}
               <main className="min-h-[calc(100vh-72px)] w-full">
                 {children}
               </main>
-
             </CartProvider>
           </ClientProviders>
         </AuthProvider>
