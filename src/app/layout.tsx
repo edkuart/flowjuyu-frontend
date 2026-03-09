@@ -24,29 +24,35 @@ const siteUrl = "https://www.flowjuyu.com";
 
 export const metadata: Metadata = {
   metadataBase: new URL(siteUrl),
-  title: "Flowjuyu | Catálogo Cultural",
-  description: "Artesanía y diseño tradicional en formato digital.",
+  title: {
+    default: "Flowjuyu | Cortes Marketplace",
+    template: "%s | Flowjuyu",
+  },
+  description:
+    "Compra directa al productor. Descubre cortes, textiles y tiendas en Flowjuyu.",
   openGraph: {
-    title: "Flowjuyu | Catálogo Cultural",
-    description: "Artesanía y diseño tradicional en formato digital.",
+    title: "Flowjuyu | Cortes Marketplace",
+    description:
+      "Compra directa al productor. Descubre cortes, textiles y tiendas en Flowjuyu.",
     url: siteUrl,
     siteName: "Flowjuyu",
     locale: "es_GT",
     type: "website",
     images: [
       {
-        url: "/flowjuyu-logo-completo.png",
-        width: 1024,
+        url: "/images/hero-cultural.jpg",
+        width: 1536,
         height: 1024,
-        alt: "Logo de Flowjuyu",
+        alt: "Flowjuyu | Cortes Marketplace",
       },
     ],
   },
   twitter: {
     card: "summary_large_image",
-    title: "Flowjuyu | Catálogo Cultural",
-    description: "Artesanía y diseño tradicional en formato digital.",
-    images: ["/flowjuyu-logo-completo.png"],
+    title: "Flowjuyu | Cortes Marketplace",
+    description:
+      "Compra directa al productor. Descubre cortes, textiles y tiendas en Flowjuyu.",
+    images: ["/images/hero-cultural.jpg"],
   },
   icons: {
     icon: "/flowjuyu-isotipo.png",

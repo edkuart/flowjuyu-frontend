@@ -88,14 +88,30 @@ export default function Header() {
               <SidebarTrigger className="text-white" />
             </div>
 
-            <Link href="/" className="flex items-center">
+            <Link
+              href="/"
+              className="mr-4 md:mr-6 flex items-center shrink-0 rounded-lg bg-[#f6f2ea] px-2 py-1 shadow-sm"
+            >
+              {/* Móvil */}
+              <div className="flex h-8 w-8 items-center justify-center overflow-hidden md:hidden">
+                <Image
+                  src="/flowjuyu-isotipo.png"
+                  alt="Flowjuyu"
+                  width={36}
+                  height={36}
+                  priority
+                  className="object-contain scale-[2.3] translate-x-[0.6px] translate-y-[10px]"
+                />
+              </div>
+
+              {/* Desktop */}
               <Image
-                src="/logo-flowjuyu.png"
+                src="/flowjuyu-logo-completo.png"
                 alt="Flowjuyu"
-                width={140}
-                height={40}
+                width={170}
+                height={52}
                 priority
-                className="object-contain h-8 w-auto"
+                className="hidden md:block object-contain h-10 w-auto"
               />
             </Link>
           </div>
@@ -250,7 +266,7 @@ export default function Header() {
       )}
 
       {/* ================= Línea inferior ================= */}
-      <nav className="bg-[#0c261c] border-t border-white/10 text-white/80">
+      <nav className="bg-[#081a13] border-t border-white/10 text-white/80">
         <div className="max-w-7xl mx-auto h-10 px-4 md:px-8 flex items-center justify-between text-sm">
 
           <ul className="flex items-center gap-6">
