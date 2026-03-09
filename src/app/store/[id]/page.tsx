@@ -1,8 +1,10 @@
 // src/app/store/[id]/page.tsx
 
+import type { Metadata } from "next";
 import StoreClient from "./StoreClient";
 
 const API = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8800";
+const SITE_URL = "https://www.flowjuyu.com";
 
 async function fetchStore(id: string) {
   if (!id) return null;
@@ -14,6 +16,76 @@ async function fetchStore(id: string) {
   if (!res.ok) return null;
 
   return await res.json();
+}
+
+export async function generateMetadata({
+  params,
+}: {
+  params: { id: string };
+}): Promise<Metadata> {
+  const id = String(params?.id ?? "");
+
+  if (!id) {
+    return {
+      title: "Tienda | Flowjuyu",
+      description: "Descubre tiendas y productos en Flowjuyu.",
+    };
+  }
+
+  const data = await fetchStore(id);
+
+  if (!data?.seller) {
+    return {
+      title: "Tienda no encontrada | Flowjuyu",
+      description: "La tienda que buscas no está disponible.",
+    };
+  }
+
+  const seller = data.seller;
+
+  const title = `${seller.nombre_comercio} | Flowjuyu`;
+
+  const location = [seller.municipio, seller.departamento]
+    .filter(Boolean)
+    .join(", ");
+
+  const description =
+    seller.descripcion?.trim() ||
+    (location
+      ? `Descubre los productos de ${seller.nombre_comercio} en ${location}, disponible en Flowjuyu.`
+      : `Descubre los productos de ${seller.nombre_comercio}, disponible en Flowjuyu.`);
+
+  const image =
+    seller.banner_url ||
+    seller.logo ||
+    "/images/hero-cultural.jpg";
+
+  const url = `${SITE_URL}/store/${id}`;
+
+  return {
+    title,
+    description,
+    openGraph: {
+      title,
+      description,
+      url,
+      siteName: "Flowjuyu",
+      locale: "es_GT",
+      type: "website",
+      images: [
+        {
+          url: image,
+          alt: seller.nombre_comercio,
+        },
+      ],
+    },
+    twitter: {
+      card: "summary_large_image",
+      title,
+      description,
+      images: [image],
+    },
+  };
 }
 
 export default async function StorePage({
