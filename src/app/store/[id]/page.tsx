@@ -43,7 +43,7 @@ export async function generateMetadata({
 
   const seller = data.seller;
 
-  const title = `${seller.nombre_comercio} | Flowjuyu`;
+  const title = seller.nombre_comercio;
 
   const location = [seller.municipio, seller.departamento]
     .filter(Boolean)
@@ -55,10 +55,13 @@ export async function generateMetadata({
       ? `Descubre los productos de ${seller.nombre_comercio} en ${location}, disponible en Flowjuyu.`
       : `Descubre los productos de ${seller.nombre_comercio}, disponible en Flowjuyu.`);
 
-  const image =
+  const rawImage =
     seller.banner_url ||
-    seller.logo ||
     "/images/hero-cultural.jpg";
+
+  const image = rawImage.startsWith("http")
+    ? rawImage
+    : `${SITE_URL}${rawImage}`;
 
   const url = `${SITE_URL}/store/${id}`;
 
@@ -75,6 +78,8 @@ export async function generateMetadata({
       images: [
         {
           url: image,
+          width: 1200,
+          height: 630,
           alt: seller.nombre_comercio,
         },
       ],
