@@ -1,34 +1,25 @@
-// src/components/product/view/ProductGallery.tsx
-
 "use client";
 
 import { useState, useRef, useMemo, useEffect } from "react";
 import Image from "next/image";
 
 type ProductGalleryProps = {
-  imagenes: string[]; // 🔥 ahora es string[]
+  imagenes: string[];
   titulo: string;
-  isSeller?: boolean;
-  onMakePrincipal?: (url: string) => void;
 };
 
 export default function ProductGallery({
   imagenes = [],
   titulo,
-  isSeller = false,
-  onMakePrincipal,
 }: ProductGalleryProps) {
+
   const [active, setActive] = useState(0);
   const [zoomVisible, setZoomVisible] = useState(false);
-  const [zoomPos, setZoomPos] = useState({ x: 0, y: 0 });
-  const [zoomLevel, setZoomLevel] = useState(2);
+  const [zoomPos, setZoomPos] = useState({ x: 50, y: 50 });
   const [fullscreen, setFullscreen] = useState(false);
-  const [fade, setFade] = useState(false);
-  const [zoomShape, setZoomShape] = useState<"circle" | "square">("circle");
 
   const containerRef = useRef<HTMLDivElement | null>(null);
 
-  // 🔥 limpiar valores falsy y duplicados
   const imageUrls = useMemo(() => {
     return [...new Set(imagenes.filter(Boolean))];
   }, [imagenes]);
@@ -39,21 +30,16 @@ export default function ProductGallery({
 
   if (!imageUrls.length) {
     return (
-      <div className="w-full h-[500px] bg-neutral-100 flex items-center justify-center rounded-2xl">
+      <div className="w-full aspect-[4/5] bg-neutral-100 flex items-center justify-center rounded-2xl">
         <p className="text-neutral-400">Sin imágenes</p>
       </div>
     );
   }
 
-  const changeImage = (index: number) => {
-    setFade(true);
-    setTimeout(() => {
-      setActive(index);
-      setFade(false);
-    }, 150);
-  };
+  const current = imageUrls[active];
 
   const handleMove = (e: React.MouseEvent<HTMLDivElement>) => {
+
     const rect = containerRef.current?.getBoundingClientRect();
     if (!rect) return;
 
@@ -63,131 +49,140 @@ export default function ProductGallery({
     setZoomPos({ x, y });
   };
 
-  const prevImage = () =>
-    changeImage(active > 0 ? active - 1 : imageUrls.length - 1);
+  const prev = () =>
+    setActive((i) => (i === 0 ? imageUrls.length - 1 : i - 1));
 
-  const nextImage = () =>
-    changeImage(active < imageUrls.length - 1 ? active + 1 : 0);
-
-  const onWheelZoom = (e: React.WheelEvent) => {
-    setZoomLevel((z) =>
-      Math.min(3.5, Math.max(1, z + (e.deltaY < 0 ? 0.15 : -0.15)))
-    );
-  };
+  const next = () =>
+    setActive((i) => (i === imageUrls.length - 1 ? 0 : i + 1));
 
   return (
     <>
-      <div className="flex gap-6 select-none">
+      <div className="flex flex-col lg:flex-row gap-6">
 
         {/* MINIATURAS */}
-        <div className="flex flex-col gap-3">
-          {imageUrls.map((src, index) => (
+        <div className="flex lg:flex-col gap-3 overflow-x-auto">
+
+          {imageUrls.map((img, i) => (
+
             <button
-              key={index}
-              onClick={() => changeImage(index)}
-              className={`w-16 h-16 relative overflow-hidden rounded-lg border shadow-sm transition-all hover:scale-[1.05]
-                ${index === active
-                  ? "border-orange-600 shadow-md"
-                  : "border-gray-300"
-                }`}
+              key={i}
+              onClick={() => setActive(i)}
+              className={`relative flex-shrink-0 w-16 h-16 rounded-lg overflow-hidden border
+              ${i === active
+                ? "border-[#0d2d20]"
+                : "border-gray-300"}
+              `}
             >
+
               <Image
-                src={src}
+                src={img}
                 alt={`thumb-${titulo}`}
                 fill
                 className="object-cover"
               />
+
             </button>
+
           ))}
+
         </div>
 
-        {/* IMAGEN PRINCIPAL */}
-        <div
-          ref={containerRef}
-          className="relative w-full max-w-2xl h-[600px] rounded-2xl overflow-hidden bg-white shadow-md group transition cursor-zoom-in"
-          onMouseMove={handleMove}
-          onMouseEnter={() => setZoomVisible(true)}
-          onMouseLeave={() => setZoomVisible(false)}
-          onWheel={onWheelZoom}
-          onClick={() => setFullscreen(true)}
-        >
-          <Image
-            key={active}
-            src={imageUrls[active]}
-            alt={titulo}
-            fill
-            className={`object-contain transition-all duration-300 ${
-              fade ? "opacity-0" : "opacity-100"
-            }`}
-          />
+        {/* IMAGEN + ZOOM */}
+        <div className="flex gap-6">
 
-          {zoomVisible && (
-            <div
-              className="absolute pointer-events-none shadow-2xl border-2 border-white"
-              style={{
-                width: zoomShape === "circle" ? "200px" : "220px",
-                height: zoomShape === "circle" ? "200px" : "220px",
-                borderRadius: zoomShape === "circle" ? "50%" : "12px",
-                top: `${zoomPos.y}%`,
-                left: `${zoomPos.x}%`,
-                transform: "translate(-50%, -50%)",
-                backgroundImage: `url(${imageUrls[active]})`,
-                backgroundSize: `${zoomLevel * 100}%`,
-                backgroundPosition: `${zoomPos.x}% ${zoomPos.y}%`,
-              }}
+          {/* IMAGEN PRINCIPAL */}
+          <div
+            ref={containerRef}
+            className="relative w-[440px] aspect-[4/5] rounded-2xl overflow-hidden bg-white shadow-md cursor-zoom-in"
+            onMouseMove={handleMove}
+            onMouseEnter={() => setZoomVisible(true)}
+            onMouseLeave={() => setZoomVisible(false)}
+            onClick={() => setFullscreen(true)}
+          >
+
+            <Image
+              src={current}
+              alt={titulo}
+              fill
+              priority
+              sizes="(max-width:768px) 100vw, 600px"
+              className="object-cover"
             />
+
+            {/* FLECHAS */}
+            {imageUrls.length > 1 && (
+              <>
+                <button
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    prev();
+                  }}
+                  className="absolute left-3 top-1/2 -translate-y-1/2 bg-white/80 backdrop-blur rounded-full w-10 h-10 flex items-center justify-center shadow"
+                >
+                  ‹
+                </button>
+
+                <button
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    next();
+                  }}
+                  className="absolute right-3 top-1/2 -translate-y-1/2 bg-white/80 backdrop-blur rounded-full w-10 h-10 flex items-center justify-center shadow"
+                >
+                  ›
+                </button>
+              </>
+            )}
+
+          </div>
+
+          {/* ZOOM LATERAL */}
+          {zoomVisible && (
+            <div className="hidden lg:block relative w-[420px] aspect-[4/5] rounded-2xl overflow-hidden border shadow-xl bg-white">
+
+              <div
+                className="absolute inset-0"
+                style={{
+                  backgroundImage: `url(${current})`,
+                  backgroundRepeat: "no-repeat",
+                  backgroundSize: "500%",
+                  backgroundPosition: `${zoomPos.x}% ${zoomPos.y}%`,
+                }}
+              />
+
+            </div>
           )}
 
-          <button
-            onClick={(e) => {
-              e.stopPropagation();
-              prevImage();
-            }}
-            className="absolute left-4 top-1/2 -translate-y-1/2 bg-white/80 hover:bg-white px-3 py-2 rounded-full shadow"
-          >
-            ‹
-          </button>
-
-          <button
-            onClick={(e) => {
-              e.stopPropagation();
-              nextImage();
-            }}
-            className="absolute right-4 top-1/2 -translate-y-1/2 bg-white/80 hover:bg-white px-3 py-2 rounded-full shadow"
-          >
-            ›
-          </button>
         </div>
+
       </div>
 
-      {/* TOGGLE ZOOM */}
-      <div className="mt-3">
-        <button
-          onClick={() =>
-            setZoomShape((prev) => (prev === "circle" ? "square" : "circle"))
-          }
-          className="px-4 py-2 bg-neutral-100 border rounded-lg hover:bg-neutral-200 transition"
-        >
-          Cambiar lupa ({zoomShape === "circle" ? "🔵 Circular" : "🔶 Cuadrada"})
-        </button>
-      </div>
-
-      {/* FULLSCREEN */}
+      {/* FULLSCREEN VIEWER */}
       {fullscreen && (
         <div
-          className="fixed inset-0 bg-black/80 backdrop-blur-md z-[9999] flex items-center justify-center"
+          className="fixed inset-0 bg-black/90 z-[9999] flex items-center justify-center"
           onClick={() => setFullscreen(false)}
         >
-          <div className="relative w-[90%] max-w-5xl aspect-square">
+          <div className="relative w-[95%] max-w-6xl aspect-square">
+
             <Image
-              src={imageUrls[active]}
+              src={current}
               alt="fullscreen"
               fill
-              className="object-contain drop-shadow-2xl"
+              className="object-contain"
             />
+
+            <button
+              className="absolute top-6 right-6 text-white text-3xl"
+              onClick={() => setFullscreen(false)}
+            >
+              ✕
+            </button>
+
           </div>
         </div>
       )}
+
     </>
   );
 }
