@@ -1,7 +1,8 @@
-// src/components/home/HeroSection.tsx
+"use client";
 
 import Image from "next/image";
 import Link from "next/link";
+import { useEffect, useRef, useState } from "react";
 
 type TrendingProducto = {
   id: string;
@@ -13,114 +14,190 @@ type Props = {
   trendingProducts: TrendingProducto[];
 };
 
-export default function HeroSection({ trendingProducts }: Props) {
-  const hasProducts = trendingProducts && trendingProducts.length > 0;
+const CAPTIONS = [
+  "Guatemala,\ntejida a mano.",
+  "El hilo que\nlo une todo.",
+  "Hecho para\ndurar siempre.",
+];
 
-  const mainProduct = trendingProducts?.[0];
-  const secondProduct = trendingProducts?.[1];
-  const thirdProduct = trendingProducts?.[2];
+export default function HeroSection({ trendingProducts }: Props) {
+
+  const [mounted, setMounted] = useState(false);
+  const [activeIndex, setActiveIndex] = useState(0);
+  const [isTransitioning, setIsTransitioning] = useState(false);
+
+  const intervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
+
+  useEffect(() => {
+    setMounted(true);
+  }, []);
+
+  const slides =
+    trendingProducts?.length
+      ? trendingProducts.slice(0, 3).map((p, i) => ({
+          id: p.id,
+          nombre: p.nombre,
+          imagen_url: p.imagen_url || "/images/productos/default.jpg",
+          caption: CAPTIONS[i] ?? CAPTIONS[0],
+        }))
+      : [
+          {
+            id: "placeholder",
+            nombre: "Artesanía guatemalteca",
+            imagen_url: "/images/productos/default.jpg",
+            caption: CAPTIONS[0],
+          },
+        ];
+
+  useEffect(() => {
+    if (!mounted || slides.length <= 1) return;
+
+    intervalRef.current = setInterval(() => {
+
+      setIsTransitioning(true);
+
+      setTimeout(() => {
+        setActiveIndex((prev) => (prev + 1) % slides.length);
+        setIsTransitioning(false);
+      }, 700);
+
+    }, 5500);
+
+    return () => {
+      if (intervalRef.current) clearInterval(intervalRef.current);
+    };
+
+  }, [mounted, slides.length]);
+
+  const currentSlide = slides[activeIndex];
+
+  const imageClass = mounted
+    ? `object-cover object-center fj-kenburns fj-hero-image ${
+        isTransitioning ? "transitioning" : "active"
+      }`
+    : "object-cover object-center";
 
   return (
-    <section className="relative bg-gradient-to-b from-[#f6f2ea] via-[#efe6d7] to-[#ece1d2] py-36 px-6 md:px-16 overflow-hidden">
+    <section className="relative w-full h-[100svh] min-h-[560px] max-h-[1080px] overflow-hidden bg-[#0d0d0b] fj-grain">
 
-      {/* Matiz verde oscuro sutil */}
-      <div className="absolute inset-0 bg-[radial-gradient(circle_at_80%_20%,rgba(13,45,32,0.06),transparent_60%)] pointer-events-none" />
+      {/* Background image */}
+      <div className="absolute inset-0 z-0">
+        <Image
+          key={currentSlide.id}
+          src={currentSlide.imagen_url!}
+          alt={currentSlide.nombre}
+          fill
+          priority
+          sizes="100vw"
+          className={imageClass}
+        />
+      </div>
 
-      <div className="relative max-w-7xl mx-auto grid grid-cols-1 lg:grid-cols-2 items-center gap-20">
+      {/* gradient overlays */}
+      <div className="absolute inset-0 z-10 pointer-events-none bg-gradient-to-t from-black/80 via-black/30 to-transparent" />
 
-        {/* TEXTO */}
-        <div className="space-y-8 text-center lg:text-left">
+      <div className="absolute inset-0 z-10 pointer-events-none bg-gradient-to-r from-black/30 to-transparent" />
 
-          <h1 className="text-4xl md:text-6xl leading-[1.1] font-medium tracking-tight text-neutral-900">
-            La tradición guatemalteca, ahora en{" "}
-            <span className="text-[#0d2d20]">formato digital.</span>
-          </h1>
+      {/* top header */}
+      <header className="absolute top-0 left-0 right-0 z-20 flex items-center justify-between px-6 md:px-12 lg:px-16 pt-8">
 
-          <p className="text-lg md:text-xl text-neutral-600 max-w-xl leading-relaxed mx-auto lg:mx-0">
-            Una plataforma cultural que reúne artesanía y diseño tradicional
-            en un catálogo digital cuidadosamente seleccionado.
-          </p>
+        <Link href="/" aria-label="Flowjuyu inicio">
 
-          <div>
-            <Link href="/productos">
-              <button className="bg-[#d97706] hover:bg-[#b45309] text-white px-10 py-4 rounded-full text-lg font-medium transition-all shadow-sm hover:shadow-md">
-                Explorar el catálogo
-              </button>
-            </Link>
-          </div>
+          <span className="font-serif text-xl md:text-2xl tracking-[0.18em] text-white/90 uppercase">
+            Flowjuyu
+          </span>
 
-          {/* Línea decorativa más intencional */}
-          <div className="h-[2px] w-24 bg-gradient-to-r from-[#0d2d20] via-[#1f4a36] to-[#0d2d20] mx-auto lg:mx-0 rounded-full" />
+        </Link>
 
-          <p className="text-sm text-neutral-500 tracking-wide">
-            Digitalizando el comercio cultural en Guatemala.
-          </p>
+        <Link
+          href="/productos"
+          className="hidden md:block text-xs uppercase tracking-[0.22em] text-white/60 hover:text-white transition"
+        >
+          Colección
+        </Link>
 
-        </div>
+      </header>
 
-        {/* IMÁGENES */}
-        <div className="relative flex justify-center lg:justify-end">
+      {/* main text */}
+      <div className="absolute bottom-0 left-0 right-0 z-20 px-6 md:px-12 lg:px-20 pb-16 md:pb-20">
 
-          {!hasProducts && (
-            <div className="rounded-3xl overflow-hidden shadow-lg w-[420px] h-[420px] bg-neutral-200 flex items-center justify-center text-neutral-500 text-lg">
-              Catálogo cultural en desarrollo
-            </div>
-          )}
+        <p
+          key={`label-${activeIndex}`}
+          className={mounted ? "fj-text-reveal text-white/50 text-xs uppercase tracking-[0.30em] mb-4" : ""}
+        >
+          Artesanía guatemalteca
+        </p>
 
-          {hasProducts && (
-            <>
-              {/* Imagen principal */}
-              <div className="relative rounded-3xl overflow-hidden shadow-lg w-[420px] h-[420px]">
+        <h1
+          key={`headline-${activeIndex}`}
+          className={`font-serif italic text-white text-[42px] md:text-[72px] lg:text-[96px] leading-[1.05] max-w-[16ch] ${
+            mounted ? "fj-text-reveal" : ""
+          }`}
+        >
+          {currentSlide.caption}
+        </h1>
 
-                {/* Halo verde muy sutil detrás */}
-                <div className="absolute -inset-6 rounded-full bg-[#0d2d20] opacity-5 blur-3xl" />
+        <div
+          key={`cta-${activeIndex}`}
+          className={`flex items-end justify-between flex-wrap gap-6 mt-10 ${
+            mounted ? "fj-text-reveal" : ""
+          }`}
+        >
 
-                <Image
-                  src={
-                    mainProduct?.imagen_url ||
-                    "/images/productos/default.jpg"
-                  }
-                  alt={mainProduct?.nombre || "Producto destacado"}
-                  width={600}
-                  height={600}
-                  className="object-cover w-full h-full relative"
-                  priority
+          <Link
+            href="/productos"
+            className="inline-flex items-center gap-3 text-white/90 uppercase text-xs tracking-[0.25em] border-b border-white/40 pb-[3px] hover:border-white hover:text-white transition"
+          >
+
+            Ver colección
+
+            <svg width="16" height="10" viewBox="0 0 16 10">
+              <path
+                d="M0 5H14M10 1L14.5 5L10 9"
+                stroke="currentColor"
+                strokeWidth="1"
+                strokeLinecap="round"
+              />
+            </svg>
+
+          </Link>
+
+          {slides.length > 1 && (
+
+            <div className="flex flex-col items-end gap-2">
+
+              <div className="w-[80px] h-px bg-white/20 relative overflow-hidden">
+
+                <div
+                  key={`bar-${activeIndex}`}
+                  className={mounted ? "fj-line-fill absolute left-0 top-0 h-full bg-white/70" : ""}
                 />
+
               </div>
 
-              {secondProduct && (
-                <div className="absolute -top-10 -right-6 w-[180px] h-[180px] rounded-3xl overflow-hidden shadow-md">
-                  <Image
-                    src={
-                      secondProduct.imagen_url ||
-                      "/images/productos/default.jpg"
-                    }
-                    alt={secondProduct.nombre}
-                    width={300}
-                    height={300}
-                    className="object-cover w-full h-full"
-                  />
-                </div>
-              )}
+              <span className="text-[10px] text-white/40 tracking-[0.18em]">
+                0{activeIndex + 1} / 0{slides.length}
+              </span>
 
-              {thirdProduct && (
-                <div className="absolute -bottom-14 left-12 w-[240px] h-[240px] rounded-3xl overflow-hidden shadow-md">
-                  <Image
-                    src={
-                      thirdProduct.imagen_url ||
-                      "/images/productos/default.jpg"
-                    }
-                    alt={thirdProduct.nombre}
-                    width={300}
-                    height={300}
-                    className="object-cover w-full h-full"
-                  />
-                </div>
-              )}
-            </>
+            </div>
+
           )}
+
         </div>
+
       </div>
+
+      {/* scroll indicator */}
+      <div className="hidden md:flex flex-col items-center gap-2 absolute right-10 bottom-16 z-20 opacity-40">
+
+        <span className="text-[9px] uppercase tracking-[0.28em] text-white [writing-mode:vertical-rl]">
+          Scroll
+        </span>
+
+        <div className="w-px h-12 bg-gradient-to-b from-white/60 to-transparent" />
+
+      </div>
+
     </section>
   );
 }

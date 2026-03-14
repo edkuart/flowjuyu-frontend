@@ -3,10 +3,14 @@
 import "./globals.css";
 import type { Metadata } from "next";
 import { Inter, Playfair_Display } from "next/font/google";
+
 import { ClientProviders } from "@/providers/ClientProviders";
 import Header from "@/components/layout/Header";
+import Footer from "@/components/layout/Footer";
+
 import { AuthProvider } from "@/context/AuthContext";
 import { CartProvider } from "@/context/CartContext";
+
 import { Toaster } from "sonner";
 
 const inter = Inter({
@@ -69,23 +73,32 @@ export default function RootLayout({
   return (
     <html lang="es">
       <body
-        className={`${inter.variable} ${playfair.variable} font-sans antialiased bg-[#f6f2ea] text-neutral-900 min-h-screen m-0 p-0`}
+        className={`${inter.variable} ${playfair.variable} font-sans antialiased bg-[#f6f2ea] text-neutral-900 min-h-screen flex flex-col`}
       >
         <AuthProvider>
           <ClientProviders>
             <CartProvider>
+
+              {/* HEADER */}
               <header className="sticky top-0 z-50 w-full">
                 <Header />
               </header>
 
-              <main className="min-h-[calc(100vh-72px)] w-full">
+              {/* MAIN */}
+              <main className="flex-1 w-full">
                 {children}
               </main>
+
+              {/* FOOTER */}
+              <Footer />
+
             </CartProvider>
           </ClientProviders>
         </AuthProvider>
 
+        {/* TOAST */}
         <Toaster richColors position="top-right" />
+
       </body>
     </html>
   );

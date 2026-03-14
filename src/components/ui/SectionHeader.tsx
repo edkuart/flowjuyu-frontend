@@ -7,6 +7,7 @@ type Props = {
   title: string;
   linkHref?: string;
   linkLabel?: string;
+  dark?: boolean;
 };
 
 export default function SectionHeader({
@@ -14,30 +15,51 @@ export default function SectionHeader({
   title,
   linkHref,
   linkLabel,
+  dark = false,
 }: Props) {
+
+  const eyebrowColor = dark
+    ? "text-white/60"
+    : "text-[#0d2d20] opacity-80";
+
+  const titleColor = dark
+    ? "text-white"
+    : "text-neutral-900";
+
+  const linkColor = dark
+    ? "text-white/70 hover:text-white"
+    : "text-[#0d2d20] hover:opacity-70";
+
+  const lineGradient = dark
+    ? "from-white/40 via-[#d97706] to-white/40"
+    : "from-[#0d2d20] via-[#d97706] to-[#0d2d20]";
+
   return (
     <div className="flex flex-col md:flex-row md:items-end md:justify-between gap-6">
 
       <div className="space-y-4">
 
         {eyebrow && (
-          <p className="text-xs uppercase tracking-[0.25em] font-semibold text-[#0d2d20] opacity-80">
+          <p className={`text-xs uppercase tracking-[0.25em] font-semibold ${eyebrowColor}`}>
             {eyebrow}
           </p>
         )}
 
-        <h2 className="text-3xl md:text-4xl font-semibold tracking-tight text-neutral-900 leading-tight">
+        <h2 className={`text-3xl md:text-4xl font-semibold tracking-tight leading-tight ${titleColor}`}>
           {title}
         </h2>
 
         {/* Línea cultural elegante */}
-        <div className="h-[2px] w-16 bg-gradient-to-r from-[#0d2d20] via-[#d97706] to-[#0d2d20] rounded-full" />
+        <div
+          className={`h-[2px] w-16 bg-gradient-to-r ${lineGradient} rounded-full`}
+        />
+
       </div>
 
       {linkHref && linkLabel && (
         <Link
           href={linkHref}
-          className="text-sm font-semibold text-[#0d2d20] tracking-wide hover:opacity-70 transition-opacity"
+          className={`text-sm font-semibold tracking-wide transition-colors ${linkColor}`}
         >
           {linkLabel} →
         </Link>

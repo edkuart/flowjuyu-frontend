@@ -1,38 +1,81 @@
+"use client";
+
 // src/components/home/SellerCTASection.tsx
 
 import Link from "next/link";
+import SectionHeader from "@/components/ui/SectionHeader";
 
 export default function SellerCTASection() {
   return (
-    <section className="py-28 px-6 md:px-16 bg-gradient-to-br from-[#f3ece3] to-[#efe4d6] border-t border-[#e6dfd4]">
-      <div className="max-w-5xl mx-auto text-center space-y-10">
+    <section className="relative bg-[#f6f2ea] py-24 border-t border-[#0d2d20]/10 overflow-hidden">
 
-        {/* Eyebrow */}
-        <p className="text-sm uppercase tracking-[0.2em] font-semibold text-[#0f2e22]">
-          Comunidad Flowjuyu
+      {/* Background atmosphere */}
+      <div
+        aria-hidden
+        className="
+        absolute inset-0
+        flex items-center justify-center
+        pointer-events-none
+        select-none
+      "
+      >
+        <span
+          className="
+          font-serif
+          text-[240px] md:text-[360px] lg:text-[420px]
+          text-[#0d2d20]/5
+          tracking-tight
+        "
+        >
+          FJ
+        </span>
+      </div>
+
+      <div className="relative max-w-5xl mx-auto px-4 md:px-12 space-y-12 text-center">
+
+        {/* Header (same system as other sections) */}
+        <SectionHeader
+          eyebrow="Comunidad Flowjuyu"
+          title="Convierte tu tradición en un negocio digital"
+        />
+
+        {/* Divider */}
+        <div className="flex justify-center">
+          <div className="w-10 h-[1px] bg-gradient-to-r from-[#0d2d20]/40 to-[#0d2d20]/10" />
+        </div>
+
+        {/* Body copy */}
+        <p className="max-w-xl mx-auto text-[15px] md:text-[16px] leading-relaxed text-[#0d0d0b]/60 font-light">
+          Publica tus piezas, comparte la historia de tus tejidos y conecta
+          con compradores que buscan auténtica artesanía guatemalteca.
         </p>
 
-        {/* Título principal */}
-        <h3 className="text-3xl md:text-5xl font-semibold leading-tight text-neutral-900">
-          Convierte tu tradición en un negocio digital
-        </h3>
-
-        {/* Subtexto */}
-        <p className="text-lg md:text-xl text-neutral-600 max-w-3xl mx-auto leading-relaxed">
-          Artesanos y emprendedores culturales están llevando sus productos
-          más allá de su comunidad. Publica tus piezas, conecta con nuevos
-          compradores y forma parte del mercado cultural guatemalteco.
-        </p>
-
-        {/* Línea decorativa */}
-        <div className="w-16 h-[3px] bg-amber-500 mx-auto rounded-full opacity-80" />
-
-        {/* Botón */}
-        <Link href="/register/seller">
-          <button className="bg-[#0f2e22] hover:bg-[#163a2b] text-white font-semibold px-12 py-4 rounded-full text-lg shadow-lg hover:shadow-xl hover:-translate-y-1 transition-all duration-300">
+        {/* CTA */}
+        <div className="pt-4">
+          <Link
+            href="/register/seller"
+            className="
+            inline-block
+            bg-[#0d2d20]
+            text-white
+            uppercase
+            tracking-[0.28em]
+            text-[11px]
+            px-10 py-4
+            rounded-sm
+            transition
+            hover:bg-[#163a2b]
+            hover:shadow-lg
+          "
+          >
             Crear mi tienda
-          </button>
-        </Link>
+          </Link>
+        </div>
+
+        {/* Footnote */}
+        <p className="text-[10px] tracking-[0.25em] uppercase text-[#0d0d0b]/30 pt-4">
+          Sin comisiones iniciales · 100% guatemalteco
+        </p>
 
       </div>
     </section>

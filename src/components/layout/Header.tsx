@@ -300,15 +300,31 @@ export default function Header() {
 
               {helpOpen && (
                 <div className="absolute left-0 top-full w-52 rounded-xl bg-white shadow-xl py-2 text-neutral-800 z-50">
-                  <Link className="block px-4 py-2 hover:bg-neutral-100" href="/help/faq">
+
+                  <Link
+                    className="block px-4 py-2 hover:bg-neutral-100"
+                    href="/ayuda/faq"
+                    onClick={() => setHelpOpen(false)}
+                  >
                     Preguntas frecuentes
                   </Link>
-                  <Link className="block px-4 py-2 hover:bg-neutral-100" href="/help/contact">
+
+                  <Link
+                    className="block px-4 py-2 hover:bg-neutral-100"
+                    href="/ayuda/contacto"
+                    onClick={() => setHelpOpen(false)}
+                  >
                     Contáctanos
                   </Link>
-                  <Link className="block px-4 py-2 hover:bg-neutral-100" href="/help/returns">
+
+                  <Link
+                    className="block px-4 py-2 hover:bg-neutral-100"
+                    href="/ayuda/devoluciones"
+                    onClick={() => setHelpOpen(false)}
+                  >
                     Devoluciones
                   </Link>
+
                 </div>
               )}
             </li>

@@ -1,0 +1,120 @@
+@import url('https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,400;0,500;0,600;1,400;1,500&family=Lato:wght@300;400;700&display=swap');
+
+/* ── Hero ─────────────────────────────────────────────────────────────── */
+.fj-hero-section {
+  min-height: 88vh;
+  padding-top: 72px;
+  padding-bottom: clamp(64px, 8vw, 96px);
+  display: flex;
+  align-items: flex-end;
+}
+.fj-hero-grid {
+  display: grid;
+  grid-template-columns: 1fr 380px;
+  gap: 64px;
+  align-items: end;
+}
+.fj-hero-h1    { font-size: clamp(48px, 8vw, 96px); }
+.fj-pilot-row  {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 24px;
+  padding-top: 20px;
+  border-top: 1px solid rgba(246, 242, 234, 0.1);
+}
+
+/* ── Benefits ─────────────────────────────────────────────────────────── */
+.fj-benefit-row {
+  display: grid;
+  grid-template-columns: 56px 1fr 2fr;
+  align-items: start;
+  padding: 40px 0;
+  gap: 32px;
+}
+
+/* ── How It Works ─────────────────────────────────────────────────────── */
+.fj-steps-header {
+  display: flex;
+  align-items: flex-end;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 32px;
+  margin-bottom: 80px;
+}
+.fj-steps-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 1px;
+  background: #ddd7cc;
+  border-radius: 8px;
+  overflow: hidden;
+}
+
+/* ── Cultural Mission ─────────────────────────────────────────────────── */
+.fj-mission-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 96px;
+  align-items: start;
+}
+
+/* ── FAQ ──────────────────────────────────────────────────────────────── */
+.fj-faq-header {
+  display: flex;
+  align-items: flex-end;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 32px;
+  margin-bottom: 64px;
+}
+
+/* ── Mobile (≤ 640px) ─────────────────────────────────────────────────── */
+@media (max-width: 640px) {
+  .fj-hero-section {
+    min-height: auto;
+    padding-top: 56px;
+    padding-bottom: 56px;
+    align-items: flex-start;
+  }
+  .fj-hero-grid {
+    grid-template-columns: 1fr;
+    gap: 32px;
+  }
+  .fj-hero-h1   { font-size: clamp(40px, 11vw, 56px); }
+  .fj-pilot-row { gap: 16px; padding-top: 16px; }
+
+  .fj-benefit-row {
+    grid-template-columns: 1fr;
+    gap: 12px;
+    padding: 28px 0;
+  }
+  .fj-benefit-num { display: none; }
+
+  .fj-steps-grid   { grid-template-columns: 1fr; border-radius: 6px; }
+  .fj-steps-header { flex-direction: column; align-items: flex-start; gap: 8px; margin-bottom: 40px; }
+
+  .fj-mission-grid { grid-template-columns: 1fr; gap: 40px; }
+
+  .fj-faq-header { flex-direction: column; align-items: flex-start; gap: 16px; margin-bottom: 40px; }
+  .fj-faq-link   { display: none; }
+  .fj-cta-line   { display: none; }
+}
+
+/* ── Tablet (641 – 900px) ─────────────────────────────────────────────── */
+@media (min-width: 641px) and (max-width: 900px) {
+  .fj-hero-section {
+    min-height: auto;
+    padding-top: 80px;
+    padding-bottom: 72px;
+    align-items: flex-start;
+  }
+  .fj-hero-grid   { grid-template-columns: 1fr; gap: 40px; }
+
+  .fj-steps-grid   { grid-template-columns: 1fr; }
+  .fj-steps-header { margin-bottom: 48px; }
+
+  .fj-mission-grid { grid-template-columns: 1fr; gap: 48px; }
+
+  .fj-benefit-row  { grid-template-columns: 40px 1fr; gap: 20px; }
+  .fj-benefit-desc { grid-column: 2; }
+}

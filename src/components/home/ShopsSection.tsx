@@ -1,7 +1,7 @@
 // src/components/home/ShopsSection.tsx
 
-import SectionHeader from "@/components/ui/SectionHeader";
 import ShopCard from "./ShopCard";
+import SectionHeader from "@/components/ui/SectionHeader";
 
 export type Tienda = {
   id: number;
@@ -19,34 +19,55 @@ type Props = {
 };
 
 export default function ShopsSection({ tiendas }: Props) {
-
-  if (!Array.isArray(tiendas) || tiendas.length === 0) {
-    return null;
-  }
+  if (!Array.isArray(tiendas) || tiendas.length === 0) return null;
 
   return (
-    <section className="relative py-28 px-6 md:px-16 bg-[#f3ece2] overflow-hidden">
+    <section className="bg-[#f6f2ea] py-24">
 
-      {/* Fondo sutil cultural */}
-      <div className="absolute inset-0 bg-gradient-to-b from-transparent to-[#e9dfd1] opacity-40 pointer-events-none" />
+      <div className="max-w-7xl mx-auto px-4 md:px-12 space-y-12">
 
-      <div className="relative max-w-7xl mx-auto space-y-16">
-
+        {/* Header */}
         <SectionHeader
           eyebrow="Emprendimientos culturales"
           title="Tiendas destacadas en Flowjuyu"
         />
 
-        <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-12">
-          {tiendas.slice(0, 4).map((tienda) => (
-            <ShopCard
-              key={tienda.id}
-              tienda={tienda}
-            />
+        {/* Divider */}
+        <div className="h-px bg-gradient-to-r from-[#0d2d20]/20 to-transparent" />
+
+        {/* Grid */}
+        <div
+          className="
+          grid
+          grid-cols-1
+          sm:grid-cols-2
+          lg:grid-cols-5
+          gap-6
+        "
+        >
+          {tiendas.slice(0, 4).map((tienda, i) => (
+            <ShopCard key={tienda.id} tienda={tienda} index={i} />
           ))}
         </div>
 
+        {/* Ambient label */}
+        <div className="flex items-center gap-4 pt-4">
+          <div className="w-8 h-px bg-[#0d2d20]/20" />
+
+          <span
+            className="
+            text-[10px]
+            uppercase
+            tracking-[0.28em]
+            text-[#0d2d20]/40
+          "
+          >
+            Artesanos verificados · Guatemala
+          </span>
+        </div>
+
       </div>
+
     </section>
   );
 }
