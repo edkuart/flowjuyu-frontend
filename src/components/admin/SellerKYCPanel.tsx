@@ -16,11 +16,14 @@ interface Checklist {
 interface Props {
   sellerId: number;
   initialChecklist?: Partial<Checklist> | null;
+
+  onUpdated?: () => void;
 }
 
 export default function SellerKYCPanel({
   sellerId,
   initialChecklist,
+  onUpdated,
 }: Props) {
   // 🔹 Estado por defecto
   const defaultChecks: Checklist = {
@@ -79,8 +82,6 @@ export default function SellerKYCPanel({
     try {
       setLoading(true);
 
-      console.log(process.env.NEXT_PUBLIC_API_URL);
-
       const res = await authFetch(
         `${process.env.NEXT_PUBLIC_API_URL}/api/admin/sellers/${sellerId}/kyc-review`,
         {
@@ -92,6 +93,12 @@ export default function SellerKYCPanel({
       if (!res.ok) throw new Error("Error guardando revisión");
 
       alert("Revisión KYC guardada correctamente");
+
+      // 🔥 refrescar el seller en la página padre
+      if (onUpdated) {
+        onUpdated();
+      }
+
     } catch (err) {
       console.error(err);
       alert("Error guardando revisión");

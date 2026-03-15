@@ -293,8 +293,9 @@ export default function AdminSellerDetailPage() {
 
       {/* ================= PANEL KYC REVIEW ================= */}
       <SellerKYCPanel
-        sellerId={seller.user_id}
+        sellerId={seller.id}
         initialChecklist={seller.kyc_checklist}
+        onUpdated={fetchDetail}
       />
 
       {/* ================= GOBERNANZA ================= */}
@@ -311,68 +312,66 @@ export default function AdminSellerDetailPage() {
         <div className="flex gap-3 flex-wrap">
 
           {/* ================= APROBAR / RECHAZAR ================= */}
-          {seller.estado_validacion === "en_revision" && (
+          {seller.estado_validacion !== "rechazado" && (
             <>
-              <Button
-                className="bg-green-600 hover:bg-green-700 text-white"
-                disabled={processing === "approve"}
-                onClick={() => {
-                  if (seller.kyc_score < 80) {
-                    alert("No se puede aprobar. Score KYC menor a 80%");
-                    return;
-                  }
-                  if (!confirm("¿Aprobar vendedor?")) return;
-                  handleAction("approve");
-                }}
-              >
-                {processing === "approve" ? (
-                  <Loader2 className="w-4 h-4 animate-spin" />
-                ) : (
-                  "Aprobar"
-                )}
-              </Button>
+              {["pendiente", "en_revision"].includes(seller.estado_validacion) && (
+                <>
+                  <Button
+                    className="bg-green-600 hover:bg-green-700 text-white"
+                    disabled={processing === "approve"}
+                    onClick={() => {
+                      const score = Number(seller.kyc_score || 0);
 
-              <Button
-                variant="destructive"
-                disabled={processing === "reject"}
-                onClick={() => setAction("reject")}
-              >
-                Rechazar
-              </Button>
+                      if (score < 80) {
+                        alert("No se puede aprobar. Score KYC menor a 80%");
+                        return;
+                      }
+
+                      if (!confirm("¿Aprobar vendedor?")) return;
+
+                      handleAction("approve");
+                    }}
+                  >
+                    Aprobar
+                  </Button>
+
+                  <Button
+                    variant="destructive"
+                    disabled={processing === "reject"}
+                    onClick={() => setAction("reject")}
+                  >
+                    Rechazar
+                  </Button>
+                </>
+              )}
+
+              {seller.estado_admin === "activo" && (
+                <Button
+                  variant="destructive"
+                  disabled={processing === "suspend"}
+                  onClick={() => setAction("suspend")}
+                >
+                  {processing === "suspend" ? (
+                    <Loader2 className="w-4 h-4 animate-spin" />
+                  ) : (
+                    "Suspender"
+                  )}
+                </Button>
+              )}
+
+              {seller.estado_admin === "suspendido" && (
+                <Button
+                  className="bg-green-600 hover:bg-green-700 text-white"
+                  disabled={processing === "reactivate"}
+                  onClick={() => {
+                    if (!confirm("¿Reactivar vendedor?")) return;
+                    handleAction("reactivate");
+                  }}
+                >
+                  Reactivar
+                </Button>
+              )}
             </>
-          )}
-
-          {/* ================= SUSPENDER ================= */}
-          {seller.estado_admin === "activo" && (
-            <Button
-              variant="destructive"
-              disabled={processing === "suspend"}
-              onClick={() => setAction("suspend")}
-            >
-              {processing === "suspend" ? (
-                <Loader2 className="w-4 h-4 animate-spin" />
-              ) : (
-                "Suspender"
-              )}
-            </Button>
-          )}
-
-          {/* ================= REACTIVAR ================= */}
-          {seller.estado_admin === "suspendido" && (
-            <Button
-              className="bg-green-600 hover:bg-green-700 text-white"
-              disabled={processing === "reactivate"}
-              onClick={() => {
-                if (!confirm("¿Reactivar vendedor?")) return;
-                handleAction("reactivate");
-              }}
-            >
-              {processing === "reactivate" ? (
-                <Loader2 className="w-4 h-4 animate-spin" />
-              ) : (
-                "Reactivar"
-              )}
-            </Button>
           )}
         </div>
 
