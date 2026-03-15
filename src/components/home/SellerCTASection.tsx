@@ -7,17 +7,12 @@ import SectionHeader from "@/components/ui/SectionHeader";
 
 export default function SellerCTASection() {
   return (
-    <section className="relative bg-[#f6f2ea] py-24 border-t border-[#0d2d20]/10 overflow-hidden">
+    <section className="relative bg-[#f6f2ea] py-28 border-t border-[#0d2d20]/10 overflow-hidden">
 
       {/* Background atmosphere */}
       <div
         aria-hidden
-        className="
-        absolute inset-0
-        flex items-center justify-center
-        pointer-events-none
-        select-none
-      "
+        className="absolute inset-0 flex items-center justify-center pointer-events-none select-none"
       >
         <span
           className="
@@ -33,10 +28,10 @@ export default function SellerCTASection() {
 
       <div className="relative max-w-5xl mx-auto px-4 md:px-12 space-y-12 text-center">
 
-        {/* Header (same system as other sections) */}
+        {/* Header */}
         <SectionHeader
           eyebrow="Comunidad Flowjuyu"
-          title="Convierte tu tradición en un negocio digital"
+          title="Tu tienda también puede ser parte de Flowjuyu"
         />
 
         {/* Divider */}
@@ -44,18 +39,31 @@ export default function SellerCTASection() {
           <div className="w-10 h-[1px] bg-gradient-to-r from-[#0d2d20]/40 to-[#0d2d20]/10" />
         </div>
 
-        {/* Body copy */}
+        {/* Body */}
         <p className="max-w-xl mx-auto text-[15px] md:text-[16px] leading-relaxed text-[#0d0d0b]/60 font-light">
-          Publica tus piezas, comparte la historia de tus tejidos y conecta
-          con compradores que buscan auténtica artesanía guatemalteca.
+          Estamos construyendo una plataforma para mostrar la riqueza textil de
+          Guatemala al mundo. Si eres artesano o tienes una tienda de textiles,
+          puedes formar parte de esta primera etapa.
         </p>
 
+        {/* Micro benefits */}
+        <div className="flex flex-wrap justify-center gap-6 pt-4 text-[12px] tracking-[0.18em] uppercase text-[#0d2d20]/60">
+          <span>Perfil digital</span>
+          <span>•</span>
+          <span>Visibilidad nacional</span>
+          <span>•</span>
+          <span>Comunidad artesanal</span>
+        </div>
+
         {/* CTA */}
-        <div className="pt-4">
+        <div className="pt-6">
           <Link
-            href="/register/seller"
+            href="/sell"
             className="
-            inline-block
+            group
+            inline-flex
+            items-center
+            gap-3
             bg-[#0d2d20]
             text-white
             uppercase
@@ -63,18 +71,23 @@ export default function SellerCTASection() {
             text-[11px]
             px-10 py-4
             rounded-sm
-            transition
+            transition-all
+            duration-300
             hover:bg-[#163a2b]
-            hover:shadow-lg
+            hover:shadow-xl
           "
           >
-            Crear mi tienda
+            Conocer cómo vender
+
+            <span className="transition-transform duration-300 group-hover:translate-x-1">
+              →
+            </span>
           </Link>
         </div>
 
         {/* Footnote */}
         <p className="text-[10px] tracking-[0.25em] uppercase text-[#0d0d0b]/30 pt-4">
-          Sin comisiones iniciales · 100% guatemalteco
+          Fase piloto · Primeros artesanos invitados
         </p>
 
       </div>

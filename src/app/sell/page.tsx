@@ -4,11 +4,12 @@ import React from "react";
 import "@/styles/sell-page.css";
 
 import HeroSell        from "@/components/sell/HeroSell";
+import CTASection      from "@/components/sell/CTASection";
 import BenefitsSection from "@/components/sell/BenefitsSection";
 import HowItWorks      from "@/components/sell/HowItWorks";
 import CulturalMission from "@/components/sell/CulturalMission";
 import SellerFAQ       from "@/components/sell/SellerFAQ";
-import CTASection      from "@/components/sell/CTASection";
+import ContactSection from "@/components/sell/ContactSection";
 
 export default function SellPage() {
   return (
@@ -17,8 +18,9 @@ export default function SellPage() {
       <BenefitsSection />
       <HowItWorks />
       <CulturalMission />
-      <SellerFAQ />
       <CTASection />
+      <SellerFAQ />
+      <ContactSection />
     </main>
   );
 }
