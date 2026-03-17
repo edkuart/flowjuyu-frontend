@@ -1,48 +1,67 @@
 "use client"
 
-import { useEffect, useState } from "react"
+import { useEffect, useState, useCallback } from "react"
 import { authFetch } from "@/lib/authFetch"
+import {
+  computeMarketplaceStatus,
+  type MarketplaceStatusLevel,
+  safeNumber,
+} from "@/lib/adminHelpers"
 
-const API_URL = "http://localhost:8800"
+const API_URL = process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:8800"
 
-export function useAdminStats() {
+interface AdminStats {
+  tickets:              number
+  sellersPendientes:    number
+  leads:                number
+  marketplaceStatus:    MarketplaceStatusLevel
+}
 
-  const [stats, setStats] = useState({
-    tickets: 0,
-    sellersPendientes: 0,
-    leads: 0
-  })
+const DEFAULT_STATS: AdminStats = {
+  tickets:           0,
+  sellersPendientes: 0,
+  leads:             0,
+  marketplaceStatus: "healthy",
+}
 
-  async function fetchStats() {
+export function useAdminStats(): AdminStats {
+  const [stats, setStats] = useState<AdminStats>(DEFAULT_STATS)
 
+  const fetchStats = useCallback(async () => {
     try {
+      const [dashboardRes, leadsRes] = await Promise.all([
+        authFetch(`${API_URL}/api/admin/dashboard`),
+        authFetch(`${API_URL}/api/admin/leads`),
+      ])
 
-      const dashboardRes = await authFetch(
-        `${API_URL}/api/admin/dashboard`
-      )
+      const dashboard = dashboardRes.ok ? await dashboardRes.json() : null
+      const leads     = leadsRes.ok     ? await leadsRes.json()     : null
 
-      const dashboard = await dashboardRes.json()
-
-      const leadsRes = await authFetch(
-        `${API_URL}/api/admin/leads`
-      )
-
-      const leads = await leadsRes.json()
+      const ticketsAbiertos    = safeNumber(dashboard?.data?.tickets?.abiertos)
+      const sellersPendientes  = safeNumber(dashboard?.data?.sellers?.pendientes)
+      const leadsCount         = safeNumber(leads?.data?.tickets?.length)
 
       setStats({
-        tickets: dashboard.data.tickets.abiertos || 0,
-        sellersPendientes: dashboard.data.sellers.pendientes || 0,
-        leads: leads.data.tickets.length || 0
+        tickets:           ticketsAbiertos,
+        sellersPendientes,
+        leads:             leadsCount,
+        marketplaceStatus: computeMarketplaceStatus({
+          sellersPendientes,
+          ticketsAbiertos,
+        }),
       })
-
     } catch (error) {
-      console.error("Error fetching admin stats:", error)
+      console.error("[useAdminStats] fetch error:", error)
+      // Keep current stats on error — don't reset to zero
     }
-  }
+  }, [])
 
   useEffect(() => {
     fetchStats()
-  }, [])
+    // Re-fetch every 2 minutes to keep sidebar counts fresh
+    const interval = setInterval(fetchStats, 120_000)
+    return () => clearInterval(interval)
+  }, [fetchStats])
 
   return stats
 }

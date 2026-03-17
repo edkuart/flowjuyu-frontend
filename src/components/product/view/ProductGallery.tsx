@@ -12,177 +12,211 @@ export default function ProductGallery({
   imagenes = [],
   titulo,
 }: ProductGalleryProps) {
-
-  const [active, setActive] = useState(0);
-  const [zoomVisible, setZoomVisible] = useState(false);
-  const [zoomPos, setZoomPos] = useState({ x: 50, y: 50 });
+  const [active, setActive]       = useState(0);
+  const [zoomPos, setZoomPos]     = useState({ x: 50, y: 50 });
+  const [zooming, setZooming]     = useState(false);
   const [fullscreen, setFullscreen] = useState(false);
 
   const containerRef = useRef<HTMLDivElement | null>(null);
 
-  const imageUrls = useMemo(() => {
-    return [...new Set(imagenes.filter(Boolean))];
-  }, [imagenes]);
+  const imageUrls = useMemo(
+    () => [...new Set(imagenes.filter(Boolean))],
+    [imagenes]
+  );
 
-  useEffect(() => {
-    setActive(0);
-  }, [imagenes]);
+  useEffect(() => { setActive(0); }, [imagenes]);
 
   if (!imageUrls.length) {
     return (
-      <div className="w-full aspect-[4/5] bg-neutral-100 flex items-center justify-center rounded-2xl">
-        <p className="text-neutral-400">Sin imágenes</p>
+      <div className="w-full aspect-square bg-neutral-50 flex flex-col items-center justify-center rounded-2xl border border-neutral-100 gap-3">
+        <span className="text-4xl opacity-30">🖼️</span>
+        <p className="text-neutral-400 text-sm">Sin imágenes</p>
       </div>
     );
   }
 
   const current = imageUrls[active];
+  const total   = imageUrls.length;
 
-  const handleMove = (e: React.MouseEvent<HTMLDivElement>) => {
-
+  const handleMouseMove = (e: React.MouseEvent<HTMLDivElement>) => {
     const rect = containerRef.current?.getBoundingClientRect();
     if (!rect) return;
-
-    const x = ((e.clientX - rect.left) / rect.width) * 100;
-    const y = ((e.clientY - rect.top) / rect.height) * 100;
-
-    setZoomPos({ x, y });
+    setZoomPos({
+      x: ((e.clientX - rect.left)  / rect.width)  * 100,
+      y: ((e.clientY - rect.top)   / rect.height) * 100,
+    });
   };
 
-  const prev = () =>
-    setActive((i) => (i === 0 ? imageUrls.length - 1 : i - 1));
-
-  const next = () =>
-    setActive((i) => (i === imageUrls.length - 1 ? 0 : i + 1));
+  const prev = () => setActive((i) => (i === 0       ? total - 1 : i - 1));
+  const next = () => setActive((i) => (i === total - 1 ? 0       : i + 1));
 
   return (
     <>
-      <div className="flex flex-col lg:flex-row gap-6">
+      {/* ── OUTER LAYOUT: thumbnails left / main right ── */}
+      <div className="flex flex-col-reverse lg:flex-row gap-3">
 
-        {/* MINIATURAS */}
-        <div className="flex lg:flex-col gap-3 overflow-x-auto">
-
+        {/* ── THUMBNAILS ── */}
+        <div className="flex lg:flex-col gap-2 overflow-x-auto lg:overflow-y-auto flex-shrink-0">
           {imageUrls.map((img, i) => (
-
             <button
               key={i}
               onClick={() => setActive(i)}
-              className={`relative flex-shrink-0 w-16 h-16 rounded-lg overflow-hidden border
-              ${i === active
-                ? "border-[#0d2d20]"
-                : "border-gray-300"}
-              `}
+              aria-label={`Ver imagen ${i + 1}`}
+              className={`relative flex-shrink-0 w-[64px] h-[64px] rounded-xl overflow-hidden border-2 transition-all duration-150 bg-neutral-50 ${
+                i === active
+                  ? "border-[#0F3D3A] ring-2 ring-[#0F3D3A]/20"
+                  : "border-neutral-200 opacity-60 hover:opacity-100 hover:border-neutral-400"
+              }`}
             >
-
               <Image
                 src={img}
-                alt={`thumb-${titulo}`}
+                alt={`Vista ${i + 1}`}
                 fill
-                className="object-cover"
+                className="object-contain p-1"
               />
-
             </button>
-
           ))}
-
         </div>
 
-        {/* IMAGEN + ZOOM */}
-        <div className="flex gap-6">
+        {/* ── MAIN IMAGE ── */}
+        <div
+          ref={containerRef}
+          className="relative flex-1 aspect-square overflow-hidden rounded-2xl bg-white border border-neutral-100 shadow-md cursor-zoom-in group"
+          onMouseMove={handleMouseMove}
+          onMouseEnter={() => setZooming(true)}
+          onMouseLeave={() => setZooming(false)}
+          onClick={() => setFullscreen(true)}
+        >
+          {/* The image itself — zooms in-place on hover via transform */}
+          <Image
+            src={current}
+            alt={titulo}
+            fill
+            priority
+            sizes="(max-width: 768px) 100vw, 500px"
+            className="object-contain transition-transform duration-200 ease-out will-change-transform"
+            style={{
+              transform:       zooming ? "scale(2.2)" : "scale(1)",
+              transformOrigin: `${zoomPos.x}% ${zoomPos.y}%`,
+            }}
+          />
 
-          {/* IMAGEN PRINCIPAL */}
+          {/* Artesanal badge */}
+          <div className="absolute top-3 left-3 z-10 pointer-events-none">
+            <span className="bg-white/90 backdrop-blur-sm text-amber-700 text-[10px] font-bold px-2.5 py-1 rounded-full border border-amber-200 shadow-sm">
+              🧵 Artesanal
+            </span>
+          </div>
+
+          {/* Image counter */}
+          {total > 1 && (
+            <div className="absolute top-3 right-3 z-10 pointer-events-none">
+              <span className="bg-black/50 backdrop-blur-sm text-white text-xs font-semibold px-2.5 py-1 rounded-full tabular-nums">
+                {active + 1} / {total}
+              </span>
+            </div>
+          )}
+
+          {/* Zoom hint */}
+          {!zooming && (
+            <div className="absolute bottom-3 right-3 z-10 pointer-events-none opacity-80">
+              <span className="bg-black/45 backdrop-blur-sm text-white text-[10px] px-2.5 py-1.5 rounded-full">
+                🔍 Pasa el cursor para ampliar
+              </span>
+            </div>
+          )}
+
+          {/* Nav arrows */}
+          {total > 1 && (
+            <>
+              <button
+                onClick={(e) => { e.stopPropagation(); prev(); }}
+                className="absolute left-2 top-1/2 -translate-y-1/2 z-10 bg-white/85 backdrop-blur rounded-full w-8 h-8 flex items-center justify-center shadow text-lg font-bold text-neutral-700 hover:bg-white transition-colors"
+                aria-label="Imagen anterior"
+              >
+                ‹
+              </button>
+              <button
+                onClick={(e) => { e.stopPropagation(); next(); }}
+                className="absolute right-2 top-1/2 -translate-y-1/2 z-10 bg-white/85 backdrop-blur rounded-full w-8 h-8 flex items-center justify-center shadow text-lg font-bold text-neutral-700 hover:bg-white transition-colors"
+                aria-label="Imagen siguiente"
+              >
+                ›
+              </button>
+            </>
+          )}
+
+          {/* Dot indicators */}
+          {total > 1 && (
+            <div className="absolute bottom-3 left-1/2 -translate-x-1/2 z-10 flex gap-1.5">
+              {imageUrls.map((_, i) => (
+                <button
+                  key={i}
+                  onClick={(e) => { e.stopPropagation(); setActive(i); }}
+                  aria-label={`Imagen ${i + 1}`}
+                  className={`rounded-full transition-all duration-200 ${
+                    i === active
+                      ? "w-5 h-2 bg-white shadow"
+                      : "w-2 h-2 bg-white/50 hover:bg-white/80"
+                  }`}
+                />
+              ))}
+            </div>
+          )}
+        </div>
+
+      </div>
+
+      {/* ── FULLSCREEN VIEWER ── */}
+      {fullscreen && (
+        <div
+          className="fixed inset-0 bg-black/95 z-[9999] flex items-center justify-center"
+          onClick={() => setFullscreen(false)}
+        >
           <div
-            ref={containerRef}
-            className="relative w-[440px] aspect-[4/5] rounded-2xl overflow-hidden bg-white shadow-md cursor-zoom-in"
-            onMouseMove={handleMove}
-            onMouseEnter={() => setZoomVisible(true)}
-            onMouseLeave={() => setZoomVisible(false)}
-            onClick={() => setFullscreen(true)}
+            className="relative w-[92vw] h-[90vh] max-w-5xl"
+            onClick={(e) => e.stopPropagation()}
           >
-
             <Image
               src={current}
               alt={titulo}
               fill
-              priority
-              sizes="(max-width:768px) 100vw, 600px"
-              className="object-cover"
+              className="object-contain"
             />
 
-            {/* FLECHAS */}
-            {imageUrls.length > 1 && (
+            {total > 1 && (
               <>
                 <button
-                  onClick={(e) => {
-                    e.stopPropagation();
-                    prev();
-                  }}
-                  className="absolute left-3 top-1/2 -translate-y-1/2 bg-white/80 backdrop-blur rounded-full w-10 h-10 flex items-center justify-center shadow"
+                  onClick={prev}
+                  className="absolute left-0 top-1/2 -translate-y-1/2 -translate-x-14 text-white/60 hover:text-white text-5xl transition-colors select-none"
                 >
                   ‹
                 </button>
-
                 <button
-                  onClick={(e) => {
-                    e.stopPropagation();
-                    next();
-                  }}
-                  className="absolute right-3 top-1/2 -translate-y-1/2 bg-white/80 backdrop-blur rounded-full w-10 h-10 flex items-center justify-center shadow"
+                  onClick={next}
+                  className="absolute right-0 top-1/2 -translate-y-1/2 translate-x-14 text-white/60 hover:text-white text-5xl transition-colors select-none"
                 >
                   ›
                 </button>
               </>
             )}
 
-          </div>
-
-          {/* ZOOM LATERAL */}
-          {zoomVisible && (
-            <div className="hidden lg:block relative w-[420px] aspect-[4/5] rounded-2xl overflow-hidden border shadow-xl bg-white">
-
-              <div
-                className="absolute inset-0"
-                style={{
-                  backgroundImage: `url(${current})`,
-                  backgroundRepeat: "no-repeat",
-                  backgroundSize: "500%",
-                  backgroundPosition: `${zoomPos.x}% ${zoomPos.y}%`,
-                }}
-              />
-
-            </div>
-          )}
-
-        </div>
-
-      </div>
-
-      {/* FULLSCREEN VIEWER */}
-      {fullscreen && (
-        <div
-          className="fixed inset-0 bg-black/90 z-[9999] flex items-center justify-center"
-          onClick={() => setFullscreen(false)}
-        >
-          <div className="relative w-[95%] max-w-6xl aspect-square">
-
-            <Image
-              src={current}
-              alt="fullscreen"
-              fill
-              className="object-contain"
-            />
-
             <button
-              className="absolute top-6 right-6 text-white text-3xl"
               onClick={() => setFullscreen(false)}
+              className="absolute top-0 right-0 translate-x-12 text-white/60 hover:text-white text-3xl transition-colors"
+              aria-label="Cerrar"
             >
               ✕
             </button>
 
+            {total > 1 && (
+              <p className="absolute bottom-0 left-1/2 -translate-x-1/2 translate-y-10 text-white/50 text-sm tabular-nums">
+                {active + 1} / {total}
+              </p>
+            )}
           </div>
         </div>
       )}
-
     </>
   );
 }

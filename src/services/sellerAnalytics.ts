@@ -32,6 +32,12 @@ export type SellerAnalyticsResponse = {
     product_views: number;
     profile_views: number;
   }[];
+
+  // Phase 2
+  totalWhatsappClicks:  number;
+  last30WhatsappClicks: number;
+  totalReviews:         number;
+  avgRating:            number | null;
 };
 
 /* ======================================================
@@ -73,5 +79,11 @@ export async function fetchSellerAnalytics(): Promise<SellerAnalyticsResponse> {
     topIntentedProducts: data.topIntentedProducts ?? [],
 
     last30Days: data.last30Days ?? [],
+
+    // Phase 2
+    totalWhatsappClicks:  data.totalWhatsappClicks  ?? 0,
+    last30WhatsappClicks: data.last30WhatsappClicks ?? 0,
+    totalReviews:         data.totalReviews         ?? 0,
+    avgRating:            data.avgRating            ?? null,
   };
 }

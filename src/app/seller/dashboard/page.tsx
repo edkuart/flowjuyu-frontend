@@ -10,6 +10,7 @@ import {
   Star,
   Package,
   TrendingUp,
+  MessageCircle,
 } from "lucide-react"
 
 import {
@@ -50,6 +51,11 @@ type Analytics = {
     product_views: number
     profile_views: number
   }[]
+  // Phase 2
+  totalWhatsappClicks:  number
+  last30WhatsappClicks: number
+  totalReviews:         number
+  avgRating:            number | null
 }
 
 export default function SellerDashboardPage() {
@@ -69,6 +75,10 @@ export default function SellerDashboardPage() {
     topProducts: [],
     topIntentedProducts: [],
     last30Days: [],
+    totalWhatsappClicks:  0,
+    last30WhatsappClicks: 0,
+    totalReviews:         0,
+    avgRating:            null,
   })
 
   const [isMobile, setIsMobile] = useState(false)
@@ -104,6 +114,10 @@ export default function SellerDashboardPage() {
           topProducts: analyticsData.topProducts ?? [],
           topIntentedProducts: analyticsData.topIntentedProducts ?? [],
           last30Days: analyticsData.last30Days ?? [],
+          totalWhatsappClicks:  analyticsData.totalWhatsappClicks  ?? 0,
+          last30WhatsappClicks: analyticsData.last30WhatsappClicks ?? 0,
+          totalReviews:         analyticsData.totalReviews         ?? 0,
+          avgRating:            analyticsData.avgRating            ?? null,
         })
       } catch (e) {
         console.error("Error cargando dashboard:", e)
@@ -275,6 +289,38 @@ export default function SellerDashboardPage() {
             value={topProduct?.total_views ?? 0}
             subtitle={topProduct?.nombre ?? "—"}
             icon={<Star className="w-4 h-4" />}
+          />
+        </div>
+      </section>
+
+      {/* ===============================
+        📲 PHASE 2 — WA CLICKS + REVIEWS
+      =============================== */}
+      <section className="space-y-4">
+        <h2 className="text-lg font-semibold text-neutral-800">
+          WhatsApp y reseñas
+        </h2>
+        <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-4">
+          <Stat
+            label="Clicks en WhatsApp (total)"
+            value={analytics.totalWhatsappClicks}
+            icon={<MessageCircle className="w-4 h-4 text-green-600" />}
+          />
+          <Stat
+            label="Clicks en WhatsApp (30 días)"
+            value={analytics.last30WhatsappClicks}
+            icon={<MessageCircle className="w-4 h-4 text-green-400" />}
+          />
+          <Stat
+            label="Reseñas recibidas"
+            value={analytics.totalReviews}
+            icon={<Star className="w-4 h-4 text-amber-500" />}
+          />
+          <Stat
+            label="Calificación promedio"
+            value={analytics.avgRating ?? 0}
+            subtitle={analytics.avgRating ? `${analytics.avgRating.toFixed(1)} / 5.0` : "Sin reseñas aún"}
+            icon={<Star className="w-4 h-4 text-amber-400" />}
           />
         </div>
       </section>

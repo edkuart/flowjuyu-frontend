@@ -20,10 +20,10 @@ import {
   DialogContent,
   DialogHeader,
   DialogTitle,
-  DialogDescription,
 } from "@/components/ui/dialog"
 import Swal from "sweetalert2"
-import { useRouter } from "next/navigation"
+import { useRouter, useSearchParams } from "next/navigation"
+import { SellerActivationChecklist } from "@/components/seller/SellerActivationChecklist"
 
 type Producto = {
   id: string
@@ -40,19 +40,30 @@ export default function SellerProductsPage() {
   const [productos, setProductos] = useState<Producto[]>([])
   const [loading, setLoading] = useState(true)
   const [processingId, setProcessingId] = useState<string | null>(null)
-  const [selected, setSelected] = useState<Producto | null>(null)
   const [selectedImage, setSelectedImage] = useState<{
-  url: string
-  nombre: string
-  id: string
-} | null>(null)
-  const [imgIndex, setImgIndex] = useState(0)
+    url: string
+    nombre: string
+    id: string
+  } | null>(null)
+  const [showBanner, setShowBanner] = useState(false)
+  const [filter, setFilter] = useState<"todos" | "publicados" | "borradores" | "sin_stock">("todos")
 
   const [page, setPage] = useState(1)
-  const [perPage, setPerPage] = useState(10)
+  const [perPage] = useState(10)
 
   const API = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8800"
   const router = useRouter()
+  const searchParams = useSearchParams()
+
+  // Show first-product celebration banner when redirected with ?first=1
+  useEffect(() => {
+    if (searchParams.get("first") === "1") {
+      setShowBanner(true)
+      // Auto-dismiss after 7s
+      const t = setTimeout(() => setShowBanner(false), 7000)
+      return () => clearTimeout(t)
+    }
+  }, [searchParams])
 
   /* ==============================
      Fetch productos del vendedor
@@ -87,15 +98,22 @@ export default function SellerProductsPage() {
   /* ==============================
      Paginación
   ============================== */
+  const filteredProducts = useMemo(() => {
+    if (filter === "publicados") return productos.filter((p) => p.activo)
+    if (filter === "borradores") return productos.filter((p) => !p.activo)
+    if (filter === "sin_stock") return productos.filter((p) => p.stock === 0)
+    return productos
+  }, [productos, filter])
+
   const totalPages = useMemo(
-    () => Math.ceil(productos.length / perPage),
-    [productos, perPage]
+    () => Math.ceil(filteredProducts.length / perPage),
+    [filteredProducts, perPage]
   )
 
   const currentProducts = useMemo(() => {
     const start = (page - 1) * perPage
-    return productos.slice(start, start + perPage)
-  }, [productos, page, perPage])
+    return filteredProducts.slice(start, start + perPage)
+  }, [filteredProducts, page, perPage])
 
   /* ==============================
      Acciones
@@ -201,24 +219,118 @@ export default function SellerProductsPage() {
           </Link>
         </header>
 
+        {/* ================= FIRST PRODUCT CELEBRATION ================= */}
+        {showBanner && (
+          <div className="relative overflow-hidden bg-gradient-to-r from-green-500 to-emerald-600 rounded-2xl px-6 py-5 text-white shadow-lg">
+            {/* Decorative blobs */}
+            <div className="absolute -top-4 -right-4 w-24 h-24 bg-white/10 rounded-full" />
+            <div className="absolute -bottom-6 left-10 w-16 h-16 bg-white/10 rounded-full" />
+
+            <div className="relative flex items-start justify-between gap-4">
+              <div className="flex items-center gap-4">
+                <span className="text-4xl">🎉</span>
+                <div>
+                  <p className="font-bold text-lg leading-tight">
+                    ¡Tu primer producto está listo!
+                  </p>
+                  <p className="text-green-100 text-sm mt-1">
+                    Ahora publícalo para que los compradores puedan verlo.
+                  </p>
+                </div>
+              </div>
+              <button
+                onClick={() => setShowBanner(false)}
+                className="p-1 rounded-lg hover:bg-white/20 transition flex-shrink-0"
+                aria-label="Cerrar"
+              >
+                <X className="w-4 h-4" />
+              </button>
+            </div>
+          </div>
+        )}
+
+        {/* ================= ACTIVATION CHECKLIST ================= */}
+        {!loading && (
+          <SellerActivationChecklist productos={productos} />
+        )}
+
+        {/* ================= FILTERS ================= */}
+        {!loading && productos.length > 0 && (
+          <div className="flex flex-wrap gap-2">
+            {(
+              [
+                { key: "todos", label: "Todos" },
+                { key: "publicados", label: "Publicados" },
+                { key: "borradores", label: "Borradores" },
+                { key: "sin_stock", label: "Sin stock" },
+              ] as const
+            ).map(({ key, label }) => (
+              <button
+                key={key}
+                onClick={() => {
+                  setFilter(key)
+                  setPage(1)
+                }}
+                className={`px-4 py-1.5 rounded-full text-sm font-medium border transition ${
+                  filter === key
+                    ? "bg-[#0F3D3A] text-white border-[#0F3D3A]"
+                    : "bg-white text-neutral-600 border-neutral-200 hover:border-neutral-400"
+                }`}
+              >
+                {label}
+                {key !== "todos" && (
+                  <span className="ml-1.5 text-xs opacity-70">
+                    {key === "publicados"
+                      ? productos.filter((p) => p.activo).length
+                      : key === "borradores"
+                      ? productos.filter((p) => !p.activo).length
+                      : productos.filter((p) => p.stock === 0).length}
+                  </span>
+                )}
+              </button>
+            ))}
+          </div>
+        )}
+
         {/* ================= CONTENT ================= */}
         {loading ? (
-          <div className="text-center py-20 text-neutral-500">
+          <div className="text-center py-20 text-neutral-500 animate-pulse">
             Cargando productos…
           </div>
         ) : productos.length === 0 ? (
-          <div className="bg-white rounded-2xl border border-neutral-200 p-12 text-center shadow-sm">
-            <h2 className="text-lg font-semibold mb-2">
-              Aún no tienes productos
-            </h2>
-            <p className="text-neutral-500 mb-6">
-              Agrega tu primer producto y comienza a vender.
-            </p>
+          <div className="bg-white rounded-2xl border border-neutral-100 p-14 text-center shadow-sm space-y-5">
+            <div className="text-6xl">🏪</div>
+            <div>
+              <h2 className="text-xl font-bold text-neutral-800">
+                Tu tienda está lista
+              </h2>
+              <p className="text-neutral-400 text-sm mt-2 max-w-xs mx-auto leading-relaxed">
+                Agrega tu primer producto para que los compradores puedan
+                encontrarte en el catálogo.
+              </p>
+            </div>
             <Link href="/seller/products/new">
-              <Button className="bg-[#0F3D3A] hover:bg-[#0C2F2C] text-white">
-                Agregar producto
+              <Button className="bg-orange-600 hover:bg-orange-700 text-white px-8 h-11 font-semibold shadow-sm shadow-orange-100">
+                <PackagePlus className="w-4 h-4 mr-2" />
+                Crear mi primer producto
               </Button>
             </Link>
+            <p className="text-xs text-neutral-400">
+              Gratis · Solo toma unos minutos
+            </p>
+          </div>
+        ) : filteredProducts.length === 0 ? (
+          <div className="bg-white rounded-2xl border border-neutral-100 p-10 text-center shadow-sm space-y-3">
+            <p className="text-3xl">🔍</p>
+            <p className="font-semibold text-neutral-700">
+              Sin resultados para este filtro
+            </p>
+            <button
+              onClick={() => { setFilter("todos"); setPage(1) }}
+              className="text-sm text-[#0F3D3A] underline underline-offset-2 hover:opacity-70 transition"
+            >
+              Ver todos los productos
+            </button>
           </div>
         ) : (
           <>

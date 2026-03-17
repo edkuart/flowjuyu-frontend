@@ -15,7 +15,7 @@ export function SellerActions({ perfil }: any) {
     setLoading(true);
 
     await fetch(
-      `${process.env.NEXT_PUBLIC_API_URL}/api/admin/sellers/${perfil.id}/${action}`,
+      `${process.env.NEXT_PUBLIC_API_URL}/api/admin/sellers/${perfil.user_id}/${action}`,
       {
         method: "PATCH",
         credentials: "include",
@@ -37,7 +37,7 @@ export function SellerActions({ perfil }: any) {
     setLoading(true);
 
     await fetch(
-      `${process.env.NEXT_PUBLIC_API_URL}/api/admin/sellers/${perfil.id}/${actionType}`,
+      `${process.env.NEXT_PUBLIC_API_URL}/api/admin/sellers/${perfil.user_id}/${actionType}`,
       {
         method: "PATCH",
         credentials: "include",

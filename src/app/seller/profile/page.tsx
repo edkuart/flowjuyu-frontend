@@ -287,6 +287,30 @@ export default function SellerPublicProfilePage() {
           )}
         </div>
 
+        <div>
+          <Label>WhatsApp (número con código de país)</Label>
+          {editando ? (
+            <div className="space-y-1">
+              <Input
+                value={formData.whatsapp_numero || ""}
+                onChange={(e) => onChange("whatsapp_numero", e.target.value)}
+                placeholder="Ej: 50299887766"
+                className="w-52"
+              />
+              <p className="text-xs text-muted-foreground">
+                Incluye el código de país sin "+" — ej: <strong>502</strong>99887766
+              </p>
+            </div>
+          ) : (
+            <p>
+              {vendedor.whatsapp_numero
+                ? `+${vendedor.whatsapp_numero}`
+                : <span className="text-muted-foreground text-sm">Sin número de WhatsApp</span>
+              }
+            </p>
+          )}
+        </div>
+
       </section>
 
       {/* ================= RESEÑAS ================= */}
