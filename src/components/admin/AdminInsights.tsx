@@ -196,14 +196,10 @@ export function AdminInsights(props: Props) {
 
       <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
         {insights.map((ins) => {
-          const s    = LEVEL_STYLE[ins.level]
-          const Wrap = ins.href ? Link : "div"
-          return (
-            <Wrap
-              key={ins.id}
-              {...(ins.href ? { href: ins.href } : {})}
-              className={`flex items-start gap-3 rounded-xl border p-4 transition-all ${s.card} ${ins.href ? "hover:shadow-sm cursor-pointer" : ""}`}
-            >
+          const s       = LEVEL_STYLE[ins.level]
+          const baseCls = `flex items-start gap-3 rounded-xl border p-4 transition-all ${s.card}`
+          const inner   = (
+            <>
               <span className="text-xl shrink-0">{ins.icon}</span>
               <div className="min-w-0 space-y-0.5">
                 <p className={`text-sm font-semibold leading-tight ${s.text}`}>{ins.text}</p>
@@ -211,7 +207,21 @@ export function AdminInsights(props: Props) {
                   <p className="text-xs text-muted-foreground leading-relaxed">{ins.detail}</p>
                 )}
               </div>
-            </Wrap>
+            </>
+          )
+
+          return ins.href ? (
+            <Link
+              key={ins.id}
+              href={ins.href}
+              className={`${baseCls} hover:shadow-sm cursor-pointer`}
+            >
+              {inner}
+            </Link>
+          ) : (
+            <div key={ins.id} className={baseCls}>
+              {inner}
+            </div>
           )
         })}
       </div>
