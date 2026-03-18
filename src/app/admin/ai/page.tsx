@@ -121,7 +121,7 @@ function ToastContainer({ toasts }: { toasts: Toast[] }) {
 
 // ── Constants ──────────────────────────────────────────────────────────────────
 
-const API_BASE            = process.env.NEXT_PUBLIC_API_URL ?? "";
+const API_BASE            = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8800";
 const REFRESH_INTERVAL_MS = 30_000;
 
 // ── Health check cards ─────────────────────────────────────────────────────────

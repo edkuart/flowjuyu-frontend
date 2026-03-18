@@ -1,5 +1,7 @@
 // src/app/page.tsx
 
+export const dynamic = "force-dynamic";
+
 import { getHomeData } from "@/services/homeService";
 
 import HeroSection from "@/components/home/HeroSection";

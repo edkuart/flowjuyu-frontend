@@ -486,15 +486,7 @@ export default function SellerDashboardPage() {
                       interval={isMobile ? 5 : 0}
                       axisLine={false}
                       tickLine={false}
-                      tickFormatter={(value: string) => {
-                        const date = new Date(value)
-                        return isMobile
-                          ? String(date.getDate())
-                          : date.toLocaleDateString("es-ES", {
-                              day: "2-digit",
-                              month: "2-digit",
-                            })
-                      }}
+                      tickFormatter={(value) => formatChartDate(value, isMobile ? "day" : "short")}
                     />
 
                     <YAxis
@@ -510,23 +502,8 @@ export default function SellerDashboardPage() {
                         border: "1px solid #e5e7eb",
                         fontSize: "13px",
                       }}
-                      labelFormatter={(value: string) => {
-                        const date = new Date(value)
-                        return date.toLocaleDateString("es-ES", {
-                          day: "2-digit",
-                          month: "long",
-                          year: "numeric",
-                        })
-                      }}
-                      formatter={(value: number, name: string) => {
-                        if (name === "Vistas productos") {
-                          return [`${value}`, "Vistas productos"]
-                        }
-                        if (name === "Visitas perfil") {
-                          return [`${value}`, "Visitas perfil"]
-                        }
-                        return [value, name]
-                      }}
+                      labelFormatter={(label) => formatChartDate(label, "long")}
+                      formatter={(value, name) => [`${value}`, String(name)]}
                     />
 
                     {/* 🔥 Área suave bajo línea principal */}
@@ -603,6 +580,26 @@ export default function SellerDashboardPage() {
 
     </main>
   )
+}
+
+/* ===============================
+  🛠️ HELPERS
+================================ */
+
+type DateFormat = "day" | "short" | "long"
+
+function formatChartDate(label: unknown, format: DateFormat = "short"): string {
+  const raw = typeof label === "string" ? label : String(label ?? "")
+  const date = new Date(raw)
+
+  if (isNaN(date.getTime())) return raw
+
+  if (format === "day") return String(date.getDate())
+
+  return date.toLocaleDateString("es-ES", {
+    day: "2-digit",
+    ...(format === "short" ? { month: "2-digit" } : { month: "long", year: "numeric" }),
+  })
 }
 
 /* COMPONENTES */

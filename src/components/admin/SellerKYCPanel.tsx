@@ -77,7 +77,7 @@ export default function SellerKYCPanel({ sellerId, initialChecklist, onUpdated }
     setLoading(true)
     try {
       const res = await authFetch(
-        `${process.env.NEXT_PUBLIC_API_URL}/api/admin/sellers/${sellerId}/kyc-review`,
+        `${process.env.NEXT_PUBLIC_API_URL || "http://localhost:8800"}/api/admin/sellers/${sellerId}/kyc-review`,
         { method: "PATCH", body: JSON.stringify({ kyc_checklist: checks }) }
       )
       if (!res.ok) throw new Error("Save failed")

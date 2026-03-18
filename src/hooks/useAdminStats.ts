@@ -8,7 +8,7 @@ import {
   safeNumber,
 } from "@/lib/adminHelpers"
 
-const API_URL = process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:8800"
+const API_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8800"
 
 interface AdminStats {
   tickets:              number

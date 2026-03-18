@@ -17,7 +17,7 @@ import {
 import { authFetch } from "@/lib/authFetch"
 import { toast } from "sonner"
 
-const API_URL = process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:8800"
+const API_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8800"
 
 // ── Types ──────────────────────────────────────────────────────────────────────
 
@@ -118,9 +118,9 @@ function ScoreBar({ score }: { score: number }) {
 // ── Priority overview ──────────────────────────────────────────────────────────
 
 function PriorityOverview({ sellers }: { sellers: Seller[] }) {
-  const critical = sellers.filter(s => scoreBand(computeSellerScore(s)) === "critical").length
-  const review   = sellers.filter(s => scoreBand(computeSellerScore(s)) === "review").length
-  const healthy  = sellers.filter(s => scoreBand(computeSellerScore(s)) === "healthy").length
+  const critical = sellers.filter((s: Seller) => scoreBand(computeSellerScore(s)) === "critical").length
+  const review   = sellers.filter((s: Seller) => scoreBand(computeSellerScore(s)) === "review").length
+  const healthy  = sellers.filter((s: Seller) => scoreBand(computeSellerScore(s)) === "healthy").length
 
   return (
     <div className="grid grid-cols-3 gap-4">
@@ -255,11 +255,11 @@ export default function AdminSellersContent() {
   useEffect(() => { fetchSellers() }, [])
 
   const filterCounts = useMemo<Partial<Record<SmartFilter, number>>>(() => ({
-    pending_kyc: sellers.filter(s => s.estado_validacion === "pendiente").length,
-    high_risk:   sellers.filter(s => s.estado_validacion === "rechazado").length,
-    inactive:    sellers.filter(s => s.estado_admin === "inactivo").length,
-    suspended:   sellers.filter(s => s.estado_admin === "suspendido").length,
-    healthy:     sellers.filter(s => computeSellerScore(s) >= 80).length,
+    pending_kyc: sellers.filter((s: Seller) => s.estado_validacion === "pendiente").length,
+    high_risk:   sellers.filter((s: Seller) => s.estado_validacion === "rechazado").length,
+    inactive:    sellers.filter((s: Seller) => s.estado_admin === "inactivo").length,
+    suspended:   sellers.filter((s: Seller) => s.estado_admin === "suspendido").length,
+    healthy:     sellers.filter((s: Seller) => computeSellerScore(s) >= 80).length,
   }), [sellers])
 
   const displayed = useMemo(

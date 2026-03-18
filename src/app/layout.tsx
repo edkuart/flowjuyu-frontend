@@ -78,20 +78,13 @@ export default function RootLayout({
         <AuthProvider>
           <ClientProviders>
             <CartProvider>
-
-              {/* HEADER */}
               <header className="sticky top-0 z-50 w-full">
                 <Header />
               </header>
-
-              {/* MAIN */}
               <main className="flex-1 w-full">
                 {children}
               </main>
-
-              {/* FOOTER */}
               <Footer />
-
             </CartProvider>
           </ClientProviders>
         </AuthProvider>

@@ -2,7 +2,7 @@
 
 "use client"
 
-import { useEffect, useState } from "react"
+import { useEffect, useState, type ChangeEvent } from "react"
 import {
   Shield,
   Lock,
@@ -21,7 +21,7 @@ import { Textarea } from "@/components/ui/textarea"
 import { Label } from "@/components/ui/label"
 import { useRouter } from "next/navigation"
 
-const API = process.env.NEXT_PUBLIC_API_URL
+const API = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8800"
 
 type EstadoValidacion =
   | "pendiente"
@@ -485,7 +485,7 @@ export default function SellerAccountPage() {
                 <Input
                   type="file"
                   accept="image/*"
-                  onChange={(e) =>
+                  onChange={(e: ChangeEvent<HTMLInputElement>) =>
                     setDpiFrente(e.target.files?.[0] || null)
                   }
                 />
@@ -496,7 +496,7 @@ export default function SellerAccountPage() {
                 <Input
                   type="file"
                   accept="image/*"
-                  onChange={(e) =>
+                  onChange={(e: ChangeEvent<HTMLInputElement>) =>
                     setDpiReverso(e.target.files?.[0] || null)
                   }
                 />
@@ -507,7 +507,7 @@ export default function SellerAccountPage() {
                 <Input
                   type="file"
                   accept="image/*"
-                  onChange={(e) =>
+                  onChange={(e: ChangeEvent<HTMLInputElement>) =>
                     setSelfieDpi(e.target.files?.[0] || null)
                   }
                 />
@@ -554,7 +554,7 @@ export default function SellerAccountPage() {
             <Input
               type="password"
               value={passwordActual}
-              onChange={(e) => setPasswordActual(e.target.value)}
+              onChange={(e: ChangeEvent<HTMLInputElement>) => setPasswordActual(e.target.value)}
             />
           </div>
 
@@ -563,7 +563,7 @@ export default function SellerAccountPage() {
             <Input
               type="password"
               value={passwordNueva}
-              onChange={(e) => setPasswordNueva(e.target.value)}
+              onChange={(e: ChangeEvent<HTMLInputElement>) => setPasswordNueva(e.target.value)}
             />
           </div>
 
@@ -593,7 +593,7 @@ export default function SellerAccountPage() {
 
           <Textarea
             value={mensajeSoporte}
-            onChange={(e) => setMensajeSoporte(e.target.value)}
+            onChange={(e: ChangeEvent<HTMLTextAreaElement>) => setMensajeSoporte(e.target.value)}
             placeholder="Describe tu problema..."
           />
 

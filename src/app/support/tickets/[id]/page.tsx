@@ -14,7 +14,7 @@ export default function TicketDetailPage() {
   useEffect(() => {
     const token = localStorage.getItem("token");
 
-    fetch(`${process.env.NEXT_PUBLIC_API_URL}/api/tickets/${id}`, {
+    fetch(`${process.env.NEXT_PUBLIC_API_URL || "http://localhost:8800"}/api/tickets/${id}`, {
       headers: { Authorization: `Bearer ${token}` },
     })
       .then((r) => r.json())
@@ -24,7 +24,7 @@ export default function TicketDetailPage() {
   const cambiarEstado = async (estado: string) => {
     const token = localStorage.getItem("token");
 
-    await fetch(`${process.env.NEXT_PUBLIC_API_URL}/api/tickets/${id}`, {
+    await fetch(`${process.env.NEXT_PUBLIC_API_URL || "http://localhost:8800"}/api/tickets/${id}`, {
       method: "PUT",
       headers: {
         "Content-Type": "application/json",

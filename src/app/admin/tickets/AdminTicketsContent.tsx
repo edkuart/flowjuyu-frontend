@@ -23,7 +23,7 @@ import {
 import { authFetch } from "@/lib/authFetch"
 import { toast } from "sonner"
 
-const API_URL = process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:8800"
+const API_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8800"
 
 // ── Types ──────────────────────────────────────────────────────────────────────
 

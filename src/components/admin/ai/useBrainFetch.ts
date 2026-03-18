@@ -2,7 +2,7 @@
 
 import { useCallback, useEffect, useRef, useState } from "react";
 
-const API_BASE   = process.env.NEXT_PUBLIC_API_URL ?? "";
+const API_BASE = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8800";
 
 // AI analytics endpoints perform heavy file operations and database aggregations.
 // 20 s gives slow/cold backend instances room to respond without a false timeout.

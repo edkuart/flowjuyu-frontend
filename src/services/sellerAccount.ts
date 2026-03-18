@@ -40,7 +40,7 @@ export async function apiGetSellerAccountStatus(): Promise<
         : null
 
     const res = await fetch(
-      `${process.env.NEXT_PUBLIC_API_URL}/api/seller/account-status`,
+      `${process.env.NEXT_PUBLIC_API_URL || "http://localhost:8800"}/api/seller/account-status`,
       {
         method: "GET",
         headers: {

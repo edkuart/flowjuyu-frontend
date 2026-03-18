@@ -38,7 +38,7 @@ export default function BuyerDashboardPage() {
     const fetchPedidos = async () => {
       try {
         const res = await fetch(
-          `${process.env.NEXT_PUBLIC_API_URL}/api/buyer/orders`,
+          `${process.env.NEXT_PUBLIC_API_URL || "http://localhost:8800"}/api/buyer/orders`,
           {
             headers: {
               Authorization: `Bearer ${token}`,

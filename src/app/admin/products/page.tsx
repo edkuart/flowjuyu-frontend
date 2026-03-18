@@ -15,7 +15,7 @@ import { Skeleton } from "@/components/ui/skeleton"
 import { authFetch } from "@/lib/authFetch"
 import { useRouter } from "next/navigation"
 
-const API_URL = process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:8800"
+const API_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8800"
 
 // ── Types ──────────────────────────────────────────────────────────────────────
 

@@ -40,7 +40,7 @@ export default function ProductInfo({
 
   async function handleWhatsappClick() {
     try {
-      await fetch(`${process.env.NEXT_PUBLIC_API_URL}/api/intentions`, {
+      await fetch(`${process.env.NEXT_PUBLIC_API_URL || "http://localhost:8800"}/api/intentions`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({

@@ -31,7 +31,7 @@ export default function ContactSection() {
 
     try {
 
-      await fetch(`${process.env.NEXT_PUBLIC_API_URL}/tickets`, {
+      await fetch(`${process.env.NEXT_PUBLIC_API_URL || "http://localhost:8800"}/tickets`, {
         method: "POST",
         headers: {
           "Content-Type": "application/json"

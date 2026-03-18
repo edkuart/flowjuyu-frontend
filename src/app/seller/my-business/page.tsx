@@ -182,10 +182,10 @@ export default function MyBusinessPage() {
         const token = localStorage.getItem('token')
 
         const [analyticsRes, dailyRes] = await Promise.all([
-          fetch(`${process.env.NEXT_PUBLIC_API_URL}/api/seller/analytics`, {
+          fetch(`${process.env.NEXT_PUBLIC_API_URL || "http://localhost:8800"}/api/seller/analytics`, {
             headers: { Authorization: `Bearer ${token}` },
           }),
-          fetch(`${process.env.NEXT_PUBLIC_API_URL}/api/seller/analytics/daily`, {
+          fetch(`${process.env.NEXT_PUBLIC_API_URL || "http://localhost:8800"}/api/seller/analytics/daily`, {
             headers: { Authorization: `Bearer ${token}` },
           }),
         ])
@@ -215,7 +215,7 @@ export default function MyBusinessPage() {
       setSaving(true)
       const token = localStorage.getItem('token')
       const res = await fetch(
-        `${process.env.NEXT_PUBLIC_API_URL}/api/seller/customization`,
+        `${process.env.NEXT_PUBLIC_API_URL || "http://localhost:8800"}/api/seller/customization`,
         {
           method: 'PUT',
           headers: {
@@ -252,7 +252,7 @@ export default function MyBusinessPage() {
       const formData = new FormData()
       formData.append('banner', bannerFile)
       const res = await fetch(
-        `${process.env.NEXT_PUBLIC_API_URL}/api/seller/banner`,
+        `${process.env.NEXT_PUBLIC_API_URL || "http://localhost:8800"}/api/seller/banner`,
         { method: 'PUT', headers: { Authorization: `Bearer ${token}` }, body: formData }
       )
       const data = await res.json()
@@ -274,7 +274,7 @@ export default function MyBusinessPage() {
       setDeletingBanner(true)
       const token = localStorage.getItem('token')
       const res = await fetch(
-        `${process.env.NEXT_PUBLIC_API_URL}/api/seller/banner`,
+        `${process.env.NEXT_PUBLIC_API_URL || "http://localhost:8800"}/api/seller/banner`,
         { method: 'DELETE', headers: { Authorization: `Bearer ${token}` } }
       )
       const data = await res.json()

@@ -134,7 +134,7 @@ export default function SellerOrdersPage() {
       if (from) params.set('from', from)
       if (to) params.set('to', to)
 
-      const url = `${process.env.NEXT_PUBLIC_API_URL}/api/seller/orders?${params.toString()}`
+      const url = `${process.env.NEXT_PUBLIC_API_URL || "http://localhost:8800"}/api/seller/orders?${params.toString()}`
       const res = await fetch(url, {
         headers: { Authorization: `Bearer ${localStorage.getItem('token') || ''}` },
         cache: 'no-store',

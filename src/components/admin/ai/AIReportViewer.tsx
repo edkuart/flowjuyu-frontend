@@ -315,7 +315,7 @@ function ReportListItem({
 
 // ── Main ───────────────────────────────────────────────────────────────────────
 
-const API_BASE = process.env.NEXT_PUBLIC_API_URL ?? "";
+const API_BASE = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8800";
 
 export default function AIReportViewer() {
   const { data: rawReports, loading, error, refetch } =

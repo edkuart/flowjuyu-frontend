@@ -44,7 +44,7 @@
     "libphonenumber-js": "^1.12.25",
     "lucide-react": "^0.513.0",
     "multer": "^2.0.2",
-    "next": "^14.2.33",
+    "next": "^14.2.35",
     "next-auth": "^4.24.13",
     "next-image-loader": "^3.0.0",
     "next-intl": "^4.1.0",

@@ -29,7 +29,7 @@ export default function BuyerProfilePage() {
     setLoading(true);
 
     try {
-      await fetch(`${process.env.NEXT_PUBLIC_API_URL}/api/buyer/profile`, {
+      await fetch(`${process.env.NEXT_PUBLIC_API_URL || "http://localhost:8800"}/api/buyer/profile`, {
         method: "PUT",
         headers: {
           "Content-Type": "application/json",

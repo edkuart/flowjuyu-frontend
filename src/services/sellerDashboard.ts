@@ -35,9 +35,7 @@ export type SellerDashboardResponse = {
 =========================== */
 
 export async function fetchSellerDashboard(): Promise<SellerDashboardResponse> {
-  const API = process.env.NEXT_PUBLIC_API_URL!
-
-  const res = await apiFetch(`${API}/api/seller/dashboard`)
+  const res = await apiFetch("/api/seller/dashboard")
 
   if (!res.ok) {
     throw new Error("No se pudo cargar el dashboard")

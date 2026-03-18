@@ -43,7 +43,7 @@ export default function ReportesPage() {
     setLoading(true)
     try {
       // 🔁 Ajusta el endpoint a tu backend
-      const url = `${process.env.NEXT_PUBLIC_API_URL}/api/seller/reportes?from=${from}&to=${to}`
+      const url = `${process.env.NEXT_PUBLIC_API_URL || "http://localhost:8800"}/api/seller/reportes?from=${from}&to=${to}`
       const res = await fetch(url, {
         headers: { Authorization: `Bearer ${localStorage.getItem('token') || ''}` },
       })

@@ -1,4 +1,5 @@
-const API = process.env.NEXT_PUBLIC_API_URL!
+import { getApiUrl } from "@/lib/config"
+const API = getApiUrl()
 
 export async function fetchSellerAnalyticsDaily(token: string) {
   const res = await fetch(`${API}/api/seller/analytics/daily`, {

@@ -29,7 +29,7 @@ import { AdminInsights }             from "@/components/admin/AdminInsights"
 
 // ── API ────────────────────────────────────────────────────────────────────────
 
-const API_URL = process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:8800"
+const API_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8800"
 
 // ── Types ──────────────────────────────────────────────────────────────────────
 
@@ -169,7 +169,7 @@ export default function AdminDashboardPage() {
   }
 
   const { usuarios, sellers, productos, tickets, ultimosProductos, ultimosSellers, ultimosTickets } = data
-  const inactiveProducts = (ultimosProductos ?? []).filter((p) => !p.activo).length
+  const inactiveProducts = ultimosProductos.filter((p: DashboardData["ultimosProductos"][number]) => !p.activo).length
 
   const status    = computeMarketplaceStatus({
     sellersPendientes: safeNumber(sellers.pendientes),

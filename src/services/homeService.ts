@@ -1,17 +1,11 @@
 //src/services/homeService.ts
 
-const API =
-  process.env.NEXT_PUBLIC_API_URL!;
+import { getApiUrl } from "@/lib/config"
+const API = getApiUrl();
 
 /* ================================
    Tipos
 ================================ */
-
-console.log("API DESDE ENV >>>", API);
-
-if (!API) {
-  throw new Error("NEXT_PUBLIC_API_URL no configurada");
-}
 
 export type Categoria = {
   id: number;
@@ -50,6 +44,8 @@ export type Tienda = {
 ================================ */
 
 async function fetchJSON<T>(endpoint: string): Promise<T[]> {
+  if (!API) return [];
+
   try {
     const res = await fetch(`${API}${endpoint}`, {
       cache: "no-store",

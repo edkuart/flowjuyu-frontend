@@ -9,7 +9,7 @@ import { toast } from "sonner"
 import { Loader2 } from "lucide-react"
 import SellerKYCPanel from "@/components/admin/SellerKYCPanel"
 
-const API_URL = process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:8800"
+const API_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8800"
 
 const resolveImageUrl = (url?: string | null) => {
   if (!url) return null

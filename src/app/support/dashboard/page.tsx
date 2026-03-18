@@ -1,3 +1,5 @@
+export const dynamic = "force-dynamic";
+
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
 import { redirect } from "next/navigation";
@@ -11,7 +13,7 @@ export default async function SupportDashboard() {
   }
 
   // Traemos tickets del backend con el backendToken
-  const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/api/tickets`, {
+  const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL || "http://localhost:8800"}/api/tickets`, {
     headers: {
       Authorization: `Bearer ${session.user.backendToken}`,
     },

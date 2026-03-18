@@ -10,7 +10,7 @@ export default function TicketsPage() {
   useEffect(() => {
     const token = localStorage.getItem("token");
 
-    fetch(`${process.env.NEXT_PUBLIC_API_URL}/api/tickets`, {
+    fetch(`${process.env.NEXT_PUBLIC_API_URL || "http://localhost:8800"}/api/tickets`, {
       headers: { Authorization: `Bearer ${token}` },
     })
       .then((r) => r.json())

@@ -6,7 +6,7 @@ import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
 import { authFetch } from "@/lib/authFetch"
 
-const API_URL = process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:8800"
+const API_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8800"
 
 // ── Types ──────────────────────────────────────────────────────────────────────
 
@@ -233,7 +233,7 @@ export default function AdminLeadsPage() {
     const rawRate    = base > 0 ? (converted / base) * 100 : 0
     const rate       = Math.min(rawRate, 100).toFixed(1)
     const hasOrganic = rawRate > 100
-    const followUp   = leads.filter((l) => l.needsFollowUp).length
+    const followUp   = leads.filter((l: UnifiedLead) => l.needsFollowUp).length
     if (rawRate > 100) {
       console.warn("Conversion rate >100% detected — sellers include organic registrations not tracked as leads")
     }
@@ -241,7 +241,7 @@ export default function AdminLeadsPage() {
   }, [leads, raw])
 
   const filtered = useMemo(() =>
-    leads.filter((l) => {
+    leads.filter((l: UnifiedLead) => {
       if (filterStatus !== "all" && l.status !== filterStatus) return false
       if (filterSource !== "all" && l.source !== filterSource) return false
       return true

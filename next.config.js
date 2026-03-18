@@ -1,5 +1,5 @@
 const createNextIntlPlugin = require("next-intl/plugin");
-const withIntl = createNextIntlPlugin();
+const withIntl = createNextIntlPlugin("./src/i18n/request.ts");
 
 /** @type {import('next').NextConfig} */
 module.exports = withIntl({
@@ -36,8 +36,6 @@ module.exports = withIntl({
       "default-src 'self'; script-src 'none'; sandbox;",
   },
 
-  env: {
-    NEXT_PUBLIC_API_URL: process.env.NEXT_PUBLIC_API_URL,
-    NEXT_PUBLIC_BACKEND_URL: process.env.NEXT_PUBLIC_BACKEND_URL,
-  },
+  // NEXT_PUBLIC_* variables are forwarded automatically from .env.* files.
+  // Do NOT re-declare them here — passing undefined explicitly overrides .env.production.
 });

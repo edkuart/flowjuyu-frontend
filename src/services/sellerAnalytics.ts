@@ -1,6 +1,7 @@
 // src/services/sellerAnalytics.ts
 
-const API = process.env.NEXT_PUBLIC_API_URL!;
+import { getApiUrl } from "@/lib/config"
+const API = getApiUrl();
 
 /* ======================================================
    📊 Tipos
