@@ -62,17 +62,17 @@ export default function ProductGallery({
               key={i}
               onClick={() => setActive(i)}
               aria-label={`Ver imagen ${i + 1}`}
-              className={`relative flex-shrink-0 w-[64px] h-[64px] rounded-xl overflow-hidden border-2 transition-all duration-150 bg-neutral-50 ${
+              className={`relative flex-shrink-0 w-[64px] h-[80px] rounded-sm overflow-hidden border transition-all duration-150 bg-[#ede8e0] ${
                 i === active
-                  ? "border-[#0F3D3A] ring-2 ring-[#0F3D3A]/20"
-                  : "border-neutral-200 opacity-60 hover:opacity-100 hover:border-neutral-400"
+                  ? "border-[#0d2d20] opacity-100"
+                  : "border-transparent opacity-50 hover:opacity-80"
               }`}
             >
               <Image
                 src={img}
                 alt={`Vista ${i + 1}`}
                 fill
-                className="object-contain p-1"
+                className="object-cover"
               />
             </button>
           ))}
@@ -81,7 +81,7 @@ export default function ProductGallery({
         {/* ── MAIN IMAGE ── */}
         <div
           ref={containerRef}
-          className="relative flex-1 aspect-square overflow-hidden rounded-2xl bg-white border border-neutral-100 shadow-md cursor-zoom-in group"
+          className="relative flex-1 aspect-[3/4] overflow-hidden rounded-sm bg-[#ede8e0] border border-[#0d2d20]/8 cursor-zoom-in group"
           onMouseMove={handleMouseMove}
           onMouseEnter={() => setZooming(true)}
           onMouseLeave={() => setZooming(false)}

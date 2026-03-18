@@ -30,6 +30,15 @@ import { Button } from "@/components/ui/button"
 
 import { fetchSellerDashboard } from "@/services/sellerDashboard"
 import { fetchSellerAnalytics } from "@/services/sellerAnalytics"
+import { getSellerInsights } from "@/lib/sellerInsights"
+import { SellerInsightsCard } from "@/components/seller/SellerInsightsCard"
+import { interpretMetric, type MetricInterpretation } from "@/lib/metricInterpreter"
+import { getSellerPerformanceSummary } from "@/lib/sellerPerformance"
+import { SellerExecutiveSummaryCard } from "@/components/seller/SellerExecutiveSummaryCard"
+import { SellerHealthScoreCard } from "@/components/seller/SellerHealthScoreCard"
+import { SellerKpiHighlights } from "@/components/seller/SellerKpiHighlights"
+import { SellerAlertsPanel } from "@/components/seller/SellerAlertsPanel"
+import { SellerNextActionsCard } from "@/components/seller/SellerNextActionsCard"
 
 type Analytics = {
   totalProductViews: number
@@ -227,6 +236,31 @@ export default function SellerDashboardPage() {
     }
   }, [analytics.last30Days])
 
+  const insight = getSellerInsights({
+    totalProductViews:   analytics.totalProductViews,
+    totalIntentions:     analytics.totalIntentions,
+    conversionRatio:     analytics.conversionRatio,
+    growthPercent,
+    totalWhatsappClicks: analytics.totalWhatsappClicks,
+    totalReviews:        analytics.totalReviews,
+  })
+
+  const performance = getSellerPerformanceSummary({
+    totalProductViews:   analytics.totalProductViews,
+    totalProfileViews:   analytics.totalProfileViews,
+    totalIntentions:     analytics.totalIntentions,
+    conversionRatio:     analytics.conversionRatio,
+    growthPercent,
+    totalWhatsappClicks: analytics.totalWhatsappClicks,
+    totalReviews:        analytics.totalReviews,
+    avgRating:           analytics.avgRating,
+    totalProducts:       catalogo.total,
+    activeProducts:      catalogo.activos,
+    inactiveProducts:    catalogo.inactivos,
+    topProducts:         analytics.topProducts,
+    topIntentedProducts: analytics.topIntentedProducts,
+  })
+
   return (
     <main className="min-h-screen px-6 py-12 space-y-14 max-w-6xl mx-auto bg-[#f8f5ef]">
 
@@ -240,26 +274,59 @@ export default function SellerDashboardPage() {
         </p>
       </section>
 
+      {/* ── PHASE 14: PERFORMANCE INTELLIGENCE ── */}
+      {!loading && (
+        <section className="space-y-4">
+
+          {/* Executive summary — full width */}
+          <SellerExecutiveSummaryCard summary={performance.executiveSummary} />
+
+          {/* Health score + KPI highlights */}
+          <div className="grid gap-4 sm:grid-cols-2">
+            <SellerHealthScoreCard health={performance.healthScore} />
+            <SellerKpiHighlights highlights={performance.kpiHighlights} />
+          </div>
+
+          {/* Alerts + next actions */}
+          <div className="grid gap-4 sm:grid-cols-2">
+            <SellerAlertsPanel alerts={performance.alerts} />
+            <SellerNextActionsCard actions={performance.nextActions} />
+          </div>
+
+        </section>
+      )}
+
+      {/* SMART INSIGHT */}
+      {!loading && <SellerInsightsCard insight={insight} />}
+
       {/* CRECIMIENTO SEMANAL */}
       <Card className="bg-white border shadow-sm">
         <CardContent className="p-6 space-y-3">
-          <div className="flex items-center gap-2 text-sm text-muted-foreground">
-            <TrendingUp className="w-4 h-4" />
-            Crecimiento semanal
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-2 text-sm text-muted-foreground">
+              <TrendingUp className="w-4 h-4" />
+              Crecimiento semanal
+            </div>
+            <InterpBadge interp={interpretMetric("growth", growthPercent)} />
           </div>
 
-          <p className="text-3xl font-bold text-neutral-900">
-            {growthPercent >= 0 ? "+" : ""}
-            {growthPercent}%
+          <p className={`text-3xl font-bold ${
+            interpretMetric("growth", growthPercent).color === "red"
+              ? "text-red-500"
+              : interpretMetric("growth", growthPercent).color === "amber"
+              ? "text-amber-600"
+              : "text-neutral-900"
+          }`}>
+            {growthPercent >= 0 ? "+" : ""}{growthPercent}%
           </p>
 
-          <p className="text-sm text-neutral-500">
+          <p className="text-xs text-neutral-400">
             Comparado con los 7 días anteriores.
           </p>
 
           {bestDay && (
-            <p className="text-sm text-neutral-600">
-              🔥 Mejor día: {bestDay.date}
+            <p className="text-xs text-neutral-500">
+              Mejor día esta semana: {formatChartDate(bestDay.date, "long")}
             </p>
           )}
         </CardContent>
@@ -267,28 +334,38 @@ export default function SellerDashboardPage() {
 
       {/* VISIBILIDAD GENERAL */}
       <section className="space-y-4">
-        <h2 className="text-lg font-semibold text-neutral-800">
-          Visibilidad general
-        </h2>
+        <div className="space-y-0.5">
+          <h2 className="text-lg font-semibold text-neutral-800">
+            Visibilidad general
+          </h2>
+          <p className="text-sm text-neutral-400">
+            Más vistas = más oportunidades de venta
+          </p>
+        </div>
 
         <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
           <Stat
             label="Vistas de productos"
             value={analytics.totalProductViews}
             icon={<Eye className="w-4 h-4" />}
+            interpretation={interpretMetric("views", analytics.totalProductViews)}
+            emptyText="No hay vistas aún — comparte tu tienda"
           />
 
           <Stat
             label="Visitas a tu perfil"
             value={analytics.totalProfileViews}
             icon={<Store className="w-4 h-4" />}
+            interpretation={interpretMetric("views", analytics.totalProfileViews)}
+            emptyText="Nadie ha visitado tu perfil todavía"
           />
 
           <Stat
             label="Producto más visto"
             value={topProduct?.total_views ?? 0}
-            subtitle={topProduct?.nombre ?? "—"}
+            subtitle={topProduct?.nombre ?? undefined}
             icon={<Star className="w-4 h-4" />}
+            emptyText="Aún sin datos de producto más visto"
           />
         </div>
       </section>
@@ -297,30 +374,39 @@ export default function SellerDashboardPage() {
         📲 PHASE 2 — WA CLICKS + REVIEWS
       =============================== */}
       <section className="space-y-4">
-        <h2 className="text-lg font-semibold text-neutral-800">
-          WhatsApp y reseñas
-        </h2>
+        <div className="space-y-0.5">
+          <h2 className="text-lg font-semibold text-neutral-800">
+            WhatsApp y reseñas
+          </h2>
+          <p className="text-sm text-neutral-400">
+            El contacto directo y las reseñas generan más ventas
+          </p>
+        </div>
         <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-4">
           <Stat
             label="Clicks en WhatsApp (total)"
             value={analytics.totalWhatsappClicks}
             icon={<MessageCircle className="w-4 h-4 text-green-600" />}
+            emptyText="Ningún click todavía — activa tu número"
           />
           <Stat
             label="Clicks en WhatsApp (30 días)"
             value={analytics.last30WhatsappClicks}
             icon={<MessageCircle className="w-4 h-4 text-green-400" />}
+            emptyText="Sin clicks en los últimos 30 días"
           />
           <Stat
             label="Reseñas recibidas"
             value={analytics.totalReviews}
             icon={<Star className="w-4 h-4 text-amber-500" />}
+            emptyText="Aún sin reseñas — construye confianza"
           />
           <Stat
             label="Calificación promedio"
             value={analytics.avgRating ?? 0}
-            subtitle={analytics.avgRating ? `${analytics.avgRating.toFixed(1)} / 5.0` : "Sin reseñas aún"}
+            subtitle={analytics.avgRating ? `${analytics.avgRating.toFixed(1)} / 5.0` : undefined}
             icon={<Star className="w-4 h-4 text-amber-400" />}
+            emptyText="Sin calificaciones todavía"
           />
         </div>
       </section>
@@ -333,12 +419,16 @@ export default function SellerDashboardPage() {
         <Card className="bg-white border shadow-sm">
           <CardContent className="p-8 space-y-6">
 
-            <div className="flex justify-between items-center">
-              <h2 className="text-xl font-semibold text-neutral-900">
-                Interacción comercial
-              </h2>
-
-              <span className="text-xs text-neutral-500">
+            <div className="flex justify-between items-start">
+              <div className="space-y-0.5">
+                <h2 className="text-xl font-semibold text-neutral-900">
+                  Interacción comercial
+                </h2>
+                <p className="text-sm text-neutral-400">
+                  Indicadores de interés real de compra
+                </p>
+              </div>
+              <span className="text-xs text-neutral-400 mt-1">
                 Últimos datos disponibles
               </span>
             </div>
@@ -347,60 +437,77 @@ export default function SellerDashboardPage() {
             <div className="grid gap-8 sm:grid-cols-3">
 
               {/* INTENCIONES */}
-              <div>
-                <p className="text-sm text-muted-foreground">
-                  Intenciones comerciales
-                </p>
-                <p className="text-3xl font-bold text-neutral-900">
-                  {analytics.totalIntentions}
-                </p>
-              </div>
+              {(() => {
+                const interp = interpretMetric("intentions", analytics.totalIntentions)
+                return (
+                  <div className="space-y-1">
+                    <p className="text-sm text-muted-foreground">
+                      Intenciones comerciales
+                    </p>
+                    {analytics.totalIntentions === 0 ? (
+                      <p className="text-sm text-neutral-400 leading-snug pt-1">
+                        Sin interés registrado aún
+                      </p>
+                    ) : (
+                      <p className={`text-3xl font-bold ${
+                        interp.color === "red" ? "text-red-500"
+                        : interp.color === "amber" ? "text-amber-600"
+                        : "text-neutral-900"
+                      }`}>
+                        {analytics.totalIntentions}
+                      </p>
+                    )}
+                    <InterpBadge interp={interp} />
+                  </div>
+                )
+              })()}
 
               {/* CONVERSIÓN */}
               {(() => {
-                const conversionPercent = Number(
-                  (analytics.conversionRatio * 100).toFixed(2)
-                )
-
-                const conversionColor =
-                  conversionPercent < 3
-                    ? "text-red-600"
-                    : conversionPercent < 7
-                    ? "text-amber-600"
-                    : "text-emerald-600"
-
+                const pct   = Number((analytics.conversionRatio * 100).toFixed(2))
+                const interp = interpretMetric("conversion", pct)
                 return (
-                  <div>
+                  <div className="space-y-1">
                     <p className="text-sm text-muted-foreground">
                       Ratio de conversión
                     </p>
-                    <p className={`text-3xl font-bold ${conversionColor}`}>
-                      {conversionPercent}%
+                    <p className={`text-3xl font-bold ${
+                      interp.color === "red" ? "text-red-500"
+                      : interp.color === "amber" ? "text-amber-600"
+                      : "text-emerald-600"
+                    }`}>
+                      {pct}%
                     </p>
-
-                    <p className="text-xs mt-1 text-neutral-500">
-                      {conversionPercent < 3 && "Necesita optimización"}
-                      {conversionPercent >= 3 &&
-                        conversionPercent < 7 &&
-                        "Buen rendimiento"}
-                      {conversionPercent >= 7 &&
-                        "Excelente conversión"}
-                    </p>
+                    <InterpBadge interp={interp} />
+                    {interp.message && (
+                      <p className="text-xs text-neutral-400 leading-snug">
+                        {interp.message}
+                      </p>
+                    )}
                   </div>
                 )
               })()}
 
               {/* TOP PRODUCTO */}
-              <div>
+              <div className="space-y-1">
                 <p className="text-sm text-muted-foreground">
                   Producto con más intención
                 </p>
-                <p className="text-lg font-semibold text-neutral-900">
-                  {analytics.topIntentedProducts[0]?.nombre ?? "—"}
-                </p>
-                <p className="text-sm text-neutral-500">
-                  {analytics.topIntentedProducts[0]?.total_intentions ?? 0} intención
-                </p>
+                {analytics.topIntentedProducts[0] ? (
+                  <>
+                    <p className="text-lg font-semibold text-neutral-900 leading-snug">
+                      {analytics.topIntentedProducts[0].nombre}
+                    </p>
+                    <p className="text-xs text-neutral-500">
+                      {analytics.topIntentedProducts[0].total_intentions}{" "}
+                      intención{analytics.topIntentedProducts[0].total_intentions !== 1 ? "es" : ""}
+                    </p>
+                  </>
+                ) : (
+                  <p className="text-sm text-neutral-400 leading-snug pt-1">
+                    Sin datos todavía
+                  </p>
+                )}
               </div>
 
             </div>
@@ -604,17 +711,42 @@ function formatChartDate(label: unknown, format: DateFormat = "short"): string {
 
 /* COMPONENTES */
 
+/* ── Interpretation badge ── */
+const BADGE_CLASSES: Record<"red" | "amber" | "green", string> = {
+  red:   "bg-red-50 text-red-600 border border-red-100",
+  amber: "bg-amber-50 text-amber-600 border border-amber-100",
+  green: "bg-emerald-50 text-emerald-600 border border-emerald-100",
+}
+
+function InterpBadge({ interp }: { interp: MetricInterpretation }) {
+  return (
+    <span className={`inline-flex items-center px-2 py-0.5 rounded-full text-[11px] font-semibold ${BADGE_CLASSES[interp.color]}`}>
+      {interp.label}
+    </span>
+  )
+}
+
 function Stat({
   label,
   value,
   subtitle,
   icon,
+  interpretation,
+  emptyText,
 }: {
   label: string
   value: number
   subtitle?: string
   icon?: React.ReactNode
+  interpretation?: MetricInterpretation
+  emptyText?: string
 }) {
+  const valueColor = interpretation
+    ? interpretation.color === "red"   ? "text-red-500"
+    : interpretation.color === "amber" ? "text-amber-600"
+    : "text-neutral-900"
+    : "text-neutral-900"
+
   return (
     <Card className="bg-white border shadow-sm hover:shadow-md transition">
       <CardContent className="p-5 space-y-2">
@@ -623,14 +755,22 @@ function Stat({
           {icon}
         </div>
 
-        <p className="text-2xl font-bold text-neutral-900">
-          {value}
-        </p>
+        {value === 0 && emptyText ? (
+          <p className="text-sm text-neutral-400 leading-snug">{emptyText}</p>
+        ) : (
+          <p className={`text-2xl font-bold ${valueColor}`}>{value}</p>
+        )}
+
+        {interpretation && (
+          <InterpBadge interp={interpretation} />
+        )}
 
         {subtitle && (
-          <p className="text-xs text-neutral-500 truncate">
-            {subtitle}
-          </p>
+          <p className="text-xs text-neutral-500 truncate">{subtitle}</p>
+        )}
+
+        {interpretation?.message && value > 0 && (
+          <p className="text-xs text-neutral-400 leading-snug">{interpretation.message}</p>
         )}
       </CardContent>
     </Card>

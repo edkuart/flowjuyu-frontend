@@ -22,6 +22,11 @@ import { Button } from '@/components/ui/button'
 
 import { apiGetVendedorPerfil } from '@/services/vendedorPerfil'
 import { fetchMyProductsPreview } from '@/services/sellerProducts'
+import { SellerProgressCard } from '@/components/seller/SellerProgressCard'
+import { SellerGrowthCard } from '@/components/seller/SellerGrowthCard'
+import { SellerUpgradeCard } from '@/components/seller/SellerUpgradeCard'
+import { ReviewList } from '@/components/reviews/ReviewList'
+import type { Review } from '@/types/review'
 
 /* =========================================================
    TYPES
@@ -49,6 +54,7 @@ type ProductoPreview = {
   nombre: string
   precio: number
   imagen_url?: string | null
+  activo?: boolean
 }
 
 type AnalyticsResponse = {
@@ -62,6 +68,37 @@ type DailyAnalytics = {
   product_views: number
   profile_views: number
 }
+
+/* =========================================================
+   MOCK REVIEWS — replace with real API fetch when ready
+========================================================= */
+
+const mockReviews: Review[] = [
+  {
+    id: 1,
+    producto_nombre: "Huipil tradicional",
+    producto_id: "123",
+    rating: 5,
+    comentario: "Excelente calidad y atención al cliente. La pieza llegó perfecta.",
+    created_at: "2025-11-10",
+  },
+  {
+    id: 2,
+    producto_nombre: "Faja artesanal",
+    producto_id: "124",
+    rating: 4,
+    comentario: "Muy bonita artesanía, los colores son exactamente los de la foto.",
+    created_at: "2025-10-22",
+  },
+  {
+    id: 3,
+    producto_nombre: "Corte de jaspe",
+    producto_id: "125",
+    rating: 5,
+    comentario: "Increíble trabajo artesanal. Lo recomiendo completamente.",
+    created_at: "2025-10-05",
+  },
+]
 
 /* =========================================================
    PRODUCT CARD (vitrina)
@@ -531,6 +568,48 @@ export default function MyBusinessPage() {
           className="hidden"
           onChange={handleBannerSelect}
         />
+
+        {/* ══════════════════════════════════════════════════
+            ONBOARDING PROGRESS
+        ══════════════════════════════════════════════════ */}
+        <SellerProgressCard
+          estadoValidacion={perfil.estado_validacion ?? null}
+          productos={productos}
+          perfil={perfil}
+        />
+
+        {/* ══════════════════════════════════════════════════
+            GROWTH ASSISTANT (SGL)
+        ══════════════════════════════════════════════════ */}
+        <SellerGrowthCard
+          productos={productos}
+          analytics={analytics}
+          perfil={perfil}
+        />
+
+        {/* ══════════════════════════════════════════════════
+            REVENUE ENGINE (RE)
+        ══════════════════════════════════════════════════ */}
+        <SellerUpgradeCard
+          productos={productos}
+          analytics={analytics}
+          perfil={perfil}
+        />
+
+        {/* ══════════════════════════════════════════════════
+            REPUTATION LAYER — Reviews & Ratings
+        ══════════════════════════════════════════════════ */}
+        <section>
+          <div className="mb-4">
+            <p className="text-xs font-bold text-neutral-400 uppercase tracking-widest mb-1">
+              Reputación
+            </p>
+            <h2 className="text-xl font-bold text-neutral-900">
+              Reseñas de tus clientes
+            </h2>
+          </div>
+          <ReviewList reviews={mockReviews} />
+        </section>
 
         {/* ══════════════════════════════════════════════════
             PRODUCT VITRINA

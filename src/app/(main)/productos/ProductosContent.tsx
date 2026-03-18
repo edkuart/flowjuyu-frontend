@@ -108,8 +108,8 @@ export default function ProductosPage() {
           fetch(`${API}/api/categorias`).then((r) => r.json()),
           fetch(`${API}/api/clases`).then((r) => r.json()),
         ]);
-        setCategorias(catData || []);
-        setClases(clsData || []);
+        setCategorias(Array.isArray(catData) ? catData : (catData?.data ?? []));
+        setClases(Array.isArray(clsData) ? clsData : (clsData?.data ?? []));
       } catch (e) {
         console.error("Error cargando catálogos:", e);
       }

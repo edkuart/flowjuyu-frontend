@@ -20,6 +20,8 @@ import { MaterialSelect } from "@/components/product/form/MaterialSelect"
 import { TelaSelect } from "@/components/product/form/TelaSelect"
 import { OrigenSelect } from "@/components/product/form/OrigenSelect"
 import { apiGetVendedorPerfil } from "@/services/vendedorPerfil"
+import { ProductConversionCard } from "@/components/product/ProductConversionCard"
+import { getProductConversionInsights } from "@/lib/productConversion"
 
 import type { Opcion, Clase, OtroTipo } from "@/types/product"
 
@@ -137,6 +139,7 @@ function LivePreviewCard({
   existingImages,
   descripcion,
   categoriaSel,
+  categoriaNombre,
 }: {
   nombre: string
   precio: string
@@ -147,6 +150,7 @@ function LivePreviewCard({
   existingImages: { id: number; url: string }[]
   descripcion: string
   categoriaSel: string
+  categoriaNombre?: string
 }) {
   const previewImg = previews[0] || existingImages[0]?.url || null
   const priceNum   = Number(precio) || 0
@@ -201,6 +205,18 @@ function LivePreviewCard({
         >
           {activo ? "Publicado" : "Borrador"}
         </span>
+
+        {/* Disponible badge */}
+        <span className="absolute bottom-2 left-2 bg-emerald-500 text-white text-[10px] px-2 py-0.5 rounded-full font-semibold tracking-wide">
+          Disponible
+        </span>
+
+        {/* Category badge */}
+        {categoriaNombre && (
+          <span className="absolute bottom-2 right-2 bg-black/55 text-white text-[10px] px-2 py-0.5 rounded-full truncate max-w-[45%]">
+            {categoriaNombre}
+          </span>
+        )}
       </div>
 
       {/* Info */}
@@ -214,11 +230,16 @@ function LivePreviewCard({
         </p>
 
         <p
-          className={`text-xl font-black ${
+          className={`text-2xl font-black tracking-tight ${
             priceNum > 0 ? "text-neutral-900" : "text-neutral-300"
           }`}
         >
-          {priceNum > 0 ? `Q${priceNum.toFixed(2)}` : "Q 0.00"}
+          {priceNum > 0 ? (
+            <>
+              <span className="text-base font-semibold text-neutral-500 mr-0.5">Q</span>
+              {priceNum.toFixed(2)}
+            </>
+          ) : "Q 0.00"}
         </p>
 
         {location && (
@@ -227,6 +248,16 @@ function LivePreviewCard({
             {location}
           </p>
         )}
+
+        {/* CTA simulation */}
+        <div className="pt-1.5 space-y-1">
+          <div className="w-full bg-[#0F3D3A] text-white rounded-lg py-2 text-xs font-semibold text-center cursor-default select-none">
+            Contactar vendedor
+          </div>
+          <p className="text-center text-[10px] text-neutral-400">
+            Responde directamente el vendedor
+          </p>
+        </div>
 
         {/* Completion score footer */}
         <div className="pt-2 border-t border-neutral-50 flex items-center justify-between">
@@ -395,8 +426,8 @@ export default function AddProductPage() {
           fetchJSON<Opcion[]>("/api/categorias"),
           fetchJSON<Clase[]>("/api/clases"),
         ])
-        setCategorias(cats)
-        setClases(cls)
+        setCategorias(Array.isArray(cats) ? cats : (cats as any)?.data ?? [])
+        setClases(Array.isArray(cls)  ? cls  : (cls  as any)?.data ?? [])
         setDataReady(true)
       } catch {
         /* silent */
@@ -409,7 +440,7 @@ export default function AddProductPage() {
     if (!claseSel || claseSel === OTROS) return setTelas([])
     fetch(`${API}/api/telas?clase_id=${claseSel}`, { credentials: "include", cache: "no-store" })
       .then(r => r.json())
-      .then(setTelas)
+      .then(d => setTelas(Array.isArray(d) ? d : d?.data ?? []))
       .catch(() => setTelas([]))
   }, [claseSel])
 
@@ -498,19 +529,19 @@ export default function AddProductPage() {
     if (!(esAccesorio || esAccesorioTipico)) return setAccesorios([])
     const tipo = esAccesorio ? "normal" : "tipico"
     fetch(`${API}/api/accesorios?tipo=${tipo}`, { credentials: "include", cache: "no-store" })
-      .then(r => r.json()).then(setAccesorios).catch(() => setAccesorios([]))
+      .then(r => r.json()).then(d => setAccesorios(Array.isArray(d) ? d : d?.data ?? [])).catch(() => setAccesorios([]))
   }, [esAccesorio, esAccesorioTipico])
 
   useEffect(() => {
     if (!(esAccesorio || esAccesorioTipico) || !accesorioSel || accesorioSel === OTROS) return setTipos([])
     fetch(`${API}/api/accesorio-tipos?accesorio_id=${accesorioSel}`, { credentials: "include", cache: "no-store" })
-      .then(r => r.json()).then(setTipos).catch(() => setTipos([]))
+      .then(r => r.json()).then(d => setTipos(Array.isArray(d) ? d : d?.data ?? [])).catch(() => setTipos([]))
   }, [esAccesorio, esAccesorioTipico, accesorioSel])
 
   useEffect(() => {
     if ((!esAccesorio && !esAccesorioTipico) || !accesorioSel || accesorioSel === OTROS) return setMateriales([])
     fetch(`${API}/api/accesorio-materiales?accesorio_id=${accesorioSel}`, { credentials: "include", cache: "no-store" })
-      .then(r => r.json()).then(setMateriales).catch(() => setMateriales([]))
+      .then(r => r.json()).then(d => setMateriales(Array.isArray(d) ? d : d?.data ?? [])).catch(() => setMateriales([]))
   }, [esAccesorio, esAccesorioTipico, accesorioSel, tipoSel])
 
   /* ────────────────────────────────────────
@@ -1450,9 +1481,21 @@ export default function AddProductPage() {
             </div>
           </form>
 
-          {/* ── LIVE PREVIEW (desktop) ── */}
-          <div className="hidden lg:block">
-            <p className="text-xs font-semibold text-neutral-400 uppercase tracking-wide mb-2 px-1">
+          {/* ── RIGHT COLUMN (desktop) ── */}
+          <div className="hidden lg:block space-y-4">
+            {/* Conversion score — live as seller types */}
+            <ProductConversionCard
+              insights={getProductConversionInsights({
+                nombre,
+                descripcion,
+                precio: Number(toDecimal(precio || "0")),
+                imagesCount: totalImages,
+                categoria: categorias.find(c => String(c.id) === categoriaSel)?.nombre || categoriaInput,
+                location: [municipioSel, departamentoSel].filter(Boolean).join(", "),
+              })}
+            />
+
+            <p className="text-xs font-semibold text-neutral-400 uppercase tracking-wide px-1">
               Vista previa
             </p>
             <LivePreviewCard
@@ -1460,6 +1503,7 @@ export default function AddProductPage() {
               precio={precio}
               descripcion={descripcion}
               categoriaSel={categoriaSel}
+              categoriaNombre={categorias.find(c => String(c.id) === categoriaSel)?.nombre || categoriaInput}
               municipioSel={municipioSel}
               departamentoSel={departamentoSel}
               activo={activo}

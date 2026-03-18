@@ -23,7 +23,9 @@ import {
 } from "@/components/ui/dialog"
 import Swal from "sweetalert2"
 import { useRouter, useSearchParams } from "next/navigation"
-import { SellerActivationChecklist } from "@/components/seller/SellerActivationChecklist"
+import { SellerProgressCard, type EstadoValidacion } from "@/components/seller/SellerProgressCard"
+import { apiGetVendedorPerfil } from "@/services/vendedorPerfil"
+import type { SellerPerfil } from "@/lib/sellerProgress"
 
 type Producto = {
   id: string
@@ -51,6 +53,10 @@ export default function SellerProductsPage() {
   const [page, setPage] = useState(1)
   const [perPage] = useState(10)
 
+  /* ── SAS: progress card data ── */
+  const [progressPerfil, setProgressPerfil] = useState<SellerPerfil | null>(null)
+  const [estadoValidacion, setEstadoValidacion] = useState<EstadoValidacion>(null)
+
   const API = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8800"
   const router = useRouter()
   const searchParams = useSearchParams()
@@ -64,6 +70,20 @@ export default function SellerProductsPage() {
       return () => clearTimeout(t)
     }
   }, [searchParams])
+
+  /* ==============================
+     SAS: fetch perfil for progress card
+  ============================== */
+  useEffect(() => {
+    apiGetVendedorPerfil().then(res => {
+      if (res.ok && res.perfil) {
+        setProgressPerfil(res.perfil)
+        setEstadoValidacion(
+          (res.perfil.estado_validacion as EstadoValidacion) ?? null
+        )
+      }
+    })
+  }, [])
 
   /* ==============================
      Fetch productos del vendedor
@@ -249,9 +269,13 @@ export default function SellerProductsPage() {
           </div>
         )}
 
-        {/* ================= ACTIVATION CHECKLIST ================= */}
+        {/* ================= ACTIVATION PROGRESS (SAS) ================= */}
         {!loading && (
-          <SellerActivationChecklist productos={productos} />
+          <SellerProgressCard
+            estadoValidacion={estadoValidacion}
+            productos={productos}
+            perfil={progressPerfil}
+          />
         )}
 
         {/* ================= FILTERS ================= */}

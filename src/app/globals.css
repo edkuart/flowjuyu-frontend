@@ -209,3 +209,72 @@
     transform: translateY(0);
   }
 }
+
+/* =========================================================
+   🎬 HERO FLOWJUYU — fj-* custom classes
+   ========================================================= */
+
+/* Grain texture overlay */
+.fj-grain::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  z-index: 2;
+  pointer-events: none;
+  opacity: 0.035;
+  background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noise'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noise)'/%3E%3C/svg%3E");
+  background-size: 160px;
+}
+
+/* Ken Burns zoom on image */
+@keyframes kenburns {
+  from { transform: scale(1.07); }
+  to   { transform: scale(1); }
+}
+
+.fj-kenburns {
+  animation: kenburns 14s ease-out forwards;
+}
+
+/* Hero image transition states */
+.fj-hero-image {
+  transition: opacity 0.5s ease, transform 0.5s ease;
+}
+
+.fj-hero-image.transitioning {
+  opacity: 0;
+  transform: scale(1.03);
+}
+
+.fj-hero-image.active {
+  opacity: 1;
+  transform: scale(1);
+}
+
+/* Text reveal on slide change */
+@keyframes textReveal {
+  from {
+    opacity: 0;
+    transform: translateY(18px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.fj-text-reveal {
+  animation: textReveal 0.85s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+  opacity: 0;
+}
+
+/* Progress line fill */
+@keyframes lineFill {
+  from { width: 0%; }
+  to   { width: 100%; }
+}
+
+.fj-line-fill {
+  animation: lineFill 5.5s linear forwards;
+  width: 0%;
+}

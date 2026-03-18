@@ -8,7 +8,9 @@
       "Bash(node_modules/.bin/tsc --noEmit)",
       "Bash(node scripts/audit-env.mjs)",
       "Bash(node -e \"console.log\\(require\\(''crypto''\\).randomBytes\\(32\\).toString\\(''base64''\\)\\)\")",
-      "Bash(npm run:*)"
+      "Bash(npm run:*)",
+      "Bash(grep -r api/ c:UsersDellProjectsFlowjuyu-1.0flowjuyu-frontend/src --include=*.ts --include=*.tsx)",
+      "Bash(find /c/Users/Dell/Projects/Flowjuyu-1.0/flowjuyu-frontend -name *.sql -o -name *migration* -o -name *schema*)"
     ]
   }
 }

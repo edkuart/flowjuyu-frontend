@@ -1,12 +1,15 @@
 "use client";
 
+// src/components/home/HeroSection.tsx
+
 import Image from "next/image";
 import Link from "next/link";
-import { useEffect, useRef, useState } from "react";
+import { useState } from "react";
 
 type TrendingProducto = {
   id: string;
   nombre: string;
+  precio: number;
   imagen_url?: string | null;
 };
 
@@ -14,74 +17,67 @@ type Props = {
   trendingProducts: TrendingProducto[];
 };
 
+const formatPrice = (precio: number) =>
+  new Intl.NumberFormat("es-GT", {
+    style: "currency",
+    currency: "GTQ",
+    minimumFractionDigits: 0,
+  }).format(precio);
+
+// Copy emocional — curiosidad y autenticidad, no transacción
 const CAPTIONS = [
-  "Guatemala,\ntejida a mano.",
-  "El hilo que\nlo une todo.",
-  "Hecho para\ndurar siempre.",
+  "Donde el hilo\nguarda memoria.",
+  "Cada pieza existe\nuna sola vez.",
+  "Hecho por manos\nque recuerdan.",
 ];
 
 export default function HeroSection({ trendingProducts }: Props) {
-
-  const [mounted, setMounted] = useState(false);
   const [activeIndex, setActiveIndex] = useState(0);
   const [isTransitioning, setIsTransitioning] = useState(false);
 
-  const intervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
+  const slides = trendingProducts?.length
+    ? trendingProducts.slice(0, 3).map((p, i) => ({
+        id: p.id,
+        nombre: p.nombre,
+        precio: p.precio,
+        imagen_url: p.imagen_url || "/images/productos/default.jpg",
+        caption: CAPTIONS[i] ?? CAPTIONS[0],
+      }))
+    : [
+        {
+          id: "placeholder",
+          nombre: "Artesanía guatemalteca",
+          precio: 0,
+          imagen_url: "/images/productos/default.jpg",
+          caption: CAPTIONS[0],
+        },
+      ];
 
-  useEffect(() => {
-    setMounted(true);
-  }, []);
+  const goTo = (index: number) => {
+    if (index === activeIndex || isTransitioning) return;
+    setIsTransitioning(true);
+    setTimeout(() => {
+      setActiveIndex(index);
+      setIsTransitioning(false);
+    }, 450);
+  };
 
-  const slides =
-    trendingProducts?.length
-      ? trendingProducts.slice(0, 3).map((p, i) => ({
-          id: p.id,
-          nombre: p.nombre,
-          imagen_url: p.imagen_url || "/images/productos/default.jpg",
-          caption: CAPTIONS[i] ?? CAPTIONS[0],
-        }))
-      : [
-          {
-            id: "placeholder",
-            nombre: "Artesanía guatemalteca",
-            imagen_url: "/images/productos/default.jpg",
-            caption: CAPTIONS[0],
-          },
-        ];
-
-  useEffect(() => {
-    if (!mounted || slides.length <= 1) return;
-
-    intervalRef.current = setInterval(() => {
-
-      setIsTransitioning(true);
-
-      setTimeout(() => {
-        setActiveIndex((prev) => (prev + 1) % slides.length);
-        setIsTransitioning(false);
-      }, 700);
-
-    }, 5500);
-
-    return () => {
-      if (intervalRef.current) clearInterval(intervalRef.current);
-    };
-
-  }, [mounted, slides.length]);
+  const goPrev = () => goTo((activeIndex - 1 + slides.length) % slides.length);
+  const goNext = () => goTo((activeIndex + 1) % slides.length);
 
   const currentSlide = slides[activeIndex];
-
-  const imageClass = mounted
-    ? `object-cover object-center fj-kenburns fj-hero-image ${
-        isTransitioning ? "transitioning" : "active"
-      }`
-    : "object-cover object-center";
+  const isPlaceholder = currentSlide.id === "placeholder";
 
   return (
-    <section className="relative w-full h-[100svh] min-h-[560px] max-h-[1080px] overflow-hidden bg-[#0d0d0b] fj-grain">
+    <section className="relative w-full h-[100svh] min-h-[560px] max-h-[920px] overflow-hidden bg-[#0d0d0b] fj-grain">
 
-      {/* Background image */}
-      <div className="absolute inset-0 z-0">
+      {/* ── Imagen de fondo clickeable al producto ── */}
+      <Link
+        href={isPlaceholder ? "/productos" : `/product/${currentSlide.id}`}
+        className="absolute inset-0 z-0 block"
+        tabIndex={-1}
+        aria-label={`Ver ${currentSlide.nombre}`}
+      >
         <Image
           key={currentSlide.id}
           src={currentSlide.imagen_url!}
@@ -89,112 +85,151 @@ export default function HeroSection({ trendingProducts }: Props) {
           fill
           priority
           sizes="100vw"
-          className={imageClass}
+          className={`object-cover object-center fj-kenburns fj-hero-image ${
+            isTransitioning ? "transitioning" : "active"
+          }`}
         />
-      </div>
+      </Link>
 
-      {/* gradient overlays */}
-      <div className="absolute inset-0 z-10 pointer-events-none bg-gradient-to-t from-black/80 via-black/30 to-transparent" />
+      {/* ── Gradientes ── */}
+      <div className="absolute inset-0 z-10 pointer-events-none bg-gradient-to-t from-black/88 via-black/20 to-black/10" />
+      <div className="absolute inset-0 z-10 pointer-events-none bg-gradient-to-r from-black/25 to-transparent" />
 
-      <div className="absolute inset-0 z-10 pointer-events-none bg-gradient-to-r from-black/30 to-transparent" />
+      {/* ── Contenido inferior ── */}
+      <div className="absolute bottom-0 left-0 right-0 z-20 px-6 md:px-12 lg:px-20 pb-10 md:pb-14">
 
-      {/* top header */}
-      <header className="absolute top-0 left-0 right-0 z-20 flex items-center justify-between px-6 md:px-12 lg:px-16 pt-8">
-
-        <Link href="/" aria-label="Flowjuyu inicio">
-
-          <span className="font-serif text-xl md:text-2xl tracking-[0.18em] text-white/90 uppercase">
-            Flowjuyu
-          </span>
-
-        </Link>
-
-        <Link
-          href="/productos"
-          className="hidden md:block text-xs uppercase tracking-[0.22em] text-white/60 hover:text-white transition"
-        >
-          Colección
-        </Link>
-
-      </header>
-
-      {/* main text */}
-      <div className="absolute bottom-0 left-0 right-0 z-20 px-6 md:px-12 lg:px-20 pb-16 md:pb-20">
-
-        <p
-          key={`label-${activeIndex}`}
-          className={mounted ? "fj-text-reveal text-white/50 text-xs uppercase tracking-[0.30em] mb-4" : ""}
-        >
-          Artesanía guatemalteca
+        {/* Eyebrow */}
+        <p className="fj-text-reveal text-white/50 text-[10px] uppercase tracking-[0.32em] mb-4">
+          Artesanía guatemalteca · Hecho a mano
         </p>
 
+        {/* Titular principal */}
         <h1
           key={`headline-${activeIndex}`}
-          className={`font-serif italic text-white text-[42px] md:text-[72px] lg:text-[96px] leading-[1.05] max-w-[16ch] ${
-            mounted ? "fj-text-reveal" : ""
-          }`}
+          className="fj-text-reveal font-serif italic text-white text-[40px] md:text-[68px] lg:text-[84px] leading-[1.04] max-w-[15ch] whitespace-pre-line"
         >
           {currentSlide.caption}
         </h1>
 
+        {/* Info de producto + CTAs */}
         <div
-          key={`cta-${activeIndex}`}
-          className={`flex items-end justify-between flex-wrap gap-6 mt-10 ${
-            mounted ? "fj-text-reveal" : ""
-          }`}
+          key={`bottom-${activeIndex}`}
+          className="fj-text-reveal mt-8 flex flex-col sm:flex-row sm:items-end justify-between gap-6"
         >
-
-          <Link
-            href="/productos"
-            className="inline-flex items-center gap-3 text-white/90 uppercase text-xs tracking-[0.25em] border-b border-white/40 pb-[3px] hover:border-white hover:text-white transition"
-          >
-
-            Ver colección
-
-            <svg width="16" height="10" viewBox="0 0 16 10">
-              <path
-                d="M0 5H14M10 1L14.5 5L10 9"
-                stroke="currentColor"
-                strokeWidth="1"
-                strokeLinecap="round"
-              />
-            </svg>
-
-          </Link>
-
-          {slides.length > 1 && (
-
-            <div className="flex flex-col items-end gap-2">
-
-              <div className="w-[80px] h-px bg-white/20 relative overflow-hidden">
-
-                <div
-                  key={`bar-${activeIndex}`}
-                  className={mounted ? "fj-line-fill absolute left-0 top-0 h-full bg-white/70" : ""}
-                />
-
-              </div>
-
-              <span className="text-[10px] text-white/40 tracking-[0.18em]">
-                0{activeIndex + 1} / 0{slides.length}
-              </span>
-
+          {/* Info del producto activo */}
+          {!isPlaceholder && (
+            <div className="space-y-[6px]">
+              <p className="text-white/90 font-serif italic text-lg md:text-xl leading-tight line-clamp-1">
+                {currentSlide.nombre}
+              </p>
+              <p className="text-white/55 text-[12px] tracking-[0.18em]">
+                {formatPrice(currentSlide.precio)}&nbsp;&nbsp;·&nbsp;&nbsp;Guatemala
+              </p>
             </div>
-
           )}
 
+          {/* CTAs */}
+          <div className="flex items-center gap-3 flex-shrink-0">
+            {/* CTA primario: ir al producto de la imagen */}
+            {!isPlaceholder && (
+              <Link
+                href={`/product/${currentSlide.id}`}
+                className="
+                  inline-flex items-center gap-2
+                  bg-white text-[#0d0d0b]
+                  text-[10px] uppercase tracking-[0.24em] font-semibold
+                  px-6 py-[14px]
+                  hover:bg-white/90
+                  transition-colors duration-200
+                "
+              >
+                Ver esta pieza
+              </Link>
+            )}
+
+            {/* CTA secundario: catálogo completo */}
+            <Link
+              href="/productos"
+              className="
+                inline-flex items-center gap-2
+                text-white/75
+                text-[10px] uppercase tracking-[0.24em]
+                border border-white/25 px-6 py-[14px]
+                hover:border-white/60 hover:text-white
+                transition-colors duration-200
+              "
+            >
+              Explorar todo
+            </Link>
+          </div>
         </div>
 
-      </div>
+        {/* ── Navegación manual de slides ── */}
+        {slides.length > 1 && (
+          <div className="mt-8 flex items-center gap-5 relative">
 
-      {/* scroll indicator */}
-      <div className="hidden md:flex flex-col items-center gap-2 absolute right-10 bottom-16 z-20 opacity-40">
+            {/* Anterior */}
+            <button
+              onClick={goPrev}
+              aria-label="Slide anterior"
+              className="text-white/35 hover:text-white/80 transition-colors p-1 -ml-1"
+            >
+              <svg width="18" height="10" viewBox="0 0 18 10" fill="none">
+                <path d="M18 5H2M6 1L1 5L6 9" stroke="currentColor" strokeWidth="1" strokeLinecap="round" strokeLinejoin="round" />
+              </svg>
+            </button>
 
-        <span className="text-[9px] uppercase tracking-[0.28em] text-white [writing-mode:vertical-rl]">
-          Scroll
-        </span>
+            {/* Dots */}
+            <div className="flex items-center gap-[10px]">
+              {slides.map((_, i) => (
+                <button
+                  key={i}
+                  onClick={() => goTo(i)}
+                  aria-label={`Ir a slide ${i + 1}`}
+                  className={`transition-all duration-300 block ${
+                    i === activeIndex
+                      ? "w-7 h-[2px] bg-white rounded-full"
+                      : "w-[5px] h-[5px] bg-white/30 hover:bg-white/55 rounded-full"
+                  }`}
+                />
+              ))}
+            </div>
 
-        <div className="w-px h-12 bg-gradient-to-b from-white/60 to-transparent" />
+            {/* Siguiente */}
+            <button
+              onClick={goNext}
+              aria-label="Slide siguiente"
+              className="text-white/35 hover:text-white/80 transition-colors p-1"
+            >
+              <svg width="18" height="10" viewBox="0 0 18 10" fill="none">
+                <path d="M0 5H16M12 1L17 5L12 9" stroke="currentColor" strokeWidth="1" strokeLinecap="round" strokeLinejoin="round" />
+              </svg>
+            </button>
+
+            {/* Scroll hint — centrado en la fila de dots para no ocupar espacio extra */}
+            <div className="absolute left-1/2 -translate-x-1/2 flex flex-col items-center gap-[6px] pointer-events-none">
+              <span className="text-[8px] uppercase tracking-[0.32em] text-white/30">
+                Descubre
+              </span>
+              <svg
+                width="12"
+                height="8"
+                viewBox="0 0 12 8"
+                fill="none"
+                className="animate-bounce text-white/30"
+              >
+                <path
+                  d="M1 1L6 6L11 1"
+                  stroke="currentColor"
+                  strokeWidth="1.2"
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                />
+              </svg>
+            </div>
+
+          </div>
+        )}
 
       </div>
 

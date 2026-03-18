@@ -42,17 +42,17 @@ export default function CategoriesSection({ categorias }: Props) {
   const items = categorias.slice(0, 20);
 
   return (
-    <section className="bg-[#f6f2ea] py-24 overflow-hidden">
+    <section className="bg-[#f6f2ea] py-16 md:py-20 overflow-hidden">
 
       {/* MAIN GRID CONTAINER */}
       <div className="max-w-7xl mx-auto px-4 md:px-12 space-y-12">
 
         {/* Header */}
         <SectionHeader
-          eyebrow="Explora por estilo"
-          title="Tejidos y expresiones culturales"
+          eyebrow="Encuentra lo que resuena contigo"
+          title="Por tradición y técnica"
           linkHref="/categorias"
-          linkLabel="Ver todas"
+          linkLabel="Ver todas las categorías"
         />
 
         {/* Divider */}
