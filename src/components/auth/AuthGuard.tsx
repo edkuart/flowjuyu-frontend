@@ -1,10 +1,26 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useRef } from "react";
 import { useRouter } from "next/navigation";
-import { useAuth, Role } from "@/context/AuthContext";
-import { useSession } from "next-auth/react";
+import { useAuth } from "@/context/AuthContext";
+import { getDefaultDestination } from "@/lib/authRoutes";
+import type { Role } from "@/context/AuthContext";
 
+/**
+ * Client-side secondary auth guard.
+ *
+ * Middleware (server) is the primary gate — it blocks unauthenticated and
+ * wrong-role users before the page renders. AuthGuard exists as a fallback
+ * for cases where middleware cannot act (e.g. stale cookie, race on token
+ * rotation) and as an explicit signal in the layout tree that a route
+ * requires specific roles.
+ *
+ * Redirect behavior mirrors middleware:
+ *   - Not authenticated       → /login
+ *   - Authenticated, wrong role → role's own dashboard (not /login)
+ *
+ * Uses useRef to prevent double-redirect in React 18 Strict Mode.
+ */
 export default function AuthGuard({
   children,
   allowedRoles,
@@ -14,54 +30,30 @@ export default function AuthGuard({
 }) {
   const router = useRouter();
   const { user, token, ready } = useAuth();
-  const { data: session, status } = useSession();
+  const didRedirect = useRef(false);
 
-  const [authorized, setAuthorized] = useState<boolean | null>(null);
-
-  useEffect(() => {
-  if (!ready || status === "loading") return;
-
-  console.log("🔎 AuthGuard user:", user);
-  console.log("🔎 AuthGuard user.rol:", user?.rol);
-  console.log("🔎 AuthGuard allowedRoles:", allowedRoles);
-
-  if (user && token && allowedRoles.includes(user.rol)) {
-    console.log("✅ Autorizado por AuthContext");
-    setAuthorized(true);
-    return;
-  }
-
-  const sessionRole = (session?.user as any)?.role;
-
-  console.log("🔎 NextAuth role:", sessionRole);
-
-  if (
-    session?.user &&
-    sessionRole &&
-    allowedRoles.includes(sessionRole)
-  ) {
-    console.log("✅ Autorizado por NextAuth");
-    setAuthorized(true);
-    return;
-  }
-
-  console.log("❌ No autorizado");
-  setAuthorized(false);
-}, [ready, status, user, token, session, allowedRoles]);
+  // Derived — no useState needed. Recomputes on every render; React bails out
+  // of DOM updates when result is stable.
+  const isAuthorized =
+    ready && !!user && !!token && allowedRoles.includes(user.role);
 
   useEffect(() => {
-    if (authorized === false) {
+    if (!ready || isAuthorized || didRedirect.current) return;
+
+    didRedirect.current = true;
+
+    if (user && token) {
+      // Authenticated but wrong role — send to their own dashboard.
+      router.replace(getDefaultDestination(user.role));
+    } else {
+      // No session at all — send to login.
       router.replace("/login");
     }
-  }, [authorized, router]);
+  }, [ready, isAuthorized, user, token, router]);
 
-  if (!ready || status === "loading" || authorized === null) {
-    return null;
-  }
-
-  if (authorized === false) {
-    return null;
-  }
+  // Still hydrating from localStorage. Middleware already blocked unauthorized
+  // requests, so this null window is always brief for legitimate users.
+  if (!ready || !isAuthorized) return null;
 
   return <>{children}</>;
 }

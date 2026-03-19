@@ -1,17 +1,16 @@
+import { redirect } from 'next/navigation'
+import { getServerSessionSafe } from '@/lib/serverSession'
 import { Card, CardContent } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Separator } from '@/components/ui/separator'
 import { Plus, MapPin, Trash2 } from 'lucide-react'
-import { getServerSession } from 'next-auth'
-import { authOptions } from '@/lib/auth'
-import { redirect } from 'next/navigation'
 
 export default async function DireccionesPage() {
-  const session = await getServerSession(authOptions)
+  const user = await getServerSessionSafe()
 
-  if (!session) {
+  if (!user) {
     return redirect('/login')
   }
 

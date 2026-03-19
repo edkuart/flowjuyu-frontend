@@ -1,6 +1,5 @@
 'use client';
 
-import { SessionProvider } from 'next-auth/react';
 import { SidebarProvider } from '@/components/ui/sidebar/SidebarContext';
 import { NextIntlClientProvider } from 'next-intl';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
@@ -26,14 +25,12 @@ export function ClientProviders({ children }: Props) {
 
   return (
     <QueryClientProvider client={queryClient}>
-      <SessionProvider>
-        <SidebarProvider>
-          {/* NextIntlClientProvider requiere locale y messages para SSR */}
-          <NextIntlClientProvider locale="es" messages={{}}>
-            {children}
-          </NextIntlClientProvider>
-        </SidebarProvider>
-      </SessionProvider>
+      <SidebarProvider>
+        {/* NextIntlClientProvider requiere locale y messages para SSR */}
+        <NextIntlClientProvider locale="es" messages={{}}>
+          {children}
+        </NextIntlClientProvider>
+      </SidebarProvider>
     </QueryClientProvider>
   );
 }

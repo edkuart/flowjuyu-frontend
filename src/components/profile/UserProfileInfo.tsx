@@ -7,7 +7,7 @@ interface User {
   name: string
   email: string
   image?: string
-  role: 'comprador' | 'vendedor'
+  role: 'buyer' | 'seller' | 'admin' | 'support'
 }
 
 export default function UserProfileInfo({ user }: { user: User }) {

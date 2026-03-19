@@ -1,16 +1,15 @@
-import { getServerSession } from 'next-auth'
-import { authOptions } from '@/lib/auth'
 import { redirect } from 'next/navigation'
+import { getServerSessionSafe } from '@/lib/serverSession'
 import { Card, CardContent } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import Image from 'next/image'
-import { Trash2, Heart, ShoppingCart, AlertCircle } from 'lucide-react'
+import { Trash2, Heart, ShoppingCart } from 'lucide-react'
 import { Badge } from '@/components/ui/badge'
 
 export default async function FavoritosPage() {
-  const session = await getServerSession(authOptions)
+  const user = await getServerSessionSafe()
 
-  if (!session) {
+  if (!user) {
     return redirect('/login')
   }
 

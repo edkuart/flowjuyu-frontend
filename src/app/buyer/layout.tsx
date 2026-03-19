@@ -4,6 +4,7 @@ import { useState } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useAuth } from "@/context/AuthContext";
+import AuthGuard from "@/components/auth/AuthGuard";
 import { cn } from "@/lib/utils";
 import {
   Package,
@@ -72,6 +73,7 @@ export default function BuyerLayout({ children }: { children: React.ReactNode })
   };
 
   return (
+    <AuthGuard allowedRoles={["buyer", "admin"]}>
     <div className="w-full min-h-screen bg-gray-50/50">
 
       {/* HEADER MÓVIL */}
@@ -122,10 +124,10 @@ export default function BuyerLayout({ children }: { children: React.ReactNode })
             {/* Avatar + datos */}
             <div className="flex flex-col items-center pb-6 border-b border-gray-100">
               <div className="w-20 h-20 rounded-full bg-orange-100 border-4 border-white shadow-sm flex items-center justify-center text-2xl font-bold text-orange-600 uppercase">
-                {user?.nombre?.charAt(0) ?? "?"}
+                {user?.name?.charAt(0) ?? "?"}
               </div>
               <h3 className="mt-4 font-semibold text-gray-900 text-center px-2 line-clamp-1">
-                {user?.nombre || "Usuario"}
+                {user?.name || "Usuario"}
               </h3>
               <p className="text-sm text-gray-500 line-clamp-1">{user?.email}</p>
             </div>
@@ -154,5 +156,6 @@ export default function BuyerLayout({ children }: { children: React.ReactNode })
         </main>
       </div>
     </div>
+    </AuthGuard>
   );
 }

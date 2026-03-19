@@ -16,7 +16,8 @@ export async function apiRegisterComprador(data: {
 }) {
   try {
     const res = await fetch(`${API}/api/register`, {
-      method: "POST",
+      method:      "POST",
+      credentials: "include",
       headers: {
         "Content-Type": "application/json",
       },
@@ -52,8 +53,9 @@ export async function apiRegisterComprador(data: {
 export async function apiRegisterSeller(formData: FormData) {
   try {
     const res = await fetch(`${API}/api/register/seller`, {
-      method: "POST",
-      body: formData,
+      method:      "POST",
+      credentials: "include",
+      body:        formData,
     })
 
     const json = await res.json()
@@ -84,7 +86,8 @@ export async function apiLogin(data: {
 }) {
   try {
     const res = await fetch(`${API}/api/login`, {
-      method: "POST",
+      method:      "POST",
+      credentials: "include",
       headers: {
         "Content-Type": "application/json",
       },

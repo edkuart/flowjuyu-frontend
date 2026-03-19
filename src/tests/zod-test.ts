@@ -17,7 +17,6 @@ try {
     confirmarPassword: "MiClave123",
     telefono: "55443322",
     direccion: "Zona 1",
-    rol: "comprador",
   });
   console.log("✔️ Usuario válido:", user);
 } catch (err: any) {

@@ -11,13 +11,18 @@ import { apiRegisterComprador } from "@/services/auth";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { GalleryVerticalEnd } from "lucide-react";
 import { useAuth } from "@/context/AuthContext";
+import { getDefaultDestination } from "@/lib/authRoutes";
 import { auth } from "@/lib/firebase";
 import { GoogleAuthProvider, signInWithPopup } from "firebase/auth";
 import { useState } from "react";
 import Link from "next/link";
-import Image from "next/image";
+import { FcGoogle } from "react-icons/fc";
+import AuthLayout from "@/components/auth/AuthLayout";
+
+// ── Shared input class — matches LoginForm exactly ───────────────────────────
+const INPUT_CLS =
+  "h-11 rounded-xl border-neutral-200 focus-visible:ring-2 focus-visible:ring-[#0F3D3A] focus-visible:ring-offset-0 transition-all";
 
 export function RegisterForm() {
   const router = useRouter();
@@ -41,24 +46,26 @@ export function RegisterForm() {
     },
   });
 
+  // ── Email / password register ──────────────────────────────────────────────
+
   const onSubmit = async (data: RegisterCompradorValues) => {
     const response = await apiRegisterComprador(data);
 
     if (response.ok && response.user && response.token) {
       login(response.user, response.token);
 
-      switch (response.user.rol) {
-        case "comprador":
-          router.push("/");
+      switch (response.user.role) {
+        case "buyer":
+          router.push("/welcome");
           break;
-        case "vendedor":
-          router.push("/seller/dashboard");
+        case "seller":
+          router.push("/seller/account-status");
           break;
         case "admin":
           router.push("/admin/dashboard");
           break;
         default:
-          router.push("/");
+          router.push("/welcome");
       }
     } else {
       setError("root", {
@@ -67,161 +74,145 @@ export function RegisterForm() {
     }
   };
 
+  // ── Google signup ──────────────────────────────────────────────────────────
+
   const handleGoogleSignup = async () => {
     setGoogleLoading(true);
     try {
       const provider = new GoogleAuthProvider();
-      const result = await signInWithPopup(auth, provider);
-      const { email, displayName } = result.user;
+      provider.setCustomParameters({ prompt: "select_account" });
 
-      const response = await fetch("http://localhost:8800/api/login/google", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ email, nombre: displayName }),
-      });
+      const result   = await signInWithPopup(auth, provider);
+      const id_token = await result.user.getIdToken();
+
+      const response = await fetch(
+        `${process.env.NEXT_PUBLIC_API_URL || "http://localhost:8800"}/api/login/google`,
+        {
+          method:      "POST",
+          credentials: "include",
+          headers:     { "Content-Type": "application/json" },
+          body: JSON.stringify({ id_token }),
+        },
+      );
 
       const data = await response.json();
 
       if (data.ok && data.user && data.token) {
         login(data.user, data.token);
-        router.push("/");
+        router.push(data.is_new_user ? "/welcome" : getDefaultDestination(data.user.role));
       } else {
-        alert(data.message || "No se pudo crear/iniciar sesión con Google.");
+        setError("root", {
+          message: data.message || "No se pudo crear/iniciar sesión con Google.",
+        });
       }
     } catch (error: any) {
-      alert("Error con Google: " + (error?.message || error));
+      if (
+        error?.code === "auth/popup-closed-by-user" ||
+        error?.code === "auth/cancelled-popup-request"
+      ) {
+        return;
+      }
+      setError("root", { message: "Error al conectar con Google. Inténtalo de nuevo." });
     } finally {
       setGoogleLoading(false);
     }
   };
 
+  // ── Render ─────────────────────────────────────────────────────────────────
+
   return (
-    <div className="space-y-8">
+    <AuthLayout
+      heading="Crea tu cuenta"
+      subheading="Únete a Flowjuyu y descubre artesanías guatemaltecas únicas."
+    >
+      <form onSubmit={handleSubmit(onSubmit)} className="space-y-5">
 
-      {/* Header */}
-      <header className="flex flex-col items-center gap-3 text-center">
-        <div className="bg-orange-50 p-3 rounded-2xl">
-          <GalleryVerticalEnd className="size-8 text-orange-500" />
-        </div>
-
-        <h2 className="text-2xl font-semibold tracking-tight text-neutral-900">
-          Crea tu cuenta
-        </h2>
-
-        <p className="text-sm text-neutral-500">
-          ¿Ya tienes cuenta?{" "}
-          <Link
-            href="/login"
-            className="font-medium text-orange-500 hover:text-orange-600 transition-colors"
-          >
-            Inicia sesión
-          </Link>
-        </p>
-      </header>
-
-      {/* Form */}
-      <form onSubmit={handleSubmit(onSubmit)} className="space-y-6">
-
-        <div className="grid sm:grid-cols-2 gap-5">
-
-          <div className="space-y-2">
-            <Label htmlFor="nombre">Nombre</Label>
-            <Input id="nombre" {...register("nombre")} />
-            {errors.nombre && (
-              <p className="text-sm text-red-500">{errors.nombre.message}</p>
-            )}
+        <div className="grid sm:grid-cols-2 gap-4">
+          <div className="space-y-1.5">
+            <Label htmlFor="nombre" className="text-sm text-neutral-700">Nombre</Label>
+            <Input id="nombre" className={INPUT_CLS} {...register("nombre")} />
+            {errors.nombre && <p className="text-xs text-red-500">{errors.nombre.message}</p>}
           </div>
 
-          <div className="space-y-2">
-            <Label htmlFor="email">Correo electrónico</Label>
-            <Input id="email" type="email" {...register("email")} />
-            {errors.email && (
-              <p className="text-sm text-red-500">{errors.email.message}</p>
-            )}
+          <div className="space-y-1.5">
+            <Label htmlFor="email" className="text-sm text-neutral-700">Correo electrónico</Label>
+            <Input id="email" type="email" className={INPUT_CLS} {...register("email")} />
+            {errors.email && <p className="text-xs text-red-500">{errors.email.message}</p>}
           </div>
 
-          <div className="space-y-2">
-            <Label htmlFor="password">Contraseña</Label>
-            <Input id="password" type="password" {...register("password")} />
-            {errors.password && (
-              <p className="text-sm text-red-500">{errors.password.message}</p>
-            )}
+          <div className="space-y-1.5">
+            <Label htmlFor="password" className="text-sm text-neutral-700">Contraseña</Label>
+            <Input id="password" type="password" className={INPUT_CLS} {...register("password")} />
+            {errors.password && <p className="text-xs text-red-500">{errors.password.message}</p>}
           </div>
 
-          <div className="space-y-2">
-            <Label htmlFor="confirmarPassword">
-              Confirmar contraseña
-            </Label>
-            <Input
-              id="confirmarPassword"
-              type="password"
-              {...register("confirmarPassword")}
-            />
-            {errors.confirmarPassword && (
-              <p className="text-sm text-red-500">
-                {errors.confirmarPassword.message}
-              </p>
-            )}
+          <div className="space-y-1.5">
+            <Label htmlFor="confirmarPassword" className="text-sm text-neutral-700">Confirmar contraseña</Label>
+            <Input id="confirmarPassword" type="password" className={INPUT_CLS} {...register("confirmarPassword")} />
+            {errors.confirmarPassword && <p className="text-xs text-red-500">{errors.confirmarPassword.message}</p>}
           </div>
 
-          <div className="space-y-2">
-            <Label htmlFor="telefono">Teléfono (opcional)</Label>
-            <Input id="telefono" {...register("telefono")} />
+          <div className="space-y-1.5">
+            <Label htmlFor="telefono" className="text-sm text-neutral-700">Teléfono <span className="text-neutral-400">(opcional)</span></Label>
+            <Input id="telefono" className={INPUT_CLS} {...register("telefono")} />
           </div>
 
-          <div className="space-y-2">
-            <Label htmlFor="direccion">Dirección (opcional)</Label>
-            <Input id="direccion" {...register("direccion")} />
+          <div className="space-y-1.5">
+            <Label htmlFor="direccion" className="text-sm text-neutral-700">Dirección <span className="text-neutral-400">(opcional)</span></Label>
+            <Input id="direccion" className={INPUT_CLS} {...register("direccion")} />
           </div>
-
         </div>
 
         {errors.root && (
-          <div className="p-3 text-sm text-center text-red-600 bg-red-50 rounded-lg">
+          <div className="bg-red-50 text-red-600 text-sm p-3 rounded-xl border border-red-200">
             {errors.root.message}
           </div>
         )}
 
         <Button
           type="submit"
-          disabled={isSubmitting}
-          className="w-full py-6 text-base font-semibold rounded-xl bg-orange-500 hover:bg-orange-600 text-white transition-colors"
+          disabled={isSubmitting || googleLoading}
+          className="w-full h-11 rounded-xl bg-[#0F3D3A] hover:bg-[#0c322f] text-white font-medium tracking-wide transition-all duration-200 shadow-sm hover:shadow-md"
         >
           {isSubmitting ? "Creando cuenta..." : "Registrarse"}
         </Button>
+
+        {/* Divider */}
+        <div className="relative text-center text-xs text-neutral-400">
+          <span className="bg-white px-3 relative z-10">O continúa con</span>
+          <div className="absolute left-0 right-0 top-1/2 border-t border-neutral-200" />
+        </div>
+
+        {/* Google */}
+        <Button
+          type="button"
+          variant="outline"
+          disabled={isSubmitting || googleLoading}
+          className="w-full h-11 rounded-xl flex items-center justify-center gap-2.5 border border-neutral-200 bg-white hover:bg-neutral-50 hover:border-neutral-300 transition-all duration-200 shadow-sm disabled:opacity-60"
+          onClick={handleGoogleSignup}
+        >
+          {googleLoading ? (
+            <span className="w-4 h-4 border-2 border-neutral-300 border-t-neutral-600 rounded-full animate-spin" />
+          ) : (
+            <FcGoogle className="text-lg" />
+          )}
+          <span className="text-sm font-medium text-neutral-700">
+            {googleLoading ? "Conectando..." : "Continuar con Google"}
+          </span>
+        </Button>
+
       </form>
 
-      {/* Divider */}
-      <div className="relative">
-        <div className="absolute inset-0 flex items-center">
-          <span className="w-full border-t border-neutral-200" />
-        </div>
-        <div className="relative flex justify-center text-xs uppercase">
-          <span className="bg-white px-4 text-neutral-500 font-medium">
-            O continúa con
-          </span>
-        </div>
-      </div>
-
-      {/* Google */}
-      <Button
-        type="button"
-        variant="outline"
-        className="w-full py-6 text-base font-medium rounded-xl"
-        onClick={handleGoogleSignup}
-        disabled={googleLoading}
-      >
-        <Image
-          src="/icons/google.svg"
-          alt="Google"
-          width={20}
-          height={20}
-          className="mr-3"
-        />
-        {googleLoading ? "Conectando..." : "Google"}
-      </Button>
-
-    </div>
+      <p className="text-center text-sm text-neutral-500 mt-2">
+        ¿Ya tienes cuenta?{" "}
+        <Link
+          href="/login"
+          className="font-medium text-[#0F3D3A] hover:text-[#0c322f] hover:underline transition-colors"
+        >
+          Inicia sesión
+        </Link>
+      </p>
+    </AuthLayout>
   );
 }
 

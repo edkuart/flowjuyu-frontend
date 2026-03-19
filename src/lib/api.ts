@@ -1,57 +1,83 @@
 /**
  * src/lib/api.ts
  *
- * Universal fetch wrapper — safe for both Server Components and Client Components.
+ * Universal authenticated fetch wrapper.
+ * Safe for both Server Components and Client Components.
  *
- * Design decisions:
- *  - BASE_URL is read INSIDE the function (lazy), not at module scope.
- *    Module-scope evaluation happens when webpack bundles the file, which is
- *    BEFORE .env.* files are guaranteed to be applied to process.env.
+ * On 401 TOKEN_EXPIRED in the browser:
+ *   1. Calls refreshSession() — collapses concurrent failures into one request.
+ *   2. If refresh succeeds → retries the original request once with the new token.
+ *   3. If refresh fails    → redirects to /login. The retry uses a raw fetch()
+ *      (not apiFetch) to prevent any possibility of infinite recursion.
  *
- *  - signOut is imported DYNAMICALLY (only when needed) to avoid pulling
- *    the next-auth/react client bundle into server-side code paths.
- *
- *  - Token read is guarded with typeof window !== "undefined" so it is safe
- *    to call from Server Components (token will simply be null there).
+ * credentials: "include" is set on every request so the browser sends and
+ * receives the HttpOnly refresh-token cookie (fj_rt) transparently.
  */
 
-import { getApiUrl } from "@/lib/config"
+import { getApiUrl }      from "@/lib/config";
+import { refreshSession } from "@/lib/refreshSession";
 
 export async function apiFetch(
   input: string,
   init: RequestInit = {},
 ): Promise<Response> {
-  const BASE_URL = getApiUrl()
+  const BASE_URL = getApiUrl();
 
   // Resolve full URL — input may be a path ("/api/…") or already absolute
-  const url = input.startsWith("http") ? input : `${BASE_URL}${input}`
+  const url = input.startsWith("http") ? input : `${BASE_URL}${input}`;
 
-  // Token is only available in the browser
+  // Token is only available in the browser — server-side calls skip auth header
   const token =
     typeof window !== "undefined"
       ? localStorage.getItem("token")
-      : null
+      : null;
 
   const res = await fetch(url, {
     ...init,
+    credentials: "include",
     headers: {
       "Content-Type": "application/json",
       ...(init.headers ?? {}),
       ...(token ? { Authorization: `Bearer ${token}` } : {}),
     },
-  })
+  });
 
-  // 401 handler — dynamic import keeps next-auth out of server bundles
+  // ── 401 handling — browser only ─────────────────────────────────────────
+  // Server-side calls have no refresh cookie, so we only attempt renewal
+  // in the browser where the HttpOnly cookie is available.
   if (res.status === 401 && typeof window !== "undefined") {
-    const data = await res.clone().json().catch(() => null)
-    if (data?.code === "TOKEN_EXPIRED") {
-      localStorage.removeItem("token")
-      // Dynamic import: only resolves in browser, never imported on the server
-      const { signOut } = await import("next-auth/react")
-      await signOut({ callbackUrl: "/login" })
-      throw new Error("TOKEN_EXPIRED")
+    const data = await res.clone().json().catch(() => null);
+
+    const isExpired =
+      data?.code    === "TOKEN_EXPIRED" ||
+      data?.message === "Token expirado";
+
+    if (isExpired) {
+      const refreshed = await refreshSession();
+
+      if (refreshed) {
+        // ── Retry once with the fresh token ────────────────────────────────
+        // Using plain fetch() — NOT apiFetch() — to guarantee no recursion.
+        const newToken = localStorage.getItem("token");
+        return fetch(url, {
+          ...init,
+          credentials: "include",
+          headers: {
+            "Content-Type": "application/json",
+            ...(init.headers ?? {}),
+            ...(newToken ? { Authorization: `Bearer ${newToken}` } : {}),
+          },
+        });
+      } else {
+        // ── Refresh failed — session is definitively over ───────────────────
+        // refreshSession() already cleared localStorage and dispatched
+        // "auth:changed", so AuthContext will clear its state on next event
+        // loop tick. We redirect immediately.
+        window.location.replace("/login");
+        throw new Error("SESSION_EXPIRED");
+      }
     }
   }
 
-  return res
+  return res;
 }

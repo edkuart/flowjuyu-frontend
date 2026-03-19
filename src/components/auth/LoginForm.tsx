@@ -6,15 +6,29 @@ import { loginSchema, LoginValues } from '@/schemas/login-schema';
 import { useRouter } from 'next/navigation';
 import { useState } from 'react';
 import { useAuth } from '@/context/AuthContext';
+import type { User } from '@/context/AuthContext';
+import { safeRedirectForRole } from '@/lib/safeRedirect';
+import { getDefaultDestination } from '@/lib/authRoutes';
+import { auth } from '@/lib/firebase';
+import { GoogleAuthProvider, signInWithPopup } from 'firebase/auth';
 
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
+import { FcGoogle } from 'react-icons/fc';
+import Link from 'next/link';
+import AuthLayout from '@/components/auth/AuthLayout';
 
-const API_URL =
-  process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8800';
+const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8800';
 
-export function LoginForm() {
+// ─── Component ────────────────────────────────────────────────────────────────
+
+interface LoginFormProps {
+  /** Validated by safeRedirectForRole before use — cannot cause open redirect. */
+  redirectTo?: string;
+}
+
+export function LoginForm({ redirectTo }: LoginFormProps) {
   const router = useRouter();
   const { login } = useAuth();
 
@@ -26,74 +40,113 @@ export function LoginForm() {
     resolver: zodResolver(loginSchema),
   });
 
-  const [loginError, setLoginError] = useState<string | null>(null);
+  const [loginError,     setLoginError]     = useState<string | null>(null);
+  const [googleLoading,  setGoogleLoading]  = useState(false);
 
-  // ===========================
-  // Login normal
-  // ===========================
+  // ── Email / password login ────────────────────────────────────────────────
+
   const onSubmit = async (data: LoginValues) => {
     setLoginError(null);
 
     try {
       const res = await fetch(`${API_URL}/api/login`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        method:      'POST',
+        credentials: 'include',
+        headers:     { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          correo: data.email,
+          correo:   data.email,
           password: data.password,
         }),
       });
 
       const json = await res.json();
 
-      console.log("ROL BACKEND:", json.user?.rol);
-
-      if (!res.ok || !json.token || !json.user) {
+      if (!res.ok || !json.ok || !json.token || !json.user) {
         setLoginError(json.message || 'Credenciales incorrectas');
         return;
       }
 
-      login(json.user, json.token);
-      localStorage.setItem('token', json.token);
+      const user: User = json.user;
+      login(user, json.token);
 
-      const rawRole = json.user.role ?? json.user.rol ?? null;
-
-      if (rawRole === 'seller' || rawRole === 'vendedor') {
-        router.push('/seller/my-business');
-      } else if (rawRole === 'admin') {
-        router.push('/admin/dashboard');
-      } else {
-        router.push('/');
-      }
-    } catch (error) {
-      console.error('Error login:', error);
+      const destination =
+        safeRedirectForRole(redirectTo, user.role) ?? getDefaultDestination(user.role);
+      router.push(destination);
+    } catch {
       setLoginError('Error de conexión con el servidor');
     }
   };
 
-  // ===========================
-  // Google (placeholder)
-  // ===========================
+  // ── Google login ──────────────────────────────────────────────────────────
+  //
+  // Flow:
+  //   1. Firebase popup authenticates the user with Google.
+  //   2. We get a short-lived Firebase ID token (signed by Google).
+  //   3. We POST it to our backend, which verifies it cryptographically
+  //      via Firebase Admin SDK and issues our own JWT + refresh cookie.
+  //   4. Login and redirect via the same path as email/password.
+
   const handleGoogleLogin = async () => {
-    // Por ahora solo placeholder
-    alert('Google login próximamente disponible');
+    setLoginError(null);
+    setGoogleLoading(true);
+
+    try {
+      const provider = new GoogleAuthProvider();
+      // Force account picker so users can switch accounts without signing out.
+      provider.setCustomParameters({ prompt: 'select_account' });
+
+      const result   = await signInWithPopup(auth, provider);
+      const id_token = await result.user.getIdToken();
+
+      const res = await fetch(`${API_URL}/api/login/google`, {
+        method:      'POST',
+        credentials: 'include',
+        headers:     { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ id_token }),
+      });
+
+      const json = await res.json();
+
+      if (!res.ok || !json.ok || !json.token || !json.user) {
+        setLoginError(json.message || 'No se pudo iniciar sesión con Google');
+        return;
+      }
+
+      const user: User = json.user;
+      login(user, json.token);
+
+      // New users (just created via Google) go to the welcome page
+      // where they choose between buyer and seller paths.
+      if (json.is_new_user) {
+        router.push('/welcome');
+        return;
+      }
+
+      const destination =
+        safeRedirectForRole(redirectTo, user.role) ?? getDefaultDestination(user.role);
+      router.push(destination);
+    } catch (err: any) {
+      // User closed the popup — not an error worth surfacing.
+      if (
+        err?.code === 'auth/popup-closed-by-user' ||
+        err?.code === 'auth/cancelled-popup-request'
+      ) {
+        return;
+      }
+      setLoginError('Error al iniciar sesión con Google. Inténtalo de nuevo.');
+    } finally {
+      setGoogleLoading(false);
+    }
   };
 
+  // ─────────────────────────────────────────────────────────────────────────
+
   return (
+    <AuthLayout heading="Inicia sesión" subheading="Accede a tu cuenta Flowjuyu">
     <form
       onSubmit={handleSubmit(onSubmit)}
-      className="flex flex-col gap-7 w-full"
+      className="flex flex-col gap-6 w-full"
     >
-      {/* HEADER */}
-      <div className="space-y-1">
-        <h2 className="text-2xl font-semibold text-neutral-900 tracking-tight">
-          Inicia sesión
-        </h2>
-        <p className="text-sm text-neutral-500">
-          Accede a tu cuenta Flowjuyu
-        </p>
-      </div>
-
       {/* EMAIL */}
       <div className="space-y-2">
         <Label htmlFor="email" className="text-sm text-neutral-700">
@@ -107,9 +160,7 @@ export function LoginForm() {
           {...register('email')}
         />
         {errors.email && (
-          <p className="text-xs text-red-500">
-            {errors.email.message}
-          </p>
+          <p className="text-xs text-red-500">{errors.email.message}</p>
         )}
       </div>
 
@@ -135,9 +186,7 @@ export function LoginForm() {
         />
 
         {errors.password && (
-          <p className="text-xs text-red-500">
-            {errors.password.message}
-          </p>
+          <p className="text-xs text-red-500">{errors.password.message}</p>
         )}
       </div>
 
@@ -151,7 +200,7 @@ export function LoginForm() {
       {/* LOGIN BUTTON */}
       <Button
         type="submit"
-        disabled={isSubmitting}
+        disabled={isSubmitting || googleLoading}
         className="h-11 rounded-xl bg-[#0F3D3A] hover:bg-[#0c322f] text-white font-medium tracking-wide transition-all duration-200 shadow-sm hover:shadow-md"
       >
         {isSubmitting ? 'Ingresando...' : 'Iniciar sesión'}
@@ -159,9 +208,7 @@ export function LoginForm() {
 
       {/* DIVIDER */}
       <div className="relative text-center text-xs text-neutral-400 my-2">
-        <span className="bg-white px-3 relative z-10">
-          O continúa con
-        </span>
+        <span className="bg-white px-3 relative z-10">O continúa con</span>
         <div className="absolute left-0 right-0 top-1/2 border-t border-neutral-200" />
       </div>
 
@@ -169,16 +216,31 @@ export function LoginForm() {
       <Button
         type="button"
         variant="outline"
-        className="h-11 rounded-xl flex items-center justify-center gap-2 border-neutral-200 hover:bg-neutral-50 transition"
+        disabled={isSubmitting || googleLoading}
+        className="h-11 rounded-xl flex items-center justify-center gap-2.5 border border-neutral-200 bg-white hover:bg-neutral-50 hover:border-neutral-300 transition-all duration-200 shadow-sm disabled:opacity-60"
         onClick={handleGoogleLogin}
       >
-        <img
-          src="/icons/google.svg"
-          alt="Google"
-          className="w-4 h-4"
-        />
-        Iniciar sesión con Google
+        {googleLoading ? (
+          <span className="w-4 h-4 border-2 border-neutral-300 border-t-neutral-600 rounded-full animate-spin" />
+        ) : (
+          <FcGoogle className="text-lg" />
+        )}
+        <span className="text-sm font-medium text-neutral-700">
+          {googleLoading ? 'Conectando...' : 'Continuar con Google'}
+        </span>
       </Button>
     </form>
+
+    {/* NEW USER CTA */}
+    <p className="text-center text-sm text-neutral-500 mt-4">
+      ¿Nuevo en Flowjuyu?{' '}
+      <Link
+        href="/register/buyer"
+        className="font-medium text-[#0F3D3A] hover:text-[#0c322f] hover:underline transition-colors"
+      >
+        Empieza aquí
+      </Link>
+    </p>
+    </AuthLayout>
   );
 }

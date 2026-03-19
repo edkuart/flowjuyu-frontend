@@ -13,6 +13,7 @@ import {
 } from "lucide-react"
 
 import { useAdminStats } from "@/hooks/useAdminStats"
+import AuthGuard from "@/components/auth/AuthGuard"
 
 // ── Nav structure ───────────────────────────────────────────────────────────────
 
@@ -85,6 +86,7 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
   const stats    = useAdminStats()
 
   return (
+    <AuthGuard allowedRoles={["admin"]}>
     <div className="flex min-h-screen bg-[#f8f6f2]">
 
       {/* ── SIDEBAR ── */}
@@ -172,5 +174,6 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
       </main>
 
     </div>
+    </AuthGuard>
   )
 }

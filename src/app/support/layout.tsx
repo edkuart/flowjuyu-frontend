@@ -12,7 +12,7 @@ const navItems = [
 
 export default function SupportLayout({ children }: { children: ReactNode }) {
   return (
-    <AuthGuard allowedRoles={["support"]}>
+    <AuthGuard allowedRoles={["support", "admin"]}>
       <div className="min-h-screen flex bg-muted/20">
         <aside className="w-64 bg-white border-r shadow-sm hidden md:block">
           <div className="p-6 border-b flex items-center gap-2">

@@ -35,8 +35,6 @@ export const userSchema = z
       .string()
       .optional()
       .transform((val) => (val?.trim() === "" ? undefined : val?.trim())),
-
-    rol: z.enum(["comprador", "vendedor", "admin"]).default("comprador"),
   })
   .refine((data) => data.password === data.confirmarPassword, {
     message: "Las contraseñas no coinciden",

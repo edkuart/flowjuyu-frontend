@@ -45,7 +45,7 @@ export default function SellerLayout({
   }, [pathname]);
 
   return (
-    <AuthGuard allowedRoles={["seller"]}>
+    <AuthGuard allowedRoles={["seller", "admin"]}>
       <div className="min-h-screen flex bg-neutral-50">
 
         {/* ================= DESKTOP SIDEBAR ================= */}

@@ -1,6 +1,5 @@
-import { getServerSession } from 'next-auth'
-import { authOptions } from '@/lib/auth'
 import { redirect } from 'next/navigation'
+import { getServerSessionSafe } from '@/lib/serverSession'
 import { Card, CardContent } from '@/components/ui/card'
 import { Separator } from '@/components/ui/separator'
 import { Badge } from '@/components/ui/badge'
@@ -9,9 +8,9 @@ import { CalendarDays } from 'lucide-react'
 import Image from 'next/image'
 
 export default async function HistorialPage() {
-  const session = await getServerSession(authOptions)
+  const user = await getServerSessionSafe()
 
-  if (!session) {
+  if (!user) {
     return redirect('/login')
   }
 
@@ -24,30 +23,10 @@ export default async function HistorialPage() {
       metodo: 'Tarjeta crédito',
       direccion: 'Zona 3, Quetzaltenango',
       productos: [
-        {
-          nombre: 'Blusa bordada típica',
-          imagen: '/productos/blusa1.jpg',
-          cantidad: 1,
-          precio: 'Q 120.00',
-        },
-        {
-          nombre: 'Cinta tradicional',
-          imagen: '/productos/cinta1.jpg',
-          cantidad: 1,
-          precio: 'Q 35.00',
-        },
-        {
-          nombre: 'Faja maya multicolor',
-          imagen: '/productos/faja1.jpg',
-          cantidad: 1,
-          precio: 'Q 95.00',
-        },
-        {
-          nombre: 'Bolsa artesanal pequeña',
-          imagen: '/productos/bolsa1.jpg',
-          cantidad: 1,
-          precio: 'Q 145.00',
-        },
+        { nombre: 'Blusa bordada típica',    imagen: '/productos/blusa1.jpg', cantidad: 1, precio: 'Q 120.00' },
+        { nombre: 'Cinta tradicional',       imagen: '/productos/cinta1.jpg', cantidad: 1, precio: 'Q 35.00' },
+        { nombre: 'Faja maya multicolor',    imagen: '/productos/faja1.jpg',  cantidad: 1, precio: 'Q 95.00' },
+        { nombre: 'Bolsa artesanal pequeña', imagen: '/productos/bolsa1.jpg', cantidad: 1, precio: 'Q 145.00' },
       ],
     },
   ]
@@ -89,12 +68,7 @@ export default async function HistorialPage() {
                   {pedido.productos.map((producto, idx) => (
                     <div key={idx} className="flex items-center gap-4">
                       <div className="relative w-16 h-16 rounded overflow-hidden border">
-                        <Image
-                          src={producto.imagen}
-                          alt={producto.nombre}
-                          fill
-                          className="object-cover"
-                        />
+                        <Image src={producto.imagen} alt={producto.nombre} fill className="object-cover" />
                       </div>
                       <div className="text-sm">
                         <p className="font-medium text-neutral-900">{producto.nombre}</p>

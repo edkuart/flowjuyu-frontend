@@ -11,7 +11,7 @@ export default function SellerPage() {
   useEffect(() => {
     if (!ready) return;
 
-    if (user?.rol === "seller") {
+    if (user?.role === "seller") {
       router.replace("/seller/my-business");
     }
   }, [ready, user, router]);

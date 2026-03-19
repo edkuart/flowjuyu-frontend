@@ -1,18 +1,23 @@
 // src/schemas/register-vendedor.schema.ts
+//
+// Simplified seller registration schema — captures only what's needed
+// to create the account and a minimal store profile.
+//
+// Fields moved to post-registration steps:
+//   - dpi / KYC documents  → profile completion flow
+//   - descripcion          → store customization
+//   - direccion personal   → seller profile settings
+//   - logo                 → store customization
 
 import { z } from "zod";
 
 export const registerVendedorSchema = z
   .object({
-    // =============================
-    // 🧍 Información personal
-    // =============================
+    // ── Personal account ──────────────────────────────────────────────────────
 
     nombre: z.string().min(1, "El nombre es obligatorio"),
 
     correo: z.string().email("Correo inválido"),
-
-    telefono: z.string().regex(/^\d{8}$/, "Debe tener 8 dígitos"),
 
     password: z
       .string()
@@ -20,21 +25,13 @@ export const registerVendedorSchema = z
 
     confirmarPassword: z
       .string()
-      .min(8, "Debes confirmar tu contraseña"),
+      .min(1, "Debes confirmar tu contraseña"),
 
-    dpi: z.string().regex(/^\d{13}$/, "DPI inválido"),
-
-    // =============================
-    // 🏪 Datos del comercio
-    // =============================
+    // ── Store essentials ──────────────────────────────────────────────────────
 
     nombreComercio: z
       .string()
       .min(1, "El nombre del comercio es obligatorio"),
-
-    direccion: z
-      .string()
-      .min(1, "La dirección es obligatoria"),
 
     telefonoComercio: z
       .string()
@@ -48,21 +45,17 @@ export const registerVendedorSchema = z
       .string()
       .min(1, "Selecciona un municipio"),
 
-    descripcion: z
-      .string()
-      .min(1, "Describe tu comercio"),
+    // ── Deferred fields (submitted as empty, completed post-registration) ─────
 
-    // =============================
-    // 🖼️ Logo opcional (NO archivos KYC)
-    // =============================
-
-    logo: z.any().optional(),
+    telefono:    z.string().optional(),
+    dpi:         z.string().optional(),
+    direccion:   z.string().optional(),
+    descripcion: z.string().optional(),
+    logo:        z.any().optional(),
   })
   .refine((data) => data.password === data.confirmarPassword, {
     message: "Las contraseñas no coinciden",
     path: ["confirmarPassword"],
   });
 
-export type RegisterVendedorValues = z.infer<
-  typeof registerVendedorSchema
->;
+export type RegisterVendedorValues = z.infer<typeof registerVendedorSchema>;

@@ -65,7 +65,7 @@ function BuyerDropdown({
   onClose,
   onLogout,
 }: {
-  user: { nombre?: string; email?: string };
+  user: { name?: string; email?: string };
   onClose: () => void;
   onLogout: () => void;
 }) {
@@ -80,10 +80,10 @@ function BuyerDropdown({
       {/* Identity header */}
       <div className="px-4 pb-2 mb-1 border-b border-neutral-100 flex items-center gap-2.5">
         <div className="w-8 h-8 rounded-full bg-orange-100 flex items-center justify-center shrink-0 text-sm font-bold text-orange-600 uppercase">
-          {user.nombre?.charAt(0) ?? "?"}
+          {user.name?.charAt(0) ?? "?"}
         </div>
         <div className="min-w-0">
-          <p className="text-xs font-semibold leading-none truncate">{user.nombre ?? "Usuario"}</p>
+          <p className="text-xs font-semibold leading-none truncate">{user.name ?? "Usuario"}</p>
           <p className="text-[10px] text-neutral-400 mt-0.5">Flowjuyu Buyer</p>
         </div>
       </div>
@@ -340,12 +340,8 @@ export default function Header() {
 
   const normalizedRole = useMemo(() => {
     if (!user) return null;
-    const raw = user.role ?? user.rol ?? null;
-    if (!raw) return null;
-    if (raw === "buyer"  || raw === "comprador")    return "buyer";
-    if (raw === "seller" || raw === "vendedor")     return "seller";
-    if (raw === "admin"  || raw === "administrador") return "admin";
-    return null;
+    // user.role is always canonical after Phase 1 (buyer | seller | admin | support)
+    return user.role ?? null;
   }, [user]);
 
   const isBuyer  = normalizedRole === "buyer";
@@ -399,17 +395,15 @@ export default function Header() {
             aria-label="Flowjuyu — Inicio"
             className="shrink-0 flex items-center"
           >
-            {/* Mobile isotipo */}
-            <div className="md:hidden flex items-center justify-center h-11 w-11 rounded-xl bg-[#f6f2ea] ring-1 ring-white/30 shadow-md overflow-hidden">
-              <Image
-                src="/flowjuyu-isotipo.png"
-                alt=""
-                width={88}
-                height={88}
-                priority
-                className="object-contain"
-              />
-            </div>
+            {/* Mobile — bare isotipo, no container box */}
+            <Image
+              src="/flowjuyu-isotipo.png"
+              alt=""
+              width={36}
+              height={36}
+              priority
+              className="md:hidden object-contain"
+            />
 
             {/* Desktop wordmark */}
             <div className="hidden md:flex items-center rounded-lg bg-[#f6f2ea] px-2 py-1 ring-1 ring-white/20 shadow-md">
@@ -430,7 +424,7 @@ export default function Header() {
           </div>
 
           {/* Actions — right side */}
-          <div className="ml-auto flex items-center gap-1 md:gap-2">
+          <div className="ml-auto flex items-center gap-2 md:gap-2">
 
             {/* Search toggle — mobile only */}
             <button
@@ -438,7 +432,7 @@ export default function Header() {
               onClick={() => setMobileSearchOpen((v) => !v)}
               aria-label={mobileSearchOpen ? "Cerrar búsqueda" : "Buscar"}
               aria-expanded={mobileSearchOpen}
-              className="sm:hidden inline-flex items-center justify-center w-10 h-10 rounded-full hover:bg-white/10 transition-colors"
+              className="sm:hidden inline-flex items-center justify-center w-10 h-10 rounded-full hover:bg-white/10 active:scale-95 transition-all duration-150"
             >
               {mobileSearchOpen
                 ? <X className="w-5 h-5" />
@@ -449,19 +443,32 @@ export default function Header() {
             {/* Account */}
             {user ? (
               <div className="relative" ref={accountRef}>
+                {/* Mobile — icon-only circle */}
                 <button
                   onClick={() => setOpenAccount((v) => !v)}
                   aria-expanded={openAccount}
                   aria-haspopup="true"
-                  className="inline-flex items-center gap-1.5 rounded-xl border border-white/20 px-3 py-2 text-sm hover:bg-white/10 transition-colors focus-visible:outline focus-visible:outline-2 focus-visible:outline-amber-400"
+                  aria-label={isAdmin ? "Admin" : isSeller ? "Mi panel" : "Mi cuenta"}
+                  className="md:hidden inline-flex items-center justify-center w-10 h-10 rounded-full hover:bg-white/10 active:scale-95 transition-all duration-150 focus-visible:outline focus-visible:outline-2 focus-visible:outline-amber-400"
+                >
+                  {isAdmin
+                    ? <ShieldCheck className="w-5 h-5" />
+                    : <User className="w-5 h-5" />
+                  }
+                </button>
+
+                {/* Desktop — text pill */}
+                <button
+                  onClick={() => setOpenAccount((v) => !v)}
+                  aria-expanded={openAccount}
+                  aria-haspopup="true"
+                  className="hidden md:inline-flex items-center gap-1.5 rounded-xl border border-white/20 px-3 py-2 text-sm hover:bg-white/10 transition-colors focus-visible:outline focus-visible:outline-2 focus-visible:outline-amber-400"
                 >
                   {isAdmin
                     ? <ShieldCheck className="w-4 h-4 shrink-0" />
                     : <User className="w-4 h-4 shrink-0" />
                   }
-                  <span className="hidden md:inline">
-                    {isAdmin ? "Admin" : isSeller ? "Mi panel" : "Mi cuenta"}
-                  </span>
+                  {isAdmin ? "Admin" : isSeller ? "Mi panel" : "Mi cuenta"}
                   <ChevronDown
                     className={`w-4 h-4 shrink-0 transition-transform duration-200 ${
                       openAccount ? "rotate-180" : ""
@@ -557,6 +564,7 @@ export default function Header() {
               </div>
             ) : (
               <>
+                {/* Desktop: inline "Iniciar sesión" shortcut */}
                 <Link
                   href="/login"
                   className="hidden sm:inline-flex items-center px-2 py-2 text-sm hover:text-amber-300 transition-colors"
@@ -564,15 +572,28 @@ export default function Header() {
                   Iniciar sesión
                 </Link>
 
+                {/* Account dropdown — icon-only on mobile, text pill on desktop */}
                 <div className="relative" ref={createRef}>
+                  {/* Mobile trigger */}
                   <button
                     onClick={() => setOpenCreate((v) => !v)}
                     aria-expanded={openCreate}
                     aria-haspopup="true"
-                    className="inline-flex items-center gap-1.5 rounded-xl border border-white/20 px-3 py-2 text-sm hover:bg-white/10 transition-colors focus-visible:outline focus-visible:outline-2 focus-visible:outline-amber-400"
+                    aria-label="Cuenta"
+                    className="sm:hidden inline-flex items-center justify-center w-10 h-10 rounded-full hover:bg-white/10 active:scale-95 transition-all duration-150 focus-visible:outline focus-visible:outline-2 focus-visible:outline-amber-400"
+                  >
+                    <User className="w-5 h-5" />
+                  </button>
+
+                  {/* Desktop trigger */}
+                  <button
+                    onClick={() => setOpenCreate((v) => !v)}
+                    aria-expanded={openCreate}
+                    aria-haspopup="true"
+                    className="hidden sm:inline-flex items-center gap-1.5 rounded-xl border border-white/20 px-3 py-2 text-sm hover:bg-white/10 transition-colors focus-visible:outline focus-visible:outline-2 focus-visible:outline-amber-400"
                   >
                     <User className="w-4 h-4 shrink-0" />
-                    <span className="hidden sm:inline">Crear cuenta</span>
+                    Crear cuenta
                     <ChevronDown
                       className={`w-4 h-4 shrink-0 transition-transform duration-200 ${
                         openCreate ? "rotate-180" : ""
@@ -581,21 +602,38 @@ export default function Header() {
                   </button>
 
                   {openCreate && (
-                    <div className="absolute right-0 top-full pt-2 w-48 z-50">
+                    <div className="absolute right-0 top-full pt-2 w-56 z-50">
                       <div className="bg-white rounded-xl shadow-2xl border border-neutral-100 py-1.5 text-neutral-800 text-sm">
+
+                        {/* Login — visible in dropdown on mobile (desktop has inline link) */}
+                        <Link
+                          href="/login"
+                          onClick={() => setOpenCreate(false)}
+                          className="sm:hidden flex items-center gap-2.5 px-4 py-2.5 hover:bg-neutral-50 transition-colors"
+                        >
+                          <User className="w-3.5 h-3.5 text-zinc-400 shrink-0" />
+                          Iniciar sesión
+                        </Link>
+                        <div className="sm:hidden my-1 border-t border-neutral-100" />
+
+                        <p className="px-4 pt-2 pb-1.5 text-[10px] font-semibold tracking-widest text-neutral-400 uppercase">
+                          Crear cuenta
+                        </p>
                         <Link
                           href="/register/buyer"
                           onClick={() => setOpenCreate(false)}
-                          className="block px-4 py-2.5 hover:bg-neutral-50 transition-colors"
+                          className="flex items-center gap-2.5 px-4 py-2.5 hover:bg-neutral-50 transition-colors"
                         >
-                          Soy comprador
+                          <ShoppingBag className="w-3.5 h-3.5 text-zinc-400 shrink-0" />
+                          Comprador
                         </Link>
                         <Link
                           href="/register/seller"
                           onClick={() => setOpenCreate(false)}
-                          className="block px-4 py-2.5 hover:bg-neutral-50 transition-colors"
+                          className="flex items-center gap-2.5 px-4 py-2.5 hover:bg-neutral-50 transition-colors"
                         >
-                          Soy vendedor
+                          <Store className="w-3.5 h-3.5 text-zinc-400 shrink-0" />
+                          Vender en Flowjuyu
                         </Link>
                       </div>
                     </div>
@@ -604,14 +642,14 @@ export default function Header() {
               </>
             )}
 
-            {/* Notification bell — buyers only */}
-            {isBuyer && <NotificationBell />}
+            {/* Notification bell — buyers only, desktop only */}
+            {isBuyer && <div className="hidden sm:block"><NotificationBell /></div>}
 
             {/* Cart */}
             <Link
               href="/carrito"
               aria-label={count > 0 ? `Carrito, ${count} artículos` : "Carrito"}
-              className="relative inline-flex items-center justify-center w-10 h-10 rounded-full hover:bg-white/10 transition-colors"
+              className="relative inline-flex items-center justify-center w-10 h-10 rounded-full hover:bg-white/10 active:scale-95 transition-all duration-150"
             >
               <ShoppingCart className="w-5 h-5" />
               {count > 0 && (
