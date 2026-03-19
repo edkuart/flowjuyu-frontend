@@ -9,6 +9,7 @@ import FilterSidebar from "@/components/product/FilterSidebar";
 
 import { Card, CardContent } from "@/components/ui/card";
 import ProductDiscoveryLayout from "@/components/product/discovery/ProductDiscoveryLayout";
+import { FavoriteButton } from "@/components/ui/FavoriteButton";
 
 const API = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8800";
 
@@ -332,6 +333,9 @@ export default function ProductosPage() {
                      fill
                      className="object-cover group-hover:scale-105 transition-transform duration-500"
                    />
+                   <div className="absolute top-2 right-2 z-10">
+                     <FavoriteButton productId={String(p.id)} size="sm" />
+                   </div>
                  </div>
                  
                  <div className="mb-2">

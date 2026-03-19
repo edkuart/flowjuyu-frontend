@@ -2,24 +2,11 @@
 
 import Image from 'next/image'
 import Link from 'next/link'
-import { useRouter } from 'next/navigation'
 import { Button } from '@/components/ui/button'
 import { useCart } from '@/context/CartContext'
-import { useAuth } from '@/context/AuthContext'
 
 export default function CartPage() {
   const { items, setQty, removeItem, subtotal } = useCart()
-  const { user } = useAuth()
-  const router = useRouter()
-
-  const goCheckout = () => {
-    if (items.length === 0) return
-    if (!user) {
-      router.push('/login?next=/checkout')
-      return
-    }
-    router.push('/checkout')
-  }
 
   return (
     <main className="max-w-6xl mx-auto px-4 md:px-8 py-8 space-y-8">
@@ -27,6 +14,16 @@ export default function CartPage() {
         <h1 className="text-2xl md:text-3xl font-bold">Carrito</h1>
         <Link href="/" className="text-sm underline">Seguir comprando</Link>
       </header>
+
+      {/* Demo notice */}
+      <div className="flex items-start gap-3 rounded-xl border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-900">
+        <span className="mt-0.5 shrink-0 text-amber-500">●</span>
+        <p>
+          <span className="font-semibold">Plataforma en fase demo.</span>{' '}
+          Puedes explorar el carrito libremente, pero las compras aún no están habilitadas.
+          Pronto lanzaremos la experiencia completa.
+        </p>
+      </div>
 
       {items.length === 0 ? (
         <div className="rounded-xl border p-10 text-center text-zinc-500">
@@ -68,14 +65,18 @@ export default function CartPage() {
               <span>Subtotal</span>
               <span className="font-semibold">Q {subtotal.toFixed(2)}</span>
             </div>
-            <Button className="w-full mt-3" disabled={items.length === 0} onClick={goCheckout}>
-              Finalizar compra
+            <Button className="w-full mt-3" disabled>
+              Próximamente
             </Button>
-            {!user && (
-              <p className="text-xs text-zinc-500 mt-2">
-                Para finalizar, inicia sesión o crea una cuenta.
-              </p>
-            )}
+            <p className="text-xs text-zinc-400 mt-2 text-center">
+              Las compras estarán disponibles en el lanzamiento.
+            </p>
+            <Link
+              href="/"
+              className="mt-3 flex items-center justify-center w-full rounded-lg border border-zinc-200 px-3 py-2 text-sm text-zinc-600 hover:bg-zinc-50 transition-colors"
+            >
+              Explorar productos
+            </Link>
           </aside>
         </div>
       )}

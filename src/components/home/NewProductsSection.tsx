@@ -5,6 +5,7 @@
 import Link from "next/link";
 import Image from "next/image";
 import SectionHeader from "@/components/ui/SectionHeader";
+import { FavoriteButton } from "@/components/ui/FavoriteButton";
 import { useState } from "react";
 
 type Producto = {
@@ -74,6 +75,11 @@ function NewProductCard({ product }: { product: Producto }) {
           <span className="text-[9px] uppercase tracking-[0.28em] text-white bg-white/15 backdrop-blur-sm border border-white/20 px-2 py-[4px]">
             {daysAgo ? `Llegó ${daysAgo}` : "Nuevo"}
           </span>
+        </div>
+
+        {/* Favorite button */}
+        <div className="absolute top-4 right-4 z-10">
+          <FavoriteButton productId={product.id} size="sm" />
         </div>
 
         {/* Info del producto en la imagen */}

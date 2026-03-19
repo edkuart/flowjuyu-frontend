@@ -7,7 +7,7 @@ import Image from "next/image";
 import Link from "next/link";
 import { MapPin, Store, ChevronDown, ShieldCheck } from "lucide-react";
 import WhatsAppModal from "@/components/product/WhatsAppModal";
-import SaveButton from "@/components/ui/SaveButton";
+import { FavoriteButton } from "@/components/ui/FavoriteButton";
 
 type Props = {
   nombre: string;
@@ -322,16 +322,7 @@ export default function ProductInfo({
 
           {/* Guardar pieza + nota de envío */}
           <div className="flex items-center justify-between pt-1">
-            <SaveButton
-              piece={{
-                id: productId,
-                nombre,
-                precio: precioNumber,
-                imagen_url: imagen_principal ?? null,
-                vendedor_nombre: sellerNombre ?? null,
-              }}
-              size="md"
-            />
+            <FavoriteButton productId={productId} showLabel />
             <p className="text-[10px] text-[#0d0d0b]/35 tracking-wide text-right">
               El artesano responde directo
             </p>

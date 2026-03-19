@@ -10,9 +10,15 @@ import HowToUse from "@/components/product/view/HowToUse";
 
 const API = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8800";
 
+/* ─────────────────────────────────────────────
+   FETCH — optimizado (no más no-store)
+───────────────────────────────────────────── */
 async function fetchProduct(id: string) {
   try {
-    const res = await fetch(`${API}/api/products/${id}`, { cache: "no-store" });
+    const res = await fetch(`${API}/api/products/${id}`, {
+      next: { revalidate: 60 }, // 🔥 cache inteligente (1 min)
+    });
+
     if (!res.ok) return null;
     return await res.json();
   } catch (err) {
@@ -29,29 +35,42 @@ export default async function ProductPage({
   const { id } = params;
   const data = await fetchProduct(id);
 
+  /* ─────────────────────────────────────────────
+     EMPTY STATE — más premium
+  ───────────────────────────────────────────── */
   if (!data?.product) {
     return (
-      <div className="w-full flex flex-col items-center justify-center py-32 gap-3 text-center px-4">
-        <p className="font-serif italic text-3xl text-[#0d0d0b]/40">
-          Pieza no encontrada
+      <div className="w-full flex flex-col items-center justify-center py-32 gap-4 text-center px-4">
+        <p className="font-serif italic text-3xl text-[#0d0d0b]/50">
+          Esta pieza ya no está disponible
         </p>
-        <p className="text-sm text-[#0d0d0b]/30">
-          Es posible que haya sido vendida o retirada por el artesano.
+        <p className="text-sm text-[#0d0d0b]/40 max-w-md">
+          Puede que haya sido vendida o retirada por el artesano.
+          Explora otras piezas únicas dentro de Flowjuyu.
         </p>
       </div>
     );
   }
 
+  /* ─────────────────────────────────────────────
+     DATA NORMALIZATION
+  ───────────────────────────────────────────── */
   const product = data.product;
-  const relacionados: typeof product[] = Array.isArray(data.related) ? data.related : [];
+  const relacionados: typeof product[] = Array.isArray(data.related)
+    ? data.related
+    : [];
+
   const vendedor = product.vendedor ?? {};
 
-  /* ── Normalizar imágenes ── */
+  /* ── Imágenes ── */
   const imagenes: string[] = (() => {
     const lista: string[] = [];
+
     if (product.imagen_principal) lista.push(product.imagen_principal);
-    if (Array.isArray(product.imagenes)) lista.push(...product.imagenes.filter(Boolean));
+    if (Array.isArray(product.imagenes))
+      lista.push(...product.imagenes.filter(Boolean));
     if (product.imagen_url) lista.push(product.imagen_url);
+
     return [...new Set(lista.filter(Boolean))];
   })();
 
@@ -63,23 +82,27 @@ export default async function ProductPage({
     .filter(Boolean)
     .join(", ");
 
+  /* ─────────────────────────────────────────────
+     PAGE
+  ───────────────────────────────────────────── */
   return (
     <div className="bg-[#f6f2ea] min-h-screen">
       <div className="max-w-7xl mx-auto px-4 md:px-8 pt-8 pb-20">
 
         {/* ══════════════════════════════════════════════════
-            ZONA DE DECISIÓN — Gallery + Info en 2 columnas
-            La galería es sticky en desktop para que el usuario
-            siempre vea el producto mientras lee la info.
+            ZONA DE DECISIÓN
         ══════════════════════════════════════════════════ */}
         <div className="grid grid-cols-1 md:grid-cols-2 gap-10 md:gap-14 items-start">
 
-          {/* GALLERY — sticky desde tablet (768px) hacia arriba */}
+          {/* GALLERY */}
           <div className="md:sticky md:top-24">
-            <ProductGallery imagenes={imagenes} titulo={product.nombre} />
+            <ProductGallery
+              imagenes={imagenes}
+              titulo={product.nombre}
+            />
           </div>
 
-          {/* INFO + SPECS — toda la decisión de compra en una columna */}
+          {/* INFO */}
           <div className="space-y-0">
             <ProductInfo
               nombre={product.nombre}
@@ -87,19 +110,25 @@ export default async function ProductPage({
               precio={product.precio}
               productId={product.id}
               imagen_principal={imagenes[0] ?? "/placeholder.jpg"}
-              rating_avg={product.rating_avg}
-              rating_count={product.rating_count}
+
+              /* ⭐ CLAVE */
+              rating_avg={product.rating_avg ?? 0}
+              rating_count={product.rating_count ?? 0}
+
+              /* SELLER */
               sellerId={vendedor.id}
               sellerWhatsapp={vendedor.whatsapp}
               sellerPlan={vendedor.plan}
               sellerPlanActivo={vendedor.plan_activo}
               sellerNombre={vendedor.nombre_comercio}
               sellerLogo={vendedor.logo}
+
+              /* META */
               ubicacion={ubicacion || undefined}
               categoria={product.categoria?.nombre ?? product.categoria_custom}
             />
 
-            {/* Especificaciones en la misma columna, debajo de la info */}
+            {/* SPECS */}
             <div className="mt-6">
               <ProductSpecs
                 categoria={product.categoria}
@@ -114,12 +143,10 @@ export default async function ProductPage({
               />
             </div>
           </div>
-
         </div>
 
         {/* ══════════════════════════════════════════════════
-            ARTISAN STORY — editorial, debajo del fold
-            Refuerza la decisión después de haber visto precio y CTA
+            STORY
         ══════════════════════════════════════════════════ */}
         <div className="mt-20 border-t border-[#0d2d20]/10 pt-16">
           <ArtisanStory
@@ -129,7 +156,7 @@ export default async function ProductPage({
         </div>
 
         {/* ══════════════════════════════════════════════════
-            HOW TO USE — guía contextual por categoría
+            HOW TO USE
         ══════════════════════════════════════════════════ */}
         <div className="mt-16 border-t border-[#0d2d20]/10 pt-16">
           <HowToUse
@@ -140,12 +167,15 @@ export default async function ProductPage({
         {/* ══════════════════════════════════════════════════
             REVIEWS
         ══════════════════════════════════════════════════ */}
-        <div className="mt-16 border-t border-[#0d2d20]/10 pt-16" id="reviews">
+        <div
+          className="mt-16 border-t border-[#0d2d20]/10 pt-16"
+          id="reviews"
+        >
           <ProductReviews productId={product.id} />
         </div>
 
         {/* ══════════════════════════════════════════════════
-            PRODUCTOS RELACIONADOS
+            RELATED
         ══════════════════════════════════════════════════ */}
         {relacionados.length > 0 && (
           <div className="mt-16 border-t border-[#0d2d20]/10 pt-16">
@@ -156,7 +186,6 @@ export default async function ProductPage({
             />
           </div>
         )}
-
       </div>
     </div>
   );

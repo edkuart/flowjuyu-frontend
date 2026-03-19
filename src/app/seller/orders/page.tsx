@@ -20,7 +20,8 @@ import {
   ArrowRight,
   CheckCircle2,
   Sparkles,
-  ImageIcon,
+  Share2,
+  MessageCircle,
 } from 'lucide-react'
 
 const API = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8800'
@@ -279,6 +280,243 @@ function SellerOrdersLockedState() {
 }
 
 /* ══════════════════════════════════════════
+   EMPTY STATE COMPONENT
+══════════════════════════════════════════ */
+
+function SellerOrdersEmptyState({ slug }: { slug: string }) {
+  const router = useRouter()
+
+  const tips = [
+    { icon: <Share2      className="w-4 h-4 text-[#0F3D3A]" />, text: 'Comparte tu tienda con clientes' },
+    { icon: <Sparkles    className="w-4 h-4 text-[#0F3D3A]" />, text: 'Publica productos atractivos' },
+    { icon: <CheckCircle2 className="w-4 h-4 text-[#0F3D3A]" />, text: 'Mejora fotos y descripciones' },
+  ]
+
+  return (
+    <Card className="border border-neutral-100 shadow-sm overflow-hidden">
+      <div className="h-1 bg-[#0F3D3A]" />
+      <CardContent className="p-10 flex flex-col items-center text-center gap-6">
+
+        {/* Icon */}
+        <div className="w-16 h-16 rounded-2xl bg-[#f0f7f6] flex items-center justify-center text-3xl select-none">
+          📦
+        </div>
+
+        {/* Title + context */}
+        <div className="space-y-2">
+          <h2 className="text-xl font-bold text-neutral-900">Aún no tienes pedidos</h2>
+          <p className="text-sm text-neutral-500 max-w-xs mx-auto leading-relaxed">
+            Tu tienda ya está activa. Ahora es momento de comenzar a vender.
+          </p>
+        </div>
+
+        {/* Action tips */}
+        <ul className="w-full max-w-xs space-y-3 text-left">
+          {tips.map((t, i) => (
+            <li key={i} className="flex items-center gap-3 text-sm text-neutral-700">
+              <span className="flex-shrink-0 w-7 h-7 rounded-lg bg-[#f0f7f6] flex items-center justify-center">
+                {t.icon}
+              </span>
+              {t.text}
+            </li>
+          ))}
+        </ul>
+
+        {/* CTAs */}
+        <div className="flex flex-col sm:flex-row gap-3 w-full max-w-xs">
+          <Button
+            className="flex-1 bg-[#0F3D3A] hover:bg-[#0a2e2c] text-white rounded-xl"
+            onClick={() => router.push(slug ? `/tienda/${slug}` : '/')}
+          >
+            Ver mi tienda
+            <ArrowRight className="w-4 h-4 ml-2" />
+          </Button>
+          <Button
+            variant="outline"
+            className="flex-1 rounded-xl"
+            onClick={() => router.push('/seller/products/new')}
+          >
+            Agregar producto
+          </Button>
+        </div>
+
+        {/* Hint */}
+        <p className="text-xs text-neutral-400 max-w-xs leading-relaxed">
+          Los primeros pedidos suelen llegar en las primeras 24–72 horas tras compartir tu tienda.
+        </p>
+
+      </CardContent>
+    </Card>
+  )
+}
+
+/* ══════════════════════════════════════════
+   COMING SOON COMPONENT
+══════════════════════════════════════════ */
+
+function SellerOrdersComingSoon({ slug }: { slug: string }) {
+  const router  = useRouter()
+  const [copied, setCopied] = useState(false)
+
+  const storeUrl = typeof window !== 'undefined'
+    ? `${window.location.origin}/tienda/${slug}`
+    : `/tienda/${slug}`
+
+  async function handleShare() {
+    if (navigator.share) {
+      try {
+        await navigator.share({ title: 'Mi tienda en Flowjuyu', url: storeUrl })
+      } catch { /* user cancelled */ }
+    } else {
+      await navigator.clipboard.writeText(storeUrl)
+      setCopied(true)
+      setTimeout(() => setCopied(false), 2000)
+    }
+  }
+
+  return (
+    <main className="max-w-2xl mx-auto px-4 py-16 space-y-8">
+
+      {/* Hero card */}
+      <Card className="bg-white border border-neutral-100 shadow-sm overflow-hidden">
+        <div className="h-1 bg-amber-400" />
+        <CardContent className="p-10 flex flex-col items-center text-center gap-5">
+
+          {/* Icon + badge row */}
+          <div className="flex flex-col items-center gap-3">
+            <div className="w-16 h-16 rounded-2xl bg-amber-50 flex items-center justify-center">
+              <Package className="w-8 h-8 text-amber-500" />
+            </div>
+            <span className="text-xs font-semibold bg-amber-100 text-amber-700 px-3 py-1 rounded-full tracking-wide">
+              En desarrollo
+            </span>
+          </div>
+
+          {/* Copy */}
+          <div className="space-y-2">
+            <h1 className="text-xl font-bold text-neutral-900">
+              Estamos preparando tus pedidos
+            </h1>
+            <p className="text-sm text-neutral-500 max-w-sm mx-auto leading-relaxed">
+              El sistema de pedidos aún está en desarrollo. Muy pronto podrás gestionar tus ventas desde aquí.
+            </p>
+          </div>
+
+          {/* CTAs */}
+          <div className="flex flex-col sm:flex-row gap-3 w-full max-w-xs pt-1">
+            <Button
+              className="flex-1 bg-[#0F3D3A] hover:bg-[#0a2e2c] text-white rounded-xl"
+              onClick={() => router.push(slug ? `/tienda/${slug}` : '/')}
+            >
+              Ver mi tienda
+              <ArrowRight className="w-4 h-4 ml-2" />
+            </Button>
+            <Button
+              variant="outline"
+              className="flex-1 rounded-xl"
+              onClick={() => router.push('/seller/products/new')}
+            >
+              Agregar producto
+            </Button>
+          </div>
+
+          {/* Psychological nudge */}
+          <p className="text-xs text-neutral-400 max-w-xs leading-relaxed">
+            Puedes comenzar a compartir tu tienda desde ahora mientras activamos esta función.
+          </p>
+
+        </CardContent>
+      </Card>
+
+      {/* Skeleton preview — makes it feel alive */}
+      <div className="space-y-3">
+        <p className="text-xs font-semibold text-neutral-400 uppercase tracking-wide pl-1">
+          Así se verá tu historial
+        </p>
+        {[1, 2].map((n) => (
+          <Card key={n} className="border border-dashed border-neutral-200 bg-neutral-50/60">
+            <CardContent className="p-5 space-y-3">
+              <div className="flex justify-between items-start gap-4">
+                <div className="space-y-2">
+                  <div className="h-3 w-24 bg-neutral-200 rounded-full animate-pulse" />
+                  <div className="h-4 w-16 bg-neutral-200 rounded-full animate-pulse" />
+                </div>
+                <div className="space-y-2 text-right">
+                  <div className="h-5 w-20 bg-amber-100 rounded-full animate-pulse ml-auto" />
+                  <div className="h-3 w-28 bg-neutral-200 rounded-full animate-pulse ml-auto" />
+                </div>
+              </div>
+              <div className="grid grid-cols-2 gap-3">
+                <div className="space-y-1.5">
+                  {[40, 28, 36, 44].map((w) => (
+                    <div key={w} className="h-3 rounded-full bg-neutral-200 animate-pulse" style={{ width: `${w * 2}px` }} />
+                  ))}
+                </div>
+                <div className="flex gap-3 items-start">
+                  <div className="w-12 h-12 rounded-md bg-neutral-200 animate-pulse flex-shrink-0" />
+                  <div className="space-y-1.5 pt-1">
+                    <div className="h-3 w-24 bg-neutral-200 rounded-full animate-pulse" />
+                    <div className="h-3 w-16 bg-neutral-200 rounded-full animate-pulse" />
+                  </div>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+        ))}
+      </div>
+
+      {/* Manual sales section */}
+      <Card className="bg-[#f0f7f6] border border-[#c8e6e2] shadow-sm overflow-hidden">
+        <div className="h-1 bg-[#0F3D3A]" />
+        <CardContent className="p-6 space-y-5">
+
+          {/* Header */}
+          <div className="space-y-1">
+            <p className="text-sm font-bold text-[#0F3D3A]">
+              Comienza a vender desde ahora
+            </p>
+            <p className="text-sm text-neutral-500 leading-relaxed">
+              Mientras activamos el sistema de pedidos, puedes recibir pedidos directamente de tus clientes.
+            </p>
+          </div>
+
+          {/* Actions */}
+          <div className="flex flex-col sm:flex-row gap-3">
+            <Button
+              className="flex-1 bg-[#0F3D3A] hover:bg-[#0a2e2c] text-white rounded-xl"
+              onClick={handleShare}
+            >
+              <Share2 className="w-4 h-4 mr-2" />
+              {copied ? '¡Enlace copiado!' : 'Compartir mi tienda'}
+            </Button>
+            <Button
+              variant="outline"
+              className="flex-1 rounded-xl border-[#0F3D3A] text-[#0F3D3A] hover:bg-[#f0f7f6]"
+              onClick={() =>
+                window.open(
+                  `https://wa.me/502XXXXXXXX?text=${encodeURIComponent(`Hola, visita mi tienda en Flowjuyu: ${storeUrl}`)}`,
+                  '_blank'
+                )
+              }
+            >
+              <MessageCircle className="w-4 h-4 mr-2" />
+              Recibir pedidos por WhatsApp
+            </Button>
+          </div>
+
+          {/* Social proof nudge */}
+          <p className="text-xs text-neutral-400 leading-relaxed">
+            Muchos vendedores comienzan así sus primeras ventas.
+          </p>
+
+        </CardContent>
+      </Card>
+
+    </main>
+  )
+}
+
+/* ══════════════════════════════════════════
    PAGE
 ══════════════════════════════════════════ */
 
@@ -286,6 +524,7 @@ export default function SellerOrdersPage() {
   // account gate
   const [puedePublicar,  setPuedePublicar]  = useState<boolean | null>(null)
   const [accountLoading, setAccountLoading] = useState(true)
+  const [slug,           setSlug]           = useState<string>('')
 
   // filters
   const [q,      setQ]      = useState('')
@@ -331,6 +570,7 @@ export default function SellerOrdersPage() {
         if (res.ok) {
           const { data } = await res.json()
           setPuedePublicar(Boolean(data.puede_publicar))
+          if (data.slug) setSlug(String(data.slug))
         } else {
           setPuedePublicar(false)
         }
@@ -451,6 +691,11 @@ export default function SellerOrdersPage() {
     return <SellerOrdersLockedState />
   }
 
+  /* ── coming soon gate ── */
+  if (!loading && pedidos.length === 0) {
+    return <SellerOrdersComingSoon slug={slug} />
+  }
+
   /* ══════════════════════════════════════════
      NORMAL ORDERS UI
   ══════════════════════════════════════════ */
@@ -533,11 +778,15 @@ export default function SellerOrdersPage() {
             </CardContent>
           </Card>
         ) : pedidos.length === 0 ? (
-          <Card>
-            <CardContent className="p-8 text-center text-muted-foreground">
-              No hay pedidos con esos filtros.
-            </CardContent>
-          </Card>
+          q.trim() || estado !== 'Todos' || from || to ? (
+            <Card>
+              <CardContent className="p-8 text-center text-muted-foreground">
+                No hay pedidos con esos filtros.
+              </CardContent>
+            </Card>
+          ) : (
+            <SellerOrdersEmptyState slug={slug} />
+          )
         ) : (
           pedidos.map((pedido) => (
             <Card key={pedido.id}>

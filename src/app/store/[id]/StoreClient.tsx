@@ -11,11 +11,10 @@ import {
   MapPin,
   ShieldCheck,
   Star,
-  Heart,
-  HeartOff,
   BookOpen,
 } from "lucide-react";
 import ProductDiscoveryLayout from "@/components/product/discovery/ProductDiscoveryLayout";
+import { FavoriteButton } from "@/components/ui/FavoriteButton";
 
 const API = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8800";
 
@@ -81,41 +80,17 @@ function Stars({ rating, size = "sm" }: { rating: number; size?: "sm" | "lg" }) 
    PRODUCT CARD (with favorites)
 ===================================================== */
 
-function ProductCard({
-  p,
-  favoriteId,
-  onToggleFavorite,
-  isLoggedIn,
-}: {
-  p: Producto;
-  favoriteId: number | null;
-  onToggleFavorite: (productId: string, favoriteId: number | null) => void;
-  isLoggedIn: boolean;
-}) {
+function ProductCard({ p }: { p: Producto }) {
   const precio = Number(p.precio);
 
   return (
     <Link href={`/product/${p.id}`}>
       <div className="group bg-white rounded-3xl border border-neutral-200 p-5 hover:shadow-2xl hover:-translate-y-1 transition-all duration-300 overflow-hidden relative">
 
-        {/* Favorite button */}
-        {isLoggedIn && (
-          <button
-            className="absolute top-3 right-3 z-10 p-1.5 rounded-full bg-white/80 backdrop-blur shadow-sm hover:bg-red-50 transition"
-            onClick={(e) => {
-              e.preventDefault();
-              e.stopPropagation();
-              onToggleFavorite(p.id, favoriteId);
-            }}
-            aria-label={favoriteId ? "Quitar de favoritos" : "Guardar en favoritos"}
-          >
-            {favoriteId ? (
-              <HeartOff className="w-4 h-4 text-red-500" />
-            ) : (
-              <Heart className="w-4 h-4 text-neutral-400 hover:text-red-400" />
-            )}
-          </button>
-        )}
+        {/* Favorite button — uses shared useFavorites store */}
+        <div className="absolute top-3 right-3 z-10">
+          <FavoriteButton productId={p.id} size="sm" />
+        </div>
 
         {/* Image */}
         <div className="relative w-full aspect-square bg-neutral-50 rounded-2xl overflow-hidden mb-4">
@@ -268,21 +243,12 @@ export default function StoreClient({
   const [reviews, setReviews]             = useState<Review[]>([]);
   const [showAllReviews, setShowAllReviews] = useState(false);
 
-  // Favorites
-  const [favMap, setFavMap] = useState<Record<string, number | null>>({});
-  const [isLoggedIn, setIsLoggedIn] = useState(false);
 
   /* ── FAB scroll ── */
   useEffect(() => {
     const onScroll = () => setFabVisible(window.scrollY > 400);
     window.addEventListener("scroll", onScroll, { passive: true });
     return () => window.removeEventListener("scroll", onScroll);
-  }, []);
-
-  /* ── Auth check ── */
-  useEffect(() => {
-    const token = localStorage.getItem("token");
-    setIsLoggedIn(!!token);
   }, []);
 
   /* ── Load reviews ── */
@@ -301,58 +267,6 @@ export default function StoreClient({
   }, [seller.id]);
 
   useEffect(() => { loadReviews(); }, [loadReviews]);
-
-  /* ── Load favorites for visible products ── */
-  useEffect(() => {
-    const token = localStorage.getItem("token");
-    if (!token || !initialProducts.length) return;
-
-    const checkFavs = async () => {
-      const results: Record<string, number | null> = {};
-      await Promise.all(
-        initialProducts.map(async (p) => {
-          try {
-            const res = await fetch(`${API}/api/favorites/check?product_id=${p.id}`, {
-              headers: { Authorization: `Bearer ${token}` },
-            });
-            if (res.ok) {
-              const d = await res.json();
-              results[p.id] = d.favorited ? d.favoriteId : null;
-            }
-          } catch {}
-        })
-      );
-      setFavMap(results);
-    };
-
-    checkFavs();
-  }, [initialProducts]);
-
-  /* ── Toggle favorite ── */
-  const handleToggleFavorite = useCallback(async (productId: string, favoriteId: number | null) => {
-    const token = localStorage.getItem("token");
-    if (!token) return;
-
-    if (favoriteId) {
-      // Remove
-      await fetch(`${API}/api/favorites/${favoriteId}`, {
-        method: "DELETE",
-        headers: { Authorization: `Bearer ${token}` },
-      });
-      setFavMap((prev) => ({ ...prev, [productId]: null }));
-    } else {
-      // Add
-      const res = await fetch(`${API}/api/favorites`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
-        body: JSON.stringify({ product_id: productId }),
-      });
-      if (res.ok) {
-        const d = await res.json();
-        setFavMap((prev) => ({ ...prev, [productId]: d.id }));
-      }
-    }
-  }, []);
 
   /* ── Filtros + Sort ── */
   const productos = useMemo(() => {
@@ -716,13 +630,7 @@ export default function StoreClient({
 
         <div className="grid grid-cols-2 md:grid-cols-3 xl:grid-cols-4 gap-5">
           {productos.map((p) => (
-            <ProductCard
-              key={p.id}
-              p={p}
-              favoriteId={favMap[p.id] ?? null}
-              onToggleFavorite={handleToggleFavorite}
-              isLoggedIn={isLoggedIn}
-            />
+            <ProductCard key={p.id} p={p} />
           ))}
           {productos.length === 0 && (
             <div className="col-span-full text-center py-20 space-y-3">

@@ -6,6 +6,7 @@ import Image from "next/image";
 import Link from "next/link";
 
 import ProductDiscoveryLayout from "@/components/product/discovery/ProductDiscoveryLayout";
+import { FavoriteButton } from "@/components/ui/FavoriteButton";
 
 const API = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8800";
 
@@ -168,6 +169,9 @@ export default function CategoriaPage() {
                     fill
                     className="object-cover group-hover:scale-105 transition-transform"
                   />
+                  <div className="absolute top-2 right-2 z-10">
+                    <FavoriteButton productId={p.id} size="sm" />
+                  </div>
                 </div>
 
                 <h3 className="font-medium line-clamp-2">{p.nombre}</h3>

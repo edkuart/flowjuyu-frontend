@@ -6,6 +6,7 @@ import { useState } from "react"
 import Image from "next/image"
 import Link from "next/link"
 import { Button } from "@/components/ui/button"
+import { FavoriteButton } from "@/components/ui/FavoriteButton"
 import { Product } from "@/types/product"
 
 interface Props {
@@ -76,6 +77,9 @@ export function ProductCard({ product, canEdit = false, onAddToCart }: Props) {
           sizes="(max-width: 640px) 100vw, (max-width: 1024px) 50vw, 33vw"
           loading="lazy"
         />
+        <div className="absolute top-2 right-2 z-10">
+          <FavoriteButton productId={product.id} size="sm" />
+        </div>
       </div>
 
       {/* Contenido */}

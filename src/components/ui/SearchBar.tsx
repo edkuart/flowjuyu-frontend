@@ -66,12 +66,15 @@ export default function SearchBar() {
           fetch(`${API}/api/accesorios?tipo=tipico`).then((r) => r.json()),
         ]);
 
-        setCategorias(catRes || []);
-        setClases(clsRes || []);
+        setCategorias(Array.isArray(catRes) ? catRes : []);
+        setClases(Array.isArray(clsRes) ? clsRes : []);
 
         // Unir accesorios normales + típicos, evitando duplicados
         const mapa = new Map<number, Accesorio>();
-        [...(accNormalRes || []), ...(accTipicoRes || [])].forEach((a: Accesorio) => {
+        [
+          ...(Array.isArray(accNormalRes) ? accNormalRes : []),
+          ...(Array.isArray(accTipicoRes) ? accTipicoRes : []),
+        ].forEach((a: Accesorio) => {
           if (!mapa.has(a.id)) mapa.set(a.id, a);
         });
 

@@ -59,9 +59,12 @@ export const metadata: Metadata = {
     images: ["/images/hero-cultural.jpg"],
   },
   icons: {
-    icon: "/flowjuyu-isotipo.png",
-    shortcut: "/flowjuyu-isotipo.png",
-    apple: "/flowjuyu-isotipo.png",
+    icon: [
+      { url: "/icon.png", type: "image/png" },
+    ],
+    apple: [
+      { url: "/apple-icon.png", sizes: "180x180", type: "image/png" },
+    ],
   },
 };
 
@@ -78,9 +81,7 @@ export default function RootLayout({
         <AuthProvider>
           <ClientProviders>
             <CartProvider>
-              <header className="sticky top-0 z-50 w-full">
-                <Header />
-              </header>
+              <Header />
               <main className="flex-1 w-full">
                 {children}
               </main>

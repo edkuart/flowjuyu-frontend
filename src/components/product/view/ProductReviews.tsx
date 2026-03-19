@@ -1,67 +1,59 @@
-"use client"
+"use client";
 
-import { useEffect, useState } from "react"
-import { useRouter } from "next/navigation"
-import { authFetch } from "@/lib/authFetch"
-import { Button } from "@/components/ui/button"
+import { useEffect, useState, useCallback } from "react";
+import { useRouter } from "next/navigation";
+import { apiFetch } from "@/lib/api";
+import { useAuth } from "@/context/AuthContext";
+import { Button } from "@/components/ui/button";
 
-const API = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8800"
-
-/* ===============================
-   TYPES
-=============================== */
+// ─── Types ─────────────────────────────────────────────────────────────────────
+// Shape returned by GET /api/products/:id/reviews
 
 interface Review {
-  id: string
-  rating: number
-  comentario: string | null
-  created_at: string
-  comprador: {
-    nombre: string
-    apellido: string
-  } | null
+  id: number;
+  rating: number;
+  /** Column name in the legacy reviews table */
+  comentario: string | null;
+  created_at: string;
+  buyer_nombre: string;
 }
 
 interface ReviewsData {
-  reviews: Review[]
-  rating_avg: number
-  rating_count: number
+  reviews: Review[];
+  rating_avg: number;
+  rating_count: number;
 }
 
-/* ===============================
-   STAR DISPLAY (read-only)
-=============================== */
+// ─── Star display (read-only) ─────────────────────────────────────────────────
 
 function StarDisplay({
   rating,
   size = "sm",
 }: {
-  rating: number
-  size?: "sm" | "md" | "lg"
+  rating: number;
+  size?: "sm" | "md" | "lg";
 }) {
   const cls =
-    size === "lg" ? "text-2xl" : size === "md" ? "text-lg" : "text-sm"
+    size === "lg" ? "text-2xl" : size === "md" ? "text-lg" : "text-sm";
   return (
     <div className={`flex text-yellow-400 ${cls}`}>
       {Array.from({ length: 5 }).map((_, i) => (
         <span key={i}>{i < Math.round(rating) ? "★" : "☆"}</span>
       ))}
     </div>
-  )
+  );
 }
 
-/* ===============================
-   RATING DISTRIBUTION BARS
-=============================== */
+// ─── Rating distribution bars ─────────────────────────────────────────────────
 
 function RatingDistribution({ reviews }: { reviews: Review[] }) {
-  const total = reviews.length
+  const total = reviews.length;
 
   return (
     <div className="space-y-2">
-      {[5, 4, 3, 2, 1].map(stars => {
-        const count = reviews.filter(r => r.rating === stars).length
-        const pct = total > 0 ? (count / total) * 100 : 0
+      {[5, 4, 3, 2, 1].map((stars) => {
+        const count = reviews.filter((r) => r.rating === stars).length;
+        const pct = total > 0 ? (count / total) * 100 : 0;
 
         return (
           <div key={stars} className="flex items-center gap-2 text-sm">
@@ -79,33 +71,30 @@ function RatingDistribution({ reviews }: { reviews: Review[] }) {
               {count}
             </span>
           </div>
-        )
+        );
       })}
     </div>
-  )
+  );
 }
 
-/* ===============================
-   STAR SELECTOR (interactive)
-=============================== */
+// ─── Star selector (interactive) ─────────────────────────────────────────────
 
 function StarSelector({
   value,
   onChange,
 }: {
-  value: number
-  onChange: (v: number) => void
+  value: number;
+  onChange: (v: number) => void;
 }) {
-  const [hovered, setHovered] = useState(0)
-
-  const labels = ["", "Malo", "Regular", "Bueno", "Muy bueno", "Excelente"]
+  const [hovered, setHovered] = useState(0);
+  const labels = ["", "Malo", "Regular", "Bueno", "Muy bueno", "Excelente"];
 
   return (
     <div>
       <div className="flex gap-1">
         {Array.from({ length: 5 }).map((_, i) => {
-          const star = i + 1
-          const filled = star <= (hovered || value)
+          const star = i + 1;
+          const filled = star <= (hovered || value);
           return (
             <button
               key={star}
@@ -120,54 +109,38 @@ function StarSelector({
             >
               ★
             </button>
-          )
+          );
         })}
       </div>
-
       <p className="text-xs mt-1.5 h-4 text-amber-600 font-medium">
-        {hovered > 0
-          ? labels[hovered]
-          : value > 0
-          ? labels[value]
-          : ""}
+        {hovered > 0 ? labels[hovered] : value > 0 ? labels[value] : ""}
       </p>
     </div>
-  )
+  );
 }
 
-/* ===============================
-   REVIEW CARD
-=============================== */
+// ─── Review card ──────────────────────────────────────────────────────────────
 
 function ReviewCard({ review }: { review: Review }) {
-  function formatDate(iso: string) {
-    return new Date(iso).toLocaleDateString("es-GT", {
-      year: "numeric",
-      month: "long",
-      day: "numeric",
-    })
-  }
+  const formattedDate = new Date(review.created_at).toLocaleDateString(
+    "es-GT",
+    { year: "numeric", month: "long", day: "numeric" }
+  );
 
-  function buyerName() {
-    if (!review.comprador) return "Comprador verificado"
-    const { nombre, apellido } = review.comprador
-    return `${nombre} ${apellido}`.trim() || "Comprador verificado"
-  }
+  const initial = (review.buyer_nombre || "C").charAt(0).toUpperCase();
 
   return (
     <div className="border border-neutral-100 rounded-2xl p-5 bg-white shadow-sm space-y-3 hover:shadow-md transition-shadow">
       <div className="flex items-start justify-between gap-2">
         <div className="flex items-center gap-2.5">
           <div className="w-8 h-8 rounded-full bg-amber-100 flex items-center justify-center text-amber-700 font-bold text-sm flex-shrink-0">
-            {buyerName().charAt(0).toUpperCase()}
+            {initial}
           </div>
           <div>
             <p className="font-semibold text-neutral-800 text-sm leading-none">
-              {buyerName()}
+              {review.buyer_nombre || "Comprador verificado"}
             </p>
-            <p className="text-xs text-neutral-400 mt-0.5">
-              {formatDate(review.created_at)}
-            </p>
+            <p className="text-xs text-neutral-400 mt-0.5">{formattedDate}</p>
           </div>
         </div>
         <StarDisplay rating={review.rating} size="sm" />
@@ -179,108 +152,102 @@ function ReviewCard({ review }: { review: Review }) {
         </p>
       )}
     </div>
-  )
+  );
 }
 
-/* ===============================
-   MAIN COMPONENT
-=============================== */
+// ─── Main component ───────────────────────────────────────────────────────────
 
 export default function ProductReviews({ productId }: { productId: string }) {
-  const router = useRouter()
+  const router = useRouter();
+  const { user } = useAuth();
 
-  const [data, setData] = useState<ReviewsData | null>(null)
-  const [loading, setLoading] = useState(true)
-  const [isLoggedIn, setIsLoggedIn] = useState(false)
+  const [data, setData] = useState<ReviewsData | null>(null);
+  const [loading, setLoading] = useState(true);
 
-  const [rating, setRating] = useState(0)
-  const [comentario, setComentario] = useState("")
-  const [submitting, setSubmitting] = useState(false)
-  const [formError, setFormError] = useState<string | null>(null)
-  const [formSuccess, setFormSuccess] = useState(false)
+  const [rating, setRating] = useState(0);
+  const [comentario, setComentario] = useState("");
+  const [submitting, setSubmitting] = useState(false);
+  const [formError, setFormError] = useState<string | null>(null);
+  const [formSuccess, setFormSuccess] = useState(false);
 
-  // Detect auth state client-side
-  useEffect(() => {
-    const token = localStorage.getItem("token")
-    setIsLoggedIn(!!token)
-  }, [])
-
-  async function fetchReviews() {
+  const fetchReviews = useCallback(async () => {
     try {
-      const res = await fetch(`${API}/api/products/${productId}/reviews`, {
-        cache: "no-store",
-      })
+      const res = await apiFetch(`/api/products/${productId}/reviews`);
       if (!res.ok) {
-        setData({ reviews: [], rating_avg: 0, rating_count: 0 })
-        return
+        setData({ reviews: [], rating_avg: 0, rating_count: 0 });
+        return;
       }
-      const json = await res.json()
+      const json = await res.json();
       setData({
         reviews: json.reviews ?? [],
         rating_avg: json.rating_avg ?? 0,
         rating_count: json.rating_count ?? 0,
-      })
+      });
     } catch {
-      setData({ reviews: [], rating_avg: 0, rating_count: 0 })
+      setData({ reviews: [], rating_avg: 0, rating_count: 0 });
     } finally {
-      setLoading(false)
+      setLoading(false);
     }
-  }
+  }, [productId]);
 
   useEffect(() => {
-    fetchReviews()
-  }, [productId])
+    fetchReviews();
+  }, [fetchReviews]);
 
   async function handleSubmit(e: React.FormEvent) {
-    e.preventDefault()
-    setFormError(null)
-    setFormSuccess(false)
+    e.preventDefault();
+    setFormError(null);
+    setFormSuccess(false);
 
     if (rating === 0) {
-      setFormError("Selecciona una calificación.")
-      return
+      setFormError("Selecciona una calificación.");
+      return;
     }
 
-    setSubmitting(true)
+    setSubmitting(true);
 
     try {
-      const res = await authFetch(`${API}/api/products/${productId}/reviews`, {
+      const res = await apiFetch(`/api/products/${productId}/reviews`, {
         method: "POST",
         body: JSON.stringify({ rating, comentario }),
-      })
+      });
 
       if (res.status === 401) {
-        setFormError("Tu sesión expiró. Por favor vuelve a iniciar sesión.")
-        return
+        setFormError("Tu sesión expiró. Por favor vuelve a iniciar sesión.");
+        return;
       }
       if (res.status === 403) {
-        setFormError("No tienes permisos para publicar una reseña en este momento.")
-        return
+        setFormError("Solo compradores pueden publicar reseñas.");
+        return;
+      }
+      if (res.status === 400) {
+        const json = await res.json().catch(() => ({}));
+        setFormError(json.message || "Error al enviar la reseña.");
+        return;
       }
       if (!res.ok) {
-        const json = await res.json().catch(() => ({}))
-        setFormError(json.message || "Error al enviar la reseña.")
-        return
+        const json = await res.json().catch(() => ({}));
+        setFormError(json.message || "Error al enviar la reseña.");
+        return;
       }
 
-      setRating(0)
-      setComentario("")
-      setFormSuccess(true)
-      await fetchReviews()
+      setRating(0);
+      setComentario("");
+      setFormSuccess(true);
+      await fetchReviews();
     } catch {
-      setFormError("Error de conexión. Intenta de nuevo.")
+      setFormError("Error de conexión. Intenta de nuevo.");
     } finally {
-      setSubmitting(false)
+      setSubmitting(false);
     }
   }
 
-  /* ===============================
-     RENDER
-  =============================== */
+  // ─── Render ────────────────────────────────────────────────────────────────
 
   return (
     <section id="reviews" className="space-y-8 scroll-mt-8">
-      {/* SECTION LABEL */}
+
+      {/* Section label */}
       <div className="flex items-center gap-3">
         <h2 className="text-2xl font-bold text-neutral-900">
           Reseñas de clientes
@@ -293,10 +260,9 @@ export default function ProductReviews({ productId }: { productId: string }) {
         )}
       </div>
 
-      {/* RATING SUMMARY HEADER */}
+      {/* Rating summary */}
       {!loading && data && data.rating_count > 0 && (
         <div className="flex flex-col sm:flex-row gap-6 items-start sm:items-center bg-amber-50 border border-amber-100 rounded-2xl p-6">
-          {/* BIG SCORE */}
           <div className="text-center flex-shrink-0">
             <p className="text-6xl font-black text-neutral-900 leading-none">
               {data.rating_avg.toFixed(1)}
@@ -308,24 +274,22 @@ export default function ProductReviews({ productId }: { productId: string }) {
             </p>
           </div>
 
-          {/* DIVIDER */}
           <div className="hidden sm:block w-px h-20 bg-amber-200" />
 
-          {/* DISTRIBUTION */}
           <div className="flex-1 w-full">
             <RatingDistribution reviews={data.reviews} />
           </div>
         </div>
       )}
 
-      {/* CONTENT GRID */}
+      {/* Content grid */}
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-10">
 
-        {/* REVIEWS LIST */}
+        {/* Reviews list */}
         <div className="lg:col-span-2 space-y-4">
           {loading ? (
             <div className="space-y-4">
-              {[1, 2, 3].map(i => (
+              {[1, 2, 3].map((i) => (
                 <div
                   key={i}
                   className="h-28 rounded-2xl bg-gray-100 animate-pulse"
@@ -341,16 +305,16 @@ export default function ProductReviews({ productId }: { productId: string }) {
               </p>
             </div>
           ) : (
-            data.reviews.map(review => (
+            data.reviews.map((review) => (
               <ReviewCard key={review.id} review={review} />
             ))
           )}
         </div>
 
-        {/* REVIEW FORM — auth-gated */}
+        {/* Review form — auth-gated */}
         <div className="lg:col-span-1">
-          {isLoggedIn ? (
-            /* ── AUTHENTICATED: show form ── */
+          {user ? (
+            /* Authenticated: show form */
             <div className="border border-neutral-100 rounded-2xl p-6 bg-white shadow-md shadow-neutral-100 space-y-5 sticky top-6">
               <div>
                 <h3 className="font-bold text-neutral-800 text-lg">
@@ -396,7 +360,7 @@ export default function ProductReviews({ productId }: { productId: string }) {
                     id="comentario"
                     rows={4}
                     value={comentario}
-                    onChange={e => setComentario(e.target.value)}
+                    onChange={(e) => setComentario(e.target.value)}
                     placeholder="¿Qué te pareció el producto?"
                     className="w-full border border-gray-200 rounded-xl px-3 py-2.5 text-sm text-neutral-700 placeholder:text-neutral-400 focus:outline-none focus:ring-2 focus:ring-orange-400 resize-none bg-gray-50 focus:bg-white transition-colors"
                     maxLength={500}
@@ -416,7 +380,7 @@ export default function ProductReviews({ productId }: { productId: string }) {
               </form>
             </div>
           ) : (
-            /* ── NOT AUTHENTICATED: invitation block ── */
+            /* Not authenticated: invitation block */
             <div className="border border-yellow-200 rounded-2xl p-6 bg-yellow-50 space-y-5 sticky top-6">
               <div className="text-center space-y-2">
                 <p className="text-3xl">✨</p>
@@ -455,5 +419,5 @@ export default function ProductReviews({ productId }: { productId: string }) {
 
       </div>
     </section>
-  )
+  );
 }

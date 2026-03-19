@@ -10,7 +10,7 @@
 //   signal=new   → label temporal ("Llegó hoy", "Hace 3 días")
 //   disponible sin señal → sin badge (no añadir ruido)
 //
-// Save button: visible en hover (top-right de imagen) — persiste en localStorage
+// Favorite button: visible en hover (top-right de imagen) — persiste en backend API
 
 "use client";
 
@@ -19,7 +19,7 @@ import Link from "next/link";
 import Image from "next/image";
 import { ProductStatusBadge, DiscoveryBadge } from "@/components/product/ui/StatusBadge";
 import { deriveProductStatus } from "@/lib/product-status";
-import SaveButton from "@/components/ui/SaveButton";
+import { FavoriteButton } from "@/components/ui/FavoriteButton";
 import type { ArtisanProduct, DiscoverySignal } from "@/types/artisan";
 
 /* ─── Price formatter ─────────────────────────────────────── */
@@ -130,19 +130,10 @@ export default function ArtisanCard({
             />
           )}
 
-          {/* Save button — aparece en hover, top-right */}
+          {/* Favorite button — aparece en hover, top-right */}
           {!isAgotado && (
             <div className="absolute top-3 right-3 z-10 opacity-0 group-hover:opacity-100 transition-opacity duration-200">
-              <SaveButton
-                piece={{
-                  id: product.id,
-                  nombre: product.nombre,
-                  precio: product.precio,
-                  imagen_url: product.imagen_principal ?? product.imagen_url ?? null,
-                  vendedor_nombre: sellerName ?? null,
-                }}
-                size="sm"
-              />
+              <FavoriteButton productId={product.id} size="sm" />
             </div>
           )}
         </div>

@@ -11,6 +11,7 @@ import CategoriesSection from "@/components/home/CategoriesSection";
 import NewProductsSection from "@/components/home/NewProductsSection";
 import SellerHighlightSection from "@/components/home/SellerHighlightSection";
 import SocialProofStrip from "@/components/home/SocialProofStrip";
+import RecommendedSection from "@/components/home/RecommendedSection";
 
 /*
   Flujo de descubrimiento — diseñado como una narrativa, no como un catálogo:
@@ -52,6 +53,7 @@ export default async function HomePage(): Promise<React.ReactElement> {
       <StoryBridgeSection />
       <CategoriesSection categorias={categorias} />
       <NewProductsSection nuevosProductos={nuevosProductos} />
+      <RecommendedSection />
       <SellerHighlightSection tiendas={tiendas} />
       <SocialProofStrip />
     </main>
