@@ -1,26 +1,45 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { useAuth } from "@/context/AuthContext";
-import { 
-  UserCircle, 
-  Mail, 
-  Phone, 
-  ShieldCheck, 
-  Save, 
-  Loader2, 
-  Trash2 
+import {
+  UserCircle,
+  Mail,
+  Phone,
+  ShieldCheck,
+  Save,
+  Loader2,
+  Trash2
 } from "lucide-react";
 
 export default function BuyerProfilePage() {
-  const { user, logout } = useAuth();
+  const { user, token } = useAuth();
 
-  const [nombre, setNombre] = useState(user?.nombre || "");
-  const [apellido, setApellido] = useState(user?.apellido || "");
-  const [telefono, setTelefono] = useState(user?.telefono || "");
-  const [email, setEmail] = useState(user?.email || "");
+  // Auth context carries the lean auth DTO: { id, name, email, role }.
+  // Extended profile fields (apellido, telefono) are fetched from the API.
+  const [nombre,   setNombre]   = useState(user?.name  ?? "");
+  const [apellido, setApellido] = useState("");
+  const [telefono, setTelefono] = useState("");
+  const [email,    setEmail]    = useState(user?.email ?? "");
+
+  // Load extended profile data on mount
+  useEffect(() => {
+    if (!token) return;
+    fetch(`${process.env.NEXT_PUBLIC_API_URL || "http://localhost:8800"}/api/buyer/profile`, {
+      headers: { Authorization: `Bearer ${token}` },
+    })
+      .then((r) => r.ok ? r.json() : null)
+      .then((data) => {
+        if (!data) return;
+        if (data.nombre)   setNombre(data.nombre);
+        if (data.apellido) setApellido(data.apellido);
+        if (data.telefono) setTelefono(data.telefono);
+        if (data.email || data.correo) setEmail(data.email ?? data.correo);
+      })
+      .catch(() => {});
+  }, [token]);
 
   const [loading, setLoading] = useState(false);
 
@@ -33,7 +52,7 @@ export default function BuyerProfilePage() {
         method: "PUT",
         headers: {
           "Content-Type": "application/json",
-          Authorization: `Bearer ${localStorage.getItem("token")}`,
+          Authorization: `Bearer ${token}`,
         },
         body: JSON.stringify({
           nombre,
