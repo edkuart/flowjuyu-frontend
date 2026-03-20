@@ -39,6 +39,9 @@ import { SellerHealthScoreCard } from "@/components/seller/SellerHealthScoreCard
 import { SellerKpiHighlights } from "@/components/seller/SellerKpiHighlights"
 import { SellerAlertsPanel } from "@/components/seller/SellerAlertsPanel"
 import { SellerNextActionsCard } from "@/components/seller/SellerNextActionsCard"
+import { SellerProductAnalyticsSection } from "@/components/seller/SellerProductAnalyticsSection"
+import { SellerAutoInsightsSection } from "@/components/seller/SellerAutoInsightsSection"
+import { SellerGrowthSection } from "@/components/seller/SellerGrowthSection"
 
 type Analytics = {
   totalProductViews: number
@@ -153,19 +156,6 @@ export default function SellerDashboardPage() {
     return Number((analytics.conversionRatio * 100).toFixed(2))
   }, [analytics.totalProductViews, analytics.conversionRatio])
 
-  const conversionColor =
-    conversionPercent < 3
-      ? "text-red-600"
-      : conversionPercent < 7
-      ? "text-amber-600"
-      : "text-emerald-600"
-
-  const conversionLabel =
-    conversionPercent < 3
-      ? "Necesita optimización"
-      : conversionPercent < 7
-      ? "Rendimiento aceptable"
-      : "Excelente conversión"
 
   /* ===============================
     📈 TOTAL 30 DÍAS
@@ -184,11 +174,10 @@ export default function SellerDashboardPage() {
     🚀 CRECIMIENTO SEMANAL INTELIGENTE
   ================================ */
 
-  const { growthPercent, growthStatus, bestDay } = useMemo(() => {
+  const { growthPercent, bestDay } = useMemo(() => {
     if (!analytics.last30Days?.length) {
       return {
         growthPercent: 0,
-        growthStatus: "neutral",
         bestDay: null,
       }
     }
@@ -215,11 +204,6 @@ export default function SellerDashboardPage() {
       growth = 100
     }
 
-    let growthStatus: "up" | "down" | "neutral" = "neutral"
-
-    if (growth > 5) growthStatus = "up"
-    else if (growth < -5) growthStatus = "down"
-
     const best =
       last7.length > 0
         ? [...last7].sort(
@@ -231,7 +215,6 @@ export default function SellerDashboardPage() {
 
     return {
       growthPercent: growth,
-      growthStatus,
       bestDay: best ?? null,
     }
   }, [analytics.last30Days])
@@ -298,6 +281,12 @@ export default function SellerDashboardPage() {
 
       {/* SMART INSIGHT */}
       {!loading && <SellerInsightsCard insight={insight} />}
+
+      {/* ── GROWTH: last 7 vs previous 7 days ── */}
+      {!loading && <SellerGrowthSection />}
+
+      {/* ── AUTO INSIGHTS (rule-based, no AI) ── */}
+      {!loading && <SellerAutoInsightsSection />}
 
       {/* CRECIMIENTO SEMANAL */}
       <Card className="bg-white border shadow-sm">
@@ -548,6 +537,9 @@ export default function SellerDashboardPage() {
           </Card>
         </section>
       )}
+
+      {/* ── PRODUCT ANALYTICS (QR + Web per product) ── */}
+      {!loading && <SellerProductAnalyticsSection />}
 
       {/* TENDENCIA 30 DÍAS */}
       <section className="space-y-4">

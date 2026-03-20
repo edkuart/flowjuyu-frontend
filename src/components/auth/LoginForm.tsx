@@ -4,7 +4,7 @@ import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { loginSchema, LoginValues } from '@/schemas/login-schema';
 import { useRouter } from 'next/navigation';
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { useAuth } from '@/context/AuthContext';
 import type { User } from '@/context/AuthContext';
 import { safeRedirectForRole } from '@/lib/safeRedirect';
@@ -44,17 +44,40 @@ export function LoginForm({ redirectTo }: LoginFormProps) {
   const [googleLoading,  setGoogleLoading]  = useState(false);
 
   // ── Redirect-away for already-authenticated users ─────────────────────────
-  // Middleware is the primary guard but fails open when the Edge→backend call
-  // times out (Railway cold start, network path). This effect is the client-side
-  // fallback: once AuthContext confirms a valid session, redirect immediately.
-  // Uses the same safeRedirectForRole + getDefaultDestination logic as the
-  // post-login flow so redirectTo is always validated before use.
+  // Middleware is the primary guard, but it fails open when the Edge→backend
+  // call times out. This effect is the guaranteed client-side fallback.
+  //
+  // WHY window.location.replace instead of router.replace:
+  //   router.replace() in Next.js App Router uses React.startTransition
+  //   internally. In production concurrent mode, transitions are lower-priority
+  //   and can be silently abandoned when a higher-priority update (parent
+  //   re-render, prefetch, layout transition) arrives during the navigate.
+  //   window.location.replace() is a synchronous browser API — it cannot be
+  //   cancelled by React's scheduler and commits the navigation immediately.
+  //
+  // WHY useRef guard:
+  //   router from useRouter() gets a new object reference during hydration and
+  //   prefetch updates. Without the guard the effect can fire multiple times,
+  //   and a second router.replace() call can cancel the first in-flight transition.
+  //   The ref ensures we only ever attempt the navigation once per mount.
+  //
+  // WHY router is NOT in the dependency array:
+  //   We no longer call router.replace, so router has no role here. Including
+  //   it was causing spurious re-runs from App Router's context updates.
+  const hasRedirected = useRef(false);
+
   useEffect(() => {
     if (!ready || !isAuthenticated || !user) return;
+    if (hasRedirected.current) return;
+
+    hasRedirected.current = true;
+
     const destination =
       safeRedirectForRole(redirectTo, user.role) ?? getDefaultDestination(user.role);
-    router.replace(destination);
-  }, [ready, isAuthenticated, user, redirectTo, router]);
+
+    window.location.replace(destination);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [ready, isAuthenticated, user, redirectTo]);
 
   // ── Email / password login ────────────────────────────────────────────────
 
