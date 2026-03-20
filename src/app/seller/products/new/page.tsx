@@ -3,13 +3,19 @@
 
 import { useEffect, useRef, useState, useMemo } from "react"
 import { useRouter, useSearchParams } from "next/navigation"
-import { ArrowLeft, Check, ImagePlus, MapPin, Tag, FileText, Eye } from "lucide-react"
+import { ArrowLeft, Check, Copy, ImagePlus, MapPin, Tag, FileText, Eye } from "lucide-react"
 import { Input } from "@/components/ui/input"
 import { Textarea } from "@/components/ui/textarea"
 import { Button } from "@/components/ui/button"
 import { Label } from "@/components/ui/label"
 import { Card, CardContent } from "@/components/ui/card"
 import { Switch } from "@/components/ui/switch"
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog"
 import Link from "next/link"
 import { departamentosConMunicipios } from "@/data/municipios"
 
@@ -354,9 +360,17 @@ export default function AddProductPage() {
   const [imagenesExistentes, setImagenesExistentes] = useState<{ id: number; url: string }[]>([])
   const [imagenesAEliminar, setImagenesAEliminar] = useState<number[]>([])
 
+  /* ── Seller SKU ── */
+  const [sellerSku, setSellerSku] = useState("")
+  const [skuError, setSkuError] = useState<string | null>(null)
+
   /* ── Submit state ── */
   const [estado, setEstado] = useState<"idle" | "loading" | "ok" | "error">("idle")
   const [mensaje, setMensaje] = useState("")
+
+  /* ── Post-creation success modal ── */
+  const [createdCode, setCreatedCode] = useState<string | null>(null)
+  const [codeCopied, setCodeCopied] = useState(false)
 
   /* ── Data ready flag (wait for options before loading product) ── */
   const [dataReady, setDataReady] = useState(false)
@@ -615,6 +629,14 @@ export default function AddProductPage() {
      SUBMIT
   ──────────────────────────────────────── */
   async function handleSave(forceActivo?: boolean) {
+    // Validate SKU before opening loading state
+    const trimmedSku = sellerSku.trim()
+    if (trimmedSku !== "" && !/^[A-Za-z0-9\-_]{1,100}$/.test(trimmedSku)) {
+      setSkuError("Solo letras, números, guiones (-) y guiones bajos (_). Máximo 100 caracteres.")
+      return
+    }
+    setSkuError(null)
+
     try {
       setEstado("loading")
       const token = getToken()
@@ -628,6 +650,9 @@ export default function AddProductPage() {
       fd.set("precio", toDecimal(precio))
       fd.set("stock", stock)
       fd.set("activo", resolvedActivo ? "true" : "false")
+
+      // Always send seller_sku — empty string tells the backend to store null
+      if (trimmedSku !== "") fd.set("seller_sku", trimmedSku)
 
       if (categoriaSel === OTROS) fd.set("categoria_custom", categoriaInput)
       else fd.set("categoria_id", categoriaSel)
@@ -668,7 +693,13 @@ export default function AddProductPage() {
         credentials: "include",
       })
 
-      if (!res.ok) throw new Error(await res.text())
+      // Parse response body before checking status so we can surface API error messages
+      let responseData: any = {}
+      try { responseData = await res.json() } catch { /* response had no body */ }
+
+      if (!res.ok) {
+        throw new Error(responseData?.message || `Error ${res.status} al guardar el producto`)
+      }
 
       if (isEditing && imagenesAEliminar.length > 0) {
         for (const imageId of imagenesAEliminar) {
@@ -679,23 +710,59 @@ export default function AddProductPage() {
         }
       }
 
-      setMensaje(isEditing ? "✅ Producto actualizado correctamente." : "✅ Producto creado.")
       setEstado("ok")
 
-      if (!isEditing) {
-        // Clear draft
-        try { localStorage.removeItem(DRAFT_KEY) } catch { /* silent */ }
-        if (formRef.current) { formRef.current.reset(); setPreviews([]) }
+      if (isEditing) {
+        setMensaje("✅ Producto actualizado correctamente.")
+        setTimeout(() => {
+          router.push("/seller/products")
+          router.refresh()
+        }, 900)
+        return
       }
 
-      setTimeout(() => {
-        router.push(isEditing ? "/seller/products" : "/seller/products?first=1")
+      // ── New product created ──
+      try { localStorage.removeItem(DRAFT_KEY) } catch { /* silent */ }
+      if (formRef.current) { formRef.current.reset(); setPreviews([]) }
+
+      if (responseData?.internal_code) {
+        // Show success modal with the generated code
+        setCreatedCode(responseData.internal_code)
+      } else {
+        // Fallback: redirect immediately (code not returned by this API version)
+        router.push("/seller/products?first=1")
         router.refresh()
-      }, 900)
+      }
     } catch (err: any) {
       setMensaje(err.message || "Error al guardar el producto.")
       setEstado("error")
     }
+  }
+
+  function handleSuccessModalClose() {
+    setCreatedCode(null)
+    setCodeCopied(false)
+    router.push("/seller/products?first=1")
+    router.refresh()
+  }
+
+  function copyInternalCode(code: string) {
+    navigator.clipboard.writeText(code).then(() => {
+      setCodeCopied(true)
+      setTimeout(() => setCodeCopied(false), 2000)
+    }).catch(() => {
+      // Fallback for browsers without clipboard API
+      const el = document.createElement("textarea")
+      el.value = code
+      el.style.position = "fixed"
+      el.style.opacity = "0"
+      document.body.appendChild(el)
+      el.select()
+      document.execCommand("copy")
+      document.body.removeChild(el)
+      setCodeCopied(true)
+      setTimeout(() => setCodeCopied(false), 2000)
+    })
   }
 
   /* ────────────────────────────────────────
@@ -891,6 +958,31 @@ export default function AddProductPage() {
                       />
                     </Field>
                   </div>
+
+                  {/* ── SELLER SKU (optional) ── */}
+                  <Field
+                    label="Código interno del vendedor (SKU)"
+                    hint="Opcional. Te ayuda a organizar tus productos internamente. No es visible para los compradores."
+                    error={skuError ?? undefined}
+                  >
+                    <div className="relative">
+                      <Input
+                        value={sellerSku}
+                        onChange={e => {
+                          setSellerSku(e.target.value)
+                          if (skuError) setSkuError(null)
+                        }}
+                        placeholder="Ej: CORTE-ROJO-01"
+                        maxLength={100}
+                        className="pr-20"
+                        autoComplete="off"
+                        spellCheck={false}
+                      />
+                      <span className="absolute right-3 top-1/2 -translate-y-1/2 text-xs text-neutral-400">
+                        {sellerSku.length}/100
+                      </span>
+                    </div>
+                  </Field>
 
                   <div className="flex items-center justify-between p-4 bg-neutral-50 rounded-xl border border-neutral-100">
                     <div>
@@ -1514,6 +1606,75 @@ export default function AddProductPage() {
 
         </div>
       </div>
+
+      {/* ═══════════════════════════════════════════════
+          SUCCESS MODAL — shown after new product creation
+          Displays the auto-generated Flowjuyu reference code
+          and allows the seller to copy it before navigating away.
+      ═══════════════════════════════════════════════ */}
+      <Dialog open={!!createdCode} onOpenChange={(open) => { if (!open) handleSuccessModalClose() }}>
+        <DialogContent className="max-w-md">
+          <DialogHeader>
+            <DialogTitle className="text-xl font-bold text-neutral-900 flex items-center gap-2">
+              <span className="text-2xl">🎉</span>
+              Producto creado correctamente
+            </DialogTitle>
+          </DialogHeader>
+
+          <div className="space-y-5 pt-1">
+            <p className="text-sm text-neutral-500 leading-relaxed">
+              Tu producto fue guardado. Aquí está tu código de referencia único en Flowjuyu —
+              guárdalo si lo necesitas para soporte o seguimiento.
+            </p>
+
+            {/* Code display */}
+            <div className="bg-neutral-50 border border-neutral-200 rounded-xl p-4 space-y-2">
+              <p className="text-xs font-semibold text-neutral-400 uppercase tracking-wider">
+                Código Flowjuyu
+              </p>
+              <div className="flex items-center justify-between gap-3">
+                <code className="font-mono text-base font-bold text-neutral-800 tracking-wide select-all break-all">
+                  {createdCode}
+                </code>
+                <button
+                  type="button"
+                  onClick={() => createdCode && copyInternalCode(createdCode)}
+                  className={`flex-shrink-0 flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold border transition-all ${
+                    codeCopied
+                      ? "bg-green-50 border-green-200 text-green-700"
+                      : "bg-white border-neutral-200 text-neutral-600 hover:border-orange-300 hover:text-orange-600"
+                  }`}
+                  aria-label="Copiar código"
+                >
+                  {codeCopied ? (
+                    <>
+                      <Check className="w-3.5 h-3.5" />
+                      Copiado
+                    </>
+                  ) : (
+                    <>
+                      <Copy className="w-3.5 h-3.5" />
+                      Copiar
+                    </>
+                  )}
+                </button>
+              </div>
+              <p className="text-[11px] text-neutral-400 leading-relaxed">
+                Este código identifica tu producto de forma única en la plataforma.
+                Lo puedes consultar en cualquier momento desde tu lista de productos.
+              </p>
+            </div>
+
+            <Button
+              onClick={handleSuccessModalClose}
+              className="w-full bg-[#0F3D3A] hover:bg-[#0C2F2C] text-white font-semibold h-11"
+            >
+              Ver mis productos →
+            </Button>
+          </div>
+        </DialogContent>
+      </Dialog>
+
     </main>
   )
 }

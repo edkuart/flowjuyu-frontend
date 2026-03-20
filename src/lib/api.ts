@@ -50,7 +50,12 @@ export async function apiFetch(
 
     const isExpired =
       data?.code    === "TOKEN_EXPIRED" ||
-      data?.message === "Token expirado";
+      data?.message === "Token expirado"  ||
+      // "Token no proporcionado" means no token was sent at all.
+      // This happens when localStorage was cleared while the fj_rt cookie
+      // survived (e.g. cross-tab clear, browser restart). We treat it as
+      // an expired-token event: refresh silently, then retry.
+      data?.message === "Token no proporcionado";
 
     if (isExpired) {
       const refreshed = await refreshSession();

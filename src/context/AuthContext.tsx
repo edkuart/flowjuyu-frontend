@@ -100,21 +100,31 @@ export function AuthProvider({ children }: { children: ReactNode }) {
           const data = await res.json();
 
           if (data.ok && isValidUser(data.user)) {
-            // Cookie is valid — use session as source of truth.
-            // Keep the stored access token for API Bearer auth.
-            const storedToken = localStorage.getItem("token");
+            // Cookie is the source of truth for identity. The user IS
+            // authenticated as soon as /api/session confirms it.
+            //
+            // The access token is a secondary API credential — we read
+            // whatever is in localStorage and set it (even if null).
+            // If it is missing or expired, api.ts will silently refresh it
+            // on the first protected API call via the 401 → refreshSession()
+            // → retry cycle. We do NOT call refreshSession() here because a
+            // failure there would dispatch auth:changed → handleAuthChanged
+            // → setUser(null), destroying the session we just validated.
             setUser(data.user);
-            setToken(storedToken);
-            // Keep localStorage user in sync with session.
+            setToken(localStorage.getItem("token")); // null is fine
+            // Keep localStorage user in sync with the server-side session.
             localStorage.setItem("user", JSON.stringify(data.user));
+            console.log("[auth:sync] session restored →", data.user.role, data.user.email);
           } else {
             // Session returned unexpected shape — treat as invalid.
+            console.log("[auth:sync] session payload invalid — clearing state");
             clearLocalStorage();
             setUser(null);
             setToken(null);
           }
         } else {
           // 401 / 403 — cookie is absent, expired, or revoked.
+          console.log("[auth:sync] /api/session returned", res.status, "— clearing state");
           clearLocalStorage();
           setUser(null);
           setToken(null);
@@ -219,7 +229,10 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         user,
         token,
         ready,
-        isAuthenticated: !!user && !!token,
+        // Authentication = confirmed user identity from /api/session.
+        // Token is an API credential — its absence does not mean "logged out".
+        // api.ts handles the 401 → refresh → retry cycle transparently.
+        isAuthenticated: !!user,
         login,
         logout,
       }}

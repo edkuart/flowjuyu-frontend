@@ -13,6 +13,10 @@ import {
   ChevronRight,
   X,
   PackagePlus,
+  Copy,
+  Check,
+  QrCode,
+  Link2,
 } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import {
@@ -26,6 +30,7 @@ import { useRouter, useSearchParams } from "next/navigation"
 import { SellerProgressCard, type EstadoValidacion } from "@/components/seller/SellerProgressCard"
 import { apiGetVendedorPerfil } from "@/services/vendedorPerfil"
 import type { SellerPerfil } from "@/lib/sellerProgress"
+import QrModal from "@/components/seller/QrModal"
 
 type Producto = {
   id: string
@@ -36,7 +41,87 @@ type Producto = {
   activo: boolean
   imagenes?: string[]
   imagen_url?: string | null
+  internal_code?: string | null
+  seller_sku?: string | null
 }
+
+/* ─────────────────────────────────────────────────────────
+   Inline copy button — self-contained, zero dependencies.
+   Shows a checkmark for 1.5 s after a successful copy.
+───────────────────────────────────────────────────────── */
+function CopyCodeButton({ code }: { code: string }) {
+  const [copied, setCopied] = useState(false)
+
+  function handleCopy(e: React.MouseEvent) {
+    e.stopPropagation()
+    navigator.clipboard.writeText(code).then(() => {
+      setCopied(true)
+      setTimeout(() => setCopied(false), 1500)
+    }).catch(() => {
+      // Fallback for restricted contexts (old browsers, non-HTTPS)
+      const el = document.createElement("textarea")
+      el.value = code
+      el.style.cssText = "position:fixed;opacity:0;"
+      document.body.appendChild(el)
+      el.select()
+      document.execCommand("copy")
+      document.body.removeChild(el)
+      setCopied(true)
+      setTimeout(() => setCopied(false), 1500)
+    })
+  }
+
+  return (
+    <button
+      type="button"
+      onClick={handleCopy}
+      title={copied ? "¡Copiado!" : "Copiar código"}
+      aria-label={copied ? "Código copiado" : "Copiar código Flowjuyu"}
+      className={`ml-1 inline-flex items-center justify-center w-5 h-5 rounded transition-colors flex-shrink-0 ${
+        copied
+          ? "text-green-600"
+          : "text-neutral-400 hover:text-orange-500"
+      }`}
+    >
+      {copied
+        ? <Check className="w-3.5 h-3.5" />
+        : <Copy className="w-3.5 h-3.5" />}
+    </button>
+  )
+}
+
+/* ─────────────────────────────────────────────────────────
+   Code badge — renders internal_code + optional seller_sku
+   in a consistent, compact format for both desktop and mobile.
+───────────────────────────────────────────────────────── */
+function ProductCodes({
+  internal_code,
+  seller_sku,
+}: {
+  internal_code?: string | null
+  seller_sku?: string | null
+}) {
+  if (!internal_code) return null
+  return (
+    <div className="mt-1.5 space-y-0.5">
+      <div className="flex items-center gap-1 text-xs text-neutral-400">
+        <span className="font-medium text-neutral-500 select-none">FJ:</span>
+        <span className="font-mono tracking-wide text-neutral-600 select-all">
+          {internal_code}
+        </span>
+        <CopyCodeButton code={internal_code} />
+      </div>
+      {seller_sku && (
+        <p className="text-xs text-neutral-400">
+          <span className="font-medium text-neutral-500 select-none">SKU:</span>{" "}
+          <span className="font-mono text-neutral-600">{seller_sku}</span>
+        </p>
+      )}
+    </div>
+  )
+}
+
+const PUBLIC_BASE = process.env.NEXT_PUBLIC_SITE_URL || "https://flowjuyu.com"
 
 export default function SellerProductsPage() {
   const [productos, setProductos] = useState<Producto[]>([])
@@ -49,6 +134,8 @@ export default function SellerProductsPage() {
   } | null>(null)
   const [showBanner, setShowBanner] = useState(false)
   const [filter, setFilter] = useState<"todos" | "publicados" | "borradores" | "sin_stock">("todos")
+  const [qrProduct, setQrProduct] = useState<{ nombre: string; internal_code: string } | null>(null)
+  const [linkCopiedId, setLinkCopiedId] = useState<string | null>(null)
 
   const [page, setPage] = useState(1)
   const [perPage] = useState(10)
@@ -210,6 +297,33 @@ export default function SellerProductsPage() {
       )
     } finally {
       setProcessingId(null)
+    }
+  }
+
+  /* ==============================
+     QR / share helpers
+  ============================== */
+  function handleCopyLink(p: Producto) {
+    if (!p.internal_code) return
+    const url = `${PUBLIC_BASE}/p/${p.internal_code}`
+    const doCopy = () => {
+      const el = document.createElement("textarea")
+      el.value = url
+      el.style.cssText = "position:fixed;opacity:0;"
+      document.body.appendChild(el)
+      el.select()
+      document.execCommand("copy")
+      document.body.removeChild(el)
+      setLinkCopiedId(p.id)
+      setTimeout(() => setLinkCopiedId(null), 2000)
+    }
+    if (navigator.clipboard) {
+      navigator.clipboard.writeText(url).then(() => {
+        setLinkCopiedId(p.id)
+        setTimeout(() => setLinkCopiedId(null), 2000)
+      }).catch(doCopy)
+    } else {
+      doCopy()
     }
   }
 
@@ -413,6 +527,11 @@ export default function SellerProductsPage() {
                       >
                         {p.stock > 0 ? `Stock: ${p.stock}` : "Sin stock"}
                       </p>
+
+                      <ProductCodes
+                        internal_code={p.internal_code}
+                        seller_sku={p.seller_sku}
+                      />
                     </div>
                   </div>
 
@@ -428,6 +547,32 @@ export default function SellerProductsPage() {
                     >
                       {p.activo ? "Publicado" : "Borrador"}
                     </span>
+
+                    {p.internal_code && (
+                      <>
+                        <Button
+                          size="icon"
+                          variant="outline"
+                          className="rounded-lg"
+                          title="Ver QR"
+                          onClick={() => setQrProduct({ nombre: p.nombre, internal_code: p.internal_code! })}
+                        >
+                          <QrCode className="w-4 h-4" />
+                        </Button>
+
+                        <Button
+                          size="icon"
+                          variant="outline"
+                          className="rounded-lg"
+                          title={linkCopiedId === p.id ? "¡Copiado!" : "Copiar enlace"}
+                          onClick={() => handleCopyLink(p)}
+                        >
+                          {linkCopiedId === p.id
+                            ? <Check className="w-4 h-4 text-green-600" />
+                            : <Link2 className="w-4 h-4" />}
+                        </Button>
+                      </>
+                    )}
 
                     <Link href={`/seller/products/new?id=${p.id}`}>
                       <Button size="icon" variant="outline" className="rounded-lg">
@@ -485,6 +630,11 @@ export default function SellerProductsPage() {
                         minimumFractionDigits: 2,
                       })}
                     </p>
+
+                    <ProductCodes
+                      internal_code={p.internal_code}
+                      seller_sku={p.seller_sku}
+                    />
                   </div>
 
                   <div className="flex justify-between text-sm text-neutral-500">
@@ -515,6 +665,29 @@ export default function SellerProductsPage() {
                     >
                       {p.activo ? "Despublicar" : "Publicar"}
                     </Button>
+
+                    {p.internal_code && (
+                      <>
+                        <Button
+                          variant="outline"
+                          className="w-full gap-2"
+                          onClick={() => setQrProduct({ nombre: p.nombre, internal_code: p.internal_code! })}
+                        >
+                          <QrCode className="w-4 h-4" />
+                          Ver QR
+                        </Button>
+
+                        <Button
+                          variant="outline"
+                          className="w-full gap-2"
+                          onClick={() => handleCopyLink(p)}
+                        >
+                          {linkCopiedId === p.id
+                            ? <><Check className="w-4 h-4 text-green-600" /> ¡Copiado!</>
+                            : <><Link2 className="w-4 h-4" /> Copiar enlace</>}
+                        </Button>
+                      </>
+                    )}
 
                     <Button
                       variant="destructive"
@@ -559,6 +732,16 @@ export default function SellerProductsPage() {
           </>
         )}
       </div>
+
+      {/* ================= QR MODAL ================= */}
+      {qrProduct && (
+        <QrModal
+          open={!!qrProduct}
+          onClose={() => setQrProduct(null)}
+          product={qrProduct}
+        />
+      )}
+
       {/* ================= IMAGE MODAL ================= */}
       <Dialog
         open={!!selectedImage}

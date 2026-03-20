@@ -29,27 +29,30 @@ export default function AuthGuard({
   allowedRoles: Role[];
 }) {
   const router = useRouter();
-  const { user, token, ready } = useAuth();
+  const { user, ready } = useAuth();
   const didRedirect = useRef(false);
 
   // Derived — no useState needed. Recomputes on every render; React bails out
   // of DOM updates when result is stable.
+  // isAuthenticated = !!user (not token). Token is an API credential, not
+  // identity. A user can be authenticated with a valid cookie but no token
+  // in localStorage (e.g. after a cross-tab clear). api.ts handles renewal.
   const isAuthorized =
-    ready && !!user && !!token && allowedRoles.includes(user.role);
+    ready && !!user && allowedRoles.includes(user.role);
 
   useEffect(() => {
     if (!ready || isAuthorized || didRedirect.current) return;
 
     didRedirect.current = true;
 
-    if (user && token) {
+    if (user) {
       // Authenticated but wrong role — send to their own dashboard.
       router.replace(getDefaultDestination(user.role));
     } else {
       // No session at all — send to login.
       router.replace("/login");
     }
-  }, [ready, isAuthorized, user, token, router]);
+  }, [ready, isAuthorized, user, router]);
 
   // Still hydrating from localStorage. Middleware already blocked unauthorized
   // requests, so this null window is always brief for legitimate users.

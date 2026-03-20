@@ -1,6 +1,6 @@
 "use client"
 
-import { useEffect, useState, useMemo } from "react"
+import { useEffect, useState, useMemo, useRef } from "react"
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
 import {
@@ -14,10 +14,23 @@ import {
 import { Skeleton } from "@/components/ui/skeleton"
 import { authFetch } from "@/lib/authFetch"
 import { useRouter } from "next/navigation"
+import { Search, X } from "lucide-react"
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8800"
 
 // ── Types ──────────────────────────────────────────────────────────────────────
+
+interface SearchResult {
+  id: string
+  nombre: string
+  activo: boolean
+  internal_code: string | null
+  seller_sku: string | null
+  vendedor_id: string | null
+  nombre_comercio: string | null
+  vendedor_email: string | null
+  priority: 1 | 2 | 3
+}
 
 interface Product {
   id: string
@@ -201,6 +214,213 @@ const FILTER_LABELS: Record<SmartFilter, string> = {
   high_potential: "⚡ High Potential",
 }
 
+// ── Search component ───────────────────────────────────────────────────────────
+
+function AdminProductSearch({ apiUrl, onNavigate }: { apiUrl: string; onNavigate: (path: string) => void }) {
+  const [query, setQuery]       = useState("")
+  const [results, setResults]   = useState<SearchResult[]>([])
+  const [searching, setSearching] = useState(false)
+  const [toggling, setToggling] = useState<string | null>(null)
+  const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null)
+
+  useEffect(() => {
+    if (debounceRef.current) clearTimeout(debounceRef.current)
+
+    if (!query.trim()) {
+      setResults([])
+      return
+    }
+
+    debounceRef.current = setTimeout(async () => {
+      setSearching(true)
+      try {
+        const res = await authFetch(`${apiUrl}/api/admin/products/search?q=${encodeURIComponent(query.trim())}`)
+        if (res.ok) {
+          const json = await res.json()
+          setResults(json.data ?? [])
+        }
+      } finally {
+        setSearching(false)
+      }
+    }, 300)
+
+    return () => {
+      if (debounceRef.current) clearTimeout(debounceRef.current)
+    }
+  }, [query, apiUrl])
+
+  async function handleToggle(item: SearchResult) {
+    setToggling(item.id)
+    try {
+      await authFetch(`${apiUrl}/api/admin/products/${item.id}/toggle`, { method: "PATCH" })
+      setResults(prev => prev.map(r => r.id === item.id ? { ...r, activo: !r.activo } : r))
+    } finally {
+      setToggling(null)
+    }
+  }
+
+  const isActive = query.trim().length > 0
+
+  return (
+    <div className="space-y-3">
+      {/* Search input */}
+      <div className="relative">
+        <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground pointer-events-none" />
+        <input
+          type="search"
+          value={query}
+          onChange={e => setQuery(e.target.value)}
+          placeholder="Buscar por código Flowjuyu, SKU o nombre..."
+          className="w-full pl-9 pr-9 py-2 text-sm rounded-lg border border-border bg-background focus:outline-none focus:ring-2 focus:ring-ring transition"
+          autoComplete="off"
+        />
+        {isActive && (
+          <button
+            onClick={() => { setQuery(""); setResults([]) }}
+            className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground transition"
+            aria-label="Limpiar búsqueda"
+          >
+            <X className="w-4 h-4" />
+          </button>
+        )}
+      </div>
+
+      {/* Results panel */}
+      {isActive && (
+        <div className="border rounded-xl bg-card overflow-hidden">
+          <div className="flex items-center justify-between px-4 py-2.5 border-b bg-muted/30">
+            <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wide">
+              Resultados de búsqueda
+            </p>
+            {searching
+              ? <span className="text-xs text-muted-foreground animate-pulse">Buscando…</span>
+              : <span className="text-xs text-muted-foreground">{results.length} resultado{results.length !== 1 ? "s" : ""}</span>
+            }
+          </div>
+
+          {!searching && results.length === 0 && (
+            <p className="text-sm text-muted-foreground text-center py-8">
+              Sin resultados para <span className="font-mono">{query}</span>
+            </p>
+          )}
+
+          {results.length > 0 && (
+            <Table>
+              <TableHeader>
+                <TableRow>
+                  <TableHead>Producto</TableHead>
+                  <TableHead>Código FJ / SKU</TableHead>
+                  <TableHead>Vendedor</TableHead>
+                  <TableHead>Estado</TableHead>
+                  <TableHead className="text-right">Acciones</TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                {results.map(item => {
+                  const isToggling = toggling === item.id
+                  const isExactCode = item.priority === 1
+                  const isExactSku  = item.priority === 2
+
+                  return (
+                    <TableRow key={item.id} className="hover:bg-muted/30">
+
+                      <TableCell className="font-medium max-w-[200px]">
+                        <button
+                          onClick={() => onNavigate(`/admin/products/${item.id}`)}
+                          className="text-left hover:underline truncate block w-full"
+                        >
+                          {item.nombre}
+                        </button>
+                      </TableCell>
+
+                      <TableCell>
+                        <div className="space-y-0.5">
+                          {item.internal_code && (
+                            <p className={`text-xs font-mono ${isExactCode ? "text-orange-600 font-semibold" : "text-muted-foreground"}`}>
+                              {isExactCode && <span className="mr-1">→</span>}
+                              {item.internal_code}
+                            </p>
+                          )}
+                          {item.seller_sku && (
+                            <p className={`text-xs font-mono ${isExactSku ? "text-blue-600 font-semibold" : "text-muted-foreground"}`}>
+                              {isExactSku && <span className="mr-1">→</span>}
+                              SKU: {item.seller_sku}
+                            </p>
+                          )}
+                          {!item.internal_code && !item.seller_sku && (
+                            <span className="text-xs text-muted-foreground italic">—</span>
+                          )}
+                        </div>
+                      </TableCell>
+
+                      <TableCell className="text-sm text-muted-foreground">
+                        <div>
+                          <p className="font-medium text-foreground truncate max-w-[140px]">
+                            {item.nombre_comercio ?? <span className="italic text-xs">Sin tienda</span>}
+                          </p>
+                          {item.vendedor_email && (
+                            <p className="text-xs truncate max-w-[140px]">{item.vendedor_email}</p>
+                          )}
+                        </div>
+                      </TableCell>
+
+                      <TableCell>
+                        <Badge className={`text-xs ${item.activo
+                          ? "bg-green-100 text-green-700 border-0"
+                          : "bg-gray-100 text-gray-600 border-0"}`}
+                        >
+                          {item.activo ? "Activo" : "Inactivo"}
+                        </Badge>
+                      </TableCell>
+
+                      <TableCell>
+                        <div className="flex items-center gap-2 justify-end">
+                          <button
+                            onClick={() => handleToggle(item)}
+                            disabled={isToggling}
+                            className={`text-xs px-2.5 py-1 rounded-lg border transition-colors disabled:opacity-50
+                              ${item.activo
+                                ? "border-red-200 text-red-600 hover:bg-red-50"
+                                : "border-green-200 text-green-700 hover:bg-green-50"
+                              }`}
+                          >
+                            {isToggling ? "…" : item.activo ? "Desactivar" : "Activar"}
+                          </button>
+
+                          {item.vendedor_id && (
+                            <Button
+                              size="sm"
+                              variant="outline"
+                              className="text-xs h-7"
+                              onClick={() => onNavigate(`/admin/sellers/${item.vendedor_id}`)}
+                            >
+                              Seller
+                            </Button>
+                          )}
+
+                          <Button
+                            size="sm"
+                            variant="outline"
+                            className="text-xs h-7"
+                            onClick={() => onNavigate(`/admin/products/${item.id}`)}
+                          >
+                            Ver
+                          </Button>
+                        </div>
+                      </TableCell>
+
+                    </TableRow>
+                  )
+                })}
+              </TableBody>
+            </Table>
+          )}
+        </div>
+      )}
+    </div>
+  )
+}
+
 // ── Page ───────────────────────────────────────────────────────────────────────
 
 export default function AdminProductsPage() {
@@ -295,6 +515,9 @@ export default function AdminProductsPage() {
           <p className="text-xs font-medium">{new Date().toLocaleTimeString()}</p>
         </div>
       </div>
+
+      {/* ── CODE / SKU / NAME SEARCH ────────────────────────────────────────── */}
+      <AdminProductSearch apiUrl={API_URL} onNavigate={router.push} />
 
       {/* ── PRIORITY OVERVIEW ───────────────────────────────────────────────── */}
       <PriorityOverview

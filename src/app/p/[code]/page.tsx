@@ -1,4 +1,5 @@
-// src/app/product/[id]/page.tsx
+// src/app/p/[code]/page.tsx
+// Public product page resolved by internal_code (QR / share link)
 
 import ProductGallery from "@/components/product/view/ProductGallery";
 import ProductInfo from "@/components/product/view/ProductInfo";
@@ -10,24 +11,26 @@ import HowToUse from "@/components/product/view/HowToUse";
 
 const API = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8800";
 
-async function fetchProduct(id: string) {
+async function fetchProductByCode(code: string) {
   try {
-    const res = await fetch(`${API}/api/products/${id}`, { cache: "no-store" });
+    const res = await fetch(`${API}/api/products/code/${encodeURIComponent(code)}`, {
+      cache: "no-store",
+    });
     if (!res.ok) return null;
     return await res.json();
   } catch (err) {
-    console.error("Error obteniendo producto:", err);
+    console.error("Error obteniendo producto por código:", err);
     return null;
   }
 }
 
-export default async function ProductPage({
+export default async function ProductByCodePage({
   params,
 }: {
-  params: { id: string };
+  params: { code: string };
 }) {
-  const { id } = params;
-  const data = await fetchProduct(id);
+  const { code } = params;
+  const data = await fetchProductByCode(code);
 
   if (!data?.product) {
     return (
@@ -46,7 +49,6 @@ export default async function ProductPage({
   const relacionados: typeof product[] = Array.isArray(data.related) ? data.related : [];
   const vendedor = product.vendedor ?? {};
 
-  /* ── Normalizar imágenes ── */
   const imagenes: string[] = (() => {
     const lista: string[] = [];
     if (product.imagen_principal) lista.push(product.imagen_principal);
@@ -55,7 +57,6 @@ export default async function ProductPage({
     return [...new Set(lista.filter(Boolean))];
   })();
 
-  /* ── Ubicación ── */
   const ubicacion = [
     product.municipio || product.municipio_custom,
     product.departamento || product.departamento_custom,
@@ -67,19 +68,12 @@ export default async function ProductPage({
     <div className="bg-[#f6f2ea] min-h-screen">
       <div className="max-w-7xl mx-auto px-4 md:px-8 pt-8 pb-20">
 
-        {/* ══════════════════════════════════════════════════
-            ZONA DE DECISIÓN — Gallery + Info en 2 columnas
-            La galería es sticky en desktop para que el usuario
-            siempre vea el producto mientras lee la info.
-        ══════════════════════════════════════════════════ */}
         <div className="grid grid-cols-1 md:grid-cols-2 gap-10 md:gap-14 items-start">
 
-          {/* GALLERY — sticky desde tablet (768px) hacia arriba */}
           <div className="md:sticky md:top-24">
             <ProductGallery imagenes={imagenes} titulo={product.nombre} />
           </div>
 
-          {/* INFO + SPECS — toda la decisión de compra en una columna */}
           <div className="space-y-0">
             <ProductInfo
               nombre={product.nombre}
@@ -99,7 +93,6 @@ export default async function ProductPage({
               categoria={product.categoria?.nombre ?? product.categoria_custom}
             />
 
-            {/* Especificaciones en la misma columna, debajo de la info */}
             <div className="mt-6">
               <ProductSpecs
                 categoria={product.categoria}
@@ -117,10 +110,6 @@ export default async function ProductPage({
 
         </div>
 
-        {/* ══════════════════════════════════════════════════
-            ARTISAN STORY — editorial, debajo del fold
-            Refuerza la decisión después de haber visto precio y CTA
-        ══════════════════════════════════════════════════ */}
         <div className="mt-20 border-t border-[#0d2d20]/10 pt-16">
           <ArtisanStory
             ubicacion={ubicacion}
@@ -128,25 +117,16 @@ export default async function ProductPage({
           />
         </div>
 
-        {/* ══════════════════════════════════════════════════
-            HOW TO USE — guía contextual por categoría
-        ══════════════════════════════════════════════════ */}
         <div className="mt-16 border-t border-[#0d2d20]/10 pt-16">
           <HowToUse
             categoria={product.categoria?.nombre ?? product.categoria_custom}
           />
         </div>
 
-        {/* ══════════════════════════════════════════════════
-            REVIEWS
-        ══════════════════════════════════════════════════ */}
         <div className="mt-16 border-t border-[#0d2d20]/10 pt-16" id="reviews">
           <ProductReviews productId={product.id} />
         </div>
 
-        {/* ══════════════════════════════════════════════════
-            PRODUCTOS RELACIONADOS
-        ══════════════════════════════════════════════════ */}
         {relacionados.length > 0 && (
           <div className="mt-16 border-t border-[#0d2d20]/10 pt-16">
             <ProductRelated
