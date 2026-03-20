@@ -149,6 +149,11 @@ export async function middleware(req: NextRequest): Promise<NextResponse> {
         return NextResponse.next();
 
       case "valid":
+        // Sellers landing on the bare /seller index are sent to their dashboard.
+        // All other seller subroutes (and buyer routes) pass through normally.
+        if (session.role === "seller" && pathname === "/seller") {
+          return NextResponse.redirect(new URL("/seller/my-business", req.url));
+        }
         if (!canRoleAccessPath(session.role, pathname)) {
           // Authenticated but wrong role → send to their own dashboard.
           return buildRoleRedirect(req, session.role);

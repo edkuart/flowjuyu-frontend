@@ -28,10 +28,10 @@ export type Role = "buyer" | "seller" | "admin" | "support";
 // Evaluated in order — first matching prefix wins.
 
 export const ROUTE_ACCESS: ReadonlyArray<{ readonly prefix: string; readonly roles: ReadonlyArray<Role> }> = [
-  { prefix: "/buyer",   roles: ["buyer",   "admin"]          },
-  { prefix: "/seller",  roles: ["seller",  "admin"]          },
-  { prefix: "/admin",   roles: ["admin"]                     },
-  { prefix: "/support", roles: ["support", "admin"]          },
+  { prefix: "/buyer",   roles: ["buyer",   "seller", "admin"] },
+  { prefix: "/seller",  roles: ["seller",  "admin"]           },
+  { prefix: "/admin",   roles: ["admin"]                      },
+  { prefix: "/support", roles: ["support", "admin"]           },
 ] as const;
 
 // ─── Auth-page prefixes ───────────────────────────────────────────────────────
@@ -107,6 +107,8 @@ export function isAuthRoute(pathname: string): boolean {
  *   canRoleAccessPath("buyer", "/productos")      // → true  (public)
  */
 export function canRoleAccessPath(role: Role, pathname: string): boolean {
+  if (!isProtectedRoute(pathname)) return true;
+
   for (const { prefix, roles } of ROUTE_ACCESS) {
     if (pathname === prefix || pathname.startsWith(prefix + "/")) {
       return (roles as ReadonlyArray<string>).includes(role);

@@ -68,9 +68,10 @@ export async function apiRegisterSeller(formData: FormData) {
     }
 
     return {
-      ok: true,
-      user: json.user,
-      token: json.token,
+      ok:          true,
+      user:        json.user,
+      token:       json.token,
+      forceLogout: json.forceLogout ?? false,
     }
   } catch (error) {
     return { ok: false, message: "Error de red o servidor" }

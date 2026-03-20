@@ -45,10 +45,19 @@ export const registerVendedorSchema = z
       .string()
       .min(1, "Selecciona un municipio"),
 
-    // ── Deferred fields (submitted as empty, completed post-registration) ─────
+    // ── Identity ──────────────────────────────────────────────────────────────
 
-    telefono:    z.string().optional(),
-    dpi:         z.string().optional(),
+    dpi: z
+      .string()
+      .min(1, "El número de DPI es obligatorio"),
+
+    // ── Contact ───────────────────────────────────────────────────────────────
+
+    telefono: z
+      .string()
+      .min(8, "El teléfono debe tener al menos 8 dígitos"),
+
+    // ── Deferred fields (submitted as empty, completed post-registration) ─────
     direccion:   z.string().optional(),
     descripcion: z.string().optional(),
     logo:        z.any().optional(),

@@ -65,6 +65,11 @@ function isValidUser(obj: unknown): obj is User {
   );
 }
 
+function clearLocalStorage() {
+  localStorage.removeItem("user");
+  localStorage.removeItem("token");
+}
+
 // ─────────────────────────────────────────────────────────────
 // Provider
 // ─────────────────────────────────────────────────────────────
@@ -76,33 +81,69 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const [token, setToken] = useState<string | null>(null);
   const [ready, setReady] = useState(false);
 
-  // ── Initial hydration ──────────────────────────────────────────────────────
-  // Restore session from localStorage on mount.
-  // Rejects any stored user that doesn't match the canonical shape
-  // (e.g. legacy sessions with nombre/correo/rol).
+  // ── Session sync on mount ─────────────────────────────────────────────────
+  // Uses GET /api/session (validates the HttpOnly fj_rt cookie) as the single
+  // source of truth. localStorage is used only for the access token (needed
+  // for API calls) and as a fallback when the backend is unreachable.
+  //
+  // This eliminates "ghost sessions": cleared cookie → frontend sees no user.
   useEffect(() => {
-    try {
-      const storedUser  = localStorage.getItem("user");
-      const storedToken = localStorage.getItem("token");
+    async function syncSession() {
+      try {
+        const res = await fetch(`${getApiUrl()}/api/session`, {
+          method:      "GET",
+          credentials: "include",
+          cache:       "no-store",
+        });
 
-      if (storedUser && storedToken) {
-        const parsed: unknown = JSON.parse(storedUser);
+        if (res.ok) {
+          const data = await res.json();
 
-        if (isValidUser(parsed)) {
-          setUser(parsed);
-          setToken(storedToken);
+          if (data.ok && isValidUser(data.user)) {
+            // Cookie is valid — use session as source of truth.
+            // Keep the stored access token for API Bearer auth.
+            const storedToken = localStorage.getItem("token");
+            setUser(data.user);
+            setToken(storedToken);
+            // Keep localStorage user in sync with session.
+            localStorage.setItem("user", JSON.stringify(data.user));
+          } else {
+            // Session returned unexpected shape — treat as invalid.
+            clearLocalStorage();
+            setUser(null);
+            setToken(null);
+          }
         } else {
-          // Legacy session — clear silently, user will be prompted to log in
-          localStorage.removeItem("user");
-          localStorage.removeItem("token");
+          // 401 / 403 — cookie is absent, expired, or revoked.
+          clearLocalStorage();
+          setUser(null);
+          setToken(null);
         }
+      } catch {
+        // Backend unreachable — fall back to localStorage so local dev
+        // survives a momentary backend restart.
+        try {
+          const storedUser  = localStorage.getItem("user");
+          const storedToken = localStorage.getItem("token");
+
+          if (storedUser && storedToken) {
+            const parsed: unknown = JSON.parse(storedUser);
+            if (isValidUser(parsed)) {
+              setUser(parsed);
+              setToken(storedToken);
+            } else {
+              clearLocalStorage();
+            }
+          }
+        } catch {
+          clearLocalStorage();
+        }
+      } finally {
+        setReady(true);
       }
-    } catch {
-      localStorage.removeItem("user");
-      localStorage.removeItem("token");
-    } finally {
-      setReady(true);
     }
+
+    syncSession();
   }, []);
 
   // ── Refresh sync ───────────────────────────────────────────────────────────
@@ -148,24 +189,26 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   // ── logout ─────────────────────────────────────────────────────────────────
   // 1. Clear local state immediately (synchronous — no flicker)
-  // 2. Fire-and-forget backend call to clear the HttpOnly refresh cookie
+  // 2. POST /api/logout to clear the HttpOnly fj_rt cookie on the backend
   // 3. Redirect to /login
   //
-  // The backend call is non-blocking: if the network is down, local state is
-  // already cleared and the user is still redirected. The refresh cookie will
-  // be rejected by the server on next use because the session is gone.
+  // The backend call uses await so the cookie is cleared before the redirect.
+  // If the network is down, state is already cleared locally — the stale
+  // cookie will be rejected on next use because the session is gone.
 
-  const logout = () => {
+  const logout = async () => {
     setUser(null);
     setToken(null);
-    localStorage.removeItem("user");
-    localStorage.removeItem("token");
+    clearLocalStorage();
 
-    // Clear HttpOnly fj_rt cookie — fire and forget, non-fatal on failure
-    fetch(`${getApiUrl()}/api/logout`, {
-      method:      "POST",
-      credentials: "include",
-    }).catch(() => {});
+    try {
+      await fetch(`${getApiUrl()}/api/logout`, {
+        method:      "POST",
+        credentials: "include",
+      });
+    } catch {
+      // Non-fatal — local state is already cleared.
+    }
 
     router.replace("/login");
   };

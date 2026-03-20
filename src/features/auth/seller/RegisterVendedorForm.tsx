@@ -16,6 +16,8 @@ import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Eye, EyeOff, Upload, CheckCircle2 } from "lucide-react";
 import { apiRegisterSeller } from "@/services/auth";
+import { useAuth } from "@/context/AuthContext";
+import type { User } from "@/context/AuthContext";
 import AuthLayout from "@/components/auth/AuthLayout";
 import Link from "next/link";
 
@@ -145,6 +147,7 @@ function FilePickerField({
 
 export default function RegisterVendedorForm() {
   const router = useRouter();
+  const { login } = useAuth();
   const [selectedDep, setSelectedDep] = useState("");
   const [municipios,  setMunicipios]  = useState<string[]>([]);
   const [rootError,   setRootError]   = useState<string | null>(null);
@@ -192,8 +195,8 @@ export default function RegisterVendedorForm() {
       form.append("departamento",     data.departamento);
       form.append("municipio",        data.municipio);
       // Deferred text fields
-      form.append("telefono",    data.telefono    ?? "");
-      form.append("dpi",         data.dpi         ?? "");
+      form.append("telefono",    data.telefono);
+      form.append("dpi",         data.dpi);
       form.append("direccion",   data.direccion   ?? "");
       form.append("descripcion", data.descripcion ?? "");
       // KYC documents (backend field names match upload.middleware.ts)
@@ -203,8 +206,15 @@ export default function RegisterVendedorForm() {
 
       const res = await apiRegisterSeller(form);
 
-      if (res.ok) {
-        router.push("/login?registered=seller");
+      if (res.ok && res.user && res.token) {
+        if (res.forceLogout) {
+          // Backend cleared the refresh cookie — send the user to login so
+          // the entry-point flow runs with a clean, validated session.
+          router.push("/login");
+        } else {
+          login(res.user as User, res.token);
+          router.push("/seller/my-business");
+        }
       } else {
         setRootError(res.message || "Error al registrar el comercio.");
       }
@@ -258,6 +268,15 @@ export default function RegisterVendedorForm() {
               error={errors.confirmarPassword?.message}
               registration={register("confirmarPassword")}
             />
+
+            <div className="space-y-1.5">
+              <Label htmlFor="telefono" className="text-sm text-neutral-700">Teléfono personal</Label>
+              <Input id="telefono" type="tel" placeholder="Ej: 50212345678" className={INPUT_CLS} {...register("telefono")} />
+              {errors.telefono
+                ? <p className="text-xs text-red-500">{errors.telefono.message}</p>
+                : <p className="text-xs text-neutral-400">Necesario para contacto y verificación</p>
+              }
+            </div>
           </div>
         </div>
 
@@ -321,6 +340,24 @@ export default function RegisterVendedorForm() {
               Estos documentos son obligatorios para validar tu identidad y proteger a los compradores.
               Aceptamos fotos claras (JPG, PNG, WEBP).
             </p>
+          </div>
+
+          {/* DPI number — required by backend for KYC scoring */}
+          <div className="space-y-1.5">
+            <Label htmlFor="dpi" className="text-sm text-neutral-700">
+              Número de DPI
+            </Label>
+            <Input
+              id="dpi"
+              type="text"
+              placeholder="Ej: 1234 56789 0101"
+              className={INPUT_CLS}
+              {...register("dpi")}
+            />
+            {errors.dpi
+              ? <p className="text-xs text-red-500">{errors.dpi.message}</p>
+              : <p className="text-xs text-amber-700/70">Ingresa el número impreso en tu DPI (no la imagen)</p>
+            }
           </div>
 
           <div className="grid sm:grid-cols-3 gap-4">

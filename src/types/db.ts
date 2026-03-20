@@ -3,7 +3,8 @@
 // ============================================================
 
 export type RolUsuario = "comprador" | "vendedor" | "admin";
-export type EstadoVendedor = "pendiente" | "aprobado" | "rechazado";
+export type EstadoVendedor   = "pendiente" | "aprobado" | "rechazado";
+export type EstadoAdmin      = "activo"    | "inactivo" | "suspendido";
 
 // ----------------------------------------------------------------
 // Tabla: users
@@ -44,9 +45,10 @@ export interface VendedorPerfil {
   selfie_con_dpi?: string | null;
 
   // 🔒 Alineado al backend real
-  observaciones?: string | null;
+  observaciones?:    string | null;
   estado_validacion?: EstadoVendedor | null;
-  estado?: "activo" | "inactivo" | null;
+  estado_admin?:      EstadoAdmin    | null;
+  banner_url?:        string | null;
 
   createdAt?: string;
   updatedAt?: string;

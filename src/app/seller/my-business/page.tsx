@@ -22,6 +22,7 @@ import { Button } from '@/components/ui/button'
 
 import { apiGetVendedorPerfil } from '@/services/vendedorPerfil'
 import { fetchMyProductsPreview } from '@/services/sellerProducts'
+import { apiFetch } from '@/services/apiClient'
 import { SellerProgressCard } from '@/components/seller/SellerProgressCard'
 import { SellerGrowthCard } from '@/components/seller/SellerGrowthCard'
 import { SellerUpgradeCard } from '@/components/seller/SellerUpgradeCard'
@@ -207,36 +208,47 @@ export default function MyBusinessPage() {
   /* ── Load ── */
   useEffect(() => {
     async function loadData() {
+      // Profile — required for the page to render content
       try {
         const profileRes = await apiGetVendedorPerfil()
         if (profileRes.ok && profileRes.perfil) {
           setPerfil(profileRes.perfil as unknown as SellerProfile)
         }
+      } catch (err) {
+        console.warn('Profile fetch failed:', err)
+      }
 
+      // Products — non-fatal; page still renders without them
+      try {
         const products = await fetchMyProductsPreview()
         setProductos(products)
-
-        const token = localStorage.getItem('token')
-
-        const [analyticsRes, dailyRes] = await Promise.all([
-          fetch(`${process.env.NEXT_PUBLIC_API_URL || "http://localhost:8800"}/api/seller/analytics`, {
-            headers: { Authorization: `Bearer ${token}` },
-          }),
-          fetch(`${process.env.NEXT_PUBLIC_API_URL || "http://localhost:8800"}/api/seller/analytics/daily`, {
-            headers: { Authorization: `Bearer ${token}` },
-          }),
-        ])
-
-        const analyticsJson = await analyticsRes.json()
-        setAnalytics(analyticsJson)
-
-        const dailyJson = await dailyRes.json()
-        setDaily(dailyJson.data || [])
       } catch (err) {
-        console.error('Error cargando negocio:', err)
-      } finally {
-        setLoading(false)
+        console.warn('Products fetch failed:', err)
       }
+
+      // Analytics — non-fatal; uses cookie auth via apiFetch
+      try {
+        const analyticsRes = await apiFetch('/api/seller/analytics')
+        if (analyticsRes.ok) {
+          const analyticsJson = await analyticsRes.json()
+          setAnalytics(analyticsJson)
+        }
+      } catch (err) {
+        console.warn('Analytics fetch failed:', err)
+      }
+
+      // Daily analytics — non-fatal
+      try {
+        const dailyRes = await apiFetch('/api/seller/analytics/daily')
+        if (dailyRes.ok) {
+          const dailyJson = await dailyRes.json()
+          setDaily(dailyJson.data || [])
+        }
+      } catch (err) {
+        console.warn('Daily analytics fetch failed:', err)
+      }
+
+      setLoading(false)
     }
 
     loadData()
