@@ -4,7 +4,7 @@ import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { loginSchema, LoginValues } from '@/schemas/login-schema';
 import { useRouter } from 'next/navigation';
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useAuth } from '@/context/AuthContext';
 import type { User } from '@/context/AuthContext';
 import { safeRedirectForRole } from '@/lib/safeRedirect';
@@ -30,7 +30,7 @@ interface LoginFormProps {
 
 export function LoginForm({ redirectTo }: LoginFormProps) {
   const router = useRouter();
-  const { login } = useAuth();
+  const { login, isAuthenticated, user, ready } = useAuth();
 
   const {
     register,
@@ -42,6 +42,19 @@ export function LoginForm({ redirectTo }: LoginFormProps) {
 
   const [loginError,     setLoginError]     = useState<string | null>(null);
   const [googleLoading,  setGoogleLoading]  = useState(false);
+
+  // ── Redirect-away for already-authenticated users ─────────────────────────
+  // Middleware is the primary guard but fails open when the Edge→backend call
+  // times out (Railway cold start, network path). This effect is the client-side
+  // fallback: once AuthContext confirms a valid session, redirect immediately.
+  // Uses the same safeRedirectForRole + getDefaultDestination logic as the
+  // post-login flow so redirectTo is always validated before use.
+  useEffect(() => {
+    if (!ready || !isAuthenticated || !user) return;
+    const destination =
+      safeRedirectForRole(redirectTo, user.role) ?? getDefaultDestination(user.role);
+    router.replace(destination);
+  }, [ready, isAuthenticated, user, redirectTo, router]);
 
   // ── Email / password login ────────────────────────────────────────────────
 
