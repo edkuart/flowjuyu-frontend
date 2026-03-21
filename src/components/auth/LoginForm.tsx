@@ -3,7 +3,6 @@
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { loginSchema, LoginValues } from '@/schemas/login-schema';
-import { useRouter } from 'next/navigation';
 import { useState, useEffect, useRef } from 'react';
 import { useAuth } from '@/context/AuthContext';
 import type { User } from '@/context/AuthContext';
@@ -29,7 +28,6 @@ interface LoginFormProps {
 }
 
 export function LoginForm({ redirectTo }: LoginFormProps) {
-  const router = useRouter();
   const { login, isAuthenticated, user, ready } = useAuth();
 
   const {
@@ -110,7 +108,7 @@ export function LoginForm({ redirectTo }: LoginFormProps) {
 
       const destination =
         safeRedirectForRole(redirectTo, user.role) ?? getDefaultDestination(user.role);
-      router.push(destination);
+      window.location.replace(destination);
     } catch {
       setLoginError('Error de conexión con el servidor');
     }
@@ -160,13 +158,13 @@ export function LoginForm({ redirectTo }: LoginFormProps) {
       // New users (just created via Google) go to the welcome page
       // where they choose between buyer and seller paths.
       if (json.is_new_user) {
-        router.push('/welcome');
+        window.location.replace('/welcome');
         return;
       }
 
       const destination =
         safeRedirectForRole(redirectTo, user.role) ?? getDefaultDestination(user.role);
-      router.push(destination);
+      window.location.replace(destination);
     } catch (err: any) {
       // User closed the popup — not an error worth surfacing.
       if (
