@@ -105,8 +105,8 @@ export function LoginForm({ redirectTo }: LoginFormProps) {
         return;
       }
 
-      const user: User = json.user;
-      login(user, json.token);
+      const user = json.user as User;
+      login(user, json.token as string);
 
       const destination =
         safeRedirectForRole(redirectTo, user.role) ?? getDefaultDestination(user.role);
@@ -154,8 +154,8 @@ export function LoginForm({ redirectTo }: LoginFormProps) {
         return;
       }
 
-      const user: User = json.user;
-      login(user, json.token);
+      const user = json.user as User;
+      login(user, json.token as string);
 
       // New users (just created via Google) go to the welcome page
       // where they choose between buyer and seller paths.
