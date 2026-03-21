@@ -4,6 +4,7 @@ import {
   createContext,
   useContext,
   useEffect,
+  useRef,
   useState,
   ReactNode,
 } from "react";
@@ -87,7 +88,18 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   // for API calls) and as a fallback when the backend is unreachable.
   //
   // This eliminates "ghost sessions": cleared cookie → frontend sees no user.
+  //
+  // WHY useRef guard:
+  //   React 18 StrictMode double-invokes effects in development, which would
+  //   fire two concurrent /api/session requests. The second can race or hit
+  //   rate limits. The ref ensures exactly one network call regardless of
+  //   how many times the effect body runs.
+  const sessionSynced = useRef(false);
+
   useEffect(() => {
+    if (sessionSynced.current) return;
+    sessionSynced.current = true;
+
     async function syncSession() {
       try {
         const res = await fetch(`${getApiUrl()}/api/session`, {
@@ -122,11 +134,17 @@ export function AuthProvider({ children }: { children: ReactNode }) {
             setUser(null);
             setToken(null);
           }
-        } else if (res.status === 429) {
-          // Rate limited — backend temporarily unavailable.
-          // The cookie may still be valid; do NOT treat this as a logout.
+        } else if (res.status === 401 || res.status === 403) {
+          // Cookie is absent, expired, or revoked — real session invalidation.
+          console.log("[auth:sync] /api/session returned", res.status, "— clearing session");
+          clearLocalStorage();
+          setUser(null);
+          setToken(null);
+        } else {
+          // 429, 500, 503, or any other transient error.
+          // The session may still be valid — do NOT clear it.
           // Fall back to localStorage so the UI stays functional.
-          console.log("[auth:sync] /api/session rate-limited — using localStorage fallback");
+          console.warn("[auth:sync] /api/session returned", res.status, "— keeping session, using localStorage fallback");
           try {
             const raw = localStorage.getItem("user");
             const tok = localStorage.getItem("token");
@@ -138,14 +156,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
               }
             }
           } catch {
-            // malformed localStorage — leave user as null, do not clear
+            // malformed localStorage — leave state as-is, do not clear
           }
-        } else {
-          // 401 / 403 — cookie is absent, expired, or revoked.
-          console.log("[auth:sync] /api/session returned", res.status, "— clearing state");
-          clearLocalStorage();
-          setUser(null);
-          setToken(null);
         }
       } catch {
         // Backend unreachable — fall back to localStorage so local dev
@@ -193,13 +205,22 @@ export function AuthProvider({ children }: { children: ReactNode }) {
             return;
           }
         } catch {
-          // malformed JSON — fall through to clear
+          // malformed JSON — fall through
         }
       }
 
-      // localStorage was cleared (logout or refresh failure)
-      setToken(null);
-      setUser(null);
+      // Only clear React state when BOTH token and user are gone.
+      // This means an intentional logout or a confirmed 401/403 refresh failure.
+      // A missing token alone (e.g. after a 429 on /api/refresh) must NOT log
+      // the user out — the cookie may still be valid.
+      if (!storedToken && !storedUserRaw) {
+        setToken(null);
+        setUser(null);
+      } else {
+        // Partial state (e.g. user present but no token after a 429 refresh).
+        // Keep current React state — api.ts will renew the token on next call.
+        console.warn("[auth:changed] partial localStorage state — keeping current session");
+      }
     }
 
     window.addEventListener("auth:changed", handleAuthChanged);

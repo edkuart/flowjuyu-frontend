@@ -42,6 +42,11 @@ export async function apiFetch(
     },
   });
 
+  // ── 429 — rate limited ──────────────────────────────────────────────────
+  // Return immediately. Never retry, never call refreshSession — that would
+  // add more requests and deepen the flood.
+  if (res.status === 429) return res;
+
   // ── 401 handling — browser only ─────────────────────────────────────────
   // Server-side calls have no refresh cookie, so we only attempt renewal
   // in the browser where the HttpOnly cookie is available.
@@ -74,10 +79,17 @@ export async function apiFetch(
           },
         });
       } else {
-        // ── Refresh failed — session is definitively over ───────────────────
-        // refreshSession() already cleared localStorage and dispatched
-        // "auth:changed", so AuthContext will clear its state on next event
-        // loop tick. We redirect immediately.
+        // ── Refresh failed — determine if this is real or transient ─────────
+        // refreshSession() clears localStorage on real auth failure (401/403)
+        // but leaves it intact on transient failures (429, network error).
+        // If the user is still in localStorage, the session may still be
+        // valid — don't force logout. The next user action will retry.
+        if (localStorage.getItem("user")) {
+          // Transient failure (e.g. 429 on /api/refresh). Keep the session.
+          throw new Error("REFRESH_FAILED_TRANSIENT");
+        }
+        // Real failure — localStorage was cleared by refreshSession().
+        // AuthContext will clear React state on the next auth:changed event.
         window.location.replace("/login");
         throw new Error("SESSION_EXPIRED");
       }

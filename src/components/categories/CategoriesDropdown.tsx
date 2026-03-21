@@ -11,17 +11,42 @@ type Categoria = {
   slug: string;
 };
 
+// ── Module-level cache ────────────────────────────────────────────────────────
+// Shared across all mounted instances of this component. The fetch fires once
+// per page session regardless of how many times the component mounts/unmounts.
+let _cache: Categoria[] | null = null;
+let _inflight: Promise<Categoria[]> | null = null;
+
+async function fetchCategories(): Promise<Categoria[]> {
+  if (_cache) return _cache;
+  if (_inflight) return _inflight;
+
+  _inflight = fetch(`${API}/api/public/categories`)
+    .then(res => {
+      if (!res.ok) throw new Error(`categories ${res.status}`);
+      return res.json() as Promise<Categoria[]>;
+    })
+    .then(data => {
+      _cache = data;
+      _inflight = null;
+      return data;
+    })
+    .catch(err => {
+      _inflight = null; // allow retry on next mount
+      throw err;
+    });
+
+  return _inflight;
+}
+
 export default function CategoriesDropdown() {
-  const [categorias, setCategorias] = useState<Categoria[]>([]);
+  const [categorias, setCategorias] = useState<Categoria[]>(_cache ?? []);
   const [open, setOpen] = useState(false);
 
   useEffect(() => {
-    fetch(`${API}/api/public/categories`)
-      .then(res => {
-        if (!res.ok) throw new Error("Error cargando categorías");
-        return res.json();
-      })
-      .then(data => setCategorias(data))
+    if (_cache) return; // already loaded — nothing to do
+    fetchCategories()
+      .then(setCategorias)
       .catch(console.error);
   }, []);
 
