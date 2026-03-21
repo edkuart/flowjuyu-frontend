@@ -8,7 +8,6 @@ import {
   useState,
   ReactNode,
 } from "react";
-import { useRouter } from "next/navigation";
 import { getApiUrl } from "@/lib/config";
 
 // ─────────────────────────────────────────────────────────────
@@ -76,8 +75,6 @@ function clearLocalStorage() {
 // ─────────────────────────────────────────────────────────────
 
 export function AuthProvider({ children }: { children: ReactNode }) {
-  const router = useRouter();
-
   const [user,  setUser]  = useState<User | null>(null);
   const [token, setToken] = useState<string | null>(null);
   const [ready, setReady] = useState(false);
@@ -141,23 +138,22 @@ export function AuthProvider({ children }: { children: ReactNode }) {
           setUser(null);
           setToken(null);
         } else {
-          // 429, 500, 503, or any other transient error.
-          // The session may still be valid — do NOT clear it.
-          // Fall back to localStorage so the UI stays functional.
-          console.warn("[auth:sync] /api/session returned", res.status, "— keeping session, using localStorage fallback");
-          try {
-            const raw = localStorage.getItem("user");
-            const tok = localStorage.getItem("token");
-            if (raw) {
-              const parsed: unknown = JSON.parse(raw);
-              if (isValidUser(parsed)) {
-                setUser(parsed);
-                setToken(tok);
-              }
-            }
-          } catch {
-            // malformed localStorage — leave state as-is, do not clear
-          }
+          // 429, 500, 503 — transient backend error.
+          //
+          // DO NOT fallback to localStorage here. Reading localStorage and
+          // calling setUser() makes isAuthenticated=true even though the
+          // session is unverified. This creates the redirect loop:
+          //   /login (localStorage → isAuthenticated=true → redirect-away)
+          //   → /seller/* (AuthGuard → redirect back to /login)
+          //   → repeat
+          //
+          // DO NOT clear session either — that logs out users on temporary
+          // backend overload.
+          //
+          // Leave ALL auth state exactly as-is. user stays null (initial state).
+          // ready will be set to true by the finally block, unblocking the UI.
+          // AuthGuard will redirect to /login once, where the user can retry.
+          console.warn("[auth:sync] /api/session returned", res.status, "— auth state unchanged");
         }
       } catch {
         // Backend unreachable — fall back to localStorage so local dev
@@ -259,7 +255,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       // Non-fatal — local state is already cleared.
     }
 
-    router.replace("/login");
+    window.location.replace("/login");
   };
 
   return (

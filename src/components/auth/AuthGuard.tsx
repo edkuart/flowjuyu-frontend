@@ -1,7 +1,6 @@
 "use client";
 
 import { useEffect, useRef } from "react";
-import { useRouter } from "next/navigation";
 import { useAuth } from "@/context/AuthContext";
 import { getDefaultDestination } from "@/lib/authRoutes";
 import type { Role } from "@/context/AuthContext";
@@ -19,7 +18,19 @@ import type { Role } from "@/context/AuthContext";
  *   - Not authenticated       → /login
  *   - Authenticated, wrong role → role's own dashboard (not /login)
  *
- * Uses useRef to prevent double-redirect in React 18 Strict Mode.
+ * WHY window.location.replace instead of router.replace:
+ *   router.replace() uses React.startTransition internally and can be silently
+ *   cancelled by concurrent re-renders (e.g. from AuthContext state updates
+ *   arriving at the same time). window.location.replace() is a synchronous
+ *   browser API and cannot be cancelled by React's scheduler.
+ *
+ * WHY router is NOT imported:
+ *   Including router in the useEffect dep array caused spurious re-runs because
+ *   useRouter() returns a new object reference during hydration and prefetches.
+ *
+ * WHY redirect only when ready === true:
+ *   Redirecting while ready=false would fire before /api/session settles,
+ *   incorrectly booting authenticated users who just haven't been confirmed yet.
  */
 export default function AuthGuard({
   children,
@@ -28,34 +39,28 @@ export default function AuthGuard({
   children: React.ReactNode;
   allowedRoles: Role[];
 }) {
-  const router = useRouter();
   const { user, ready } = useAuth();
   const didRedirect = useRef(false);
 
-  // Derived — no useState needed. Recomputes on every render; React bails out
-  // of DOM updates when result is stable.
-  // isAuthenticated = !!user (not token). Token is an API credential, not
-  // identity. A user can be authenticated with a valid cookie but no token
-  // in localStorage (e.g. after a cross-tab clear). api.ts handles renewal.
   const isAuthorized =
     ready && !!user && allowedRoles.includes(user.role);
 
   useEffect(() => {
+    // Wait for session to settle. Redirecting during loading would boot
+    // authenticated users who haven't been confirmed by /api/session yet.
     if (!ready || isAuthorized || didRedirect.current) return;
 
     didRedirect.current = true;
 
     if (user) {
       // Authenticated but wrong role — send to their own dashboard.
-      router.replace(getDefaultDestination(user.role));
+      window.location.replace(getDefaultDestination(user.role));
     } else {
-      // No session at all — send to login.
-      router.replace("/login");
+      // No confirmed session — send to login.
+      window.location.replace("/login");
     }
-  }, [ready, isAuthorized, user, router]);
+  }, [ready, isAuthorized, user]);
 
-  // Still hydrating from localStorage. Middleware already blocked unauthorized
-  // requests, so this null window is always brief for legitimate users.
   if (!ready || !isAuthorized) return null;
 
   return <>{children}</>;
