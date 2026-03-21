@@ -95,10 +95,13 @@ export function LoginForm({ redirectTo }: LoginFormProps) {
         }),
       });
 
-      const json = await res.json();
+      const json = await res.json().catch(() => ({})) as Record<string, unknown>;
 
       if (!res.ok || !json.ok || !json.token || !json.user) {
-        setLoginError(json.message || 'Credenciales incorrectas');
+        const msg = res.status === 429
+          ? 'Demasiadas solicitudes. Espera un momento e inténtalo de nuevo.'
+          : ((json.message as string) || 'Credenciales incorrectas');
+        setLoginError(msg);
         return;
       }
 
@@ -141,10 +144,13 @@ export function LoginForm({ redirectTo }: LoginFormProps) {
         body: JSON.stringify({ id_token }),
       });
 
-      const json = await res.json();
+      const json = await res.json().catch(() => ({})) as Record<string, unknown>;
 
       if (!res.ok || !json.ok || !json.token || !json.user) {
-        setLoginError(json.message || 'No se pudo iniciar sesión con Google');
+        const msg = res.status === 429
+          ? 'Demasiadas solicitudes. Espera un momento e inténtalo de nuevo.'
+          : ((json.message as string) || 'No se pudo iniciar sesión con Google');
+        setLoginError(msg);
         return;
       }
 

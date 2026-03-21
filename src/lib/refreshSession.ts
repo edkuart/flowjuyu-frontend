@@ -54,14 +54,19 @@ async function _doRefresh(): Promise<boolean> {
     });
 
     if (!res.ok) {
+      // 429 = rate limited. This is NOT a session invalidation — the cookie
+      // may still be valid. Preserve stored auth and just signal "not refreshed".
+      if (res.status === 429) return false;
+
       _clearStoredAuth();
       _notifyAuthChanged();
       return false;
     }
 
-    const json = await res.json();
+    // Safe parse — a rare 429 slip-through or gateway response may not be JSON.
+    const json = await res.json().catch(() => null);
 
-    if (!json.ok || !json.token) {
+    if (!json?.ok || !json?.token) {
       _clearStoredAuth();
       _notifyAuthChanged();
       return false;

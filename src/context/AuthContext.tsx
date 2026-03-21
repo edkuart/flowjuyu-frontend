@@ -122,6 +122,24 @@ export function AuthProvider({ children }: { children: ReactNode }) {
             setUser(null);
             setToken(null);
           }
+        } else if (res.status === 429) {
+          // Rate limited — backend temporarily unavailable.
+          // The cookie may still be valid; do NOT treat this as a logout.
+          // Fall back to localStorage so the UI stays functional.
+          console.log("[auth:sync] /api/session rate-limited — using localStorage fallback");
+          try {
+            const raw = localStorage.getItem("user");
+            const tok = localStorage.getItem("token");
+            if (raw) {
+              const parsed: unknown = JSON.parse(raw);
+              if (isValidUser(parsed)) {
+                setUser(parsed);
+                setToken(tok);
+              }
+            }
+          } catch {
+            // malformed localStorage — leave user as null, do not clear
+          }
         } else {
           // 401 / 403 — cookie is absent, expired, or revoked.
           console.log("[auth:sync] /api/session returned", res.status, "— clearing state");
