@@ -97,6 +97,7 @@ export default async function ProductPage({
               sellerLogo={vendedor.logo}
               ubicacion={ubicacion || undefined}
               categoria={product.categoria?.nombre ?? product.categoria_custom}
+              internal_code={product.internal_code}
             />
 
             {/* Especificaciones en la misma columna, debajo de la info */}

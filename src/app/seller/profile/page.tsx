@@ -10,8 +10,9 @@ import { Label } from "@/components/ui/label"
 import { useAuth } from "@/context/AuthContext"
 import { useFileUpload } from "@/hooks/useFileUpload"
 import { departamentos } from "@/lib/guatemala"
-import { MapPin, ShieldCheck, ShoppingBag, Shield, Store } from "lucide-react"
+import { MapPin, QrCode, ShieldCheck, ShoppingBag, Shield, Store } from "lucide-react"
 import { SellerContactCTA } from "@/components/seller/SellerContactCTA"
+import SellerQrModal from "@/components/seller/SellerQrModal"
 
 /* ──────────────────────────────────────────
    SMALL HELPERS
@@ -71,6 +72,7 @@ export default function SellerPublicProfilePage() {
   const { user } = useAuth()
   const [vendedor, setVendedor] = useState<any>(null)
   const [editando, setEditando] = useState(false)
+  const [qrOpen, setQrOpen] = useState(false)
   const [loading, setLoading] = useState(true)
   const [formData, setFormData] = useState<any>({})
   const inputFileRef = useRef<HTMLInputElement>(null)
@@ -142,6 +144,7 @@ export default function SellerPublicProfilePage() {
   const mensajeLen    = (formData.mensaje_publico || "").length
 
   return (
+    <>
     <main className="max-w-4xl mx-auto px-4 py-10 space-y-8">
 
       {/* ══════════════════════════════════════
@@ -229,6 +232,15 @@ export default function SellerPublicProfilePage() {
           {/* Actions */}
           {esPropietario && (
             <div className="flex gap-3 flex-shrink-0 items-start flex-wrap justify-center sm:justify-end">
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => setQrOpen(true)}
+                className="border-white/25 text-white bg-white/10 hover:bg-white/20 hover:text-white hover:border-white/40 gap-1.5"
+              >
+                <QrCode className="w-3.5 h-3.5" />
+                Ver QR de mi tienda
+              </Button>
               <Button
                 variant="outline"
                 size="sm"
@@ -452,5 +464,15 @@ export default function SellerPublicProfilePage() {
       </section>
 
     </main>
+
+    {vendedor?.user_id && (
+      <SellerQrModal
+        open={qrOpen}
+        onClose={() => setQrOpen(false)}
+        sellerId={Number(vendedor.user_id)}
+        nombreComercio={vendedor.nombre_comercio || "Mi tienda"}
+      />
+    )}
+    </>
   )
 }

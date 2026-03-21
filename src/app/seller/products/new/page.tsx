@@ -361,8 +361,10 @@ export default function AddProductPage() {
   const [imagenesAEliminar, setImagenesAEliminar] = useState<number[]>([])
 
   /* ── Seller SKU ── */
+  const [useCustomSku, setUseCustomSku] = useState(false)
   const [sellerSku, setSellerSku] = useState("")
   const [skuError, setSkuError] = useState<string | null>(null)
+  const [previewSku, setPreviewSku] = useState("AUTO-??????")
 
   /* ── Submit state ── */
   const [estado, setEstado] = useState<"idle" | "loading" | "ok" | "error">("idle")
@@ -379,6 +381,23 @@ export default function AddProductPage() {
      AUTO-SAVE (new products only)
   ──────────────────────────────────────── */
   const DRAFT_KEY = "flowjuyu_product_draft"
+
+  // Regenerate preview SKU when product name changes (or on mount)
+  useEffect(() => {
+    const rand = Math.random().toString(36).substring(2, 8).toUpperCase()
+    const trimmed = nombre.trim()
+    if (!trimmed) {
+      setPreviewSku(`AUTO-${rand}`)
+      return
+    }
+    const prefix = trimmed
+      .split(/\s+/)
+      .slice(0, 3)
+      .map(w => w.toUpperCase().replace(/[^A-Z0-9]/g, ""))
+      .join("-")
+      .substring(0, 10)
+    setPreviewSku(`AUTO-${prefix}-${rand}`)
+  }, [nombre])
 
   // Restore draft on mount (only when creating)
   useEffect(() => {
@@ -630,8 +649,8 @@ export default function AddProductPage() {
   ──────────────────────────────────────── */
   async function handleSave(forceActivo?: boolean) {
     // Validate SKU before opening loading state
-    const trimmedSku = sellerSku.trim()
-    if (trimmedSku !== "" && !/^[A-Za-z0-9\-_]{1,100}$/.test(trimmedSku)) {
+    const trimmedSku = useCustomSku ? sellerSku.trim() : ""
+    if (useCustomSku && trimmedSku !== "" && !/^[A-Za-z0-9\-_]{1,100}$/.test(trimmedSku)) {
       setSkuError("Solo letras, números, guiones (-) y guiones bajos (_). Máximo 100 caracteres.")
       return
     }
@@ -959,30 +978,64 @@ export default function AddProductPage() {
                     </Field>
                   </div>
 
-                  {/* ── SELLER SKU (optional) ── */}
-                  <Field
-                    label="Código interno del vendedor (SKU)"
-                    hint="Opcional. Te ayuda a organizar tus productos internamente. No es visible para los compradores."
-                    error={skuError ?? undefined}
-                  >
-                    <div className="relative">
-                      <Input
-                        value={sellerSku}
-                        onChange={e => {
-                          setSellerSku(e.target.value)
-                          if (skuError) setSkuError(null)
-                        }}
-                        placeholder="Ej: CORTE-ROJO-01"
-                        maxLength={100}
-                        className="pr-20"
-                        autoComplete="off"
-                        spellCheck={false}
-                      />
-                      <span className="absolute right-3 top-1/2 -translate-y-1/2 text-xs text-neutral-400">
-                        {sellerSku.length}/100
-                      </span>
+                  {/* ── SELLER SKU (optional, toggle-based) ── */}
+                  <div className="space-y-2">
+                    <div className="flex items-center justify-between">
+                      <Label className="text-sm font-medium text-neutral-700">
+                        Código interno del vendedor (SKU)
+                      </Label>
+                      <div className="flex items-center gap-2">
+                        <span className="text-xs text-neutral-500">
+                          {useCustomSku ? "Manual" : "Automático"}
+                        </span>
+                        <Switch
+                          checked={useCustomSku}
+                          onCheckedChange={checked => {
+                            setUseCustomSku(checked)
+                            if (!checked) {
+                              setSellerSku("")
+                              setSkuError(null)
+                            }
+                          }}
+                        />
+                      </div>
                     </div>
-                  </Field>
+
+                    {useCustomSku ? (
+                      <div>
+                        <div className="relative">
+                          <Input
+                            value={sellerSku}
+                            onChange={e => {
+                              setSellerSku(e.target.value)
+                              if (skuError) setSkuError(null)
+                            }}
+                            placeholder="Ej: CORTE-ROJO-01"
+                            maxLength={100}
+                            className="pr-20"
+                            autoComplete="off"
+                            spellCheck={false}
+                          />
+                          <span className="absolute right-3 top-1/2 -translate-y-1/2 text-xs text-neutral-400">
+                            {sellerSku.length}/100
+                          </span>
+                        </div>
+                        {skuError && (
+                          <p className="mt-1 text-xs text-red-500">{skuError}</p>
+                        )}
+                        <p className="mt-1 text-xs text-neutral-400">
+                          Solo letras, números, guiones y guiones bajos. No visible para compradores.
+                        </p>
+                      </div>
+                    ) : (
+                      <div className="text-xs text-neutral-400 space-y-0.5">
+                        <p>Se asignará automáticamente al crear el producto.</p>
+                        <p className="font-mono text-neutral-500">
+                          Ej: {previewSku}
+                        </p>
+                      </div>
+                    )}
+                  </div>
 
                   <div className="flex items-center justify-between p-4 bg-neutral-50 rounded-xl border border-neutral-100">
                     <div>

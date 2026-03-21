@@ -12,9 +12,11 @@ import {
   ShieldCheck,
   Star,
   BookOpen,
+  Share2,
 } from "lucide-react";
 import ProductDiscoveryLayout from "@/components/product/discovery/ProductDiscoveryLayout";
 import { FavoriteButton } from "@/components/ui/FavoriteButton";
+import SellerQrModal from "@/components/seller/SellerQrModal";
 
 const API = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8800";
 
@@ -27,6 +29,7 @@ type Producto = {
   nombre: string;
   precio: number | string;
   imagen_url?: string | null;
+  internal_code?: string | null;
 };
 
 type Seller = {
@@ -84,7 +87,7 @@ function ProductCard({ p }: { p: Producto }) {
   const precio = Number(p.precio);
 
   return (
-    <Link href={`/product/${p.id}`}>
+    <Link href={p.internal_code ? `/p/${p.internal_code}` : `/product/${p.id}`}>
       <div className="group bg-white rounded-3xl border border-neutral-200 p-5 hover:shadow-2xl hover:-translate-y-1 transition-all duration-300 overflow-hidden relative">
 
         {/* Favorite button — uses shared useFavorites store */}
@@ -237,6 +240,7 @@ export default function StoreClient({
   const [precioMax, setPrecioMax] = useState(2000);
   const [sort, setSort]           = useState("");
   const [fabVisible, setFabVisible] = useState(false);
+  const [qrOpen, setQrOpen]       = useState(false);
 
   // Reviews
   const [ratingSummary, setRatingSummary] = useState<RatingSummary | null>(null);
@@ -323,6 +327,7 @@ export default function StoreClient({
      RENDER
   ===================================================== */
   return (
+    <>
     <ProductDiscoveryLayout
       hideHeader={true}
       title={seller.nombre_comercio}
@@ -455,6 +460,13 @@ export default function StoreClient({
                   >
                     Ver catálogo <ArrowRight className="w-4 h-4" />
                   </a>
+                  <button
+                    onClick={() => setQrOpen(true)}
+                    className="inline-flex items-center gap-2 px-7 py-3 bg-white/15 hover:bg-white/25 backdrop-blur border border-white/25 text-white font-semibold rounded-full transition-all duration-200 text-sm"
+                  >
+                    <Share2 className="w-4 h-4" />
+                    Compartir
+                  </button>
                 </div>
               </div>
             </div>
@@ -538,7 +550,7 @@ export default function StoreClient({
             </p>
             <h2 className="text-2xl font-bold text-neutral-900">Producto destacado</h2>
           </div>
-          <Link href={`/product/${featuredProduct.id}`}>
+          <Link href={featuredProduct.internal_code ? `/p/${featuredProduct.internal_code}` : `/product/${featuredProduct.id}`}>
             <div className="group flex flex-col sm:flex-row gap-6 bg-white rounded-3xl border border-neutral-100 shadow-sm hover:shadow-xl transition-all p-6 overflow-hidden">
               <div className="relative w-full sm:w-52 aspect-square bg-neutral-50 rounded-2xl overflow-hidden flex-shrink-0">
                 <Image
@@ -585,7 +597,7 @@ export default function StoreClient({
           </div>
           <div className="grid md:grid-cols-3 gap-6">
             {destacados.map((p, index) => (
-              <Link key={p.id} href={`/product/${p.id}`}>
+              <Link key={p.id} href={p.internal_code ? `/p/${p.internal_code}` : `/product/${p.id}`}>
                 <div className={`group relative rounded-2xl overflow-hidden border border-neutral-100 shadow-sm hover:shadow-xl transition-all duration-500 bg-white ${index === 0 ? "md:col-span-2" : ""}`}>
                   <div className={`relative bg-neutral-50 ${index === 0 ? "aspect-[16/9]" : "aspect-square"}`}>
                     <Image src={p.imagen_url || "/placeholder.jpg"} alt={p.nombre} fill className="object-contain p-4 group-hover:scale-105 transition-transform duration-700" />
@@ -730,5 +742,13 @@ export default function StoreClient({
       </section>
 
     </ProductDiscoveryLayout>
+
+    <SellerQrModal
+      open={qrOpen}
+      onClose={() => setQrOpen(false)}
+      sellerId={seller.id}
+      nombreComercio={seller.nombre_comercio}
+    />
+    </>
   );
 }

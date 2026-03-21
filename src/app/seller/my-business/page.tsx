@@ -9,6 +9,7 @@ import {
   MapPin,
   MessageCircle,
   ArrowRight,
+  QrCode,
   TrendingUp,
   Users,
   Package,
@@ -27,6 +28,7 @@ import { SellerProgressCard } from '@/components/seller/SellerProgressCard'
 import { SellerGrowthCard } from '@/components/seller/SellerGrowthCard'
 import { SellerUpgradeCard } from '@/components/seller/SellerUpgradeCard'
 import { ReviewList } from '@/components/reviews/ReviewList'
+import SellerQrModal from '@/components/seller/SellerQrModal'
 import type { Review } from '@/types/review'
 
 /* =========================================================
@@ -197,6 +199,7 @@ export default function MyBusinessPage() {
   const [productos, setProductos]       = useState<ProductoPreview[]>([])
   const [analytics, setAnalytics]       = useState<AnalyticsResponse | null>(null)
   const [daily, setDaily]               = useState<DailyAnalytics[]>([])
+  const [qrOpen, setQrOpen]             = useState(false)
   const [bannerPreview, setBannerPreview] = useState<string | null>(null)
   const [bannerFile, setBannerFile]     = useState<File | null>(null)
   const fileInputRef                    = useRef<HTMLInputElement | null>(null)
@@ -375,6 +378,7 @@ export default function MyBusinessPage() {
      RENDER
   ========================================================= */
   return (
+    <>
     <main className="min-h-screen bg-neutral-50">
       <div className="max-w-6xl mx-auto px-4 py-8 space-y-10">
 
@@ -524,6 +528,15 @@ export default function MyBusinessPage() {
                     Ver tienda
                   </Button>
                 </Link>
+
+                <Button
+                  variant="secondary"
+                  onClick={() => setQrOpen(true)}
+                  className="w-full bg-white/15 hover:bg-white/25 text-white border-white/20 border backdrop-blur gap-1.5"
+                >
+                  <QrCode className="w-3.5 h-3.5" />
+                  Ver QR de mi tienda
+                </Button>
 
                 <Button
                   variant="secondary"
@@ -761,5 +774,13 @@ export default function MyBusinessPage() {
 
       </div>
     </main>
+
+    <SellerQrModal
+      open={qrOpen}
+      onClose={() => setQrOpen(false)}
+      sellerId={Number(perfil.user_id)}
+      nombreComercio={perfil.nombre_comercio || "Mi tienda"}
+    />
+    </>
   )
 }

@@ -5,9 +5,9 @@
 import { useState } from "react";
 import Image from "next/image";
 import Link from "next/link";
-import { MapPin, Store, ChevronDown, ShieldCheck } from "lucide-react";
-import WhatsAppModal from "@/components/product/WhatsAppModal";
+import { MapPin, ChevronDown, ShieldCheck } from "lucide-react";
 import { FavoriteButton } from "@/components/ui/FavoriteButton";
+import { ProductContactCTA } from "@/components/product/ProductContactCTA";
 
 type Props = {
   nombre: string;
@@ -26,6 +26,7 @@ type Props = {
   ubicacion?: string;
   categoria?: string | null;
   stock?: number | null;
+  internal_code?: string | null;
 };
 
 const formatPrice = (n: number) =>
@@ -98,69 +99,46 @@ function Stars({ rating }: { rating: number }) {
   );
 }
 
-/* ─── WhatsApp icon ─── */
-function WhatsAppIcon() {
-  return (
-    <svg width="15" height="15" viewBox="0 0 24 24" fill="currentColor" aria-hidden>
-      <path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 01-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 01-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 012.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0012.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 005.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893a11.821 11.821 0 00-3.48-8.413z" />
-    </svg>
-  );
-}
-
 /* ─── Main component ─── */
 export default function ProductInfo({
   nombre,
   descripcion,
   precio,
   productId,
-  imagen_principal,
+  imagen_principal: _imagen_principal,
   rating_avg = 0,
   rating_count = 0,
   sellerId,
   sellerWhatsapp,
-  sellerPlan,
-  sellerPlanActivo,
+  sellerPlan: _sellerPlan,
+  sellerPlanActivo: _sellerPlanActivo,
   sellerNombre,
   sellerLogo,
   ubicacion,
   categoria,
   stock,
+  internal_code,
 }: Props) {
   const precioNumber = Number(precio || 0);
-  const [modalOpen, setModalOpen] = useState(false);
+  const [codeCopied, setCodeCopied] = useState(false);
 
-  const showWhatsapp =
-    !!sellerWhatsapp &&
-    sellerPlan === "founder" &&
-    sellerPlanActivo === true;
+  console.log("telefono:", sellerWhatsapp);
 
-  // Mensaje base — el usuario puede editarlo en el modal
-  const baseMessage =
-    `Hola, vi esta pieza en Flowjuyu y me interesa:\n\n"${nombre}"\n\n` +
-    `¿Sigue disponible? Me gustaría saber más y coordinar el envío. ¡Gracias!`;
-
-  async function handleWhatsappConfirm(message: string) {
-    // Registrar intención antes de abrir WhatsApp
+  async function handleCopyCode() {
+    if (!internal_code) return;
     try {
-      await fetch(
-        `${process.env.NEXT_PUBLIC_API_URL || "http://localhost:8800"}/api/intentions`,
-        {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({
-            product_id: productId,
-            seller_id: sellerId,
-            source: "product_whatsapp",
-          }),
-        }
-      );
-    } catch {}
-
-    setModalOpen(false);
-    window.open(
-      `https://wa.me/${sellerWhatsapp}?text=${encodeURIComponent(message)}`,
-      "_blank"
-    );
+      await navigator.clipboard.writeText(internal_code);
+    } catch {
+      // fallback for older browsers
+      const el = document.createElement("textarea");
+      el.value = internal_code;
+      document.body.appendChild(el);
+      el.select();
+      document.execCommand("copy");
+      document.body.removeChild(el);
+    }
+    setCodeCopied(true);
+    setTimeout(() => setCodeCopied(false), 2000);
   }
 
   const logoSrc =
@@ -209,6 +187,25 @@ export default function ProductInfo({
           >
             Sin reseñas todavía — sé el primero
           </a>
+        )}
+
+        {internal_code && (
+          <div className="flex items-center gap-2 text-[11px] text-[#0d0d0b]/40">
+            <span>
+              Código:{" "}
+              <span className="font-mono text-[#0d0d0b]/60">{internal_code}</span>
+            </span>
+            <button
+              onClick={handleCopyCode}
+              className="hover:text-[#0d0d0b]/70 transition-colors"
+              aria-label="Copiar código"
+            >
+              {codeCopied
+                ? <span className="text-green-600">Copiado ✓</span>
+                : <span>Copiar</span>
+              }
+            </button>
+          </div>
         )}
 
         <div className="h-px bg-[#0d2d20]/8" />
@@ -280,45 +277,13 @@ export default function ProductInfo({
           )}
 
           {/* CTAs */}
-          <div className="space-y-2 pt-1">
-            {showWhatsapp ? (
-              /* WhatsApp — CTA primario con glow sutil en hover */
-              <button
-                onClick={() => setModalOpen(true)}
-                className="
-                  w-full flex items-center justify-center gap-2
-                  bg-[#0d2d20] text-white
-                  text-[11px] uppercase tracking-[0.18em]
-                  py-4
-                  hover:bg-[#163a2b]
-                  transition-colors duration-200
-                  relative overflow-hidden
-                  group
-                "
-              >
-                {/* Shimmer muy sutil en hover */}
-                <span className="absolute inset-0 bg-white/0 group-hover:bg-white/[0.04] transition-colors duration-300 pointer-events-none" />
-                <WhatsAppIcon />
-                Preguntar por esta pieza
-              </button>
-            ) : sellerId ? (
-              <Link href={`/store/${sellerId}`} className="block">
-                <span className="w-full flex items-center justify-center gap-2 bg-[#0d2d20] text-white text-[11px] uppercase tracking-[0.18em] py-4 hover:bg-[#163a2b] transition-colors duration-200">
-                  <Store className="w-4 h-4" />
-                  Conocer más de esta pieza
-                </span>
-              </Link>
-            ) : null}
-
-            {/* CTA secundario */}
-            {showWhatsapp && sellerId && (
-              <Link href={`/store/${sellerId}`} className="block">
-                <span className="w-full flex items-center justify-center border border-[#0d2d20]/20 text-[#0d0d0b]/70 text-[10px] uppercase tracking-[0.18em] py-3 hover:border-[#0d2d20]/50 hover:text-[#0d0d0b] transition-colors duration-200">
-                  Ver más de este artesano
-                </span>
-              </Link>
-            )}
-          </div>
+          <ProductContactCTA
+            productId={productId}
+            productNombre={nombre}
+            internalCode={internal_code}
+            productUrl={internal_code ? `/p/${internal_code}` : undefined}
+            sellerWhatsapp={sellerWhatsapp}
+          />
 
           {/* Guardar pieza + nota de envío */}
           <div className="flex items-center justify-between pt-1">
@@ -357,21 +322,6 @@ export default function ProductInfo({
 
       </section>
 
-      {/* ── WhatsApp Modal ── */}
-      <WhatsAppModal
-        open={modalOpen}
-        onClose={() => setModalOpen(false)}
-        onConfirm={handleWhatsappConfirm}
-        product={{
-          nombre,
-          precio: precioNumber,
-          imagen: imagen_principal,
-        }}
-        seller={{
-          nombre: sellerNombre ?? null,
-        }}
-        initialMessage={baseMessage}
-      />
     </>
   );
 }
