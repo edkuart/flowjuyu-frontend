@@ -1,6 +1,6 @@
 'use client'
 
-import { useEffect, useState, useMemo, useRef } from 'react'
+import { useEffect, useState, useMemo } from 'react'
 import Image from 'next/image'
 import Link from 'next/link'
 import {
@@ -15,8 +15,6 @@ import {
   Package,
   Star,
   ImageIcon,
-  Camera,
-  Trash2,
 } from 'lucide-react'
 
 import { Button } from '@/components/ui/button'
@@ -29,7 +27,10 @@ import { SellerGrowthCard } from '@/components/seller/SellerGrowthCard'
 import { SellerUpgradeCard } from '@/components/seller/SellerUpgradeCard'
 import { ReviewList } from '@/components/reviews/ReviewList'
 import SellerQrModal from '@/components/seller/SellerQrModal'
+import SocialButtons from '@/components/seller/SocialButtons'
 import type { Review } from '@/types/review'
+import { buildHeaderStyle, DEFAULT_HEADER_STYLE } from '@/lib/headerStyle'
+import type { HeaderStyle } from '@/lib/headerStyle'
 
 /* =========================================================
    TYPES
@@ -50,6 +51,10 @@ type SellerProfile = {
   whatsapp_numero?: string | null
   identidad_tags?: string[] | null
   estado_validacion?: 'pendiente' | 'aprobado' | 'rechazado' | null
+  instagram?: string | null
+  facebook?: string | null
+  tiktok?: string | null
+  header_style?: HeaderStyle | null
 }
 
 type ProductoPreview = {
@@ -194,19 +199,14 @@ function StatTile({
 ========================================================= */
 
 export default function MyBusinessPage() {
-  const [loading, setLoading]           = useState(true)
-  const [perfil, setPerfil]             = useState<SellerProfile | null>(null)
-  const [productos, setProductos]       = useState<ProductoPreview[]>([])
-  const [analytics, setAnalytics]       = useState<AnalyticsResponse | null>(null)
-  const [daily, setDaily]               = useState<DailyAnalytics[]>([])
-  const [qrOpen, setQrOpen]             = useState(false)
-  const [bannerPreview, setBannerPreview] = useState<string | null>(null)
-  const [bannerFile, setBannerFile]     = useState<File | null>(null)
-  const fileInputRef                    = useRef<HTMLInputElement | null>(null)
-  const [deletingBanner, setDeletingBanner] = useState(false)
-  const [mensaje, setMensaje]           = useState('')
-  const [saving, setSaving]             = useState(false)
-  const [uploadingBanner, setUploadingBanner] = useState(false)
+  const [loading, setLoading]     = useState(true)
+  const [perfil, setPerfil]       = useState<SellerProfile | null>(null)
+  const [productos, setProductos] = useState<ProductoPreview[]>([])
+  const [analytics, setAnalytics] = useState<AnalyticsResponse | null>(null)
+  const [daily, setDaily]         = useState<DailyAnalytics[]>([])
+  const [qrOpen, setQrOpen]       = useState(false)
+  const [mensaje, setMensaje]     = useState('')
+  const [saving, setSaving]       = useState(false)
 
   /* ── Load ── */
   useEffect(() => {
@@ -288,61 +288,6 @@ export default function MyBusinessPage() {
     }
   }
 
-  /* ── Banner ── */
-  function handleBannerSelect(e: React.ChangeEvent<HTMLInputElement>) {
-    const file = e.target.files?.[0]
-    if (!file) return
-    setBannerPreview(URL.createObjectURL(file))
-    setBannerFile(file)
-  }
-
-  async function confirmBannerUpload() {
-    if (!bannerFile) return
-    try {
-      setUploadingBanner(true)
-      const token = localStorage.getItem('token')
-      const formData = new FormData()
-      formData.append('banner', bannerFile)
-      const res = await fetch(
-        `${process.env.NEXT_PUBLIC_API_URL || "http://localhost:8800"}/api/seller/banner`,
-        { method: 'PUT', headers: { Authorization: `Bearer ${token}` }, body: formData }
-      )
-      const data = await res.json()
-      if (!res.ok) { alert('Error subiendo banner'); return }
-      setPerfil(prev => prev ? { ...prev, banner_url: data.banner_url } : prev)
-      setBannerPreview(null)
-      setBannerFile(null)
-    } catch (err) {
-      console.error(err)
-      alert('Error subiendo banner')
-    } finally {
-      setUploadingBanner(false)
-    }
-  }
-
-  async function handleDeleteBanner() {
-    if (!window.confirm('¿Seguro que deseas eliminar el banner?')) return
-    try {
-      setDeletingBanner(true)
-      const token = localStorage.getItem('token')
-      const res = await fetch(
-        `${process.env.NEXT_PUBLIC_API_URL || "http://localhost:8800"}/api/seller/banner`,
-        { method: 'DELETE', headers: { Authorization: `Bearer ${token}` } }
-      )
-      const data = await res.json()
-      if (!res.ok) { alert(data?.message || 'Error eliminando banner'); return }
-      setPerfil(prev => prev ? { ...prev, banner_url: null } : prev)
-      setBannerPreview(null)
-      setBannerFile(null)
-      if (fileInputRef.current) fileInputRef.current.value = ''
-    } catch (err) {
-      console.error('Error eliminando banner:', err)
-      alert('Error eliminando banner')
-    } finally {
-      setDeletingBanner(false)
-    }
-  }
-
   /* ── Computed ── */
   const visitasMes = useMemo(
     () => daily.reduce((acc, d) => acc + d.product_views + d.profile_views, 0),
@@ -351,6 +296,49 @@ export default function MyBusinessPage() {
   const totalVisitas =
     (analytics?.totalProductViews || 0) + (analytics?.totalProfileViews || 0)
   const productoTop = analytics?.topProducts?.[0]
+
+  /* ── Store score (0–100) ── */
+  const storeScore = useMemo(() => {
+    if (!perfil) return 0
+    let score = 0
+    if (perfil.banner_url)                   score += 20
+    if (perfil.descripcion?.trim())          score += 20
+    if (perfil.logo)                         score += 20
+    if (productos.length >= 5)               score += 20
+    else if (productos.length >= 1)          score += 10
+    if (perfil.mensaje_destacado?.trim())    score += 10
+    if (perfil.estado_validacion === 'aprobado') score += 10
+    return Math.min(score, 100)
+  }, [perfil, productos.length])
+
+  const recommendations = useMemo(() => {
+    if (!perfil) return []
+    const tips: Array<{ icon: string; text: string; href?: string }> = []
+    if (!perfil.banner_url)
+      tips.push({ icon: '🖼', text: 'Agrega un banner para aumentar la confianza', href: '/seller/profile' })
+    if (!perfil.logo)
+      tips.push({ icon: '🏷', text: 'Sube tu logo para dar identidad a tu tienda', href: '/seller/profile' })
+    if (!perfil.descripcion?.trim())
+      tips.push({ icon: '📝', text: 'Escribe una descripción para conectar con tus compradores', href: '/seller/profile' })
+    if (productos.length < 5)
+      tips.push({ icon: '📦', text: `Tienes ${productos.length} producto(s). Las tiendas con 5+ tienen mayor visibilidad.`, href: '/seller/products/new' })
+    if (!perfil.mensaje_destacado?.trim())
+      tips.push({ icon: '💬', text: 'Añade un mensaje destacado para personalizar tu tienda pública' })
+    if (perfil.estado_validacion !== 'aprobado')
+      tips.push({ icon: '✅', text: 'Solicita la verificación para generar más confianza', href: '/seller/profile' })
+    return tips
+  }, [perfil, productos.length])
+
+  const scoreColor   = storeScore >= 80 ? 'text-emerald-600' : storeScore >= 50 ? 'text-amber-500' : 'text-red-500'
+  const scoreBg      = storeScore >= 80 ? 'bg-emerald-50 border-emerald-200' : storeScore >= 50 ? 'bg-amber-50 border-amber-200' : 'bg-red-50 border-red-200'
+  const scoreBarBg   = storeScore >= 80 ? 'bg-emerald-500' : storeScore >= 50 ? 'bg-amber-400' : 'bg-red-400'
+  const scoreLabel   = storeScore >= 80 ? 'Excelente' : storeScore >= 50 ? 'En progreso' : 'Necesita atención'
+
+  /* ── Header background — delegates to shared lib ── */
+  const headerBgStyle = useMemo(
+    () => buildHeaderStyle(perfil?.header_style ?? DEFAULT_HEADER_STYLE, perfil?.banner_url),
+    [perfil?.banner_url, perfil?.header_style]
+  )
 
   const showWhatsapp =
     perfil?.plan === 'founder' &&
@@ -387,26 +375,8 @@ export default function MyBusinessPage() {
         ══════════════════════════════════════════════════ */}
         <div className="relative overflow-hidden rounded-[32px] text-white shadow-xl">
 
-          {/* Background */}
-          {bannerPreview ? (
-            <>
-              <div className="absolute inset-0">
-                <Image src={bannerPreview} alt="Preview" fill className="object-cover" />
-              </div>
-              <div className="absolute inset-0 bg-emerald-950/70 mix-blend-multiply" />
-              <div className="absolute inset-0 bg-gradient-to-r from-emerald-950/80 via-emerald-900/50 to-transparent" />
-            </>
-          ) : perfil.banner_url ? (
-            <>
-              <div className="absolute inset-0">
-                <Image src={perfil.banner_url} alt="Banner" fill className="object-cover" priority />
-              </div>
-              <div className="absolute inset-0 bg-emerald-950/65 mix-blend-multiply" />
-              <div className="absolute inset-0 bg-gradient-to-r from-emerald-950/80 via-emerald-900/50 to-transparent" />
-            </>
-          ) : (
-            <div className="absolute inset-0 bg-gradient-to-br from-emerald-950 via-emerald-900 to-emerald-800" />
-          )}
+          {/* Background — single computed CSS layer, matches /store/[id] exactly */}
+          <div className="absolute inset-0 bg-cover bg-center transition-[background-image,background-color] duration-300" style={headerBgStyle} />
 
           {/* Content */}
           <div className="relative px-6 py-8 md:px-10 md:py-10">
@@ -508,6 +478,11 @@ export default function MyBusinessPage() {
                     </p>
                   </div>
                 )}
+
+                <SocialButtons
+                  links={{ instagram: perfil.instagram, facebook: perfil.facebook, tiktok: perfil.tiktok }}
+                  className="mt-2 justify-center md:justify-start"
+                />
               </div>
 
               {/* Action buttons */}
@@ -538,61 +513,19 @@ export default function MyBusinessPage() {
                   Ver QR de mi tienda
                 </Button>
 
-                <Button
-                  variant="secondary"
-                  disabled={uploadingBanner}
-                  onClick={() => fileInputRef.current?.click()}
-                  className="w-full bg-white/15 hover:bg-white/25 text-white border-white/20 border backdrop-blur gap-1.5"
-                >
-                  <Camera className="w-3.5 h-3.5" />
-                  {uploadingBanner ? 'Subiendo…' : 'Cambiar banner'}
-                </Button>
-
-                {perfil.banner_url && !bannerPreview && (
+                <Link href="/seller/profile">
                   <Button
-                    variant="ghost"
-                    onClick={handleDeleteBanner}
-                    disabled={deletingBanner}
-                    className="w-full text-red-300 hover:text-red-200 hover:bg-red-900/30 gap-1.5"
+                    variant="secondary"
+                    className="w-full bg-white/15 hover:bg-white/25 text-white border-white/20 border backdrop-blur gap-1.5"
                   >
-                    <Trash2 className="w-3.5 h-3.5" />
-                    {deletingBanner ? 'Eliminando…' : 'Quitar banner'}
+                    <Pencil className="w-3.5 h-3.5" />
+                    Editar apariencia
                   </Button>
-                )}
-
-                {bannerPreview && (
-                  <div className="flex gap-2 w-full">
-                    <Button
-                      onClick={confirmBannerUpload}
-                      disabled={uploadingBanner}
-                      className="flex-1 bg-white text-emerald-900 text-xs"
-                      size="sm"
-                    >
-                      Confirmar
-                    </Button>
-                    <Button
-                      variant="ghost"
-                      onClick={() => { setBannerPreview(null); setBannerFile(null) }}
-                      className="flex-1 text-white/70 text-xs"
-                      size="sm"
-                    >
-                      Cancelar
-                    </Button>
-                  </div>
-                )}
+                </Link>
               </div>
             </div>
           </div>
         </div>
-
-        {/* Hidden file input */}
-        <input
-          type="file"
-          accept="image/*"
-          ref={fileInputRef}
-          className="hidden"
-          onChange={handleBannerSelect}
-        />
 
         {/* ══════════════════════════════════════════════════
             ONBOARDING PROGRESS
@@ -602,6 +535,63 @@ export default function MyBusinessPage() {
           productos={productos}
           perfil={perfil}
         />
+
+        {/* ══════════════════════════════════════════════════
+            STORE SCORE
+        ══════════════════════════════════════════════════ */}
+        <div className={`rounded-2xl border p-6 space-y-4 ${scoreBg}`}>
+          <div className="flex items-center justify-between">
+            <div>
+              <p className="text-xs font-bold text-neutral-400 uppercase tracking-widest mb-0.5">
+                Perfil de tienda
+              </p>
+              <h2 className="text-lg font-bold text-neutral-900">
+                Puntuación de tu tienda
+              </h2>
+            </div>
+            <div className="text-right">
+              <p className={`text-4xl font-black ${scoreColor}`}>{storeScore}</p>
+              <p className={`text-xs font-semibold ${scoreColor}`}>{scoreLabel}</p>
+            </div>
+          </div>
+
+          {/* Progress bar */}
+          <div className="w-full h-2.5 bg-black/10 rounded-full overflow-hidden">
+            <div
+              className={`h-full rounded-full transition-all duration-700 ${scoreBarBg}`}
+              style={{ width: `${storeScore}%` }}
+            />
+          </div>
+
+          {/* Recommendations */}
+          {recommendations.length > 0 && (
+            <div className="space-y-2 pt-1">
+              <p className="text-xs font-semibold text-neutral-500 uppercase tracking-wide">
+                Mejora tu tienda
+              </p>
+              {recommendations.map((tip, i) =>
+                tip.href ? (
+                  <Link key={i} href={tip.href} className="flex items-center gap-3 text-sm text-neutral-700 hover:text-neutral-900 group">
+                    <span className="text-base shrink-0">{tip.icon}</span>
+                    <span className="group-hover:underline leading-snug">{tip.text}</span>
+                    <ArrowRight className="w-3.5 h-3.5 ml-auto shrink-0 opacity-40 group-hover:opacity-100" />
+                  </Link>
+                ) : (
+                  <div key={i} className="flex items-center gap-3 text-sm text-neutral-700">
+                    <span className="text-base shrink-0">{tip.icon}</span>
+                    <span className="leading-snug">{tip.text}</span>
+                  </div>
+                )
+              )}
+            </div>
+          )}
+
+          {storeScore >= 80 && recommendations.length === 0 && (
+            <p className="text-sm text-emerald-700 font-medium">
+              Tu tienda está completa y lista para atraer compradores.
+            </p>
+          )}
+        </div>
 
         {/* ══════════════════════════════════════════════════
             GROWTH ASSISTANT (SGL)
@@ -726,6 +716,31 @@ export default function MyBusinessPage() {
               {saving ? 'Guardando…' : 'Guardar mensaje'}
             </Button>
           </div>
+
+          {/* Live preview */}
+          {mensaje.trim() && (
+            <div className="mt-2">
+              <p className="text-xs font-semibold text-neutral-400 uppercase tracking-wide mb-2">
+                Vista previa en tu tienda
+              </p>
+              <div className="relative overflow-hidden rounded-2xl">
+                {/* Background — same computed style as the hero */}
+                <div className="absolute inset-0 bg-cover bg-center" style={headerBgStyle} />
+                {/* Content */}
+                <div className="relative px-5 py-4 text-white flex items-center gap-4">
+                  {perfil.logo && (
+                    <div className="relative w-10 h-10 rounded-xl overflow-hidden border-2 border-white/60 bg-white shrink-0">
+                      <Image src={perfil.logo} alt={perfil.nombre_comercio} fill className="object-contain p-1" />
+                    </div>
+                  )}
+                  <div className="min-w-0">
+                    <p className="font-bold text-sm leading-tight">{perfil.nombre_comercio}</p>
+                    <p className="text-xs text-white/80 mt-0.5 leading-snug line-clamp-2">{mensaje}</p>
+                  </div>
+                </div>
+              </div>
+            </div>
+          )}
         </section>
 
         {/* ══════════════════════════════════════════════════

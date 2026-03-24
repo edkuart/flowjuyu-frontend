@@ -17,6 +17,7 @@ import {
   Check,
   QrCode,
   Link2,
+  Search,
 } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import {
@@ -31,6 +32,9 @@ import { SellerProgressCard, type EstadoValidacion } from "@/components/seller/S
 import { apiGetVendedorPerfil } from "@/services/vendedorPerfil"
 import type { SellerPerfil } from "@/lib/sellerProgress"
 import QrModal from "@/components/seller/QrModal"
+import { PageHeader } from "@/components/layout/PageHeader"
+import { DashboardCard } from "@/components/ui/DashboardCard"
+import { EmptyState } from "@/components/ui/EmptyState"
 
 type Producto = {
   id: string
@@ -80,7 +84,7 @@ function CopyCodeButton({ code }: { code: string }) {
       className={`ml-1 inline-flex items-center justify-center w-5 h-5 rounded transition-colors flex-shrink-0 ${
         copied
           ? "text-green-600"
-          : "text-neutral-400 hover:text-orange-500"
+          : "text-muted-foreground hover:text-primary"
       }`}
     >
       {copied
@@ -104,17 +108,17 @@ function ProductCodes({
   if (!internal_code) return null
   return (
     <div className="mt-1.5 space-y-0.5">
-      <div className="flex items-center gap-1 text-xs text-neutral-400">
-        <span className="font-medium text-neutral-500 select-none">FJ:</span>
-        <span className="font-mono tracking-wide text-neutral-600 select-all">
+      <div className="flex items-center gap-1 text-xs text-muted-foreground">
+        <span className="font-medium select-none">FJ:</span>
+        <span className="font-mono tracking-wide text-foreground select-all">
           {internal_code}
         </span>
         <CopyCodeButton code={internal_code} />
       </div>
       {seller_sku && (
-        <p className="text-xs text-neutral-400">
-          <span className="font-medium text-neutral-500 select-none">SKU:</span>{" "}
-          <span className="font-mono text-neutral-600">{seller_sku}</span>
+        <p className="text-xs text-muted-foreground">
+          <span className="font-medium select-none">SKU:</span>{" "}
+          <span className="font-mono text-foreground">{seller_sku}</span>
         </p>
       )}
     </div>
@@ -331,379 +335,371 @@ export default function SellerProductsPage() {
      Render
   ============================== */
   return (
-    <main className="min-h-screen bg-gradient-to-b from-neutral-50 to-white px-4 py-10">
-      <div className="max-w-7xl mx-auto space-y-8">
+    <div className="space-y-8">
 
-        {/* ================= HEADER ================= */}
-        <header className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
-          <div>
-            <h1 className="text-3xl font-bold tracking-tight">
-              Gestión de productos
-            </h1>
-            <p className="text-sm text-neutral-500 mt-1">
-              Administra tu inventario y controla qué productos están visibles.
-            </p>
-          </div>
-
-          <Link href="/seller/products/new">
-            <Button className="bg-[#0F3D3A] hover:bg-[#0C2F2C] text-white rounded-xl px-5 py-2.5 shadow-sm">
+      {/* ── HEADER ── */}
+      <PageHeader
+        title="Gestión de productos"
+        description="Administra tu inventario y controla qué productos están visibles."
+        action={
+          <Button asChild className="bg-primary hover:bg-primary/90 text-primary-foreground rounded-lg px-5">
+            <Link href="/seller/products/new">
               <PackagePlus className="w-4 h-4 mr-2" />
               Nuevo producto
-            </Button>
-          </Link>
-        </header>
-
-        {/* ================= FIRST PRODUCT CELEBRATION ================= */}
-        {showBanner && (
-          <div className="relative overflow-hidden bg-gradient-to-r from-green-500 to-emerald-600 rounded-2xl px-6 py-5 text-white shadow-lg">
-            {/* Decorative blobs */}
-            <div className="absolute -top-4 -right-4 w-24 h-24 bg-white/10 rounded-full" />
-            <div className="absolute -bottom-6 left-10 w-16 h-16 bg-white/10 rounded-full" />
-
-            <div className="relative flex items-start justify-between gap-4">
-              <div className="flex items-center gap-4">
-                <span className="text-4xl">🎉</span>
-                <div>
-                  <p className="font-bold text-lg leading-tight">
-                    ¡Tu primer producto está listo!
-                  </p>
-                  <p className="text-green-100 text-sm mt-1">
-                    Ahora publícalo para que los compradores puedan verlo.
-                  </p>
-                </div>
-              </div>
-              <button
-                onClick={() => setShowBanner(false)}
-                className="p-1 rounded-lg hover:bg-white/20 transition flex-shrink-0"
-                aria-label="Cerrar"
-              >
-                <X className="w-4 h-4" />
-              </button>
-            </div>
-          </div>
-        )}
-
-        {/* ================= ACTIVATION PROGRESS (SAS) ================= */}
-        {!loading && (
-          <SellerProgressCard
-            estadoValidacion={estadoValidacion}
-            productos={productos}
-            perfil={progressPerfil}
-          />
-        )}
-
-        {/* ================= FILTERS ================= */}
-        {!loading && productos.length > 0 && (
-          <div className="flex flex-wrap gap-2">
-            {(
-              [
-                { key: "todos", label: "Todos" },
-                { key: "publicados", label: "Publicados" },
-                { key: "borradores", label: "Borradores" },
-                { key: "sin_stock", label: "Sin stock" },
-              ] as const
-            ).map(({ key, label }) => (
-              <button
-                key={key}
-                onClick={() => {
-                  setFilter(key)
-                  setPage(1)
-                }}
-                className={`px-4 py-1.5 rounded-full text-sm font-medium border transition ${
-                  filter === key
-                    ? "bg-[#0F3D3A] text-white border-[#0F3D3A]"
-                    : "bg-white text-neutral-600 border-neutral-200 hover:border-neutral-400"
-                }`}
-              >
-                {label}
-                {key !== "todos" && (
-                  <span className="ml-1.5 text-xs opacity-70">
-                    {key === "publicados"
-                      ? productos.filter((p) => p.activo).length
-                      : key === "borradores"
-                      ? productos.filter((p) => !p.activo).length
-                      : productos.filter((p) => p.stock === 0).length}
-                  </span>
-                )}
-              </button>
-            ))}
-          </div>
-        )}
-
-        {/* ================= CONTENT ================= */}
-        {loading ? (
-          <div className="text-center py-20 text-neutral-500 animate-pulse">
-            Cargando productos…
-          </div>
-        ) : productos.length === 0 ? (
-          <div className="bg-white rounded-2xl border border-neutral-100 p-14 text-center shadow-sm space-y-5">
-            <div className="text-6xl">🏪</div>
-            <div>
-              <h2 className="text-xl font-bold text-neutral-800">
-                Tu tienda está lista
-              </h2>
-              <p className="text-neutral-400 text-sm mt-2 max-w-xs mx-auto leading-relaxed">
-                Agrega tu primer producto para que los compradores puedan
-                encontrarte en el catálogo.
-              </p>
-            </div>
-            <Link href="/seller/products/new">
-              <Button className="bg-orange-600 hover:bg-orange-700 text-white px-8 h-11 font-semibold shadow-sm shadow-orange-100">
-                <PackagePlus className="w-4 h-4 mr-2" />
-                Crear mi primer producto
-              </Button>
             </Link>
-            <p className="text-xs text-neutral-400">
-              Gratis · Solo toma unos minutos
-            </p>
-          </div>
-        ) : filteredProducts.length === 0 ? (
-          <div className="bg-white rounded-2xl border border-neutral-100 p-10 text-center shadow-sm space-y-3">
-            <p className="text-3xl">🔍</p>
-            <p className="font-semibold text-neutral-700">
-              Sin resultados para este filtro
-            </p>
+          </Button>
+        }
+      />
+
+      {/* ── FIRST PRODUCT CELEBRATION ── */}
+      {showBanner && (
+        <div className="relative overflow-hidden bg-gradient-to-r from-green-500 to-emerald-600 rounded-2xl px-6 py-5 text-white shadow-lg">
+          {/* Decorative blobs */}
+          <div className="absolute -top-4 -right-4 w-24 h-24 bg-white/10 rounded-full" />
+          <div className="absolute -bottom-6 left-10 w-16 h-16 bg-white/10 rounded-full" />
+
+          <div className="relative flex items-start justify-between gap-4">
+            <div className="flex items-center gap-4">
+              <span className="text-4xl">🎉</span>
+              <div>
+                <p className="font-bold text-lg leading-tight">
+                  ¡Tu primer producto está listo!
+                </p>
+                <p className="text-green-100 text-sm mt-1">
+                  Ahora publícalo para que los compradores puedan verlo.
+                </p>
+              </div>
+            </div>
             <button
-              onClick={() => { setFilter("todos"); setPage(1) }}
-              className="text-sm text-[#0F3D3A] underline underline-offset-2 hover:opacity-70 transition"
+              onClick={() => setShowBanner(false)}
+              className="p-1 rounded-lg hover:bg-white/20 transition flex-shrink-0"
+              aria-label="Cerrar"
             >
-              Ver todos los productos
+              <X className="w-4 h-4" />
             </button>
           </div>
-        ) : (
-          <>
-            {/* ================= DESKTOP CARDS ================= */}
-            <div className="hidden md:flex flex-col gap-4">
-              {currentProducts.map((p) => (
-                <div
-                  key={p.id}
-                  className="bg-white rounded-2xl border border-neutral-200 shadow-sm hover:shadow-md transition p-5 flex justify-between items-center"
-                >
-                  {/* LEFT */}
-                  <div className="flex items-center gap-4">
+        </div>
+      )}
 
-                    {/* Imagen clickeable */}
-                    <div
-                      onClick={() =>
-                        setSelectedImage({
-                          url: p.imagen_url || "/images/placeholder.jpg",
-                          nombre: p.nombre,
-                          id: p.id,
-                        })
-                      }
-                      className="relative w-16 h-16 rounded-xl overflow-hidden border border-neutral-200 cursor-pointer group transition"
-                    >
-                      <Image
-                        src={p.imagen_url || "/images/placeholder.jpg"}
-                        alt={p.nombre}
-                        fill
-                        className="object-cover group-hover:scale-110 transition duration-300"
-                      />
+      {/* ── ACTIVATION PROGRESS (SAS) ── */}
+      {!loading && (
+        <SellerProgressCard
+          estadoValidacion={estadoValidacion}
+          productos={productos}
+          perfil={progressPerfil}
+        />
+      )}
 
-                      {/* Overlay sutil en hover */}
-                      <div className="absolute inset-0 bg-black/0 group-hover:bg-black/10 transition" />
-                    </div>
+      {/* ── FILTERS ── */}
+      {!loading && productos.length > 0 && (
+        <div className="flex flex-wrap gap-2">
+          {(
+            [
+              { key: "todos",      label: "Todos" },
+              { key: "publicados", label: "Publicados" },
+              { key: "borradores", label: "Borradores" },
+              { key: "sin_stock",  label: "Sin stock" },
+            ] as const
+          ).map(({ key, label }) => (
+            <button
+              key={key}
+              onClick={() => { setFilter(key); setPage(1) }}
+              className={`px-4 py-1.5 rounded-full text-sm font-medium border transition ${
+                filter === key
+                  ? "bg-primary text-primary-foreground border-primary"
+                  : "bg-card text-muted-foreground border-border hover:border-foreground/30"
+              }`}
+            >
+              {label}
+              {key !== "todos" && (
+                <span className="ml-1.5 text-xs opacity-70">
+                  {key === "publicados"
+                    ? productos.filter((p) => p.activo).length
+                    : key === "borradores"
+                    ? productos.filter((p) => !p.activo).length
+                    : productos.filter((p) => p.stock === 0).length}
+                </span>
+              )}
+            </button>
+          ))}
+        </div>
+      )}
 
-                    {/* Info */}
-                    <div>
-                      <h3 className="font-semibold text-lg leading-tight">
-                        {p.nombre}
-                      </h3>
+      {/* ── CONTENT ── */}
+      {loading ? (
 
-                      <p className="text-sm text-neutral-600 mt-1">
-                        Q {Number(p.precio).toLocaleString("es-GT", {
-                          minimumFractionDigits: 2,
-                        })}
-                      </p>
+        <DashboardCard>
+          <div className="text-center py-12 text-muted-foreground animate-pulse">
+            Cargando productos…
+          </div>
+        </DashboardCard>
 
-                      <p
-                        className={`text-xs mt-1 ${
-                          p.stock > 5
-                            ? "text-neutral-400"
-                            : p.stock > 0
-                            ? "text-amber-600"
-                            : "text-red-600"
-                        }`}
-                      >
-                        {p.stock > 0 ? `Stock: ${p.stock}` : "Sin stock"}
-                      </p>
+      ) : productos.length === 0 ? (
 
-                      <ProductCodes
-                        internal_code={p.internal_code}
-                        seller_sku={p.seller_sku}
-                      />
-                    </div>
-                  </div>
+        <DashboardCard>
+          <EmptyState
+            icon={PackagePlus}
+            title="Tu tienda está lista"
+            description="Agrega tu primer producto para que los compradores puedan encontrarte en el catálogo."
+            action={
+              <Button asChild className="bg-primary hover:bg-primary/90 text-primary-foreground px-8 h-11 font-semibold">
+                <Link href="/seller/products/new">
+                  <PackagePlus className="w-4 h-4 mr-2" />
+                  Crear mi primer producto
+                </Link>
+              </Button>
+            }
+          />
+          <p className="text-center text-xs text-muted-foreground pb-4">
+            Gratis · Solo toma unos minutos
+          </p>
+        </DashboardCard>
 
-                  {/* RIGHT */}
-                  <div className="flex items-center gap-3">
+      ) : filteredProducts.length === 0 ? (
 
-                    <span
-                      className={`px-3 py-1 text-xs rounded-full border ${
-                        p.activo
-                          ? "bg-green-50 text-green-700 border-green-200"
-                          : "bg-amber-50 text-amber-700 border-amber-200"
-                      }`}
-                    >
-                      {p.activo ? "Publicado" : "Borrador"}
-                    </span>
+        <DashboardCard>
+          <EmptyState
+            icon={Search}
+            title="Sin resultados para este filtro"
+            description="Prueba con otro filtro para encontrar tus productos."
+            action={
+              <button
+                onClick={() => { setFilter("todos"); setPage(1) }}
+                className="text-sm text-primary underline underline-offset-2 hover:opacity-70 transition"
+              >
+                Ver todos los productos
+              </button>
+            }
+          />
+        </DashboardCard>
 
-                    {p.internal_code && (
-                      <>
-                        <Button
-                          size="icon"
-                          variant="outline"
-                          className="rounded-lg"
-                          title="Ver QR"
-                          onClick={() => setQrProduct({ nombre: p.nombre, internal_code: p.internal_code! })}
-                        >
-                          <QrCode className="w-4 h-4" />
-                        </Button>
+      ) : (
 
-                        <Button
-                          size="icon"
-                          variant="outline"
-                          className="rounded-lg"
-                          title={linkCopiedId === p.id ? "¡Copiado!" : "Copiar enlace"}
-                          onClick={() => handleCopyLink(p)}
-                        >
-                          {linkCopiedId === p.id
-                            ? <Check className="w-4 h-4 text-green-600" />
-                            : <Link2 className="w-4 h-4" />}
-                        </Button>
-                      </>
-                    )}
+        <DashboardCard
+          title={`${filteredProducts.length} producto${filteredProducts.length !== 1 ? "s" : ""}`}
+          description={filter !== "todos" ? label(filter) : undefined}
+          contentClassName="p-0"
+        >
 
-                    <Link href={`/seller/products/new?id=${p.id}`}>
-                      <Button size="icon" variant="outline" className="rounded-lg">
-                        <Pencil className="w-4 h-4" />
-                      </Button>
-                    </Link>
+          {/* ── DESKTOP LIST ── */}
+          <div className="hidden md:flex flex-col divide-y divide-border">
+            {currentProducts.map((p) => (
+              <div
+                key={p.id}
+                className="flex justify-between items-center px-5 py-4 hover:bg-muted/40 transition"
+              >
+                {/* LEFT */}
+                <div className="flex items-center gap-4">
 
-                    <Button
-                      size="sm"
-                      variant="outline"
-                      disabled={processingId === p.id}
-                      onClick={() => handleToggleActivo(p.id, p.activo)}
-                      className="rounded-lg"
-                    >
-                      <Power className="w-4 h-4 mr-1" />
-                      {p.activo ? "Despublicar" : "Publicar"}
-                    </Button>
-
-                    <Button
-                      size="icon"
-                      variant="destructive"
-                      className="rounded-lg"
-                      onClick={() => handleDelete(p.id)}
-                    >
-                      <Trash2 className="w-4 h-4" />
-                    </Button>
-                  </div>
-                </div>
-              ))}
-            </div>
-
-            {/* ================= MOBILE CARDS ================= */}
-            <div className="md:hidden flex flex-col gap-5">
-              {currentProducts.map((p) => (
-                <div
-                  key={p.id}
-                  className="bg-white rounded-2xl border border-neutral-200 shadow-sm p-4 space-y-4"
-                >
-                  <div className="relative w-full h-40 rounded-xl overflow-hidden">
+                  {/* Thumbnail — clickable for full preview */}
+                  <div
+                    onClick={() =>
+                      setSelectedImage({
+                        url: p.imagen_url || "/images/placeholder.jpg",
+                        nombre: p.nombre,
+                        id: p.id,
+                      })
+                    }
+                    className="relative w-16 h-16 rounded-xl overflow-hidden border border-border cursor-pointer group transition"
+                  >
                     <Image
                       src={p.imagen_url || "/images/placeholder.jpg"}
                       alt={p.nombre}
                       fill
-                      className="object-cover"
+                      className="object-cover group-hover:scale-110 transition duration-300"
                     />
+                    <div className="absolute inset-0 bg-black/0 group-hover:bg-black/10 transition" />
                   </div>
 
+                  {/* Info */}
                   <div>
-                    <h3 className="font-semibold text-lg">
+                    <h3 className="font-semibold text-lg leading-tight text-foreground">
                       {p.nombre}
                     </h3>
 
-                    <p className="text-neutral-600">
-                      Q {Number(p.precio).toLocaleString("es-GT", {
-                        minimumFractionDigits: 2,
-                      })}
+                    <p className="text-sm text-muted-foreground mt-1">
+                      Q {Number(p.precio).toLocaleString("es-GT", { minimumFractionDigits: 2 })}
                     </p>
 
-                    <ProductCodes
-                      internal_code={p.internal_code}
-                      seller_sku={p.seller_sku}
-                    />
-                  </div>
-
-                  <div className="flex justify-between text-sm text-neutral-500">
-                    <span>Stock: {p.stock}</span>
-
-                    <span
-                      className={`px-2 py-1 rounded-full text-xs border ${
-                        p.activo
-                          ? "bg-green-50 text-green-700 border-green-200"
-                          : "bg-amber-50 text-amber-700 border-amber-200"
+                    <p
+                      className={`text-xs mt-1 ${
+                        p.stock > 5
+                          ? "text-muted-foreground"
+                          : p.stock > 0
+                          ? "text-amber-600"
+                          : "text-red-600"
                       }`}
                     >
-                      {p.activo ? "Publicado" : "Borrador"}
-                    </span>
-                  </div>
+                      {p.stock > 0 ? `Stock: ${p.stock}` : "Sin stock"}
+                    </p>
 
-                  <div className="grid grid-cols-2 gap-2">
-                    <Link href={`/seller/products/new?id=${p.id}`}>
-                      <Button variant="outline" className="w-full">
-                        Editar
-                      </Button>
-                    </Link>
-
-                    <Button
-                      variant="outline"
-                      onClick={() => handleToggleActivo(p.id, p.activo)}
-                      className="w-full"
-                    >
-                      {p.activo ? "Despublicar" : "Publicar"}
-                    </Button>
-
-                    {p.internal_code && (
-                      <>
-                        <Button
-                          variant="outline"
-                          className="w-full gap-2"
-                          onClick={() => setQrProduct({ nombre: p.nombre, internal_code: p.internal_code! })}
-                        >
-                          <QrCode className="w-4 h-4" />
-                          Ver QR
-                        </Button>
-
-                        <Button
-                          variant="outline"
-                          className="w-full gap-2"
-                          onClick={() => handleCopyLink(p)}
-                        >
-                          {linkCopiedId === p.id
-                            ? <><Check className="w-4 h-4 text-green-600" /> ¡Copiado!</>
-                            : <><Link2 className="w-4 h-4" /> Copiar enlace</>}
-                        </Button>
-                      </>
-                    )}
-
-                    <Button
-                      variant="destructive"
-                      className="col-span-2"
-                      onClick={() => handleDelete(p.id)}
-                    >
-                      Eliminar
-                    </Button>
+                    <ProductCodes internal_code={p.internal_code} seller_sku={p.seller_sku} />
                   </div>
                 </div>
-              ))}
-            </div>
 
-            {/* ================= PAGINATION ================= */}
-            <div className="flex justify-between items-center text-sm pt-4">
-              <span className="text-neutral-500">
+                {/* RIGHT */}
+                <div className="flex items-center gap-3">
+
+                  <span
+                    className={`px-3 py-1 text-xs rounded-full border ${
+                      p.activo
+                        ? "bg-green-50 text-green-700 border-green-200"
+                        : "bg-amber-50 text-amber-700 border-amber-200"
+                    }`}
+                  >
+                    {p.activo ? "Publicado" : "Borrador"}
+                  </span>
+
+                  {p.internal_code && (
+                    <>
+                      <Button
+                        size="icon"
+                        variant="outline"
+                        className="rounded-lg"
+                        title="Ver QR"
+                        onClick={() => setQrProduct({ nombre: p.nombre, internal_code: p.internal_code! })}
+                      >
+                        <QrCode className="w-4 h-4" />
+                      </Button>
+
+                      <Button
+                        size="icon"
+                        variant="outline"
+                        className="rounded-lg"
+                        title={linkCopiedId === p.id ? "¡Copiado!" : "Copiar enlace"}
+                        onClick={() => handleCopyLink(p)}
+                      >
+                        {linkCopiedId === p.id
+                          ? <Check className="w-4 h-4 text-green-600" />
+                          : <Link2 className="w-4 h-4" />}
+                      </Button>
+                    </>
+                  )}
+
+                  <Link href={`/seller/products/new?id=${p.id}`}>
+                    <Button size="icon" variant="outline" className="rounded-lg">
+                      <Pencil className="w-4 h-4" />
+                    </Button>
+                  </Link>
+
+                  <Button
+                    size="sm"
+                    variant="outline"
+                    disabled={processingId === p.id}
+                    onClick={() => handleToggleActivo(p.id, p.activo)}
+                    className="rounded-lg"
+                  >
+                    <Power className="w-4 h-4 mr-1" />
+                    {p.activo ? "Despublicar" : "Publicar"}
+                  </Button>
+
+                  <Button
+                    size="icon"
+                    variant="destructive"
+                    className="rounded-lg"
+                    onClick={() => handleDelete(p.id)}
+                  >
+                    <Trash2 className="w-4 h-4" />
+                  </Button>
+                </div>
+              </div>
+            ))}
+          </div>
+
+          {/* ── MOBILE LIST ── */}
+          <div className="md:hidden flex flex-col gap-4 p-4">
+            {currentProducts.map((p) => (
+              <div
+                key={p.id}
+                className="rounded-xl border border-border bg-card shadow-[0_2px_8px_rgba(0,0,0,0.04)] p-4 space-y-4"
+              >
+                <div className="relative w-full h-40 rounded-lg overflow-hidden">
+                  <Image
+                    src={p.imagen_url || "/images/placeholder.jpg"}
+                    alt={p.nombre}
+                    fill
+                    className="object-cover"
+                  />
+                </div>
+
+                <div>
+                  <h3 className="font-semibold text-lg text-foreground">
+                    {p.nombre}
+                  </h3>
+
+                  <p className="text-muted-foreground">
+                    Q {Number(p.precio).toLocaleString("es-GT", { minimumFractionDigits: 2 })}
+                  </p>
+
+                  <ProductCodes internal_code={p.internal_code} seller_sku={p.seller_sku} />
+                </div>
+
+                <div className="flex justify-between text-sm text-muted-foreground">
+                  <span>Stock: {p.stock}</span>
+
+                  <span
+                    className={`px-2 py-1 rounded-full text-xs border ${
+                      p.activo
+                        ? "bg-green-50 text-green-700 border-green-200"
+                        : "bg-amber-50 text-amber-700 border-amber-200"
+                    }`}
+                  >
+                    {p.activo ? "Publicado" : "Borrador"}
+                  </span>
+                </div>
+
+                <div className="grid grid-cols-2 gap-2">
+                  <Button asChild variant="outline" className="w-full">
+                    <Link href={`/seller/products/new?id=${p.id}`}>Editar</Link>
+                  </Button>
+
+                  <Button
+                    variant="outline"
+                    onClick={() => handleToggleActivo(p.id, p.activo)}
+                    className="w-full"
+                  >
+                    {p.activo ? "Despublicar" : "Publicar"}
+                  </Button>
+
+                  {p.internal_code && (
+                    <>
+                      <Button
+                        variant="outline"
+                        className="w-full gap-2"
+                        onClick={() => setQrProduct({ nombre: p.nombre, internal_code: p.internal_code! })}
+                      >
+                        <QrCode className="w-4 h-4" />
+                        Ver QR
+                      </Button>
+
+                      <Button
+                        variant="outline"
+                        className="w-full gap-2"
+                        onClick={() => handleCopyLink(p)}
+                      >
+                        {linkCopiedId === p.id
+                          ? <><Check className="w-4 h-4 text-green-600" /> ¡Copiado!</>
+                          : <><Link2 className="w-4 h-4" /> Copiar enlace</>}
+                      </Button>
+                    </>
+                  )}
+
+                  <Button
+                    variant="destructive"
+                    className="col-span-2"
+                    onClick={() => handleDelete(p.id)}
+                  >
+                    Eliminar
+                  </Button>
+                </div>
+              </div>
+            ))}
+          </div>
+
+          {/* ── PAGINATION ── */}
+          {totalPages > 1 && (
+            <div className="flex justify-between items-center text-sm px-5 py-4 border-t border-border">
+              <span className="text-muted-foreground">
                 Página {page} de {totalPages}
               </span>
 
@@ -729,11 +725,12 @@ export default function SellerProductsPage() {
                 </Button>
               </div>
             </div>
-          </>
-        )}
-      </div>
+          )}
 
-      {/* ================= QR MODAL ================= */}
+        </DashboardCard>
+      )}
+
+      {/* ── QR MODAL ── */}
       {qrProduct && (
         <QrModal
           open={!!qrProduct}
@@ -742,18 +739,14 @@ export default function SellerProductsPage() {
         />
       )}
 
-      {/* ================= IMAGE MODAL ================= */}
+      {/* ── IMAGE PREVIEW MODAL ── */}
       <Dialog
         open={!!selectedImage}
-        onOpenChange={(open) => {
-          if (!open) setSelectedImage(null)
-        }}
+        onOpenChange={(open) => { if (!open) setSelectedImage(null) }}
       >
         <DialogContent className="max-w-3xl p-6">
-
           {selectedImage && (
             <div className="space-y-4">
-
               <DialogHeader>
                 <DialogTitle className="text-lg font-semibold">
                   {selectedImage.nombre}
@@ -770,25 +763,32 @@ export default function SellerProductsPage() {
               </div>
 
               <div className="flex justify-end gap-3">
-                <Button
-                  variant="outline"
-                  onClick={() => setSelectedImage(null)}
-                >
+                <Button variant="outline" onClick={() => setSelectedImage(null)}>
                   Cerrar
                 </Button>
 
-                <Link href={`/seller/products/new?id=${selectedImage.id}`}>
-                  <Button className="bg-[#0F3D3A] hover:bg-[#0C2F2C] text-white">
+                <Button asChild className="bg-primary hover:bg-primary/90 text-primary-foreground">
+                  <Link href={`/seller/products/new?id=${selectedImage.id}`}>
                     Editar producto
-                  </Button>
-                </Link>
+                  </Link>
+                </Button>
               </div>
-
             </div>
           )}
-
         </DialogContent>
       </Dialog>
-    </main>
+
+    </div>
   )
+}
+
+/* ─────────────────────────────────────────────────────────
+   Filter label — converts filter key to a readable string
+   for the DashboardCard description.
+───────────────────────────────────────────────────────── */
+function label(filter: string): string {
+  if (filter === "publicados") return "Solo publicados"
+  if (filter === "borradores") return "Solo borradores"
+  if (filter === "sin_stock")  return "Solo sin stock"
+  return ""
 }

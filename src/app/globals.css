@@ -151,21 +151,34 @@
 :root {
   --radius: 0.625rem;
 
-  --background: oklch(1 0 0);
-  --foreground: oklch(0.141 0.005 285.823);
+  /* ── Warm cream background — not pure white, culturally grounded ── */
+  --background: oklch(0.972 0.010 86);       /* #f8f5ef — flow.bg  */
+  --foreground: oklch(0.145 0 0);            /* #171717 — flow.text */
 
-  --card: oklch(1 0 0);
-  --card-foreground: oklch(0.141 0.005 285.823);
+  /* ── Cards sit on white so they lift off the warm page bg ── */
+  --card: oklch(1 0 0);                      /* #ffffff — flow.card */
+  --card-foreground: oklch(0.145 0 0);
 
-  --border: oklch(0.92 0.004 286.32);
-  --input: oklch(0.92 0.004 286.32);
-  --ring: oklch(0.705 0.015 286.067);
+  /* ── Borders: warm, hand-crafted feel — not cold gray ── */
+  --border: oklch(0.905 0.007 82);           /* #e5e3dc — flow.border */
+  --input: oklch(0.905 0.007 82);
+  --ring: oklch(0.748 0.163 77);             /* amber focus ring    */
 
-  --primary: oklch(0.21 0.006 285.885);
-  --primary-foreground: oklch(0.985 0 0);
+  /* ── Primary: deep forest green — identity color of the navbar ── */
+  --primary: oklch(0.225 0.053 160);         /* #0f2e22              */
+  --primary-foreground: oklch(0.972 0.010 86); /* warm cream on green */
 
-  --muted: oklch(0.967 0.001 286.375);
-  --muted-foreground: oklch(0.552 0.016 285.938);
+  /* ── Secondary: soft panel background ── */
+  --secondary: oklch(0.946 0.008 82);        /* #f3f1eb — flow.bgSoft */
+  --secondary-foreground: oklch(0.145 0 0);
+
+  /* ── Muted: soft text and backgrounds ── */
+  --muted: oklch(0.946 0.008 82);            /* #f3f1eb */
+  --muted-foreground: oklch(0.521 0.013 250); /* #6b7280 — flow.muted */
+
+  /* ── Accent: amber — warmth and action ── */
+  --accent: oklch(0.748 0.163 77);           /* #f59e0b — flow.accent */
+  --accent-foreground: oklch(0.145 0 0);
 
   --destructive: oklch(0.577 0.245 27.325);
 }

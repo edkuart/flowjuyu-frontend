@@ -1,18 +1,33 @@
 // src/app/seller/profile/page.tsx
 "use client"
 
-import { useEffect, useState, useRef } from "react"
+import { useEffect, useState, useRef, useMemo } from "react"
+import {
+  computeHeaderScore,
+  generateHeaderSuggestions,
+  getRecommendedStyle,
+  scoreLabel,
+  scoreBarColor,
+} from "@/lib/headerScore"
+import { THEMES, THEME_KEYS, detectTheme } from "@/lib/headerThemes"
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Textarea } from "@/components/ui/textarea"
-import { Label } from "@/components/ui/label"
 import { useAuth } from "@/context/AuthContext"
 import { useFileUpload } from "@/hooks/useFileUpload"
 import { departamentos } from "@/lib/guatemala"
+import {
+  analyzeImageBrightness,
+  GRADIENT_VARIANTS,
+  DEFAULT_HEADER_STYLE,
+  sanitizeHeaderStyle,
+} from "@/lib/headerStyle"
+import type { HeaderStyle, GradientVariantKey } from "@/lib/headerStyle"
 import { MapPin, QrCode, ShieldCheck, ShoppingBag, Shield, Store } from "lucide-react"
 import { SellerContactCTA } from "@/components/seller/SellerContactCTA"
 import SellerQrModal from "@/components/seller/SellerQrModal"
+import { StoreHeaderPreview } from "@/components/seller/StoreHeaderPreview"
 
 /* ──────────────────────────────────────────
    SMALL HELPERS
@@ -68,6 +83,33 @@ function InfoRow({
 
 const MENSAJE_MAX = 160
 
+/* ──────────────────────────────────────────
+   HEADER STYLE — UI constants
+   (HeaderStyle type + DEFAULT_HEADER_STYLE imported from @/lib/headerStyle)
+────────────────────────────────────────── */
+
+const HEADER_MODES: { value: HeaderStyle["mode"]; label: string; hint: string }[] = [
+  { value: "gradient",      label: "Flowjuyu clásico", hint: "Fondo de marca" },
+  { value: "image",         label: "Solo imagen",      hint: "Banner sin filtro" },
+  { value: "image+overlay", label: "Imagen + overlay", hint: "Banner con color" },
+]
+
+const OVERLAY_PRESETS = [
+  { name: "Flowjuyu", color: "#0f2e22" },
+  { name: "Cálido",   color: "#5a3e2b" },
+  { name: "Neutro",   color: "#1f2937" },
+]
+
+// Quick presets for image+overlay mode only
+const OVERLAY_QUICK_PRESETS: { name: string; config: Partial<HeaderStyle> }[] = [
+  { name: "Cálido artesanal", config: { overlay_color: "#5a3e2b", overlay_opacity: 0.7  } },
+  { name: "Minimal oscuro",   config: { overlay_color: "#1f2937", overlay_opacity: 0.85 } },
+  { name: "Verde Flowjuyu",   config: { overlay_color: "#0f2e22", overlay_opacity: 0.75 } },
+]
+
+// Gradient sub-variants — all 4 options including the default
+const GRADIENT_VARIANT_KEYS: (GradientVariantKey | "default")[] = ["default", "suave", "calido", "oscuro"]
+
 export default function SellerPublicProfilePage() {
   const { user } = useAuth()
   const [vendedor, setVendedor] = useState<any>(null)
@@ -75,7 +117,13 @@ export default function SellerPublicProfilePage() {
   const [qrOpen, setQrOpen] = useState(false)
   const [loading, setLoading] = useState(true)
   const [formData, setFormData] = useState<any>({})
+  const [headerStyle, setHeaderStyle] = useState<HeaderStyle>(DEFAULT_HEADER_STYLE)
+  const [bannerUploading, setBannerUploading] = useState(false)
+  const [bannerPreview, setBannerPreview] = useState<string | null>(null)
+  const [brightness, setBrightness] = useState<"dark" | "light" | null>(null)
+  const [showSuggestion, setShowSuggestion] = useState(false)
   const inputFileRef = useRef<HTMLInputElement>(null)
+  const bannerInputRef = useRef<HTMLInputElement>(null)
   const { previews, files, handleFile } = useFileUpload()
   const API = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8800"
 
@@ -95,6 +143,7 @@ export default function SellerPublicProfilePage() {
         const perfil = data.perfil || data
         setVendedor(perfil)
         setFormData(perfil)
+        setHeaderStyle({ ...DEFAULT_HEADER_STYLE, ...(perfil.header_style ?? {}) })
       } catch (err) {
         console.error(err)
       } finally {
@@ -115,8 +164,13 @@ export default function SellerPublicProfilePage() {
 
     const body = new FormData()
     Object.entries(formData).forEach(([key, val]) => {
-      if (val !== undefined && val !== null) body.append(key, val as string)
+      if (key === "header_style") return // controlled by dedicated state below
+      if (val !== undefined && val !== null) {
+        body.append(key, typeof val === "object" ? JSON.stringify(val) : (val as string))
+      }
     })
+    // Always send headerStyle from its own state — avoids stale-closure bugs
+    body.append("header_style", JSON.stringify(headerStyle))
     if (files.fotoPerfil) body.append("logo", files.fotoPerfil)
 
     const res = await fetch(`${API}/api/seller/profile`, {
@@ -130,9 +184,81 @@ export default function SellerPublicProfilePage() {
       const perfil = data.perfil || data
       setVendedor(perfil)
       setFormData(perfil)
+      setHeaderStyle({ ...DEFAULT_HEADER_STYLE, ...(perfil.header_style ?? {}) })
       setEditando(false)
     }
   }
+
+  const handleBannerUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0]
+    if (!file) return
+
+    // Immediate local preview — no waiting for the upload
+    setBannerPreview(URL.createObjectURL(file))
+    setBannerUploading(true)
+
+    try {
+      const token = localStorage.getItem("token")
+      const fd = new FormData()
+      fd.append("banner", file)
+      const res = await fetch(`${API}/api/seller/banner`, {
+        method: "PUT",
+        headers: { Authorization: `Bearer ${token}` },
+        body: fd,
+      })
+      if (res.ok) {
+        const data = await res.json()
+        const newUrl: string = data.banner_url
+        // Sync real URL into both vendedor and formData, clear local blob
+        setVendedor((prev: any) => ({ ...prev, banner_url: newUrl }))
+        setFormData((prev: any) => ({ ...prev, banner_url: newUrl }))
+        setBannerPreview(null)
+      }
+    } catch (err) {
+      console.error("Banner upload failed:", err)
+    } finally {
+      setBannerUploading(false)
+      // Reset input so same file can be re-selected if needed
+      if (bannerInputRef.current) bannerInputRef.current.value = ""
+    }
+  }
+
+  /* ── Sanitizing header style setter — enforces opacity clamp + constraints ── */
+  const setHS = (updater: HeaderStyle | ((prev: HeaderStyle) => HeaderStyle)) => {
+    setHeaderStyle(prev => {
+      const next = typeof updater === "function" ? updater(prev) : updater
+      return sanitizeHeaderStyle(next)
+    })
+  }
+
+  /* ── Brightness analysis — runs on banner change ── */
+  useEffect(() => {
+    const url = bannerPreview || formData.banner_url
+    if (!url) { setBrightness(null); return }
+    analyzeImageBrightness(url).then(setBrightness)
+  }, [bannerPreview, formData.banner_url])
+
+  /* ── Visual score ── */
+  const { total: score } = useMemo(
+    () => computeHeaderScore(headerStyle, bannerPreview || formData.banner_url, brightness),
+    [headerStyle, bannerPreview, formData.banner_url, brightness],
+  )
+
+  /* ── Smart suggestions ── */
+  const suggestions = useMemo(
+    () => generateHeaderSuggestions({
+      headerStyle,
+      brightness,
+      bannerUrl: bannerPreview || formData.banner_url,
+    }),
+    [headerStyle, brightness, bannerPreview, formData.banner_url],
+  )
+
+  /* ── Recommended style (used by comparison preview) ── */
+  const recommendedStyle = useMemo(
+    () => getRecommendedStyle(headerStyle, brightness),
+    [headerStyle, brightness],
+  )
 
   /* ── Guards ── */
   if (loading) return <p className="p-8 text-center text-neutral-500">Cargando perfil...</p>
@@ -461,7 +587,398 @@ export default function SellerPublicProfilePage() {
           )}
         </InfoRow>
 
+        <SectionHeading>Redes sociales</SectionHeading>
+
+        <InfoRow label="Instagram">
+          {editando ? (
+            <Input
+              value={formData.instagram || ""}
+              onChange={(e) => onChange("instagram", e.target.value)}
+              placeholder="https://instagram.com/tu_tienda"
+              className="text-sm"
+            />
+          ) : (
+            <span className={vendedor.instagram ? "text-[#0F3D3A] break-all" : "text-neutral-400"}>
+              {vendedor.instagram || "—"}
+            </span>
+          )}
+        </InfoRow>
+
+        <InfoRow label="Facebook">
+          {editando ? (
+            <Input
+              value={formData.facebook || ""}
+              onChange={(e) => onChange("facebook", e.target.value)}
+              placeholder="https://facebook.com/tu_tienda"
+              className="text-sm"
+            />
+          ) : (
+            <span className={vendedor.facebook ? "text-[#0F3D3A] break-all" : "text-neutral-400"}>
+              {vendedor.facebook || "—"}
+            </span>
+          )}
+        </InfoRow>
+
+        <InfoRow label="TikTok">
+          {editando ? (
+            <Input
+              value={formData.tiktok || ""}
+              onChange={(e) => onChange("tiktok", e.target.value)}
+              placeholder="https://tiktok.com/@tu_tienda"
+              className="text-sm"
+            />
+          ) : (
+            <span className={vendedor.tiktok ? "text-[#0F3D3A] break-all" : "text-neutral-400"}>
+              {vendedor.tiktok || "—"}
+            </span>
+          )}
+        </InfoRow>
+
       </section>
+
+      {/* ══════════════════════════════════════
+          ESTILO DEL ENCABEZADO
+      ══════════════════════════════════════ */}
+      <SectionCard title="Estilo del encabezado">
+        <div className="space-y-6">
+
+          {/* ── Visual Score ── */}
+          {(() => {
+            const { label, color } = scoreLabel(score)
+            return (
+              <div>
+                <div className="flex items-center justify-between mb-1.5">
+                  <p className="text-xs font-semibold text-neutral-500 uppercase tracking-wide">
+                    Calidad visual
+                  </p>
+                  <div className="flex items-center gap-2">
+                    <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full ${color}`}>
+                      {label}
+                    </span>
+                    <span className="text-sm font-bold text-neutral-800 tabular-nums">
+                      {score}<span className="text-neutral-400 font-normal">/100</span>
+                    </span>
+                  </div>
+                </div>
+                <div className="w-full h-1.5 bg-neutral-100 rounded-full overflow-hidden">
+                  <div
+                    className={`h-full rounded-full transition-all duration-500 ${scoreBarColor(score)}`}
+                    style={{ width: `${score}%` }}
+                  />
+                </div>
+              </div>
+            )
+          })()}
+
+          {/* ── Live preview + comparison toggle ── */}
+          <div>
+            <div className="flex items-center justify-between mb-2">
+              <p className="text-xs font-semibold text-neutral-500 uppercase tracking-wide">
+                {showSuggestion ? "Versión sugerida" : "Vista previa de tu tienda"}
+              </p>
+              {brightness !== null && (
+                <button
+                  type="button"
+                  onClick={() => setShowSuggestion(v => !v)}
+                  className="text-[11px] font-semibold text-[#0F3D3A] hover:text-[#0a2e2b] underline underline-offset-2 transition-colors"
+                >
+                  {showSuggestion ? "← Ver mi versión" : "Ver sugerencia →"}
+                </button>
+              )}
+            </div>
+            <StoreHeaderPreview
+              headerStyle={showSuggestion ? recommendedStyle : headerStyle}
+              bannerUrl={bannerPreview || formData.banner_url}
+              sellerName={formData.nombre_comercio}
+              logoUrl={previews["fotoPerfil"] || vendedor?.logo}
+            />
+            {showSuggestion && editando && (
+              <button
+                type="button"
+                onClick={() => { setHS(recommendedStyle); setShowSuggestion(false) }}
+                className="mt-2 w-full py-2 text-xs font-semibold rounded-lg bg-[#0F3D3A] text-white hover:bg-[#0a2e2b] transition-colors"
+              >
+                Aplicar esta sugerencia
+              </button>
+            )}
+          </div>
+
+          {editando ? (
+            <>
+              {/* ── Theme selector ── */}
+              <div className="pt-1 border-t border-neutral-100">
+                <p className="text-xs font-semibold text-neutral-500 uppercase tracking-wide mb-2">
+                  Identidad visual
+                </p>
+                <div className="grid grid-cols-3 gap-2">
+                  {THEME_KEYS.map((key) => {
+                    const theme = THEMES[key]
+                    const active = detectTheme(headerStyle) === key
+                    return (
+                      <button
+                        key={key}
+                        type="button"
+                        onClick={() => setHS(prev => ({ ...prev, ...theme.style }))}
+                        className={`flex flex-col items-center gap-1 px-2 py-3 rounded-xl border-2 text-center transition-all duration-300 ${
+                          active
+                            ? "border-[#0F3D3A] bg-[#0F3D3A]/5"
+                            : "border-neutral-200 hover:border-neutral-300"
+                        }`}
+                      >
+                        <span className={`text-base leading-none ${active ? "text-[#0F3D3A]" : "text-neutral-400"}`}>
+                          {theme.emoji}
+                        </span>
+                        <span className={`text-[11px] font-bold leading-tight ${active ? "text-[#0F3D3A]" : "text-neutral-700"}`}>
+                          {theme.name}
+                        </span>
+                        <span className="text-[10px] text-neutral-400 leading-tight">{theme.description}</span>
+                      </button>
+                    )
+                  })}
+                </div>
+              </div>
+
+              {/* ── Mode selector ── */}
+              <div>
+                <p className="text-xs font-semibold text-neutral-500 uppercase tracking-wide mb-3">
+                  Modo
+                </p>
+                <div className="grid grid-cols-3 gap-3">
+                  {HEADER_MODES.map(({ value, label, hint }) => {
+                    const active = headerStyle.mode === value
+                    return (
+                      <button
+                        key={value}
+                        type="button"
+                        onClick={() => setHS(prev => ({ ...prev, mode: value }))}
+                        className={`flex flex-col items-center gap-1.5 px-3 py-4 rounded-xl border-2 text-center transition-all ${
+                          active
+                            ? "border-[#0F3D3A] bg-[#0F3D3A]/5"
+                            : "border-neutral-200 hover:border-neutral-300"
+                        }`}
+                      >
+                        <span className={`text-sm font-semibold ${active ? "text-[#0F3D3A]" : "text-neutral-700"}`}>
+                          {label}
+                        </span>
+                        <span className="text-[11px] text-neutral-400">{hint}</span>
+                      </button>
+                    )
+                  })}
+                </div>
+              </div>
+
+              {/* ── Gradient variants — only when gradient mode is selected ── */}
+              {headerStyle.mode === "gradient" && (
+                <div className="space-y-3 pt-2 border-t border-neutral-100">
+                  <p className="text-xs font-semibold text-neutral-500 uppercase tracking-wide">
+                    Variante
+                  </p>
+                  <div className="grid grid-cols-2 gap-2">
+                    {GRADIENT_VARIANT_KEYS.map((key) => {
+                      const variant = GRADIENT_VARIANTS[key]
+                      const active = (headerStyle.gradient_variant ?? "default") === key
+                      return (
+                        <button
+                          key={key}
+                          type="button"
+                          onClick={() =>
+                            setHS(prev => ({
+                              ...prev,
+                              gradient_variant: key === "default" ? undefined : key as GradientVariantKey,
+                            }))
+                          }
+                          className={`relative overflow-hidden rounded-xl border-2 px-3 py-3 text-left transition-all ${
+                            active
+                              ? "border-[#0F3D3A]"
+                              : "border-neutral-200 hover:border-neutral-300"
+                          }`}
+                          style={{
+                            backgroundImage: variant.backgroundImage,
+                            backgroundColor: variant.backgroundColor,
+                          }}
+                        >
+                          {active && (
+                            <span className="absolute top-1.5 right-1.5 w-3.5 h-3.5 bg-white rounded-full flex items-center justify-center text-[8px] text-[#0F3D3A] font-black">
+                              ✓
+                            </span>
+                          )}
+                          <span className="text-[11px] font-semibold text-white/90 leading-tight">
+                            {variant.name}
+                          </span>
+                        </button>
+                      )
+                    })}
+                  </div>
+                </div>
+              )}
+
+              {/* ── Banner uploader — only for image-based modes ── */}
+              {headerStyle.mode !== "gradient" && (
+                <div className="space-y-3 pt-2 border-t border-neutral-100">
+                  <div>
+                    <p className="text-xs font-semibold text-neutral-500 uppercase tracking-wide">
+                      Imagen del encabezado
+                    </p>
+                    <p className="text-[11px] text-neutral-400 mt-0.5">
+                      Esta imagen se mostrará en tu tienda pública
+                    </p>
+                  </div>
+
+                  {/* No banner state */}
+                  {!bannerPreview && !formData.banner_url && (
+                    <div className="h-20 rounded-xl border-2 border-dashed border-neutral-200 flex items-center justify-center text-neutral-400 text-sm">
+                      Sin imagen
+                    </div>
+                  )}
+
+                  {/* Upload trigger */}
+                  <input
+                    ref={bannerInputRef}
+                    type="file"
+                    accept="image/*"
+                    className="hidden"
+                    onChange={handleBannerUpload}
+                  />
+                  <button
+                    type="button"
+                    disabled={bannerUploading}
+                    onClick={() => bannerInputRef.current?.click()}
+                    className="inline-flex items-center gap-2 px-4 py-2 text-xs font-semibold rounded-lg border border-neutral-200 bg-white text-neutral-700 hover:bg-neutral-50 hover:border-neutral-300 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                  >
+                    {bannerUploading
+                      ? "Subiendo…"
+                      : formData.banner_url
+                      ? "Cambiar imagen"
+                      : "Subir imagen"}
+                  </button>
+                </div>
+              )}
+
+              {/* ── Overlay controls — only in image+overlay mode ── */}
+              {headerStyle.mode === "image+overlay" && (
+                <div className="space-y-5 pt-2 border-t border-neutral-100">
+
+                  {/* Quick presets */}
+                  <div>
+                    <p className="text-xs font-semibold text-neutral-500 uppercase tracking-wide mb-2">
+                      Presets rápidos
+                    </p>
+                    <div className="flex flex-wrap gap-2">
+                      {OVERLAY_QUICK_PRESETS.map(({ name, config }) => (
+                        <button
+                          key={name}
+                          type="button"
+                          onClick={() => setHS(prev => ({ ...prev, ...config }))}
+                          className="px-3 py-1.5 text-[11px] font-semibold rounded-full border border-neutral-200 bg-white text-neutral-700 hover:bg-neutral-50 hover:border-neutral-300 transition-colors"
+                        >
+                          {name}
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+
+                  {/* Color palette */}
+                  <div>
+                    <p className="text-xs font-semibold text-neutral-500 uppercase tracking-wide mb-3">
+                      Color del overlay
+                    </p>
+                    <div className="flex items-center gap-3">
+                      {OVERLAY_PRESETS.map(({ name, color }) => {
+                        const selected = headerStyle.overlay_color === color
+                        return (
+                          <button
+                            key={color}
+                            type="button"
+                            onClick={() => setHS(prev => ({ ...prev, overlay_color: color }))}
+                            title={name}
+                            className={`w-9 h-9 rounded-full border-4 transition-all ${
+                              selected ? "border-neutral-800 scale-110 shadow-md" : "border-white shadow-sm"
+                            }`}
+                            style={{ backgroundColor: color }}
+                          />
+                        )
+                      })}
+                    </div>
+                  </div>
+
+                  {/* Opacity slider */}
+                  <div>
+                    <div className="flex items-center justify-between mb-2">
+                      <p className="text-xs font-semibold text-neutral-500 uppercase tracking-wide">
+                        Intensidad
+                      </p>
+                      <span className="text-xs font-mono text-neutral-600">
+                        {Math.round((headerStyle.overlay_opacity ?? 0.7) * 100)}%
+                      </span>
+                    </div>
+                    <input
+                      type="range"
+                      min={40}
+                      max={90}
+                      step={5}
+                      value={Math.round((headerStyle.overlay_opacity ?? 0.7) * 100)}
+                      onChange={(e) =>
+                        setHS(prev => ({ ...prev, overlay_opacity: Number(e.target.value) / 100 }))
+                      }
+                      className="w-full accent-[#0F3D3A]"
+                    />
+                    <div className="flex justify-between text-[10px] text-neutral-400 mt-1">
+                      <span>Sutil</span>
+                      <span>Intenso</span>
+                    </div>
+                  </div>
+                </div>
+              )}
+
+              {/* ── Smart suggestions — shown at bottom of edit section ── */}
+              {suggestions.length > 0 && (
+                <div className="space-y-2 pt-2 border-t border-neutral-100">
+                  <p className="text-xs font-semibold text-neutral-500 uppercase tracking-wide">
+                    Sugerencias
+                  </p>
+                  {suggestions.map((s) => (
+                    <div
+                      key={s.key}
+                      className={`text-[13px] p-3 rounded-lg leading-snug ${
+                        s.priority === "high"
+                          ? "bg-red-50 text-red-700 border border-red-100"
+                          : s.priority === "medium"
+                          ? "bg-amber-50 text-amber-700 border border-amber-100"
+                          : "bg-blue-50 text-blue-600 border border-blue-100"
+                      }`}
+                    >
+                      💡 {s.message}
+                    </div>
+                  ))}
+                </div>
+              )}
+            </>
+          ) : (
+            /* ── View-mode summary ── */
+            <div className="space-y-1">
+              <p className="text-sm text-neutral-500">
+                Modo actual:{" "}
+                <span className="font-semibold text-neutral-700">
+                  {HEADER_MODES.find((m) => m.value === headerStyle.mode)?.label ?? "—"}
+                </span>
+                {headerStyle.mode === "image+overlay" && (
+                  <span className="ml-2 text-neutral-400">
+                    · {Math.round((headerStyle.overlay_opacity ?? 0.7) * 100)}% intensidad
+                  </span>
+                )}
+                {headerStyle.mode !== "gradient" && !vendedor.banner_url && (
+                  <span className="ml-2 text-amber-600 font-medium">· Sin imagen de encabezado</span>
+                )}
+              </p>
+              {suggestions.length > 0 && (
+                <p className="text-xs text-amber-600">
+                  💡 {suggestions[0].message}
+                </p>
+              )}
+            </div>
+          )}
+        </div>
+      </SectionCard>
 
     </main>
 

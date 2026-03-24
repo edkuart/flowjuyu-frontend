@@ -17,6 +17,9 @@ import {
 import ProductDiscoveryLayout from "@/components/product/discovery/ProductDiscoveryLayout";
 import { FavoriteButton } from "@/components/ui/FavoriteButton";
 import SellerQrModal from "@/components/seller/SellerQrModal";
+import SocialButtons from "@/components/seller/SocialButtons";
+import { buildHeaderStyle, DEFAULT_HEADER_STYLE } from "@/lib/headerStyle";
+import type { HeaderStyle } from "@/lib/headerStyle";
 
 const API = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8800";
 
@@ -45,9 +48,14 @@ type Seller = {
   mensaje_destacado?: string | null;
   created_at?: string | null;
   whatsapp?: string | null;
+  whatsapp_numero?: string | null;   // alias returned by some endpoints
   plan?: "free" | "founder";
   plan_activo?: boolean;
   estado_validacion?: "pendiente" | "aprobado" | "rechazado";
+  instagram?: string | null;
+  facebook?: string | null;
+  tiktok?: string | null;
+  header_style?: HeaderStyle | null;
 };
 
 type Review = {
@@ -60,6 +68,23 @@ type Review = {
 };
 
 type RatingSummary = { avg_rating: number | null; total: number };
+
+// HeaderStyle, DEFAULT_HEADER_STYLE, buildHeaderStyle — imported from @/lib/headerStyle
+
+// Re-export so existing imports from this file keep working
+export type { HeaderStyle } from "@/lib/headerStyle";
+
+type StoreLayoutConfig = {
+  show_story: boolean;
+  show_reviews: boolean;
+  show_featured: boolean;
+};
+
+const DEFAULT_LAYOUT: StoreLayoutConfig = {
+  show_story: true,
+  show_reviews: true,
+  show_featured: true,
+};
 
 /* =====================================================
    STAR DISPLAY
@@ -232,10 +257,18 @@ function ReviewForm({
 export default function StoreClient({
   seller,
   initialProducts,
+  layoutConfig,
 }: {
   seller: Seller;
   initialProducts: Producto[];
+  layoutConfig?: Partial<StoreLayoutConfig>;
 }) {
+  const config = useMemo<StoreLayoutConfig>(
+    () => ({ ...DEFAULT_LAYOUT, ...layoutConfig }),
+    // layoutConfig is expected to be a stable object from the parent
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    [JSON.stringify(layoutConfig)]
+  );
   const [precioMin, setPrecioMin] = useState(0);
   const [precioMax, setPrecioMax] = useState(2000);
   const [sort, setSort]           = useState("");
@@ -267,7 +300,9 @@ export default function StoreClient({
         const d = await reviewsRes.json();
         setReviews(d.data || []);
       }
-    } catch {}
+    } catch (err) {
+      if (process.env.NODE_ENV !== "production") console.warn("[StoreClient] reviews fetch failed:", err);
+    }
   }, [seller.id]);
 
   useEffect(() => { loadReviews(); }, [loadReviews]);
@@ -285,43 +320,49 @@ export default function StoreClient({
   }, [initialProducts, precioMin, precioMax, sort]);
 
   /* ── Destacados ── */
-  const destacados =
-    seller.productos_destacados && seller.productos_destacados.length > 0
-      ? productos.filter((p) => seller.productos_destacados?.includes(p.id))
-      : [];
+  const destacados = useMemo(
+    () =>
+      seller.productos_destacados?.length
+        ? productos.filter((p) => seller.productos_destacados!.includes(p.id))
+        : [],
+    [productos, seller.productos_destacados]
+  );
 
   /* ── Featured (most relevant if no destacados) ── */
-  const featuredProduct = destacados.length === 0 && productos.length > 0 ? productos[0] : null;
+  const featuredProduct = useMemo(
+    () => (destacados.length === 0 && productos.length > 0 ? productos[0] : null),
+    [destacados, productos]
+  );
 
   /* ── Member since ── */
-  const memberSince = seller.created_at
-    ? new Date(seller.created_at).getFullYear()
-    : null;
+  const memberSince = useMemo(
+    () => seller.created_at ? new Date(seller.created_at).getFullYear() : null,
+    [seller.created_at]
+  );
 
   /* ── WhatsApp ── */
-  const phone = seller.whatsapp || (seller as any).whatsapp_numero || "";
+  const phone = useMemo(
+    () => seller.whatsapp || seller.whatsapp_numero || "",
+    [seller.whatsapp, seller.whatsapp_numero]
+  );
   const showWhatsapp = !!phone;
 
-  const handleWhatsappClick = async (productId?: string) => {
-    // Track the click
-    try {
-      await fetch(`${API}/api/analytics/whatsapp-click`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ seller_id: seller.id, product_id: productId || null }),
-      });
-    } catch {}
-    // Also track as purchase intention
-    try {
-      await fetch(`${API}/api/intentions`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ seller_id: seller.id, source: "store_whatsapp" }),
-      });
-    } catch {}
-    const mensaje = `Hola 👋\n\nEstoy interesado en los productos de "${seller.nombre_comercio}" que vi en Flowjuyu.\n\n¿Podrías brindarme más información?`;
+  /* ── Header background ── */
+  const headerBgStyle = useMemo(
+    () => buildHeaderStyle(seller.header_style ?? DEFAULT_HEADER_STYLE, seller.banner_url),
+    [seller.banner_url, seller.header_style]
+  );
+
+  const handleWhatsappClick = useCallback((productId?: string) => {
+    // Fire-and-forget — do NOT await; open WhatsApp immediately
+    fetch(`${API}/api/engagement/whatsapp`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ seller_id: seller.id, product_id: productId ?? null, type: "click" }),
+    }).catch(() => {});
+    const mensaje = `Hola\n\nEstoy interesado en los productos de "${seller.nombre_comercio}" que vi en Flowjuyu.\n\n¿Podrías brindarme más información?`;
     window.open(`https://wa.me/${phone}?text=${encodeURIComponent(mensaje)}`, "_blank");
-  };
+  }, [seller.id, seller.nombre_comercio, phone]);
 
   /* =====================================================
      RENDER
@@ -364,16 +405,8 @@ export default function StoreClient({
       ══════════════════════════════════════════════ */}
       <div className="relative -mx-6 mb-0 rounded-b-[40px] overflow-hidden">
 
-        {/* Background layer */}
-        <div className="absolute inset-0">
-          {seller.banner_url ? (
-            <>
-              <Image src={seller.banner_url} alt="Banner tienda" fill className="object-cover" priority />
-              <div className="absolute inset-0 bg-emerald-900/70 mix-blend-multiply" />
-            </>
-          ) : null}
-          <div className="absolute inset-0 bg-gradient-to-br from-emerald-950/80 via-emerald-900/60 to-emerald-800/80" />
-        </div>
+        {/* Background — single computed CSS layer, no separate overlay divs */}
+        <div className="absolute inset-0 bg-cover bg-center transition-[background-image,background-color] duration-300" style={headerBgStyle} />
 
         {/* Content layer */}
         <div className="relative px-6 pt-16 pb-10 md:px-10 md:py-14 text-white">
@@ -429,6 +462,18 @@ export default function StoreClient({
                     {seller.mensaje_destacado}
                   </p>
                 )}
+
+                <SocialButtons
+                  links={{ instagram: seller.instagram, facebook: seller.facebook, tiktok: seller.tiktok }}
+                  className="mt-4"
+                  onLinkClick={(platform) => {
+                    fetch(`${API}/api/engagement/social`, {
+                      method: "POST",
+                      headers: { "Content-Type": "application/json" },
+                      body: JSON.stringify({ seller_id: seller.id, platform, type: "click" }),
+                    }).catch(() => {});
+                  }}
+                />
 
                 {/* Fast reply badge */}
                 {showWhatsapp && (
@@ -508,7 +553,7 @@ export default function StoreClient({
       {/* ══════════════════════════════════════════════
           ARTISAN STORY SECTION
       ══════════════════════════════════════════════ */}
-      {seller.descripcion && (
+      {config.show_story && seller.descripcion && (
         <section className="mb-16">
           <div className="bg-gradient-to-br from-amber-50 to-emerald-50 border border-amber-100 rounded-3xl p-8 flex flex-col md:flex-row gap-8 items-start">
             <div className="text-4xl flex-shrink-0">📖</div>
@@ -542,7 +587,7 @@ export default function StoreClient({
       {/* ══════════════════════════════════════════════
           FEATURED PRODUCT (when no destacados)
       ══════════════════════════════════════════════ */}
-      {featuredProduct && (
+      {config.show_featured && featuredProduct && (
         <section className="mb-16">
           <div className="mb-6">
             <p className="text-xs font-bold text-neutral-400 uppercase tracking-widest mb-1">
@@ -587,7 +632,7 @@ export default function StoreClient({
       {/* ══════════════════════════════════════════════
           DESTACADOS
       ══════════════════════════════════════════════ */}
-      {destacados.length > 0 && (
+      {config.show_featured && destacados.length > 0 && (
         <section className="mb-20">
           <div className="mb-8">
             <p className="text-xs font-bold text-neutral-400 uppercase tracking-widest mb-1">
@@ -673,6 +718,7 @@ export default function StoreClient({
       {/* ══════════════════════════════════════════════
           REVIEWS SECTION
       ══════════════════════════════════════════════ */}
+      {config.show_reviews && (
       <section className="mt-20">
         <div className="mb-8 flex items-end justify-between">
           <div>
@@ -740,6 +786,7 @@ export default function StoreClient({
         {/* Review form */}
         <ReviewForm sellerId={seller.id} onSubmitted={loadReviews} />
       </section>
+      )}
 
     </ProductDiscoveryLayout>
 
