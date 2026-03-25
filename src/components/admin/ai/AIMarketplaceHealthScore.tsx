@@ -187,7 +187,12 @@ function GaugeRing({ score, color }: { score: number; color: string }) {
 
 // ── Main ───────────────────────────────────────────────────────────────────────
 
-export default function AIMarketplaceHealthScore() {
+export default function AIMarketplaceHealthScore({
+  realSellerCount,
+}: {
+  /** When provided (from telemetry filtered_metrics), shown as a note alongside the raw count. */
+  realSellerCount?: number;
+}) {
   const risksRes = useBrainFetch<RiskData>    ("/api/admin/ai/risks",        "risks");
   const intelRes = useBrainFetch<Intelligence>("/api/admin/ai/intelligence", "intelligence");
 
@@ -253,6 +258,14 @@ export default function AIMarketplaceHealthScore() {
               );
             })}
           </ul>
+
+          {/* Telemetry hint: real seller count */}
+          {realSellerCount !== undefined && intelRes.data && (
+            <p className="text-xs text-muted-foreground pt-1 border-t">
+              Seller count (filtered): <span className="font-semibold text-foreground">{realSellerCount}</span> real
+              {" "}vs {intelRes.data.inactive_sellers} raw — score computed from raw data.
+            </p>
+          )}
         </div>
       </div>
 

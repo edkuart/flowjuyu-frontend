@@ -51,8 +51,6 @@ export function computeHeaderScore(
       // image-only mode — no overlay protection
       contrast = brightness === "dark" ? 20 : 10
     }
-  } else if (!bannerUrl && hs.mode === "gradient") {
-    contrast = 25
   }
 
   // +15 — valid mode usage

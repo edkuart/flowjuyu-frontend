@@ -5,6 +5,8 @@ import { useParams, useRouter } from "next/navigation"
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
 import { authFetch } from "@/lib/authFetch"
+import { formatPhone } from "@/lib/phone"
+import type { PhoneNumber } from "@/lib/phone"
 import { toast } from "sonner"
 import { Loader2 } from "lucide-react"
 import Link from "next/link"
@@ -30,7 +32,7 @@ interface SellerInfo {
   id: number
   user_id: number
   nombre_comercio: string
-  telefono_comercio: string | null
+  telefono_comercio: PhoneNumber | null
   estado_validacion: string
   kyc_score: number
   kyc_riesgo: string
@@ -555,7 +557,7 @@ export default function AdminTicketDetailPage() {
                 <div>
                   <p className="text-sm font-semibold">{seller.nombre_comercio}</p>
                   {seller.telefono_comercio && (
-                    <p className="text-xs text-muted-foreground mt-0.5">{seller.telefono_comercio}</p>
+                    <p className="text-xs text-muted-foreground mt-0.5">{formatPhone(seller.telefono_comercio)}</p>
                   )}
                 </div>
                 <div className="space-y-1.5">

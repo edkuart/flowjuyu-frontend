@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 
 import { Badge }    from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -33,6 +33,15 @@ import AIMarketplaceSimulator  from "@/components/admin/ai/AIMarketplaceSimulato
 import AITrendPanel            from "@/components/admin/ai/AITrendPanel";
 import AIAnomalyPanel          from "@/components/admin/ai/AIAnomalyPanel";
 import AIWeeklyInsightsPanel   from "@/components/admin/ai/AIWeeklyInsightsPanel";
+
+// Telemetry panel
+import AITelemetryPanel from "@/components/admin/ai/AITelemetryPanel";
+
+// LLM insights panel (new)
+import AILLMInsightsPanel from "@/components/admin/ai/AILLMInsightsPanel";
+
+// Telemetry fetch hook
+import { useBrainFetch } from "@/components/admin/ai/useBrainFetch";
 
 // ── Types ──────────────────────────────────────────────────────────────────────
 
@@ -78,6 +87,14 @@ type AIOverview = {
   memory: {
     bugs?: unknown[];
     [key: string]: unknown;
+  };
+};
+
+type TelemetrySnapshot = {
+  data_changed:     boolean | null;
+  filtered_metrics: {
+    test_seller_count: number;
+    real_seller_count: number;
   };
 };
 
@@ -152,12 +169,10 @@ function buildHealthChecks(
   const now      = new Date();
   const todayStr = now.toISOString().slice(0, 10);
 
-  // 1. Analytics report today
   const analyticsToday = overview.reports.some(
     (r) => r.type === "analytics" && r.date === todayStr
   );
 
-  // 2. Brain cycle recency
   const lastRun = overview.status.sessions?.last_run;
   let brainStatus: CheckStatus = "red";
   let brainValue  = "Never run";
@@ -168,41 +183,23 @@ function buildHealthChecks(
     else                 { brainStatus = "red";    brainValue = `${Math.floor(hours)}h ago`; }
   }
 
-  // 3. Task backlog
   let backlogStatus: CheckStatus;
   if      (inboxCount === 0)  backlogStatus = "green";
   else if (inboxCount <= 5)   backlogStatus = "yellow";
   else                        backlogStatus = "red";
 
-  // 4. Active agents
   const agentCount   = overview.status.agents.length;
   const agentStatus: CheckStatus = agentCount > 0 ? "green" : "red";
 
   return [
-    {
-      label:  "Analytics Today",
-      value:  analyticsToday ? "Generated" : "Missing",
-      status: analyticsToday ? "green" : "red",
-    },
-    {
-      label:  "Brain Cycle",
-      value:  brainValue,
-      status: brainStatus,
-    },
-    {
-      label:  "Task Backlog",
-      value:  `${inboxCount} pending`,
-      status: backlogStatus,
-    },
-    {
-      label:  "Active Agents",
-      value:  `${agentCount} registered`,
-      status: agentStatus,
-    },
+    { label: "Analytics Today", value: analyticsToday ? "Generated" : "Missing",    status: analyticsToday ? "green" : "red" },
+    { label: "Brain Cycle",     value: brainValue,                                   status: brainStatus },
+    { label: "Task Backlog",    value: `${inboxCount} pending`,                      status: backlogStatus },
+    { label: "Active Agents",   value: `${agentCount} registered`,                  status: agentStatus },
   ];
 }
 
-// ── Health alerts (detailed) ───────────────────────────────────────────────────
+// ── Health alerts ──────────────────────────────────────────────────────────────
 
 function evaluateHealth(overview: AIOverview, inboxCount: number): HealthAlert[] {
   const alerts: HealthAlert[] = [];
@@ -213,11 +210,8 @@ function evaluateHealth(overview: AIOverview, inboxCount: number): HealthAlert[]
   if (lastRun) {
     const hoursSince = (now.getTime() - new Date(lastRun).getTime()) / (1_000 * 60 * 60);
     if (hoursSince > 24) {
-      alerts.push({
-        id:       "scheduler-inactivity",
-        severity: "warning",
-        message:  `Scheduler has not run in ${Math.floor(hoursSince)} hours`,
-      });
+      alerts.push({ id: "scheduler-inactivity", severity: "warning",
+        message: `Scheduler has not run in ${Math.floor(hoursSince)} hours` });
     }
   }
 
@@ -225,36 +219,24 @@ function evaluateHealth(overview: AIOverview, inboxCount: number): HealthAlert[]
     (r) => r.type === "analytics" && r.date === todayStr
   );
   if (!hasAnalyticsToday) {
-    alerts.push({
-      id:       "no-analytics-today",
-      severity: "warning",
-      message:  `No analytics report generated today (${todayStr})`,
-    });
+    alerts.push({ id: "no-analytics-today", severity: "warning",
+      message: `No analytics report generated today (${todayStr})` });
   }
 
   if (inboxCount > 5) {
-    alerts.push({
-      id:       "task-backlog",
-      severity: "warning",
-      message:  `Task backlog detected (${inboxCount} pending inbox tasks)`,
-    });
+    alerts.push({ id: "task-backlog", severity: "warning",
+      message: `Task backlog detected (${inboxCount} pending inbox tasks)` });
   }
 
   if (overview.status.agents.length === 0) {
-    alerts.push({
-      id:       "no-agents",
-      severity: "critical",
-      message:  "No active AI agents registered",
-    });
+    alerts.push({ id: "no-agents", severity: "critical",
+      message: "No active AI agents registered" });
   }
 
   const bugs = overview.memory.bugs;
   if (Array.isArray(bugs) && bugs.length > 0) {
-    alerts.push({
-      id:       "memory-errors",
-      severity: "warning",
-      message:  `${bugs.length} memory error${bugs.length === 1 ? "" : "s"} detected`,
-    });
+    alerts.push({ id: "memory-errors", severity: "warning",
+      message: `${bugs.length} memory error${bugs.length === 1 ? "" : "s"} detected` });
   }
 
   return alerts;
@@ -284,8 +266,6 @@ function HealthMonitor({
 
   return (
     <div className="bg-card border rounded-lg p-4 space-y-4">
-
-      {/* Header */}
       <div className="flex items-center justify-between flex-wrap gap-2">
         <h2 className="font-semibold text-sm">AI Health Monitor</h2>
         <div className="flex items-center gap-2">
@@ -307,7 +287,6 @@ function HealthMonitor({
         </div>
       </div>
 
-      {/* Status indicator cards */}
       <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
         {checks.map((c) => {
           const s = CHECK_STYLES[c.status];
@@ -323,7 +302,6 @@ function HealthMonitor({
         })}
       </div>
 
-      {/* Alert list */}
       {!isHealthy && (
         <ul className="space-y-2">
           {[...alerts]
@@ -339,7 +317,6 @@ function HealthMonitor({
             })}
         </ul>
       )}
-
     </div>
   );
 }
@@ -359,8 +336,6 @@ function StatusDot({ value }: { value: string }) {
   return <span className={`inline-block w-2 h-2 rounded-full ${color} mr-1.5`} />;
 }
 
-// ── Section divider ────────────────────────────────────────────────────────────
-
 function SectionLabel({ children }: { children: React.ReactNode }) {
   return (
     <div className="flex items-center gap-3">
@@ -373,23 +348,14 @@ function SectionLabel({ children }: { children: React.ReactNode }) {
   );
 }
 
-// ── Spinner ────────────────────────────────────────────────────────────────────
-
 function Spinner() {
   return (
-    <svg
-      className="animate-spin h-3.5 w-3.5"
-      xmlns="http://www.w3.org/2000/svg"
-      fill="none"
-      viewBox="0 0 24 24"
-    >
+    <svg className="animate-spin h-3.5 w-3.5" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
       <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
       <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v4l3-3-3-3v4a8 8 0 00-8 8h4z" />
     </svg>
   );
 }
-
-// ── Skeleton ───────────────────────────────────────────────────────────────────
 
 function PageSkeleton() {
   return (
@@ -398,16 +364,63 @@ function PageSkeleton() {
         <Skeleton className="h-7 w-64" />
         <Skeleton className="h-4 w-48" />
       </div>
+      <Skeleton className="h-10 rounded-lg" />
       <Skeleton className="h-36 rounded-lg" />
       <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
         {Array.from({ length: 4 }).map((_, i) => <Skeleton key={i} className="h-24 rounded-lg" />)}
       </div>
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-        <Skeleton className="h-40 rounded-lg" />
-        <Skeleton className="h-40 rounded-lg" />
-      </div>
-      <Skeleton className="h-32 rounded-lg" />
-      <Skeleton className="h-48 rounded-lg" />
+    </div>
+  );
+}
+
+// ── Tab system ────────────────────────────────────────────────────────────────
+
+type TabId = "overview" | "issues" | "intelligence" | "operations";
+
+const TABS: { id: TabId; label: string }[] = [
+  { id: "overview",     label: "Overview"      },
+  { id: "issues",       label: "Issues"        },
+  { id: "intelligence", label: "Intelligence"  },
+  { id: "operations",   label: "Operations"    },
+];
+
+function TabBar({
+  activeTab,
+  onTabChange,
+  alertCount,
+}: {
+  activeTab:   TabId;
+  onTabChange: (id: TabId) => void;
+  alertCount:  number;
+}) {
+  return (
+    <div className="flex items-center gap-1 overflow-x-auto scrollbar-none py-2">
+      {TABS.map((tab) => {
+        const isActive = tab.id === activeTab;
+        const showDot  = tab.id === "issues" && alertCount > 0;
+
+        return (
+          <button
+            key={tab.id}
+            onClick={() => onTabChange(tab.id)}
+            className={`
+              relative inline-flex items-center gap-1.5 px-4 py-1.5 rounded-md text-sm font-medium
+              whitespace-nowrap transition-colors
+              ${isActive
+                ? "bg-foreground text-background"
+                : "text-muted-foreground hover:text-foreground hover:bg-muted"
+              }
+            `}
+          >
+            {tab.label}
+            {showDot && (
+              <span className={`w-1.5 h-1.5 rounded-full shrink-0 ${
+                isActive ? "bg-background/70" : "bg-red-500"
+              }`} />
+            )}
+          </button>
+        );
+      })}
     </div>
   );
 }
@@ -421,7 +434,24 @@ export default function AdminAIPage() {
   const [lastUpdated,  setLastUpdated]  = useState<Date | null>(null);
   const [brainRunning, setBrainRunning] = useState(false);
   const [toasts,       setToasts]       = useState<Toast[]>([]);
+  const [activeTab,    setActiveTab]    = useState<TabId>("overview");
   const toastId = useRef(0);
+
+  // Telemetry artifact — fetched once, passed as hints to sub-panels
+  const telemetryRes = useBrainFetch<TelemetrySnapshot>(
+    "/api/admin/ai/telemetry",
+    "telemetry"
+  );
+
+  const intelligenceHints = useMemo(() => {
+    if (!telemetryRes.data) return undefined;
+    return {
+      testSellerCount: telemetryRes.data.filtered_metrics.test_seller_count,
+      dataChanged:     telemetryRes.data.data_changed,
+    };
+  }, [telemetryRes.data]);
+
+  const realSellerCount = telemetryRes.data?.filtered_metrics.real_seller_count;
 
   // ── Toast helper ───────────────────────────────────────────────────────────
 
@@ -553,15 +583,15 @@ export default function AdminAIPage() {
 
   const healthChecks = buildHealthChecks(overview, inboxTasks.length);
   const healthAlerts = evaluateHealth(overview, inboxTasks.length);
+  const alertCount   = healthAlerts.length;
 
   // ── Render ─────────────────────────────────────────────────────────────────
 
   return (
     <>
-      <div className="p-6 space-y-6 max-w-6xl mx-auto">
-
-        {/* ── HEADER ───────────────────────────────────────────────────────── */}
-        <div className="flex items-start justify-between flex-wrap gap-3">
+      {/* ── HEADER (always visible) ─────────────────────────────────────────── */}
+      <div className="px-0 pt-0 pb-0 max-w-6xl mx-auto">
+        <div className="flex items-start justify-between flex-wrap gap-3 mb-4">
           <div className="space-y-1">
             <h1 className="text-2xl font-bold tracking-tight">
               Flowjuyu AI Control Center
@@ -577,8 +607,6 @@ export default function AdminAIPage() {
                 Updated {lastUpdated.toLocaleTimeString()}
               </span>
             )}
-
-            {/* Brain cycle trigger */}
             <button
               onClick={handleRunBrain}
               disabled={brainRunning}
@@ -593,8 +621,6 @@ export default function AdminAIPage() {
               {brainRunning && <Spinner />}
               {brainRunning ? "Running Brain…" : "⚡ Run AI Brain"}
             </button>
-
-            {/* Overview refresh */}
             <button
               onClick={() => { setLoading(true); fetchOverview(); }}
               className="px-3 py-1.5 text-xs rounded border hover:bg-muted transition-colors"
@@ -604,181 +630,227 @@ export default function AdminAIPage() {
           </div>
         </div>
 
-        {/* ── HEALTH MONITOR ───────────────────────────────────────────────── */}
-        <HealthMonitor checks={healthChecks} alerts={healthAlerts} />
-
-        {/* ── MARKETPLACE HEALTH SCORE ──────────────────────────────────────── */}
-        <AIMarketplaceHealthScore />
-
-        {/* ── STATUS CARDS ─────────────────────────────────────────────────── */}
-        <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-
-          <div className="bg-card border rounded-lg p-4 space-y-1">
-            <p className="text-xs text-muted-foreground uppercase tracking-wide">AI Engine</p>
-            <p className={`text-lg font-semibold flex items-center ${statusColor(status.ai)}`}>
-              <StatusDot value={status.ai} />{status.ai}
-            </p>
-          </div>
-
-          <div className="bg-card border rounded-lg p-4 space-y-1">
-            <p className="text-xs text-muted-foreground uppercase tracking-wide">Scheduler</p>
-            <p className={`text-lg font-semibold flex items-center ${statusColor(status.scheduler)}`}>
-              <StatusDot value={status.scheduler} />{status.scheduler}
-            </p>
-          </div>
-
-          <div className="bg-card border rounded-lg p-4 space-y-1">
-            <p className="text-xs text-muted-foreground uppercase tracking-wide">Agents</p>
-            <p className="text-2xl font-bold">{status.agents.length}</p>
-            <p className="text-xs text-muted-foreground">registered</p>
-          </div>
-
-          <div className="bg-card border rounded-lg p-4 space-y-1">
-            <p className="text-xs text-muted-foreground uppercase tracking-wide">Task Queue</p>
-            <p className="text-2xl font-bold">{totalTasks}</p>
-            <div className="flex items-center gap-2 text-xs text-muted-foreground">
-              <span>{inboxTasks.length} inbox</span>
-              <span>·</span>
-              <span>{inProgressTasks.length} active</span>
-            </div>
-          </div>
-
+        {/* ── STICKY TAB BAR ───────────────────────────────────────────────── */}
+        <div className="sticky top-0 z-30 -mx-0 bg-background/95 backdrop-blur-sm border-b">
+          <TabBar
+            activeTab={activeTab}
+            onTabChange={setActiveTab}
+            alertCount={alertCount}
+          />
         </div>
+      </div>
 
-        {/* ── TASKS + REPORTS PREVIEW ───────────────────────────────────────── */}
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+      {/* ── TAB CONTENT ─────────────────────────────────────────────────────── */}
+      <div className="max-w-6xl mx-auto mt-6">
 
-          <div className="bg-card border rounded-lg p-4 space-y-3">
-            <div className="flex items-center justify-between">
-              <h2 className="font-semibold text-sm">Task Queue</h2>
-              <div className="flex items-center gap-1.5">
-                <Badge variant="secondary">{inboxTasks.length} inbox</Badge>
-                <Badge variant="outline">{inProgressTasks.length} active</Badge>
+        {/* ════════════════════════════════════════════════════════════════════ */}
+        {/* TAB: OVERVIEW                                                        */}
+        {/* ════════════════════════════════════════════════════════════════════ */}
+        {activeTab === "overview" && (
+          <div className="space-y-6">
+
+            {/* Health Monitor */}
+            <HealthMonitor checks={healthChecks} alerts={healthAlerts} />
+
+            {/* Marketplace Health Score */}
+            <AIMarketplaceHealthScore realSellerCount={realSellerCount} />
+
+            {/* Status Cards */}
+            <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+              <div className="bg-card border rounded-lg p-4 space-y-1">
+                <p className="text-xs text-muted-foreground uppercase tracking-wide">AI Engine</p>
+                <p className={`text-lg font-semibold flex items-center ${statusColor(status.ai)}`}>
+                  <StatusDot value={status.ai} />{status.ai}
+                </p>
+              </div>
+              <div className="bg-card border rounded-lg p-4 space-y-1">
+                <p className="text-xs text-muted-foreground uppercase tracking-wide">Scheduler</p>
+                <p className={`text-lg font-semibold flex items-center ${statusColor(status.scheduler)}`}>
+                  <StatusDot value={status.scheduler} />{status.scheduler}
+                </p>
+              </div>
+              <div className="bg-card border rounded-lg p-4 space-y-1">
+                <p className="text-xs text-muted-foreground uppercase tracking-wide">Agents</p>
+                <p className="text-2xl font-bold">{status.agents.length}</p>
+                <p className="text-xs text-muted-foreground">registered</p>
+              </div>
+              <div className="bg-card border rounded-lg p-4 space-y-1">
+                <p className="text-xs text-muted-foreground uppercase tracking-wide">Task Queue</p>
+                <p className="text-2xl font-bold">{totalTasks}</p>
+                <div className="flex items-center gap-2 text-xs text-muted-foreground">
+                  <span>{inboxTasks.length} inbox</span>
+                  <span>·</span>
+                  <span>{inProgressTasks.length} active</span>
+                </div>
               </div>
             </div>
-            {latestTasks.length === 0 ? (
-              <p className="text-sm text-muted-foreground">No pending tasks</p>
-            ) : (
-              <ul className="space-y-1.5">
-                {latestTasks.map((t) => (
-                  <li key={t.file} className="flex items-center gap-2 text-sm">
-                    <span className={`w-1.5 h-1.5 rounded-full shrink-0 ${
-                      t.stage === "in_progress" ? "bg-yellow-400" :
-                      t.stage === "done"        ? "bg-green-400"  : "bg-blue-400"
-                    }`} />
-                    <span className="truncate">{t.task?.title ?? t.file}</span>
-                  </li>
-                ))}
-                {totalTasks > 5 && (
-                  <p className="text-xs text-muted-foreground pt-1">
-                    +{totalTasks - 5} more tasks
-                  </p>
-                )}
-              </ul>
-            )}
-          </div>
 
-          <div className="bg-card border rounded-lg p-4 space-y-3">
-            <div className="flex items-center justify-between">
-              <h2 className="font-semibold text-sm">Latest Reports</h2>
-              <Badge variant="secondary">{reports.length} total</Badge>
-            </div>
-            {latestReports.length === 0 ? (
-              <p className="text-sm text-muted-foreground">No reports yet</p>
-            ) : (
-              <ul className="space-y-1.5">
-                {latestReports.map((r) => (
-                  <li key={r.filename} className="flex items-center gap-2 text-sm">
-                    <span className="w-1.5 h-1.5 rounded-full bg-violet-400 shrink-0" />
-                    <span className="truncate">{r.filename}</span>
-                    {r.date && (
-                      <span className="text-xs text-muted-foreground shrink-0 ml-auto">{r.date}</span>
+            {/* Quick Task + Report Previews */}
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div className="bg-card border rounded-lg p-4 space-y-3">
+                <div className="flex items-center justify-between">
+                  <h2 className="font-semibold text-sm">Task Queue</h2>
+                  <div className="flex items-center gap-1.5">
+                    <Badge variant="secondary">{inboxTasks.length} inbox</Badge>
+                    <Badge variant="outline">{inProgressTasks.length} active</Badge>
+                  </div>
+                </div>
+                {latestTasks.length === 0 ? (
+                  <p className="text-sm text-muted-foreground">No pending tasks</p>
+                ) : (
+                  <ul className="space-y-1.5">
+                    {latestTasks.map((t) => (
+                      <li key={t.file} className="flex items-center gap-2 text-sm">
+                        <span className={`w-1.5 h-1.5 rounded-full shrink-0 ${
+                          t.stage === "in_progress" ? "bg-yellow-400" :
+                          t.stage === "done"        ? "bg-green-400"  : "bg-blue-400"
+                        }`} />
+                        <span className="truncate">{t.task?.title ?? t.file}</span>
+                      </li>
+                    ))}
+                    {totalTasks > 5 && (
+                      <p className="text-xs text-muted-foreground pt-1">
+                        +{totalTasks - 5} more tasks
+                      </p>
                     )}
-                  </li>
-                ))}
-                {reports.length > 5 && (
-                  <p className="text-xs text-muted-foreground pt-1">
-                    +{reports.length - 5} more reports
-                  </p>
+                  </ul>
                 )}
-              </ul>
-            )}
+              </div>
+
+              <div className="bg-card border rounded-lg p-4 space-y-3">
+                <div className="flex items-center justify-between">
+                  <h2 className="font-semibold text-sm">Latest Reports</h2>
+                  <Badge variant="secondary">{reports.length} total</Badge>
+                </div>
+                {latestReports.length === 0 ? (
+                  <p className="text-sm text-muted-foreground">No reports yet</p>
+                ) : (
+                  <ul className="space-y-1.5">
+                    {latestReports.map((r) => (
+                      <li key={r.filename} className="flex items-center gap-2 text-sm">
+                        <span className="w-1.5 h-1.5 rounded-full bg-violet-400 shrink-0" />
+                        <span className="truncate">{r.filename}</span>
+                        {r.date && (
+                          <span className="text-xs text-muted-foreground shrink-0 ml-auto">{r.date}</span>
+                        )}
+                      </li>
+                    ))}
+                    {reports.length > 5 && (
+                      <p className="text-xs text-muted-foreground pt-1">
+                        +{reports.length - 5} more reports
+                      </p>
+                    )}
+                  </ul>
+                )}
+              </div>
+            </div>
+
+            {/* Registered Agents */}
+            <div className="bg-card border rounded-lg p-4 space-y-3">
+              <h2 className="font-semibold text-sm">Registered Agents</h2>
+              <div className="flex flex-wrap gap-2">
+                {status.agents.map((agent) => (
+                  <Badge key={agent.name} variant="outline" className="text-xs">
+                    <span className={`w-1.5 h-1.5 rounded-full mr-1.5 ${agent.enabled ? "bg-green-500" : "bg-muted-foreground/40"}`} />
+                    {agent.name}
+                  </Badge>
+                ))}
+              </div>
+              <p className="text-xs text-muted-foreground">
+                Last heartbeat: {new Date(status.timestamp).toLocaleString()}
+              </p>
+            </div>
+
           </div>
+        )}
 
-        </div>
+        {/* ════════════════════════════════════════════════════════════════════ */}
+        {/* TAB: ISSUES                                                          */}
+        {/* ════════════════════════════════════════════════════════════════════ */}
+        {activeTab === "issues" && (
+          <div className="space-y-6">
 
-        {/* ── REGISTERED AGENTS ────────────────────────────────────────────── */}
-        <div className="bg-card border rounded-lg p-4 space-y-3">
-          <h2 className="font-semibold text-sm">Registered Agents</h2>
-          <div className="flex flex-wrap gap-2">
-            {status.agents.map((agent) => (
-              <Badge key={agent.name} variant="outline" className="text-xs">
-                <span className={`w-1.5 h-1.5 rounded-full mr-1.5 ${agent.enabled ? "bg-green-500" : "bg-muted-foreground/40"}`} />
-                {agent.name}
-              </Badge>
-            ))}
+            <SectionLabel>AI Analysis</SectionLabel>
+            {/* LLM-generated analysis from the automated executor */}
+            <AILLMInsightsPanel />
+
+            <SectionLabel>Risk Detection</SectionLabel>
+            <AIRiskPanel />
+
+            <SectionLabel>Strategy</SectionLabel>
+            <AIStrategyPanel />
+
+            <SectionLabel>AI Decisions</SectionLabel>
+            <AIDecisionsPanel />
+
           </div>
-          <p className="text-xs text-muted-foreground">
-            Last heartbeat: {new Date(status.timestamp).toLocaleString()}
-          </p>
-        </div>
+        )}
 
-        {/* ══════════════════════════════════════════════════════════════════ */}
-        <SectionLabel>AI Brain — Intelligence</SectionLabel>
-        <AIIntelligencePanel />
+        {/* ════════════════════════════════════════════════════════════════════ */}
+        {/* TAB: INTELLIGENCE                                                    */}
+        {/* ════════════════════════════════════════════════════════════════════ */}
+        {activeTab === "intelligence" && (
+          <div className="space-y-6">
 
-        <SectionLabel>AI Brain — Growth</SectionLabel>
-        <AIGrowthPanel />
+            <SectionLabel>Telemetry</SectionLabel>
+            <AITelemetryPanel />
 
-        <SectionLabel>AI Brain — Sellers</SectionLabel>
-        <AISellerInsights />
-        <AISellerScorePanel />
+            <SectionLabel>AI Brain — Intelligence</SectionLabel>
+            <AIIntelligencePanel telemetryHints={intelligenceHints} />
 
-        <SectionLabel>AI Brain — Risks</SectionLabel>
-        <AIRiskPanel />
+            <SectionLabel>AI Brain — Growth</SectionLabel>
+            <AIGrowthPanel />
 
-        <SectionLabel>AI Brain — Decisions</SectionLabel>
-        <AIDecisionsPanel />
+            <SectionLabel>AI Brain — Sellers</SectionLabel>
+            <AISellerInsights />
+            <AISellerScorePanel />
 
-        <SectionLabel>AI Brain — Supervisor</SectionLabel>
-        <AIAgentsSupervisor />
+            <SectionLabel>Trend Engine</SectionLabel>
+            <AITrendPanel />
 
-        {/* ══════════════════════════════════════════════════════════════════ */}
-        <SectionLabel>Task Inspector</SectionLabel>
-        <AITaskInspector />
+            <SectionLabel>Anomaly Detection</SectionLabel>
+            <AIAnomalyPanel />
 
-        <SectionLabel>Report Viewer</SectionLabel>
-        <AIReportViewer />
+            <SectionLabel>Weekly Insights</SectionLabel>
+            <AIWeeklyInsightsPanel />
 
-        <SectionLabel>Activity Feed</SectionLabel>
-        <AIActivityFeed />
+            <SectionLabel>Homepage AI Engine</SectionLabel>
+            <AIHomepageStrategyPanel />
 
-        <SectionLabel>Strategy</SectionLabel>
-        <AIStrategyPanel />
+            <SectionLabel>Marketplace Simulator</SectionLabel>
+            <AIMarketplaceSimulator />
 
-        {/* ══════════════════════════════════════════════════════════════════ */}
-        <SectionLabel>Weekly Insights</SectionLabel>
-        <AIWeeklyInsightsPanel />
+          </div>
+        )}
 
-        <SectionLabel>Trend Engine</SectionLabel>
-        <AITrendPanel />
+        {/* ════════════════════════════════════════════════════════════════════ */}
+        {/* TAB: OPERATIONS                                                      */}
+        {/* ════════════════════════════════════════════════════════════════════ */}
+        {activeTab === "operations" && (
+          <div className="space-y-6">
 
-        <SectionLabel>Anomaly Detection</SectionLabel>
-        <AIAnomalyPanel />
+            <SectionLabel>Agent Supervisor</SectionLabel>
+            <AIAgentsSupervisor />
 
-        <SectionLabel>Homepage AI Engine</SectionLabel>
-        <AIHomepageStrategyPanel />
+            <SectionLabel>Agent Runner</SectionLabel>
+            <AIAgentRunner />
 
-        <SectionLabel>Marketplace Simulator</SectionLabel>
-        <AIMarketplaceSimulator />
+            <SectionLabel>Task Inspector</SectionLabel>
+            <AITaskInspector />
+            <AITasksList />
 
-        {/* ══════════════════════════════════════════════════════════════════ */}
-        <SectionLabel>Existing Tools</SectionLabel>
+            <SectionLabel>Report Viewer</SectionLabel>
+            <AIReportViewer />
+            <AIReportsList />
 
-        <AIInsights />
-        <AIAgentRunner />
-        <AIReportsList />
-        <AITasksList />
+            <SectionLabel>Activity Feed</SectionLabel>
+            <AIActivityFeed />
+
+            <SectionLabel>AI Insights</SectionLabel>
+            <AIInsights />
+
+          </div>
+        )}
 
       </div>
 

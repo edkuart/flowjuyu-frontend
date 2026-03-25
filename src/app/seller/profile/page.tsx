@@ -2,6 +2,8 @@
 "use client"
 
 import { useEffect, useState, useRef, useMemo } from "react"
+import Link from "next/link"
+import { useRouter } from "next/navigation"
 import {
   computeHeaderScore,
   generateHeaderSuggestions,
@@ -19,15 +21,20 @@ import { useFileUpload } from "@/hooks/useFileUpload"
 import { departamentos } from "@/lib/guatemala"
 import {
   analyzeImageBrightness,
+  buildHeaderStyle,
   GRADIENT_VARIANTS,
   DEFAULT_HEADER_STYLE,
   sanitizeHeaderStyle,
 } from "@/lib/headerStyle"
 import type { HeaderStyle, GradientVariantKey } from "@/lib/headerStyle"
-import { MapPin, QrCode, ShieldCheck, ShoppingBag, Shield, Store } from "lucide-react"
+import { MapPin, QrCode, ShieldCheck, Eye, Hand, Leaf, ArrowLeft } from "lucide-react"
 import { SellerContactCTA } from "@/components/seller/SellerContactCTA"
 import SellerQrModal from "@/components/seller/SellerQrModal"
 import { StoreHeaderPreview } from "@/components/seller/StoreHeaderPreview"
+import { PhoneInput } from "@/components/ui/PhoneInput"
+import { formatPhone, phoneToWaUrl } from "@/lib/phone"
+import { apiFetch } from "@/services/apiClient"
+import type { PhoneNumber } from "@/lib/phone"
 
 /* ──────────────────────────────────────────
    SMALL HELPERS
@@ -108,10 +115,11 @@ const OVERLAY_QUICK_PRESETS: { name: string; config: Partial<HeaderStyle> }[] = 
 ]
 
 // Gradient sub-variants — all 4 options including the default
-const GRADIENT_VARIANT_KEYS: (GradientVariantKey | "default")[] = ["default", "suave", "calido", "oscuro"]
+const GRADIENT_VARIANT_KEYS: GradientVariantKey[] = ["default", "suave", "calido", "oscuro"]
 
 export default function SellerPublicProfilePage() {
   const { user } = useAuth()
+  const router = useRouter()
   const [vendedor, setVendedor] = useState<any>(null)
   const [editando, setEditando] = useState(false)
   const [qrOpen, setQrOpen] = useState(false)
@@ -131,12 +139,7 @@ export default function SellerPublicProfilePage() {
   useEffect(() => {
     const fetchPerfil = async () => {
       try {
-        const token = localStorage.getItem("token")
-        if (!token) return
-
-        const res = await fetch(`${API}/api/seller/profile`, {
-          headers: { Authorization: `Bearer ${token}` },
-        })
+        const res = await apiFetch("/api/seller/profile")
         if (!res.ok) return
 
         const data = await res.json()
@@ -260,6 +263,12 @@ export default function SellerPublicProfilePage() {
     [headerStyle, brightness],
   )
 
+  /* ── Hero background — live-updates as header style is edited ── */
+  const heroBgStyle = useMemo(
+    () => buildHeaderStyle(headerStyle, bannerPreview || formData.banner_url),
+    [headerStyle, bannerPreview, formData.banner_url],
+  )
+
   /* ── Guards ── */
   if (loading) return <p className="p-8 text-center text-neutral-500">Cargando perfil...</p>
   if (!vendedor) return <p className="p-8 text-center text-red-500">Perfil no encontrado</p>
@@ -267,29 +276,40 @@ export default function SellerPublicProfilePage() {
   const esPropietario = Number(user?.id) === Number(vendedor.user_id)
   const esVerificado  = vendedor.estado_validacion === "aprobado"
   const ubicacion     = [vendedor.municipio, vendedor.departamento].filter(Boolean).join(", ")
-  const mensajeLen    = (formData.mensaje_publico || "").length
+  const mensajeLen    = (formData.mensaje_destacado || "").length
 
   return (
     <>
-    <main className="max-w-4xl mx-auto px-4 py-10 space-y-8">
+    <main className="max-w-4xl mx-auto px-4 py-12 space-y-10">
+
+      {/* ── Back navigation ── */}
+      <button
+        onClick={() => router.push('/seller/my-business')}
+        className="inline-flex items-center gap-1.5 text-sm text-neutral-500 hover:text-neutral-800 transition-colors cursor-pointer -mt-2"
+      >
+        <ArrowLeft className="w-4 h-4" />
+        Volver
+      </button>
 
       {/* ══════════════════════════════════════
           1. HERO
       ══════════════════════════════════════ */}
       <section className="relative overflow-hidden rounded-2xl text-white">
 
-        <div className="absolute inset-0 bg-gradient-to-br from-[#0F3D3A] via-[#0a2e2b] to-[#0c3330]" />
         <div
-          className="absolute inset-0 opacity-[0.04]"
-          style={{ backgroundImage: "url(\"data:image/svg+xml,%3Csvg width='40' height='40' viewBox='0 0 40 40' xmlns='http://www.w3.org/2000/svg'%3E%3Cg fill='%23ffffff' fill-opacity='1' fill-rule='evenodd'%3E%3Cpath d='M0 40L40 0H20L0 20M40 40V20L20 40'/%3E%3C/g%3E%3C/svg%3E\")" }}
+          className="absolute inset-0 bg-cover bg-center transition-[background-image,background-color] duration-500 ease-in-out"
+          style={heroBgStyle}
         />
+        {/* Vignette — bottom shadow for editorial depth; top bloom for warmth */}
+        <div className="absolute inset-0 bg-gradient-to-t from-black/50 via-black/10 to-transparent pointer-events-none" />
+        <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_top_left,rgba(255,255,255,0.07)_0%,transparent_55%)] pointer-events-none" />
 
-        <div className="relative p-8 flex flex-col sm:flex-row items-center sm:items-start gap-6">
+        <div className="relative p-5 sm:p-8 flex flex-col sm:flex-row items-center sm:items-start gap-5 sm:gap-6">
 
           {/* Logo */}
           <div className="relative flex-shrink-0">
             <Avatar className="w-24 h-24 sm:w-28 sm:h-28 border-[3px] border-white/25 shadow-2xl">
-              <AvatarImage src={previews["fotoPerfil"] || vendedor.logo || "/avatar-placeholder.png"} />
+              <AvatarImage src={previews["fotoPerfil"] || vendedor.logo || "/avatar-placeholder.png"} className="object-cover" />
               <AvatarFallback className="bg-white/15 text-white text-2xl font-bold">
                 {(vendedor.nombre_comercio ?? "T").charAt(0).toUpperCase()}
               </AvatarFallback>
@@ -357,21 +377,31 @@ export default function SellerPublicProfilePage() {
 
           {/* Actions */}
           {esPropietario && (
-            <div className="flex gap-3 flex-shrink-0 items-start flex-wrap justify-center sm:justify-end">
+            <div className="flex flex-col sm:flex-row gap-2 sm:gap-3 w-full sm:w-auto sm:flex-shrink-0 sm:items-start sm:justify-end">
+              <Link href={`/store/${user?.id}`} className="w-full sm:w-auto">
+                <Button
+                  variant="outline"
+                  size="sm"
+                  className="w-full sm:w-auto border-white/25 text-white bg-white/10 hover:bg-white/20 hover:text-white hover:border-white/40 gap-1.5 transition-all"
+                >
+                  <Eye className="w-3.5 h-3.5" />
+                  Ver tienda
+                </Button>
+              </Link>
               <Button
                 variant="outline"
                 size="sm"
                 onClick={() => setQrOpen(true)}
-                className="border-white/25 text-white bg-white/10 hover:bg-white/20 hover:text-white hover:border-white/40 gap-1.5"
+                className="w-full sm:w-auto border-white/25 text-white bg-white/10 hover:bg-white/20 hover:text-white hover:border-white/40 gap-1.5 transition-all"
               >
                 <QrCode className="w-3.5 h-3.5" />
-                Ver QR de mi tienda
+                QR
               </Button>
               <Button
                 variant="outline"
                 size="sm"
                 onClick={() => setEditando(!editando)}
-                className="border-white/25 text-white bg-white/10 hover:bg-white/20 hover:text-white hover:border-white/40"
+                className="w-full sm:w-auto border-white/25 text-white bg-white/10 hover:bg-white/20 hover:text-white hover:border-white/40 transition-all"
               >
                 {editando ? "Cancelar" : "Editar perfil"}
               </Button>
@@ -379,7 +409,7 @@ export default function SellerPublicProfilePage() {
                 <Button
                   size="sm"
                   onClick={onSubmit}
-                  className="bg-white text-[#0F3D3A] hover:bg-neutral-100 font-semibold"
+                  className="w-full sm:w-auto bg-white text-[#0F3D3A] hover:bg-neutral-100 font-semibold shadow-sm transition-all"
                 >
                   Guardar cambios
                 </Button>
@@ -391,9 +421,22 @@ export default function SellerPublicProfilePage() {
       </section>
 
       {/* ══════════════════════════════════════
+          WhatsApp CTA — buyer perspective, view mode only
+      ══════════════════════════════════════ */}
+      {!editando && (
+        <div className="w-full">
+          <SellerContactCTA
+            whatsapp={phoneToWaUrl(vendedor.whatsapp_numero)}
+            nombreComercio={vendedor.nombre_comercio}
+            storeUrl={`/store/${vendedor.user_id}`}
+          />
+        </div>
+      )}
+
+      {/* ══════════════════════════════════════
           2. DESCRIPCIÓN DE LA TIENDA
       ══════════════════════════════════════ */}
-      <SectionCard title="Descripción de tu tienda">
+      <SectionCard title={editando ? "Descripción de tu tienda" : "Sobre esta tienda"}>
         {editando ? (
           <Textarea
             value={formData.descripcion || ""}
@@ -403,30 +446,28 @@ export default function SellerPublicProfilePage() {
             className="resize-none text-sm"
           />
         ) : vendedor.descripcion ? (
-          <p className="text-[15px] text-neutral-700 leading-relaxed">
-            {vendedor.descripcion}
-          </p>
+          <div className="space-y-4">
+            {ubicacion && (
+              <p className="text-[11px] font-bold uppercase tracking-[0.15em] text-[#0F3D3A]/50">
+                {ubicacion} · Guatemala
+              </p>
+            )}
+            <p className="text-[16px] text-neutral-700 leading-[1.85] font-light">
+              {vendedor.descripcion}
+            </p>
+          </div>
         ) : (
           <p className="text-sm italic text-neutral-400">
             Cuenta qué vendes, cómo trabajas y qué hace única tu tienda
           </p>
         )}
 
-        {/* Contact CTA — view mode only so seller sees the buyer perspective */}
-        {!editando && (
-          <div className="mt-5 pt-5 border-t border-neutral-100">
-            <SellerContactCTA
-              whatsapp={vendedor.whatsapp_numero}
-              nombreComercio={vendedor.nombre_comercio}
-            />
-          </div>
-        )}
       </SectionCard>
 
       {/* ══════════════════════════════════════
           3. MENSAJE PÚBLICO
       ══════════════════════════════════════ */}
-      <SectionCard title="Mensaje público de tu tienda">
+      <SectionCard title={editando ? "Mensaje público de tu tienda" : "En palabras del artesano"}>
         {editando ? (
           <div className="space-y-3">
             <p className="text-[13px] text-neutral-500 leading-snug">
@@ -434,9 +475,9 @@ export default function SellerPublicProfilePage() {
             </p>
             <div className="relative">
               <Textarea
-                value={formData.mensaje_publico || ""}
+                value={formData.mensaje_destacado || ""}
                 onChange={(e) =>
-                  onChange("mensaje_publico", e.target.value.slice(0, MENSAJE_MAX))
+                  onChange("mensaje_destacado", e.target.value.slice(0, MENSAJE_MAX))
                 }
                 placeholder="Ej: Piezas hechas a mano con técnicas tradicionales. Escríbeme para más información."
                 rows={3}
@@ -455,34 +496,18 @@ export default function SellerPublicProfilePage() {
               </span>
             </div>
           </div>
-        ) : vendedor.mensaje_publico ? (
-          <p className="text-[15px] text-neutral-700 leading-relaxed italic">
-            "{vendedor.mensaje_publico}"
-          </p>
+        ) : vendedor.mensaje_destacado ? (
+          <blockquote className="pl-5 border-l-[3px] border-[#0F3D3A]/20">
+            <p className="text-[16px] text-neutral-600 leading-relaxed italic font-light">
+              "{vendedor.mensaje_destacado}"
+            </p>
+          </blockquote>
         ) : (
           <p className="text-sm italic text-neutral-400">
             Agrega un mensaje corto para invitar a los compradores a contactarte
           </p>
         )}
       </SectionCard>
-
-      {/* ══════════════════════════════════════
-          TRUST SIGNALS
-      ══════════════════════════════════════ */}
-      {!editando && (
-        <div className="flex flex-wrap items-center justify-center gap-6 sm:gap-10 py-1">
-          {([
-            { Icon: ShoppingBag, label: "Compra directa" },
-            { Icon: Shield,      label: "Sin intermediarios" },
-            { Icon: Store,       label: "Tienda en Flowjuyu" },
-          ] as const).map(({ Icon, label }) => (
-            <div key={label} className="flex items-center gap-2 text-[13px] text-neutral-500">
-              <Icon className="w-4 h-4 text-[#0F3D3A] flex-shrink-0" />
-              {label}
-            </div>
-          ))}
-        </div>
-      )}
 
       {/* ══════════════════════════════════════
           4 & 5. INFORMACIÓN DEL NEGOCIO + CONTACTO
@@ -499,7 +524,7 @@ export default function SellerPublicProfilePage() {
                 onChange("departamento", e.target.value)
                 onChange("municipio", "")
               }}
-              className="w-full border border-neutral-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-[#0F3D3A]/20"
+              className="w-full border border-neutral-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-[#0F3D3A]/20 cursor-pointer"
             >
               <option value="">Seleccionar departamento</option>
               {departamentos.map((dep) => (
@@ -519,7 +544,7 @@ export default function SellerPublicProfilePage() {
               value={formData.municipio || ""}
               onChange={(e) => onChange("municipio", e.target.value)}
               disabled={!formData.departamento}
-              className="w-full border border-neutral-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-[#0F3D3A]/20 disabled:bg-neutral-50 disabled:text-neutral-400"
+              className="w-full border border-neutral-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-[#0F3D3A]/20 cursor-pointer disabled:bg-neutral-50 disabled:text-neutral-400 disabled:cursor-not-allowed"
             >
               <option value="">Seleccionar municipio</option>
               {departamentos
@@ -554,35 +579,40 @@ export default function SellerPublicProfilePage() {
 
         <InfoRow label="Teléfono">
           {editando ? (
-            <Input
-              value={formData.telefono_comercio || ""}
-              onChange={(e) => onChange("telefono_comercio", e.target.value)}
-              placeholder="Ej: 23456789"
-              className="max-w-[180px] text-sm"
+            <PhoneInput
+              value={formData.telefono_comercio ?? null}
+              onChange={(val: PhoneNumber) =>
+                setFormData((prev: any) => ({ ...prev, telefono_comercio: val }))
+              }
             />
           ) : (
             <span className={vendedor.telefono_comercio ? "" : "text-neutral-400"}>
-              {vendedor.telefono_comercio ? `+502 ${vendedor.telefono_comercio}` : "—"}
+              {formatPhone(vendedor.telefono_comercio)}
             </span>
           )}
         </InfoRow>
 
         <InfoRow label="WhatsApp">
           {editando ? (
-            <div className="space-y-1">
-              <Input
-                value={formData.whatsapp_numero || ""}
-                onChange={(e) => onChange("whatsapp_numero", e.target.value)}
-                placeholder="Ej: 50299887766"
-                className="max-w-[200px] text-sm"
+            <div className="space-y-1.5">
+              <PhoneInput
+                value={formData.whatsapp_numero ?? null}
+                onChange={(val: PhoneNumber) =>
+                  setFormData((prev: any) => ({ ...prev, whatsapp_numero: val }))
+                }
               />
-              <p className="text-[11px] text-neutral-400">
-                Incluye código de país sin "+": <strong className="text-neutral-600">502</strong>99887766
-              </p>
+              {formData.whatsapp_numero && (
+                <p className="text-[11px] text-neutral-400">
+                  Enlace:{" "}
+                  <span className="font-mono text-neutral-600">
+                    wa.me/{formData.whatsapp_numero.country_code}{formData.whatsapp_numero.number}
+                  </span>
+                </p>
+              )}
             </div>
           ) : (
             <span className={vendedor.whatsapp_numero ? "" : "text-neutral-400"}>
-              {vendedor.whatsapp_numero ? `+${vendedor.whatsapp_numero}` : "Sin número de WhatsApp"}
+              {vendedor.whatsapp_numero ? formatPhone(vendedor.whatsapp_numero) : "Sin número de WhatsApp"}
             </span>
           )}
         </InfoRow>
@@ -597,10 +627,17 @@ export default function SellerPublicProfilePage() {
               placeholder="https://instagram.com/tu_tienda"
               className="text-sm"
             />
+          ) : vendedor.instagram ? (
+            <a
+              href={vendedor.instagram}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="text-[#0F3D3A] hover:underline break-all transition-colors cursor-pointer"
+            >
+              {vendedor.instagram}
+            </a>
           ) : (
-            <span className={vendedor.instagram ? "text-[#0F3D3A] break-all" : "text-neutral-400"}>
-              {vendedor.instagram || "—"}
-            </span>
+            <span className="text-neutral-400">—</span>
           )}
         </InfoRow>
 
@@ -612,10 +649,17 @@ export default function SellerPublicProfilePage() {
               placeholder="https://facebook.com/tu_tienda"
               className="text-sm"
             />
+          ) : vendedor.facebook ? (
+            <a
+              href={vendedor.facebook}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="text-[#0F3D3A] hover:underline break-all transition-colors cursor-pointer"
+            >
+              {vendedor.facebook}
+            </a>
           ) : (
-            <span className={vendedor.facebook ? "text-[#0F3D3A] break-all" : "text-neutral-400"}>
-              {vendedor.facebook || "—"}
-            </span>
+            <span className="text-neutral-400">—</span>
           )}
         </InfoRow>
 
@@ -627,10 +671,17 @@ export default function SellerPublicProfilePage() {
               placeholder="https://tiktok.com/@tu_tienda"
               className="text-sm"
             />
+          ) : vendedor.tiktok ? (
+            <a
+              href={vendedor.tiktok}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="text-[#0F3D3A] hover:underline break-all transition-colors cursor-pointer"
+            >
+              {vendedor.tiktok}
+            </a>
           ) : (
-            <span className={vendedor.tiktok ? "text-[#0F3D3A] break-all" : "text-neutral-400"}>
-              {vendedor.tiktok || "—"}
-            </span>
+            <span className="text-neutral-400">—</span>
           )}
         </InfoRow>
 
@@ -680,7 +731,7 @@ export default function SellerPublicProfilePage() {
                 <button
                   type="button"
                   onClick={() => setShowSuggestion(v => !v)}
-                  className="text-[11px] font-semibold text-[#0F3D3A] hover:text-[#0a2e2b] underline underline-offset-2 transition-colors"
+                  className="text-[11px] font-semibold text-[#0F3D3A] hover:text-[#0a2e2b] underline underline-offset-2 transition-colors cursor-pointer"
                 >
                   {showSuggestion ? "← Ver mi versión" : "Ver sugerencia →"}
                 </button>
@@ -696,7 +747,7 @@ export default function SellerPublicProfilePage() {
               <button
                 type="button"
                 onClick={() => { setHS(recommendedStyle); setShowSuggestion(false) }}
-                className="mt-2 w-full py-2 text-xs font-semibold rounded-lg bg-[#0F3D3A] text-white hover:bg-[#0a2e2b] transition-colors"
+                className="mt-2 w-full py-2 text-xs font-semibold rounded-lg bg-[#0F3D3A] text-white hover:bg-[#0a2e2b] transition-colors cursor-pointer"
               >
                 Aplicar esta sugerencia
               </button>
@@ -719,7 +770,7 @@ export default function SellerPublicProfilePage() {
                         key={key}
                         type="button"
                         onClick={() => setHS(prev => ({ ...prev, ...theme.style }))}
-                        className={`flex flex-col items-center gap-1 px-2 py-3 rounded-xl border-2 text-center transition-all duration-300 ${
+                        className={`flex flex-col items-center gap-1 px-2 py-3 rounded-xl border-2 text-center transition-all duration-300 cursor-pointer ${
                           active
                             ? "border-[#0F3D3A] bg-[#0F3D3A]/5"
                             : "border-neutral-200 hover:border-neutral-300"
@@ -751,7 +802,7 @@ export default function SellerPublicProfilePage() {
                         key={value}
                         type="button"
                         onClick={() => setHS(prev => ({ ...prev, mode: value }))}
-                        className={`flex flex-col items-center gap-1.5 px-3 py-4 rounded-xl border-2 text-center transition-all ${
+                        className={`flex flex-col items-center gap-1.5 px-3 py-4 rounded-xl border-2 text-center transition-all cursor-pointer ${
                           active
                             ? "border-[#0F3D3A] bg-[#0F3D3A]/5"
                             : "border-neutral-200 hover:border-neutral-300"
@@ -784,10 +835,10 @@ export default function SellerPublicProfilePage() {
                           onClick={() =>
                             setHS(prev => ({
                               ...prev,
-                              gradient_variant: key === "default" ? undefined : key as GradientVariantKey,
+                              gradient_variant: key === "default" ? undefined : key,
                             }))
                           }
-                          className={`relative overflow-hidden rounded-xl border-2 px-3 py-3 text-left transition-all ${
+                          className={`relative overflow-hidden rounded-xl border-2 px-3 py-3 text-left transition-all cursor-pointer ${
                             active
                               ? "border-[#0F3D3A]"
                               : "border-neutral-200 hover:border-neutral-300"
@@ -843,7 +894,7 @@ export default function SellerPublicProfilePage() {
                     type="button"
                     disabled={bannerUploading}
                     onClick={() => bannerInputRef.current?.click()}
-                    className="inline-flex items-center gap-2 px-4 py-2 text-xs font-semibold rounded-lg border border-neutral-200 bg-white text-neutral-700 hover:bg-neutral-50 hover:border-neutral-300 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                    className="inline-flex items-center gap-2 px-4 py-2 text-xs font-semibold rounded-lg border border-neutral-200 bg-white text-neutral-700 hover:bg-neutral-50 hover:border-neutral-300 transition-colors cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"
                   >
                     {bannerUploading
                       ? "Subiendo…"
@@ -869,7 +920,7 @@ export default function SellerPublicProfilePage() {
                           key={name}
                           type="button"
                           onClick={() => setHS(prev => ({ ...prev, ...config }))}
-                          className="px-3 py-1.5 text-[11px] font-semibold rounded-full border border-neutral-200 bg-white text-neutral-700 hover:bg-neutral-50 hover:border-neutral-300 transition-colors"
+                          className="px-3 py-1.5 text-[11px] font-semibold rounded-full border border-neutral-200 bg-white text-neutral-700 hover:bg-neutral-50 hover:border-neutral-300 transition-colors cursor-pointer"
                         >
                           {name}
                         </button>
@@ -891,8 +942,8 @@ export default function SellerPublicProfilePage() {
                             type="button"
                             onClick={() => setHS(prev => ({ ...prev, overlay_color: color }))}
                             title={name}
-                            className={`w-9 h-9 rounded-full border-4 transition-all ${
-                              selected ? "border-neutral-800 scale-110 shadow-md" : "border-white shadow-sm"
+                            className={`w-9 h-9 rounded-full border-4 transition-all cursor-pointer ${
+                              selected ? "border-neutral-800 scale-110 shadow-md" : "border-white shadow-sm hover:scale-105"
                             }`}
                             style={{ backgroundColor: color }}
                           />

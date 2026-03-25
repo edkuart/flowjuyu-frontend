@@ -208,9 +208,24 @@ function DemandDetector({ intel }: { intel: Intelligence }) {
   );
 }
 
+// ── Telemetry context hints (optional) ─────────────────────────────────────────
+//
+// The parent page passes these after it fetches the telemetry artifact,
+// so AIIntelligencePanel does not need a second useBrainFetch call.
+//
+
+type TelemetryHints = {
+  testSellerCount: number;  // how many test/demo accounts exist in raw metrics
+  dataChanged:     boolean | null; // null = first run, false = no change since last cycle
+};
+
 // ── Main ───────────────────────────────────────────────────────────────────────
 
-export default function AIIntelligencePanel() {
+export default function AIIntelligencePanel({
+  telemetryHints,
+}: {
+  telemetryHints?: TelemetryHints;
+}) {
   const { data, loading, error, refetch } =
     useBrainFetch<Intelligence>("/api/admin/ai/intelligence", "intelligence");
 
@@ -252,6 +267,23 @@ export default function AIIntelligencePanel() {
           {new Date(data.generated_at).toLocaleTimeString()}
         </span>
       </div>
+
+      {/* Telemetry context banners */}
+      {telemetryHints && (
+        <div className="space-y-2">
+          {telemetryHints.testSellerCount > 0 && (
+            <p className="text-xs text-yellow-700 dark:text-yellow-400 bg-yellow-50 dark:bg-yellow-950/20 border border-yellow-200 dark:border-yellow-800 rounded px-3 py-1.5">
+              ⚠ Counts include {telemetryHints.testSellerCount} test/demo account{telemetryHints.testSellerCount > 1 ? "s" : ""}.
+              See Telemetry section for filtered numbers.
+            </p>
+          )}
+          {telemetryHints.dataChanged === false && (
+            <p className="text-xs text-muted-foreground bg-muted/40 border rounded px-3 py-1.5">
+              ↺ Metrics unchanged since last cycle — data may be stale.
+            </p>
+          )}
+        </div>
+      )}
 
       {/* Stat cards */}
       <div className="grid grid-cols-2 md:grid-cols-4 gap-3">

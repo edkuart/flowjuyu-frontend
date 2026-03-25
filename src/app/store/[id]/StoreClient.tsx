@@ -18,8 +18,11 @@ import ProductDiscoveryLayout from "@/components/product/discovery/ProductDiscov
 import { FavoriteButton } from "@/components/ui/FavoriteButton";
 import SellerQrModal from "@/components/seller/SellerQrModal";
 import SocialButtons from "@/components/seller/SocialButtons";
+import { SellerLogo } from "@/components/seller/SellerLogo";
 import { buildHeaderStyle, DEFAULT_HEADER_STYLE } from "@/lib/headerStyle";
 import type { HeaderStyle } from "@/lib/headerStyle";
+import { phoneToWaUrl } from "@/lib/phone";
+import type { PhoneNumber } from "@/lib/phone";
 
 const API = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8800";
 
@@ -47,8 +50,8 @@ type Seller = {
   productos_destacados?: string[] | null;
   mensaje_destacado?: string | null;
   created_at?: string | null;
-  whatsapp?: string | null;
-  whatsapp_numero?: string | null;   // alias returned by some endpoints
+  whatsapp?: string | null;          // legacy string (some endpoints still return this)
+  whatsapp_numero?: PhoneNumber | null;
   plan?: "free" | "founder";
   plan_activo?: boolean;
   estado_validacion?: "pendiente" | "aprobado" | "rechazado";
@@ -342,7 +345,7 @@ export default function StoreClient({
 
   /* ── WhatsApp ── */
   const phone = useMemo(
-    () => seller.whatsapp || seller.whatsapp_numero || "",
+    () => seller.whatsapp || phoneToWaUrl(seller.whatsapp_numero) || "",
     [seller.whatsapp, seller.whatsapp_numero]
   );
   const showWhatsapp = !!phone;
@@ -414,11 +417,7 @@ export default function StoreClient({
 
             <div className="flex flex-col sm:flex-row items-start gap-6 md:gap-10">
 
-              {seller.logo && (
-                <div className="relative w-24 h-24 md:w-40 md:h-40 rounded-2xl border-4 border-white/80 shadow-2xl overflow-hidden flex-shrink-0 bg-white">
-                  <Image src={seller.logo} alt={seller.nombre_comercio} fill className="object-contain p-2" />
-                </div>
-              )}
+              <SellerLogo src={seller.logo} alt={seller.nombre_comercio} size="lg" />
 
               <div className="flex-1 min-w-0">
 

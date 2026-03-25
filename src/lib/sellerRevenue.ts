@@ -30,10 +30,13 @@ export interface RevenueAnalytics {
   totalProductViews: number
 }
 
+import { hasPhone } from "@/lib/phone"
+import type { PhoneNumber } from "@/lib/phone"
+
 export interface RevenuePerfil {
   plan?: string | null
   plan_activo?: boolean | null
-  whatsapp_numero?: string | null
+  whatsapp_numero?: PhoneNumber | null
 }
 
 /* ──────────────────────────────────────────
@@ -60,7 +63,7 @@ export function getSellerRevenueSignals({
   const candidates: RevenueSignal[] = []
 
   const isFounder      = perfil?.plan === "founder" && perfil?.plan_activo === true
-  const hasWhatsapp    = Boolean(perfil?.whatsapp_numero?.trim())
+  const hasWhatsapp    = hasPhone(perfil?.whatsapp_numero)
   const hasProducts    = productos.length > 0
   const hasActive      = productos.some(p => p.activo === true)
   const productViews   = analytics?.totalProductViews ?? 0

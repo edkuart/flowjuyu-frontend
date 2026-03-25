@@ -21,6 +21,7 @@ import {
   TableRow,
 } from "@/components/ui/table"
 import { authFetch } from "@/lib/authFetch"
+import type { PhoneNumber } from "@/lib/phone"
 import { toast } from "sonner"
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8800"
@@ -41,7 +42,7 @@ interface Ticket {
     id: number
     user_id: number
     nombre_comercio: string
-    telefono_comercio: string | null
+    telefono_comercio: PhoneNumber | null
   } | null
 }
 

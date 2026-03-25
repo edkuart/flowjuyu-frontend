@@ -23,19 +23,22 @@ const PLATFORMS = [
     key: "instagram" as const,
     icon: Instagram,
     label: "Instagram",
-    hover: "hover:bg-pink-500/30 hover:border-pink-400/50",
+    base: "bg-gradient-to-br from-pink-500 to-orange-400 border-transparent text-white",
+    hover: "hover:opacity-90",
   },
   {
     key: "facebook" as const,
     icon: Facebook,
     label: "Facebook",
-    hover: "hover:bg-blue-500/30 hover:border-blue-400/50",
+    base: "bg-[#1877F2] border-transparent text-white",
+    hover: "hover:opacity-90",
   },
   {
     key: "tiktok" as const,
     icon: Music2,
     label: "TikTok",
-    hover: "hover:bg-white/25 hover:border-white/40",
+    base: "bg-neutral-900 border-transparent text-white",
+    hover: "hover:opacity-80",
   },
 ];
 
@@ -46,7 +49,7 @@ export default function SocialButtons({ links, className = "", onLinkClick }: Pr
 
   return (
     <div className={`flex items-center gap-2 ${className}`}>
-      {active.map(({ key, icon: Icon, label, hover }) => (
+      {active.map(({ key, icon: Icon, label, base, hover }) => (
         <a
           key={key}
           href={links[key]!}
@@ -54,7 +57,7 @@ export default function SocialButtons({ links, className = "", onLinkClick }: Pr
           rel="noopener noreferrer"
           aria-label={label}
           onClick={() => onLinkClick?.(key)}
-          className={`w-9 h-9 flex items-center justify-center rounded-full bg-white/10 backdrop-blur border border-white/20 text-white transition-all duration-200 hover:scale-110 ${hover}`}
+          className={`w-9 h-9 flex items-center justify-center rounded-full border transition-all duration-200 hover:scale-110 shadow-sm ${base} ${hover}`}
         >
           <Icon className="w-4 h-4" />
         </a>

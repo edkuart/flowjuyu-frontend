@@ -33,10 +33,13 @@ export interface GrowthAnalytics {
   totalProfileViews: number
 }
 
+import { hasPhone } from "@/lib/phone"
+import type { PhoneNumber } from "@/lib/phone"
+
 export interface GrowthPerfil {
   plan?: string | null
   plan_activo?: boolean | null
-  whatsapp_numero?: string | null
+  whatsapp_numero?: PhoneNumber | null
 }
 
 /* ──────────────────────────────────────────
@@ -60,7 +63,7 @@ export function getSellerGrowthInsights({
   const totalViews     = (analytics?.totalProductViews ?? 0) + (analytics?.totalProfileViews ?? 0)
   const productViews   = analytics?.totalProductViews ?? 0
   const isFounder      = perfil?.plan === "founder" && perfil?.plan_activo === true
-  const hasWhatsapp    = Boolean(perfil?.whatsapp_numero?.trim())
+  const hasWhatsapp    = hasPhone(perfil?.whatsapp_numero)
 
   /* ── 1. No products at all ── */
   if (!hasProducts) {

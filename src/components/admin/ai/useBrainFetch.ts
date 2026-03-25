@@ -140,6 +140,7 @@ const LOADING_LABELS: Record<string, string> = {
   "/api/admin/ai/agents":        "Checking agent status…",
   "/api/admin/ai/tasks":         "Loading task queue…",
   "/api/admin/ai/reports":       "Fetching AI reports…",
+  "/api/admin/ai/telemetry":     "Loading telemetry data…",
 };
 
 function loadingLabel(path: string): string {

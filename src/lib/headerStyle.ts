@@ -90,7 +90,7 @@ export function buildHeaderStyle(
 ): CSSProperties {
   // gradient mode (or no banner — fall back to gradient regardless of mode)
   if (!bannerUrl || hs.mode === "gradient") {
-    const key = (hs.gradient_variant ?? "default") as GradientVariantKey;
+    const key = hs.gradient_variant ?? "default";
     const g = GRADIENT_VARIANTS[key] ?? GRADIENT_VARIANTS.default;
     return {
       backgroundImage: g.backgroundImage,

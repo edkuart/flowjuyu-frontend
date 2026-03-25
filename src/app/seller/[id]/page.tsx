@@ -4,6 +4,7 @@ import ProductCard from "@/components/ui/ProductCard"
 import { SellerTrustBar } from "@/components/seller/SellerTrustBar"
 import { ContactCTA } from "@/components/seller/ContactCTA"
 import type { TrustEstado } from "@/lib/sellerTrust"
+import { phoneToWaUrl } from "@/lib/phone"
 
 const API = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8800"
 
@@ -47,7 +48,7 @@ export default async function SellerPage({
 
   /* Defensive field access — API shape may vary */
   const estadoValidacion = (seller.estado_validacion ?? null) as TrustEstado
-  const whatsapp         = seller.whatsapp_numero ?? null
+  const whatsapp         = phoneToWaUrl(seller.whatsapp_numero)
   const ratingAvg        = Number(seller.rating_avg  ?? 0)
   const ratingCount      = Number(seller.rating_count ?? 0)
   const hasRating        = ratingCount > 0
