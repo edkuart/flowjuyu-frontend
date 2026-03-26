@@ -122,8 +122,6 @@ export default function ProductInfo({
   const precioNumber = Number(precio || 0);
   const [codeCopied, setCodeCopied] = useState(false);
 
-  console.log("telefono:", sellerWhatsapp);
-
   async function handleCopyCode() {
     if (!internal_code) return;
     try {
@@ -280,9 +278,12 @@ export default function ProductInfo({
           <ProductContactCTA
             productId={productId}
             productNombre={nombre}
+            productPrecio={precioNumber}
+            productImagen={_imagen_principal}
             internalCode={internal_code}
             productUrl={internal_code ? `/p/${internal_code}` : undefined}
             sellerWhatsapp={sellerWhatsapp}
+            sellerNombre={sellerNombre}
           />
 
           {/* Guardar pieza + nota de envío */}
