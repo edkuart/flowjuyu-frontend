@@ -37,6 +37,7 @@ import QrModal from "@/components/seller/QrModal"
 import { PageHeader } from "@/components/layout/PageHeader"
 import { DashboardCard } from "@/components/ui/DashboardCard"
 import { EmptyState } from "@/components/ui/EmptyState"
+import { apiFetch } from "@/lib/api"
 
 type Producto = {
   id: string
@@ -194,15 +195,7 @@ export default function SellerProductsPage() {
   useEffect(() => {
     const fetchProductos = async () => {
       try {
-        const token = localStorage.getItem("token")
-        if (!token) {
-          router.push("/login")
-          return
-        }
-
-        const res = await fetch(`${API}/api/seller/products`, {
-          headers: { Authorization: `Bearer ${token}` },
-        })
+        const res = await apiFetch("/api/seller/products")
 
         if (!res.ok) throw new Error("Error al cargar productos")
 
@@ -273,10 +266,8 @@ export default function SellerProductsPage() {
     if (!confirm.isConfirmed) return
 
     try {
-      const token = localStorage.getItem("token")
-      const res = await fetch(`${API}/api/productos/${id}`, {
+      const res = await apiFetch(`/api/productos/${id}`, {
         method: "DELETE",
-        headers: { Authorization: `Bearer ${token}` },
       })
 
       if (!res.ok) throw new Error()
@@ -302,13 +293,8 @@ export default function SellerProductsPage() {
     setProcessingId(id)
 
     try {
-      const token = localStorage.getItem("token")
-      const res = await fetch(`${API}/api/productos/${id}/activo`, {
+      const res = await apiFetch(`/api/productos/${id}/activo`, {
         method: "PATCH",
-        headers: {
-          "Content-Type": "application/json",
-          Authorization: `Bearer ${token}`,
-        },
         body: JSON.stringify({ activo: !activo }),
       })
 

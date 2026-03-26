@@ -32,11 +32,16 @@ export async function apiFetch(
       ? localStorage.getItem("token")
       : null;
 
+  // Don't force Content-Type when sending FormData — the browser must set
+  // the multipart boundary automatically. Forcing application/json here
+  // corrupts multipart requests and causes ERR_HTTP2_PROTOCOL_ERROR.
+  const isFormData = typeof FormData !== "undefined" && init.body instanceof FormData;
+
   const res = await fetch(url, {
     ...init,
     credentials: "include",
     headers: {
-      "Content-Type": "application/json",
+      ...(isFormData ? {} : { "Content-Type": "application/json" }),
       ...(init.headers ?? {}),
       ...(token ? { Authorization: `Bearer ${token}` } : {}),
     },
@@ -73,7 +78,7 @@ export async function apiFetch(
           ...init,
           credentials: "include",
           headers: {
-            "Content-Type": "application/json",
+            ...(isFormData ? {} : { "Content-Type": "application/json" }),
             ...(init.headers ?? {}),
             ...(newToken ? { Authorization: `Bearer ${newToken}` } : {}),
           },

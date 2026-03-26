@@ -28,6 +28,7 @@ import { OrigenSelect } from "@/components/product/form/OrigenSelect"
 import { apiGetVendedorPerfil } from "@/services/vendedorPerfil"
 import { ProductConversionCard } from "@/components/product/ProductConversionCard"
 import { getProductConversionInsights } from "@/lib/productConversion"
+import { compressImages } from "@/lib/imageCompression"
 
 import type { Opcion, Clase, OtroTipo } from "@/types/product"
 
@@ -366,6 +367,9 @@ export default function AddProductPage() {
   const [sellerSku, setSellerSku] = useState("")
   const [skuError, setSkuError] = useState<string | null>(null)
   const [previewSku, setPreviewSku] = useState("AUTO-??????")
+
+  /* ── Image compression state ── */
+  const [compressing, setCompressing] = useState(false)
 
   /* ── Submit state ── */
   const [estado, setEstado] = useState<"idle" | "loading" | "ok" | "error">("idle")
@@ -1263,19 +1267,33 @@ export default function AddProductPage() {
                       multiple
                       disabled={totalImages >= MAX_IMAGES}
                       className="hidden"
-                      onChange={e => {
+                      onChange={async e => {
                         const files = e.target.files
                         if (!files) return
                         const slots = MAX_IMAGES - totalImages
-                        const newFiles = Array.from(files).slice(0, slots)
-                        const newPreviews = newFiles.map(f => URL.createObjectURL(f))
-                        setImages(prev => [...prev, ...newFiles])
-                        setPreviews(prev => [...prev, ...newPreviews])
-                        // Reset input so the same file can be re-selected if needed
+                        const picked = Array.from(files).slice(0, slots)
+                        // Reset input early so the same file can be re-selected if needed
                         if (fileRef.current) fileRef.current.value = ""
+
+                        setCompressing(true)
+                        try {
+                          const compressed = await compressImages(picked)
+                          const newPreviews = compressed.map(f => URL.createObjectURL(f))
+                          setImages(prev => [...prev, ...compressed])
+                          setPreviews(prev => [...prev, ...newPreviews])
+                        } finally {
+                          setCompressing(false)
+                        }
                       }}
                     />
                   </label>
+
+                  {/* Compression progress */}
+                  {compressing && (
+                    <p className="text-xs text-orange-500 font-medium animate-pulse text-center">
+                      Optimizando imágenes…
+                    </p>
+                  )}
 
                   {/* Existing images (edit mode) */}
                   {imagenesExistentes.length > 0 && (
@@ -1564,7 +1582,7 @@ export default function AddProductPage() {
                     <Button
                       type="button"
                       onClick={handlePublish}
-                      disabled={estado === "loading"}
+                      disabled={estado === "loading" || compressing}
                       className={`w-full h-12 font-bold text-base shadow-sm transition-all ${
                         canPublish
                           ? "bg-[#0F3D3A] hover:bg-[#0C2F2C] text-white shadow-emerald-100"
@@ -1582,7 +1600,7 @@ export default function AddProductPage() {
                       type="button"
                       variant="outline"
                       onClick={() => handleSave(false)}
-                      disabled={estado === "loading"}
+                      disabled={estado === "loading" || compressing}
                       className="w-full h-10 font-semibold border-neutral-300 text-neutral-600"
                     >
                       {estado === "loading" ? "Guardando…" : isEditing ? "Guardar cambios" : "Guardar como borrador"}
