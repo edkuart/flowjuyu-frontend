@@ -6,6 +6,7 @@ import Link from "next/link";
 import Image from "next/image";
 import SectionHeader from "@/components/ui/SectionHeader";
 import { FavoriteButton } from "@/components/ui/FavoriteButton";
+import { getProductImage } from "@/lib/getProductImage";
 import { useState } from "react";
 
 type Producto = {
@@ -13,6 +14,7 @@ type Producto = {
   nombre: string;
   precio: number;
   imagen_url?: string | null;
+  imagenes?: { url: string }[];
   created_at?: string | null;
 };
 
@@ -44,10 +46,9 @@ function getDaysAgo(dateStr?: string | null): string | null {
 function NewProductCard({ product }: { product: Producto }) {
   const [imgError, setImgError] = useState(false);
 
-  const src =
-    !imgError && product.imagen_url
-      ? product.imagen_url
-      : "/images/productos/default.jpg";
+  const src = !imgError
+    ? getProductImage(product, "/images/productos/default.jpg")
+    : "/images/productos/default.jpg";
 
   const daysAgo = getDaysAgo(product.created_at);
 

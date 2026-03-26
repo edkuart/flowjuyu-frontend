@@ -1,6 +1,7 @@
 // src/app/p/[code]/page.tsx
 // Public product page resolved by internal_code (QR / share link)
 
+import type { Metadata } from "next";
 import ProductGallery from "@/components/product/view/ProductGallery";
 import ProductInfo from "@/components/product/view/ProductInfo";
 import ProductSpecs from "@/components/product/view/ProductSpecs";
@@ -24,6 +25,69 @@ async function fetchProductByCode(code: string) {
   }
 }
 
+const SITE_URL = process.env.NEXT_PUBLIC_SITE_URL || "https://flowjuyu.com";
+
+export async function generateMetadata({
+  params,
+}: {
+  params: { code: string };
+}): Promise<Metadata> {
+  const data = await fetchProductByCode(params.code);
+  const product = data?.product;
+
+  if (!product) {
+    return {
+      title: "Producto no encontrado | Flowjuyu",
+      description: "Este producto no está disponible.",
+      robots: { index: false },
+    };
+  }
+
+  const cleanDescription = product.descripcion
+    ?.replace(/\n/g, " ")
+    .trim()
+
+  const description = cleanDescription
+    ? cleanDescription.length > 140
+      ? `${cleanDescription.slice(0, 140)}…`
+      : cleanDescription
+    : "Descubre este producto artesanal en Flowjuyu"
+
+  const title = `${product.nombre} | Flowjuyu`
+
+  const imageUrl: string | null =
+    product.imagen_principal ||
+    (Array.isArray(product.imagenes) && product.imagenes.length > 0
+      ? (typeof product.imagenes[0] === "string" ? product.imagenes[0] : product.imagenes[0]?.url)
+      : null)
+
+  const images = imageUrl
+    ? [{ url: imageUrl, width: 1200, height: 630, alt: product.nombre }]
+    : []
+
+  const pageUrl = `${SITE_URL}/p/${params.code}`
+
+  return {
+    title,
+    description,
+    openGraph: {
+      title,
+      description,
+      url: pageUrl,
+      siteName: "Flowjuyu",
+      locale: "es_GT",
+      type: "website",
+      images,
+    },
+    twitter: {
+      card: "summary_large_image",
+      title,
+      description,
+      images: imageUrl ? [imageUrl] : [],
+    },
+  };
+}
+
 export default async function ProductByCodePage({
   params,
 }: {
@@ -34,13 +98,22 @@ export default async function ProductByCodePage({
 
   if (!data?.product) {
     return (
-      <div className="w-full flex flex-col items-center justify-center py-32 gap-3 text-center px-4">
+      <div className="w-full flex flex-col items-center justify-center py-32 gap-4 text-center px-4">
         <p className="font-serif italic text-3xl text-[#0d0d0b]/40">
-          Pieza no encontrada
+          No encontramos este producto
         </p>
-        <p className="text-sm text-[#0d0d0b]/30">
-          Es posible que haya sido vendida o retirada por el artesano.
+        <p className="text-sm text-[#0d0d0b]/30 max-w-xs leading-relaxed">
+          Verifica el código o intenta nuevamente.
         </p>
+        <p className="text-xs text-[#0d0d0b]/20 tracking-wide">
+          Ejemplo: FJ-XXXX
+        </p>
+        <a
+          href="/"
+          className="mt-2 text-xs uppercase tracking-[0.18em] text-[#0d2d20]/50 hover:text-[#0d2d20]/80 transition-colors underline underline-offset-4"
+        >
+          Volver al inicio
+        </a>
       </div>
     );
   }
@@ -52,7 +125,12 @@ export default async function ProductByCodePage({
   const imagenes: string[] = (() => {
     const lista: string[] = [];
     if (product.imagen_principal) lista.push(product.imagen_principal);
-    if (Array.isArray(product.imagenes)) lista.push(...product.imagenes.filter(Boolean));
+    if (Array.isArray(product.imagenes)) {
+      product.imagenes.forEach((img: string | { url: string }) => {
+        const url = typeof img === "string" ? img : img?.url;
+        if (url) lista.push(url);
+      });
+    }
     if (product.imagen_url) lista.push(product.imagen_url);
     return [...new Set(lista.filter(Boolean))];
   })();
@@ -80,7 +158,7 @@ export default async function ProductByCodePage({
               descripcion={product.descripcion}
               precio={product.precio}
               productId={product.id}
-              imagen_principal={imagenes[0] ?? "/placeholder.jpg"}
+              imagen_principal={imagenes[0] ?? "/images/placeholder.png"}
               rating_avg={product.rating_avg}
               rating_count={product.rating_count}
               sellerId={vendedor.id}

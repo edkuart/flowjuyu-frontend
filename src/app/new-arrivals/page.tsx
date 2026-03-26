@@ -3,6 +3,7 @@
 import { useState, useEffect } from "react";
 import Image from "next/image";
 import Link from "next/link";
+import { getProductImage } from "@/lib/getProductImage";
 
 /* ===========================
    Tipos de datos
@@ -13,6 +14,7 @@ type Producto = {
   precio: number;
   descripcion?: string;
   imagen_url?: string | null;
+  imagenes?: { url: string }[];
   categoria?: string;
   createdAt?: string;
 };
@@ -211,10 +213,10 @@ export default function NewArrivalsPage() {
               className="group flex flex-col rounded-xl border bg-white overflow-hidden hover:shadow-lg transition-all duration-300"
             >
               <div className="relative aspect-[4/5] bg-gray-100 overflow-hidden">
-                {p.imagen_url ? (
-                    <Image 
-                    src={p.imagen_url} 
-                    alt={p.nombre} 
+                {getProductImage(p) !== "/images/placeholder.png" ? (
+                    <Image
+                    src={getProductImage(p)}
+                    alt={p.nombre}
                     fill
                     sizes="(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 25vw"
                     className="object-cover group-hover:scale-105 transition-transform duration-500"

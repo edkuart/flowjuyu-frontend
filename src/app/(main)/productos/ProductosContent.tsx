@@ -6,6 +6,7 @@ import { useSearchParams, useRouter } from "next/navigation";
 import Image from "next/image";
 import Link from "next/link";
 import FilterSidebar from "@/components/product/FilterSidebar";
+import { getProductImage } from "@/lib/getProductImage";
 
 import { Card, CardContent } from "@/components/ui/card";
 import ProductDiscoveryLayout from "@/components/product/discovery/ProductDiscoveryLayout";
@@ -27,6 +28,7 @@ type Producto = {
   nombre: string;
   precio: number;
   imagen_url?: string | null;
+  imagenes?: { url: string }[];
   categoria?: string;
   departamento?: string;
   municipio?: string;
@@ -328,7 +330,7 @@ export default function ProductosPage() {
                <CardContent className="p-3 sm:p-4 flex flex-col h-full">
                  <div className="relative w-full aspect-square bg-neutral-100 rounded-md overflow-hidden mb-3">
                    <Image
-                     src={p.imagen_url || "/placeholder.jpg"}
+                     src={getProductImage(p)}
                      alt={p.nombre}
                      fill
                      className="object-cover group-hover:scale-105 transition-transform duration-500"

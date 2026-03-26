@@ -5,6 +5,7 @@ import { Star } from "lucide-react";
 import FallbackImg from "@/components/FallbackImg";
 import { FavoriteButton } from "@/components/ui/FavoriteButton";
 import { cn } from "@/lib/utils";
+import { getProductImage } from "@/lib/getProductImage";
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -13,6 +14,7 @@ type Product = {
   nombre: string;
   precio: number;
   imagen_url?: string | null;
+  imagenes?: { url: string }[];
   rating_avg?: number | null;
   rating_count?: number | null;
   /** Legacy alias — still accepted */
@@ -84,7 +86,7 @@ export default function ProductCard({ product, showRating = true }: Props) {
         {/* Image */}
         <div className="relative aspect-[3/4] overflow-hidden bg-[#ede8e0]">
           <FallbackImg
-            src={product.imagen_url}
+            src={getProductImage(product)}
             fallback="/images/productos/default.jpg"
             alt={product.nombre}
             className="h-full w-full object-cover object-center transition-transform duration-700 group-hover:scale-[1.04]"

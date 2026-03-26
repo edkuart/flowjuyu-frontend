@@ -55,7 +55,7 @@ export interface ArtisanProduct {
   // Imágenes — normalizar en el punto de entrada (page.tsx)
   imagen_url?: string | null;
   imagen_principal?: string | null;
-  imagenes?: string[];
+  imagenes?: Array<{ url: string } | string>;
 
   // Contenido
   descripcion?: string | null;
@@ -106,10 +106,14 @@ export type DiscoverySignal =
 
 /** Devuelve la primera imagen disponible del producto */
 export function getPrimaryImage(product: ArtisanProduct): string {
+  const first = product.imagenes?.[0];
+  const fromImagenes = first
+    ? typeof first === "string" ? first : first.url
+    : null;
   return (
     product.imagen_principal ||
     product.imagen_url ||
-    (product.imagenes?.[0]) ||
+    fromImagenes ||
     "/images/productos/default.jpg"
   );
 }

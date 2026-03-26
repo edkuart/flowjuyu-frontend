@@ -48,7 +48,7 @@ export function ProductCard({ product, canEdit = false, onAddToCart }: Props) {
             id: product.id,
             title: product.title,
             price: product.price,
-            image: product.image ?? "/images/placeholder.jpg",
+            image: product.image ?? "/images/placeholder.png",
             qty: 1,
           })
         }
@@ -70,7 +70,7 @@ export function ProductCard({ product, canEdit = false, onAddToCart }: Props) {
       {/* Imagen */}
       <div className="relative aspect-[4/5] w-full bg-muted overflow-hidden">
         <Image
-          src={product.image || "/images/placeholder.jpg"}
+          src={product.image || "/images/placeholder.png"}
           alt={product.title}
           fill
           className="object-cover transition-transform duration-300 group-hover:scale-105"

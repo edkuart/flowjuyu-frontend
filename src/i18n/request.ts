@@ -1,13 +1,6 @@
 import { getRequestConfig } from "next-intl/server";
-import { getUserLocale } from "@/services/locale";
 
-export default getRequestConfig(async () => {
-  // Provide a static locale, fetch a user setting,
-  // todo: read from `cookies()`, `headers()`, etc.
-  const locale = await getUserLocale();
-
-  return {
-    locale,
-    messages: (await import(`../translations/${locale}.json`)).default,
-  };
-});
+export default getRequestConfig(async () => ({
+  locale: "es",
+  messages: {},
+}));

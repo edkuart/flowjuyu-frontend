@@ -20,6 +20,8 @@
 
 import Image from "next/image";
 import Link from "next/link";
+import CodeSearchInput from "@/components/home/CodeSearchInput";
+import { getProductImage } from "@/lib/getProductImage";
 
 // ── Tipos ─────────────────────────────────────────────────────────────────────
 
@@ -28,6 +30,7 @@ type TrendingProducto = {
   nombre: string;
   precio: number;
   imagen_url?: string | null;
+  imagenes?: { url: string }[];
 };
 
 type Props = {
@@ -130,6 +133,9 @@ export default function HeroSection({ trendingProducts }: Props) {
 
             </div>
 
+            {/* Code lookup */}
+            <CodeSearchInput />
+
             {/* Trust strip */}
             <p className="mt-5 text-[9px] md:text-[10px] uppercase tracking-[0.28em] text-white/25">
               Vendedores verificados · Pago seguro · Hecho en Guatemala
@@ -228,7 +234,7 @@ type ProductCardProps = {
 };
 
 function ProductCard({ product, variant = "small", className = "", sizes }: ProductCardProps) {
-  const src = product.imagen_url || "/images/productos/default.jpg";
+  const src = getProductImage(product, "/images/productos/default.jpg");
   const isHero = variant === "hero";
 
   return (

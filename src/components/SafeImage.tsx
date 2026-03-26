@@ -1,49 +1,46 @@
 "use client";
 
 import Image from "next/image";
-import { useState, useEffect } from "react";
+import { useState } from "react";
 
 interface Props {
   src?: string | null;
   fallback: string;
   alt: string;
-  width: number;
-  height: number;
+  sizes?: string;
   className?: string;
+  fill?: boolean;
+}
+
+function isValidSrc(url: string | null | undefined): url is string {
+  if (!url || typeof url !== "string") return false;
+  try {
+    const { protocol } = new URL(url.trim());
+    return protocol === "https:" || protocol === "http:";
+  } catch {
+    return false;
+  }
 }
 
 export default function SafeImage({
   src,
   fallback,
   alt,
-  width,
-  height,
-  className
+  sizes = "(max-width: 640px) 100vw, (max-width: 1024px) 50vw, 33vw",
+  className = "object-cover",
+  fill = true,
 }: Props) {
-
-  const [current, setCurrent] = useState(fallback);
-
-  useEffect(() => {
-    if (!src || src === "null" || src === "undefined") {
-      setCurrent(fallback);
-      return;
-    }
-
-    // FIX TS error: use HTMLImageElement instead of Image()
-    const test = new window.Image() as HTMLImageElement;
-    test.src = src;
-
-    test.onload = () => setCurrent(src);
-    test.onerror = () => setCurrent(fallback);
-  }, [src, fallback]);
+  const resolved = isValidSrc(src) ? src.trim() : fallback;
+  const [current, setCurrent] = useState(resolved);
 
   return (
     <Image
       src={current}
       alt={alt}
-      width={width}
-      height={height}
+      fill={fill}
+      sizes={sizes}
       className={className}
+      onError={() => setCurrent(fallback)}
     />
   );
 }

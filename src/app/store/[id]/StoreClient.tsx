@@ -5,6 +5,7 @@
 import { useMemo, useState, useEffect, useCallback } from "react";
 import Image from "next/image";
 import Link from "next/link";
+import { getProductImage } from "@/lib/getProductImage";
 import {
   ArrowRight,
   MessageCircle,
@@ -35,6 +36,7 @@ type Producto = {
   nombre: string;
   precio: number | string;
   imagen_url?: string | null;
+  imagenes?: { url: string }[];
   internal_code?: string | null;
 };
 
@@ -126,7 +128,7 @@ function ProductCard({ p }: { p: Producto }) {
         {/* Image */}
         <div className="relative w-full aspect-square bg-neutral-50 rounded-2xl overflow-hidden mb-4">
           <Image
-            src={p.imagen_url || "/placeholder.jpg"}
+            src={getProductImage(p)}
             alt={p.nombre}
             fill
             className="object-contain p-2 transition-transform duration-500 group-hover:scale-105"
@@ -598,7 +600,7 @@ export default function StoreClient({
             <div className="group flex flex-col sm:flex-row gap-6 bg-white rounded-3xl border border-neutral-100 shadow-sm hover:shadow-xl transition-all p-6 overflow-hidden">
               <div className="relative w-full sm:w-52 aspect-square bg-neutral-50 rounded-2xl overflow-hidden flex-shrink-0">
                 <Image
-                  src={featuredProduct.imagen_url || "/placeholder.jpg"}
+                  src={getProductImage(featuredProduct)}
                   alt={featuredProduct.nombre}
                   fill
                   className="object-contain p-4 group-hover:scale-105 transition-transform duration-500"
@@ -644,7 +646,7 @@ export default function StoreClient({
               <Link key={p.id} href={p.internal_code ? `/p/${p.internal_code}` : `/product/${p.id}`}>
                 <div className={`group relative rounded-2xl overflow-hidden border border-neutral-100 shadow-sm hover:shadow-xl transition-all duration-500 bg-white ${index === 0 ? "md:col-span-2" : ""}`}>
                   <div className={`relative bg-neutral-50 ${index === 0 ? "aspect-[16/9]" : "aspect-square"}`}>
-                    <Image src={p.imagen_url || "/placeholder.jpg"} alt={p.nombre} fill className="object-contain p-4 group-hover:scale-105 transition-transform duration-700" />
+                    <Image src={getProductImage(p)} alt={p.nombre} fill className="object-contain p-4 group-hover:scale-105 transition-transform duration-700" />
                     <div className="absolute top-3 left-3">
                       <span className="inline-flex items-center gap-1 bg-amber-500 text-white text-[10px] font-bold px-2.5 py-1 rounded-full shadow">⭐ Destacado</span>
                     </div>

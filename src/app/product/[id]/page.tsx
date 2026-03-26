@@ -50,7 +50,12 @@ export default async function ProductPage({
   const imagenes: string[] = (() => {
     const lista: string[] = [];
     if (product.imagen_principal) lista.push(product.imagen_principal);
-    if (Array.isArray(product.imagenes)) lista.push(...product.imagenes.filter(Boolean));
+    if (Array.isArray(product.imagenes)) {
+      product.imagenes.forEach((img: string | { url: string }) => {
+        const url = typeof img === "string" ? img : img?.url;
+        if (url) lista.push(url);
+      });
+    }
     if (product.imagen_url) lista.push(product.imagen_url);
     return [...new Set(lista.filter(Boolean))];
   })();
@@ -86,7 +91,7 @@ export default async function ProductPage({
               descripcion={product.descripcion}
               precio={product.precio}
               productId={product.id}
-              imagen_principal={imagenes[0] ?? "/placeholder.jpg"}
+              imagen_principal={imagenes[0] ?? "/images/placeholder.png"}
               rating_avg={product.rating_avg}
               rating_count={product.rating_count}
               sellerId={vendedor.id}

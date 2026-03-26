@@ -27,7 +27,7 @@ export function ProductContactCTA({
   }
 
   // Strip everything except digits (handles +502-XXXX-XXXX formats)
-  const cleanPhone = sellerWhatsapp.replace(/\D/g, "")
+  const cleanPhone = String(sellerWhatsapp).replace(/\D/g, "")
 
   async function handleWhatsappClick() {
     // Fire-and-forget analytics

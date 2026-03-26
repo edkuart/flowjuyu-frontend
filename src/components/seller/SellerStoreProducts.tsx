@@ -1,6 +1,7 @@
 'use client'
 
 import Image from 'next/image'
+import { getProductImage } from '@/lib/getProductImage'
 import Link from 'next/link'
 import { Card, CardContent } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
@@ -10,6 +11,7 @@ type Producto = {
   nombre: string
   precio: number
   imagen_url?: string | null
+  imagenes?: { url: string }[]
 }
 
 type Props = {
@@ -43,7 +45,7 @@ export default function SellerStoreProducts({ productos }: Props) {
                 <CardContent className="p-3 space-y-2">
                   <div className="relative w-full h-40 rounded-lg overflow-hidden bg-muted">
                     <Image
-                      src={p.imagen_url || '/images/placeholder.jpg'}
+                      src={getProductImage(p)}
                       alt={p.nombre}
                       fill
                       className="object-cover"

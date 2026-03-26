@@ -22,6 +22,7 @@ export type Producto = {
   precio: number | string;
   categoria?: string | null;
   imagen_url?: string | null;
+  imagenes?: { url: string }[];
   departamento?: string | null;
   municipio?: string | null;
 };

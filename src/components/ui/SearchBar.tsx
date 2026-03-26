@@ -6,6 +6,7 @@ import {
   useRef,
   type KeyboardEvent,
 } from "react";
+import { getProductImage } from "@/lib/getProductImage";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { Search } from "lucide-react";
@@ -21,6 +22,7 @@ type Producto = {
   nombre: string;
   precio: number;
   imagen_url?: string | null;
+  imagenes?: { url: string }[];
   categoria?: string | null;
 };
 
@@ -358,7 +360,7 @@ export default function SearchBar() {
                       }}
                     >
                       <img
-                        src={p.imagen_url || "/placeholder.jpg"}
+                        src={getProductImage(p)}
                         alt={p.nombre}
                         className="w-10 h-10 rounded object-cover border border-neutral-200"
                       />

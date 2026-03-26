@@ -4,12 +4,14 @@ import { useEffect, useState } from "react";
 import { useParams } from "next/navigation";
 import Image from "next/image";
 import Link from "next/link";
+import { getProductImage } from "@/lib/getProductImage";
 
 type Producto = {
   id: number;
   nombre: string;
   precio: number;
   imagen_url?: string | null;
+  imagenes?: { url: string }[];
 };
 
 type CategoriaResponse = {
@@ -72,7 +74,7 @@ export default function CategoriaPage() {
               className="border rounded-xl overflow-hidden hover:shadow-md bg-white"
             >
               <Image
-                src={p.imagen_url || "/images/productos/default.jpg"}
+                src={getProductImage(p, "/images/productos/default.jpg")}
                 alt={p.nombre}
                 width={300}
                 height={200}

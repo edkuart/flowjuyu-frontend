@@ -43,6 +43,16 @@ import AILLMInsightsPanel from "@/components/admin/ai/AILLMInsightsPanel";
 // Telemetry fetch hook
 import { useBrainFetch } from "@/components/admin/ai/useBrainFetch";
 
+// Content Engine panels
+import AIContentPriorityQueue    from "@/components/admin/ai/content/AIContentPriorityQueue";
+import AIContentGenerator        from "@/components/admin/ai/content/AIContentGenerator";
+import AIContentReviewQueue      from "@/components/admin/ai/content/AIContentReviewQueue";
+import AIContentPerformancePanel from "@/components/admin/ai/content/AIContentPerformancePanel";
+import AIContentTemplatesPanel   from "@/components/admin/ai/content/AIContentTemplatesPanel";
+import AIContentPatternsPanel    from "@/components/admin/ai/content/AIContentPatternsPanel";
+import AIContentDecisionsPanel   from "@/components/admin/ai/content/AIContentDecisionsPanel";
+import AIContentAdaptationPanel  from "@/components/admin/ai/content/AIContentAdaptationPanel";
+
 // ── Types ──────────────────────────────────────────────────────────────────────
 
 type Report = {
@@ -375,13 +385,14 @@ function PageSkeleton() {
 
 // ── Tab system ────────────────────────────────────────────────────────────────
 
-type TabId = "overview" | "issues" | "intelligence" | "operations";
+type TabId = "overview" | "content" | "issues" | "intelligence" | "operations";
 
 const TABS: { id: TabId; label: string }[] = [
-  { id: "overview",     label: "Overview"      },
-  { id: "issues",       label: "Issues"        },
-  { id: "intelligence", label: "Intelligence"  },
-  { id: "operations",   label: "Operations"    },
+  { id: "overview",     label: "Overview"        },
+  { id: "content",      label: "Content Engine"  },
+  { id: "issues",       label: "Issues"          },
+  { id: "intelligence", label: "Intelligence"    },
+  { id: "operations",   label: "Operations"      },
 ];
 
 function TabBar({
@@ -760,6 +771,39 @@ export default function AdminAIPage() {
                 Last heartbeat: {new Date(status.timestamp).toLocaleString()}
               </p>
             </div>
+
+          </div>
+        )}
+
+        {/* ════════════════════════════════════════════════════════════════════ */}
+        {/* TAB: CONTENT ENGINE                                                  */}
+        {/* ════════════════════════════════════════════════════════════════════ */}
+        {activeTab === "content" && (
+          <div className="space-y-6">
+
+            <SectionLabel>Priority Queue</SectionLabel>
+            <AIContentPriorityQueue />
+
+            <SectionLabel>Generate Content</SectionLabel>
+            <AIContentGenerator />
+
+            <SectionLabel>Review Queue</SectionLabel>
+            <AIContentReviewQueue />
+
+            <SectionLabel>Performance</SectionLabel>
+            <AIContentPerformancePanel />
+
+            <SectionLabel>Templates</SectionLabel>
+            <AIContentTemplatesPanel />
+
+            <SectionLabel>Pattern Learning</SectionLabel>
+            <AIContentPatternsPanel />
+
+            <SectionLabel>Content Decisions</SectionLabel>
+            <AIContentDecisionsPanel />
+
+            <SectionLabel>Adaptive System</SectionLabel>
+            <AIContentAdaptationPanel />
 
           </div>
         )}

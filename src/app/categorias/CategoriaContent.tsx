@@ -7,6 +7,7 @@ import Link from "next/link";
 
 import ProductDiscoveryLayout from "@/components/product/discovery/ProductDiscoveryLayout";
 import { FavoriteButton } from "@/components/ui/FavoriteButton";
+import { getProductImage } from "@/lib/getProductImage";
 
 const API = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8800";
 
@@ -15,6 +16,7 @@ type Producto = {
   nombre: string;
   precio: number;
   imagen_url?: string | null;
+  imagenes?: { url: string }[];
 };
 
 type Categoria = {
@@ -164,7 +166,7 @@ export default function CategoriaPage() {
               <div className="bg-white border rounded-xl p-3 hover:shadow-md transition">
                 <div className="relative w-full aspect-square rounded-lg overflow-hidden mb-3 bg-neutral-100">
                   <Image
-                    src={p.imagen_url || "/placeholder.jpg"}
+                    src={getProductImage(p)}
                     alt={p.nombre}
                     fill
                     className="object-cover group-hover:scale-105 transition-transform"

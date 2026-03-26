@@ -5,6 +5,7 @@
 import type { KeyboardEvent } from "react";
 import Image from "next/image";
 import Link from "next/link";
+import { getProductImage } from "@/lib/getProductImage";
 
 import { Input } from "@/components/ui/input";
 import { Card, CardContent } from "@/components/ui/card";
@@ -154,7 +155,7 @@ function ProductGrid({ products }: { products: Producto[] }) {
             <CardContent className="p-5">
               <div className="relative w-full aspect-square mb-4 rounded-2xl overflow-hidden bg-neutral-100">
                 <Image
-                  src={p.imagen_url || "/placeholder.jpg"}
+                  src={getProductImage(p)}
                   alt={p.nombre}
                   fill
                   className="object-cover hover:scale-105 transition-transform duration-500"

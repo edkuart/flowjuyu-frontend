@@ -355,6 +355,7 @@ export default function AddProductPage() {
   /* ── Images ── */
   const fileRef = useRef<HTMLInputElement>(null)
   const formRef = useRef<HTMLFormElement>(null)
+  const [images, setImages] = useState<File[]>([])
   const [previews, setPreviews] = useState<string[]>([])
   const [imagenPrincipal, setImagenPrincipal] = useState<string | null>(null)
   const [imagenesExistentes, setImagenesExistentes] = useState<{ id: number; url: string }[]>([])
@@ -701,8 +702,8 @@ export default function AddProductPage() {
       fd.set("departamento", departamentoSel || "")
       fd.set("municipio", municipioSel || "")
 
-      const files = fileRef.current?.files
-      if (files) Array.from(files).slice(0, 9).forEach(f => fd.append("imagenes[]", f))
+      console.log("[submit] images state:", images.map(f => ({ name: f.name, size: f.size, type: f.type })))
+      images.forEach(f => fd.append("imagenes", f))
 
       const url = isEditing ? `${API}/api/productos/${productId}` : `${API}/api/productos`
       const res = await fetch(url, {
@@ -1268,7 +1269,10 @@ export default function AddProductPage() {
                         const slots = MAX_IMAGES - totalImages
                         const newFiles = Array.from(files).slice(0, slots)
                         const newPreviews = newFiles.map(f => URL.createObjectURL(f))
+                        setImages(prev => [...prev, ...newFiles])
                         setPreviews(prev => [...prev, ...newPreviews])
+                        // Reset input so the same file can be re-selected if needed
+                        if (fileRef.current) fileRef.current.value = ""
                       }}
                     />
                   </label>
@@ -1363,11 +1367,11 @@ export default function AddProductPage() {
                                       ;[n[i - 1], n[i]] = [n[i], n[i - 1]]
                                       return n
                                     })
-                                    const dt = new DataTransfer()
-                                    const files = Array.from(fileRef.current?.files || [])
-                                    ;[files[i - 1], files[i]] = [files[i], files[i - 1]]
-                                    files.forEach(f => dt.items.add(f))
-                                    if (fileRef.current) fileRef.current.files = dt.files
+                                    setImages(prev => {
+                                      const n = [...prev]
+                                      ;[n[i - 1], n[i]] = [n[i], n[i - 1]]
+                                      return n
+                                    })
                                   }}
                                   className="bg-white/90 text-neutral-700 w-6 h-6 rounded-full flex items-center justify-center text-xs shadow border border-neutral-200 font-bold"
                                   aria-label="Mover izquierda"
@@ -1384,11 +1388,11 @@ export default function AddProductPage() {
                                       ;[n[i], n[i + 1]] = [n[i + 1], n[i]]
                                       return n
                                     })
-                                    const dt = new DataTransfer()
-                                    const files = Array.from(fileRef.current?.files || [])
-                                    ;[files[i], files[i + 1]] = [files[i + 1], files[i]]
-                                    files.forEach(f => dt.items.add(f))
-                                    if (fileRef.current) fileRef.current.files = dt.files
+                                    setImages(prev => {
+                                      const n = [...prev]
+                                      ;[n[i], n[i + 1]] = [n[i + 1], n[i]]
+                                      return n
+                                    })
                                   }}
                                   className="bg-white/90 text-neutral-700 w-6 h-6 rounded-full flex items-center justify-center text-xs shadow border border-neutral-200 font-bold"
                                   aria-label="Mover derecha"
@@ -1403,11 +1407,7 @@ export default function AddProductPage() {
                               type="button"
                               onClick={() => {
                                 setPreviews(prev => prev.filter((_, idx) => idx !== i))
-                                const dt = new DataTransfer()
-                                Array.from(fileRef.current?.files || []).forEach((f, idx) => {
-                                  if (idx !== i) dt.items.add(f)
-                                })
-                                if (fileRef.current) fileRef.current.files = dt.files
+                                setImages(prev => prev.filter((_, idx) => idx !== i))
                               }}
                               className="absolute top-1.5 right-1.5 bg-red-500 text-white w-5 h-5 rounded-full flex items-center justify-center text-[10px] font-bold shadow opacity-0 group-hover:opacity-100 transition"
                               aria-label="Eliminar"

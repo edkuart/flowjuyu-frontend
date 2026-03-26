@@ -72,6 +72,7 @@ export default function ProductGallery({
                 src={img}
                 alt={`Vista ${i + 1}`}
                 fill
+                sizes="64px"
                 className="object-cover"
               />
             </button>
@@ -181,6 +182,7 @@ export default function ProductGallery({
               src={current}
               alt={titulo}
               fill
+              sizes="92vw"
               className="object-contain"
             />
 
