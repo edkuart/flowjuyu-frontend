@@ -14,7 +14,7 @@ export interface ProductContactCTAProps {
   productImagen?: string | null
   internalCode?:  string | null
   productUrl?:    string | null
-  sellerWhatsapp?: string | null
+  sellerWhatsapp?: unknown
   sellerNombre?:  string | null
 }
 
@@ -25,13 +25,23 @@ export interface ProductContactCTAProps {
  * - raw digits         → as-is if ≥ 8 digits
  * Returns null when no valid phone can be determined.
  */
-function extractPhone(raw: string | null | undefined): string | null {
-  if (!raw?.trim()) return null
+function extractPhone(raw: unknown): string | null {
+  if (raw === null || raw === undefined) return null
+  // Handle PhoneNumber objects: { country_code: "502", number: "12345678" }
+  if (typeof raw === "object") {
+    const obj = raw as Record<string, unknown>
+    const cc  = String(obj.country_code ?? "").replace(/\D/g, "")
+    const num = String(obj.number       ?? "").replace(/\D/g, "")
+    const digits = cc + num
+    return digits.length >= 8 ? digits : null
+  }
+  const str = String(raw).trim()
+  if (!str) return null
   // If it's already a wa.me URL, pull the phone segment from the path
-  const waMatch = raw.match(/wa\.me\/(\d{6,})/)
+  const waMatch = str.match(/wa\.me\/(\d{6,})/)
   if (waMatch) return waMatch[1]
   // Strip everything that isn't a digit
-  const digits = raw.replace(/\D/g, "")
+  const digits = str.replace(/\D/g, "")
   return digits.length >= 8 ? digits : null
 }
 
