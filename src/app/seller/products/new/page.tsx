@@ -523,7 +523,22 @@ export default function AddProductPage() {
           else if (product.accesorio_material_id) setMaterialSel(String(product.accesorio_material_id))
         }, 200)
 
-        setImagenesExistentes(Array.isArray(product.imagenes) ? product.imagenes : [])
+        // Merge imagen_principal into the gallery if it is not already present.
+        // Products created before the backend fix stored imagen_principal only in
+        // productos.imagen_url (not in producto_imagenes), so it would be absent
+        // from the imagenes array and invisible in the edit form.
+        const gallery: { id: number; url: string }[] = Array.isArray(product.imagenes)
+          ? product.imagenes
+          : []
+        const principalUrl: string | null = product.imagen_principal ?? null
+        const principalInGallery = principalUrl
+          ? gallery.some(img => img.url === principalUrl)
+          : true
+        const mergedGallery =
+          principalUrl && !principalInGallery
+            ? [{ id: 0, url: principalUrl }, ...gallery]
+            : gallery
+        setImagenesExistentes(mergedGallery)
       } catch {
         /* silent */
       }
@@ -727,6 +742,10 @@ export default function AddProductPage() {
 
       if (isEditing && imagenesAEliminar.length > 0) {
         for (const imageId of imagenesAEliminar) {
+          // id === 0 is a sentinel for the principal image that only exists in
+          // productos.imagen_url (legacy products pre-fix). It has no row in
+          // producto_imagenes so a DELETE request would 404; skip it safely.
+          if (imageId === 0) continue
           await fetch(`${API}/api/productos/${productId}/imagenes/${imageId}`, {
             method: "DELETE",
             headers: { Authorization: `Bearer ${token}` },
