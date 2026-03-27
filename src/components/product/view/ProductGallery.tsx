@@ -2,6 +2,7 @@
 
 import { useState, useRef, useMemo, useEffect } from "react";
 import Image from "next/image";
+import { galleryMainUrl, galleryFullscreenUrl, thumbnailUrl } from "@/lib/imageUrl";
 
 type ProductGalleryProps = {
   imagenes: string[];
@@ -69,7 +70,7 @@ export default function ProductGallery({
               }`}
             >
               <Image
-                src={img}
+                src={thumbnailUrl(img)}
                 alt={`Vista ${i + 1}`}
                 fill
                 sizes="64px"
@@ -90,7 +91,7 @@ export default function ProductGallery({
         >
           {/* The image itself — zooms in-place on hover via transform */}
           <Image
-            src={current}
+            src={galleryMainUrl(current)}
             alt={titulo}
             fill
             priority
@@ -179,7 +180,7 @@ export default function ProductGallery({
             onClick={(e) => e.stopPropagation()}
           >
             <Image
-              src={current}
+              src={galleryFullscreenUrl(current)}
               alt={titulo}
               fill
               sizes="92vw"

@@ -8,6 +8,9 @@ import Link from "next/link"
 import { Button } from "@/components/ui/button"
 import { FavoriteButton } from "@/components/ui/FavoriteButton"
 import { Product } from "@/types/product"
+import { trackNavigationStart } from "@/lib/performance"
+import { cardImageUrl }         from "@/lib/imageUrl"
+import { usePrefetch }          from "@/hooks/usePrefetch"
 
 interface Props {
   product: Product
@@ -23,6 +26,7 @@ function formatPrice(v: number | string) {
 export function ProductCard({ product, canEdit = false, onAddToCart }: Props) {
   const [adding, setAdding] = useState(false)
   const [added, setAdded] = useState(false)
+  const prefetchHandlers = usePrefetch(`/api/products/${product.id}`)
 
   // 🔥 PROTECCIÓN CRÍTICA
   if (!product?.id) {
@@ -65,12 +69,12 @@ export function ProductCard({ product, canEdit = false, onAddToCart }: Props) {
   }
 
   return (
-    <div className="group rounded-2xl border bg-white dark:bg-zinc-900 shadow-sm hover:shadow-md transition-shadow overflow-hidden flex flex-col">
+    <div className="group rounded-2xl border bg-white dark:bg-zinc-900 shadow-sm hover:shadow-md transition-shadow overflow-hidden flex flex-col" {...prefetchHandlers}>
 
       {/* Imagen */}
       <div className="relative aspect-[4/5] w-full bg-muted overflow-hidden">
         <Image
-          src={product.image || "/images/placeholder.png"}
+          src={cardImageUrl(product.image) || "/images/placeholder.png"}
           alt={product.title}
           fill
           className="object-cover transition-transform duration-300 group-hover:scale-105"
@@ -110,7 +114,7 @@ export function ProductCard({ product, canEdit = false, onAddToCart }: Props) {
       {/* Acciones */}
       <div className="p-4 pt-0 flex gap-2">
 
-        <Link href={`/product/${product.id}`} className="w-1/2">
+        <Link href={`/product/${product.id}`} className="w-1/2" onClick={trackNavigationStart}>
           <Button variant="outline" className="w-full">
             Ver detalles
           </Button>

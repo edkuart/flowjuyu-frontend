@@ -8,10 +8,16 @@ import { ClientProviders } from "@/providers/ClientProviders";
 import Header from "@/components/layout/Header";
 import Footer from "@/components/layout/Footer";
 
-import { AuthProvider } from "@/context/AuthContext";
-import { CartProvider } from "@/context/CartContext";
+import { AuthProvider }    from "@/context/AuthContext";
+import { CartProvider }    from "@/context/CartContext";
+import { AppDataProvider } from "@/context/AppDataContext";
 
 import { Toaster } from "sonner";
+import dynamic from "next/dynamic";
+
+// Dev-only tool — excluded from every route's initial bundle via dynamic import.
+// Loads only when NEXT_PUBLIC_ENABLE_PERF_LOGS=true at runtime.
+const PerfPanel = dynamic(() => import("@/components/dev/PerfPanel"), { ssr: false });
 
 const inter = Inter({
   subsets: ["latin"],
@@ -59,12 +65,9 @@ export const metadata: Metadata = {
     images: ["/images/hero-cultural.jpg"],
   },
   icons: {
-    icon: [
-      { url: "/icon.png", type: "image/png" },
-    ],
-    apple: [
-      { url: "/apple-icon.png", sizes: "180x180", type: "image/png" },
-    ],
+    icon: "/flowjuyu-isotipo.png",
+    shortcut: "/flowjuyu-isotipo.png",
+    apple: "/flowjuyu-isotipo.png",
   },
 };
 
@@ -79,6 +82,7 @@ export default function RootLayout({
         className={`${inter.variable} ${playfair.variable} font-sans antialiased bg-background text-foreground min-h-screen flex flex-col`}
       >
         <AuthProvider>
+          <AppDataProvider>
           <ClientProviders>
             <CartProvider>
               <Header />
@@ -88,10 +92,14 @@ export default function RootLayout({
               <Footer />
             </CartProvider>
           </ClientProviders>
+          </AppDataProvider>
         </AuthProvider>
 
         {/* TOAST */}
         <Toaster richColors position="top-right" />
+
+        {/* DEV: performance diagnostics panel (gated by NEXT_PUBLIC_ENABLE_PERF_LOGS) */}
+        <PerfPanel />
 
       </body>
     </html>

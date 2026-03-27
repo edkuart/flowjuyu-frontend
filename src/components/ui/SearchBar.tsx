@@ -10,12 +10,11 @@ import { getProductImage } from "@/lib/getProductImage";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { Search } from "lucide-react";
+import { useCategorias } from "@/hooks/useCategorias";
+import { useClases } from "@/hooks/useClases";
+import { useAccesorios } from "@/hooks/useAccesorios";
 
 const API = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8800";
-
-type Categoria = { id: number; nombre: string; imagen_url?: string | null };
-type Clase = { id: number; nombre: string; alias?: string | null };
-type Accesorio = { id: number; nombre: string; categoria_tipo?: string | null };
 
 type Producto = {
   id: string;
@@ -25,6 +24,7 @@ type Producto = {
   imagenes?: { url: string }[];
   categoria?: string | null;
 };
+
 
 // Convertir nombre a slug
 function slugify(nombre: string) {
@@ -43,10 +43,10 @@ export default function SearchBar() {
   const [query, setQuery] = useState("");
   const [showBox, setShowBox] = useState(false);
 
-  // Catálogos
-  const [categorias, setCategorias] = useState<Categoria[]>([]);
-  const [clases, setClases] = useState<Clase[]>([]);
-  const [accesorios, setAccesorios] = useState<Accesorio[]>([]);
+  // Catálogos — from shared hooks (no fetch here)
+  const { data: categorias } = useCategorias();
+  const { data: clases }     = useClases();
+  const { data: accesorios } = useAccesorios();
 
   // Productos sugeridos
   const [productos, setProductos] = useState<Producto[]>([]);
@@ -54,40 +54,6 @@ export default function SearchBar() {
 
   // Historial
   const [history, setHistory] = useState<string[]>([]);
-
-  // ============================
-  // Cargar catálogos (una vez)
-  // ============================
-  useEffect(() => {
-    async function loadCatalogos() {
-      try {
-        const [catRes, clsRes, accNormalRes, accTipicoRes] = await Promise.all([
-          fetch(`${API}/api/categorias`).then((r) => r.json()),
-          fetch(`${API}/api/clases`).then((r) => r.json()),
-          fetch(`${API}/api/accesorios?tipo=normal`).then((r) => r.json()),
-          fetch(`${API}/api/accesorios?tipo=tipico`).then((r) => r.json()),
-        ]);
-
-        setCategorias(Array.isArray(catRes) ? catRes : []);
-        setClases(Array.isArray(clsRes) ? clsRes : []);
-
-        // Unir accesorios normales + típicos, evitando duplicados
-        const mapa = new Map<number, Accesorio>();
-        [
-          ...(Array.isArray(accNormalRes) ? accNormalRes : []),
-          ...(Array.isArray(accTipicoRes) ? accTipicoRes : []),
-        ].forEach((a: Accesorio) => {
-          if (!mapa.has(a.id)) mapa.set(a.id, a);
-        });
-
-        setAccesorios([...mapa.values()]);
-      } catch (e) {
-        console.error("Error cargando catálogos searchbar:", e);
-      }
-    }
-
-    loadCatalogos();
-  }, []);
 
   // ============================
   // Cargar historial

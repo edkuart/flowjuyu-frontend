@@ -11,21 +11,31 @@
 //
 // No se usa "comprar" ni "tienda" — se usa "trabajo", "piezas", "artesano".
 
+"use client";
+
 import Link from "next/link";
 import FallbackImg from "@/components/FallbackImg";
+import { useSellerHighlights, type Tienda } from "@/hooks/useSellerHighlights";
 
-export type Tienda = {
-  id: number;
-  nombre?: string | null;
-  nombre_comercio?: string | null;
-  logo_url?: string | null;
-  departamento?: string | null;
-  municipio?: string | null;
-};
+export type { Tienda };
 
-type Props = {
-  tiendas: Tienda[];
-};
+function SellerHighlightSkeleton() {
+  return (
+    <section className="bg-[#f6f2ea] py-16 md:py-20">
+      <div className="max-w-7xl mx-auto px-4 md:px-12 space-y-10">
+        <div className="space-y-3">
+          <div className="h-3 w-40 bg-[#0d2d20]/8 rounded animate-pulse" />
+          <div className="h-7 w-56 bg-[#0d2d20]/8 rounded animate-pulse" />
+        </div>
+        <div className="h-px bg-gradient-to-r from-[#0d2d20]/20 to-transparent" />
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+          <div className="md:col-span-2 min-h-[440px] md:min-h-[520px] rounded-sm bg-[#0d2d20]/8 animate-pulse" />
+          <div className="rounded-sm bg-[#0d2d20]/8 animate-pulse" />
+        </div>
+      </div>
+    </section>
+  );
+}
 
 /* ─── Featured artisan card ───────────────────────────────── */
 
@@ -165,8 +175,11 @@ function SecondaryArtisan({ tienda }: { tienda: Tienda }) {
 
 /* ─── Section ─────────────────────────────────────────────── */
 
-export default function SellerHighlightSection({ tiendas }: Props) {
-  if (!Array.isArray(tiendas) || tiendas.length === 0) return null;
+export default function SellerHighlightSection() {
+  const { data: tiendas, loading } = useSellerHighlights();
+
+  if (loading) return <SellerHighlightSkeleton />;
+  if (!tiendas.length) return <SellerHighlightSkeleton />;
 
   const [featured, ...rest] = tiendas;
   const secondary = rest.slice(0, 3);

@@ -2,56 +2,64 @@
 
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 
+import dynamic from "next/dynamic";
 import { Badge }    from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
 
-// Existing components
-import AIAgentRunner  from "@/components/admin/ai/AIAgentRunner";
-import AIInsights     from "@/components/admin/ai/AIInsights";
-import AIReportsList  from "@/components/admin/ai/AIReportsList";
-import AITasksList    from "@/components/admin/ai/AITasksList";
-
-// Brain panels
-import AIIntelligencePanel    from "@/components/admin/ai/AIIntelligencePanel";
-import AIGrowthPanel          from "@/components/admin/ai/AIGrowthPanel";
-import AISellerInsights       from "@/components/admin/ai/AISellerInsights";
-import AIRiskPanel            from "@/components/admin/ai/AIRiskPanel";
-import AIDecisionsPanel       from "@/components/admin/ai/AIDecisionsPanel";
-import AIAgentsSupervisor     from "@/components/admin/ai/AIAgentsSupervisor";
-
-// Extended panels
-import AIMarketplaceHealthScore from "@/components/admin/ai/AIMarketplaceHealthScore";
-import AISellerScorePanel       from "@/components/admin/ai/AISellerScorePanel";
-import AITaskInspector          from "@/components/admin/ai/AITaskInspector";
-import AIReportViewer           from "@/components/admin/ai/AIReportViewer";
-import AIActivityFeed           from "@/components/admin/ai/AIActivityFeed";
-import AIStrategyPanel          from "@/components/admin/ai/AIStrategyPanel";
-
-// Business intelligence panels
-import AIHomepageStrategyPanel from "@/components/admin/ai/AIHomepageStrategyPanel";
-import AIMarketplaceSimulator  from "@/components/admin/ai/AIMarketplaceSimulator";
-import AITrendPanel            from "@/components/admin/ai/AITrendPanel";
-import AIAnomalyPanel          from "@/components/admin/ai/AIAnomalyPanel";
-import AIWeeklyInsightsPanel   from "@/components/admin/ai/AIWeeklyInsightsPanel";
-
-// Telemetry panel
-import AITelemetryPanel from "@/components/admin/ai/AITelemetryPanel";
-
-// LLM insights panel (new)
-import AILLMInsightsPanel from "@/components/admin/ai/AILLMInsightsPanel";
-
-// Telemetry fetch hook
+// Telemetry fetch hook — kept static (hook, not a component)
 import { useBrainFetch } from "@/components/admin/ai/useBrainFetch";
 
+// ── Shared loading fallback ────────────────────────────────────────────────────
+// Each panel becomes its own lazy chunk. Loaded only when its tab is first rendered.
+// NOTE: Next.js 14 requires dynamic() options to be inline object literals —
+// the bundler analyzes them statically and cannot follow variable references.
+function PanelSkeleton() {
+  return <div className="animate-pulse bg-muted rounded-lg h-48 w-full" />;
+}
+
+// Existing components
+const AIAgentRunner  = dynamic(() => import("@/components/admin/ai/AIAgentRunner"),  { ssr: false, loading: PanelSkeleton });
+const AIInsights     = dynamic(() => import("@/components/admin/ai/AIInsights"),     { ssr: false, loading: PanelSkeleton });
+const AIReportsList  = dynamic(() => import("@/components/admin/ai/AIReportsList"),  { ssr: false, loading: PanelSkeleton });
+const AITasksList    = dynamic(() => import("@/components/admin/ai/AITasksList"),    { ssr: false, loading: PanelSkeleton });
+
+// Brain panels
+const AIIntelligencePanel = dynamic(() => import("@/components/admin/ai/AIIntelligencePanel"), { ssr: false, loading: PanelSkeleton });
+const AIGrowthPanel       = dynamic(() => import("@/components/admin/ai/AIGrowthPanel"),       { ssr: false, loading: PanelSkeleton });
+const AISellerInsights    = dynamic(() => import("@/components/admin/ai/AISellerInsights"),    { ssr: false, loading: PanelSkeleton });
+const AIRiskPanel         = dynamic(() => import("@/components/admin/ai/AIRiskPanel"),         { ssr: false, loading: PanelSkeleton });
+const AIDecisionsPanel    = dynamic(() => import("@/components/admin/ai/AIDecisionsPanel"),    { ssr: false, loading: PanelSkeleton });
+const AIAgentsSupervisor  = dynamic(() => import("@/components/admin/ai/AIAgentsSupervisor"),  { ssr: false, loading: PanelSkeleton });
+
+// Extended panels
+const AIMarketplaceHealthScore = dynamic(() => import("@/components/admin/ai/AIMarketplaceHealthScore"), { ssr: false, loading: PanelSkeleton });
+const AISellerScorePanel       = dynamic(() => import("@/components/admin/ai/AISellerScorePanel"),       { ssr: false, loading: PanelSkeleton });
+const AITaskInspector          = dynamic(() => import("@/components/admin/ai/AITaskInspector"),          { ssr: false, loading: PanelSkeleton });
+const AIReportViewer           = dynamic(() => import("@/components/admin/ai/AIReportViewer"),           { ssr: false, loading: PanelSkeleton });
+const AIActivityFeed           = dynamic(() => import("@/components/admin/ai/AIActivityFeed"),           { ssr: false, loading: PanelSkeleton });
+const AIStrategyPanel          = dynamic(() => import("@/components/admin/ai/AIStrategyPanel"),          { ssr: false, loading: PanelSkeleton });
+
+// Business intelligence panels
+const AIHomepageStrategyPanel = dynamic(() => import("@/components/admin/ai/AIHomepageStrategyPanel"), { ssr: false, loading: PanelSkeleton });
+const AIMarketplaceSimulator  = dynamic(() => import("@/components/admin/ai/AIMarketplaceSimulator"),  { ssr: false, loading: PanelSkeleton });
+const AITrendPanel            = dynamic(() => import("@/components/admin/ai/AITrendPanel"),            { ssr: false, loading: PanelSkeleton });
+const AIAnomalyPanel          = dynamic(() => import("@/components/admin/ai/AIAnomalyPanel"),          { ssr: false, loading: PanelSkeleton });
+const AIWeeklyInsightsPanel   = dynamic(() => import("@/components/admin/ai/AIWeeklyInsightsPanel"),   { ssr: false, loading: PanelSkeleton });
+
+// Telemetry + LLM
+const AITelemetryPanel   = dynamic(() => import("@/components/admin/ai/AITelemetryPanel"),   { ssr: false, loading: PanelSkeleton });
+const AILLMInsightsPanel = dynamic(() => import("@/components/admin/ai/AILLMInsightsPanel"), { ssr: false, loading: PanelSkeleton });
+
 // Content Engine panels
-import AIContentPriorityQueue    from "@/components/admin/ai/content/AIContentPriorityQueue";
-import AIContentGenerator        from "@/components/admin/ai/content/AIContentGenerator";
-import AIContentReviewQueue      from "@/components/admin/ai/content/AIContentReviewQueue";
-import AIContentPerformancePanel from "@/components/admin/ai/content/AIContentPerformancePanel";
-import AIContentTemplatesPanel   from "@/components/admin/ai/content/AIContentTemplatesPanel";
-import AIContentPatternsPanel    from "@/components/admin/ai/content/AIContentPatternsPanel";
-import AIContentDecisionsPanel   from "@/components/admin/ai/content/AIContentDecisionsPanel";
-import AIContentAdaptationPanel  from "@/components/admin/ai/content/AIContentAdaptationPanel";
+const AIContentPriorityQueue    = dynamic(() => import("@/components/admin/ai/content/AIContentPriorityQueue"),    { ssr: false, loading: PanelSkeleton });
+const AIContentGenerator        = dynamic(() => import("@/components/admin/ai/content/AIContentGenerator"),        { ssr: false, loading: PanelSkeleton });
+const AIContentReviewQueue      = dynamic(() => import("@/components/admin/ai/content/AIContentReviewQueue"),      { ssr: false, loading: PanelSkeleton });
+const AIContentPerformancePanel = dynamic(() => import("@/components/admin/ai/content/AIContentPerformancePanel"), { ssr: false, loading: PanelSkeleton });
+const AIContentTemplatesPanel   = dynamic(() => import("@/components/admin/ai/content/AIContentTemplatesPanel"),   { ssr: false, loading: PanelSkeleton });
+const AIContentPatternsPanel    = dynamic(() => import("@/components/admin/ai/content/AIContentPatternsPanel"),    { ssr: false, loading: PanelSkeleton });
+const AIContentDecisionsPanel   = dynamic(() => import("@/components/admin/ai/content/AIContentDecisionsPanel"),   { ssr: false, loading: PanelSkeleton });
+const AIContentAdaptationPanel  = dynamic(() => import("@/components/admin/ai/content/AIContentAdaptationPanel"),  { ssr: false, loading: PanelSkeleton });
+const AIPublishedContentPanel   = dynamic(() => import("@/components/admin/ai/content/AIPublishedContentPanel"),   { ssr: false, loading: PanelSkeleton });
 
 // ── Types ──────────────────────────────────────────────────────────────────────
 
@@ -789,6 +797,9 @@ export default function AdminAIPage() {
 
             <SectionLabel>Review Queue</SectionLabel>
             <AIContentReviewQueue />
+
+            <SectionLabel>Contenido listo para publicar</SectionLabel>
+            <AIPublishedContentPanel />
 
             <SectionLabel>Performance</SectionLabel>
             <AIContentPerformancePanel />

@@ -4,13 +4,23 @@ import Link from "next/link";
 import { useRef, useState } from "react";
 import FallbackImg from "@/components/FallbackImg";
 import SectionHeader from "@/components/ui/SectionHeader";
-import { Categoria } from "@/types/home";
+import { useCategorias } from "@/hooks/useCategorias";
 
-type Props = {
-  categorias: Categoria[];
-};
+function CategoriesSkeleton() {
+  return (
+    <div className="flex gap-6 overflow-x-hidden">
+      {Array.from({ length: 6 }).map((_, i) => (
+        <div
+          key={i}
+          className="shrink-0 w-[180px] md:w-[220px] aspect-[3/4] rounded-sm bg-[#0d2d20]/8 animate-pulse"
+        />
+      ))}
+    </div>
+  );
+}
 
-export default function CategoriesSection({ categorias }: Props) {
+export default function CategoriesSection() {
+  const { data: categorias, loading } = useCategorias();
 
   const trackRef = useRef<HTMLDivElement>(null);
 
@@ -59,7 +69,11 @@ export default function CategoriesSection({ categorias }: Props) {
         <div className="h-px bg-gradient-to-r from-[#0d2d20]/20 to-transparent" />
 
         {/* Track */}
-        {items.length === 0 ? (
+        {loading ? (
+
+          <CategoriesSkeleton />
+
+        ) : items.length === 0 ? (
 
           <p className="text-sm text-[#0d0d0b]/40 tracking-wide">
             Próximamente nuevas categorías culturales.

@@ -1,52 +1,10 @@
 "use client";
-import { useEffect, useState } from "react";
 import Link from "next/link";
 import Image from "next/image";
-
-type Categoria = {
-  id: number;
-  nombre: string;
-  imagen_url?: string | null;
-};
-
-const API = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8800/api";
-
-// ── Module-level cache ────────────────────────────────────────────────────────
-// One fetch per page session. Deduplicated across concurrent mounts.
-let _cache: Categoria[] | null = null;
-let _inflight: Promise<Categoria[]> | null = null;
-
-async function fetchCategorias(): Promise<Categoria[]> {
-  if (_cache) return _cache;
-  if (_inflight) return _inflight;
-
-  _inflight = fetch(`${API}/categorias`)
-    .then(res => {
-      if (!res.ok) throw new Error(`categorias ${res.status}`);
-      return res.json() as Promise<Categoria[]>;
-    })
-    .then(data => {
-      _cache = data;
-      _inflight = null;
-      return data;
-    })
-    .catch(err => {
-      _inflight = null;
-      throw err;
-    });
-
-  return _inflight;
-}
+import { useCategorias, type Categoria } from "@/hooks/useCategorias";
 
 export default function CategoriasDropdown() {
-  const [categorias, setCategorias] = useState<Categoria[]>(_cache ?? []);
-
-  useEffect(() => {
-    if (_cache) return;
-    fetchCategorias()
-      .then(setCategorias)
-      .catch((error) => console.error("Error al obtener categorías:", error));
-  }, []);
+  const { data: categorias } = useCategorias();
 
   // 🔹 Agrupar categorías en bloques de 5
   const chunkSize = 5;

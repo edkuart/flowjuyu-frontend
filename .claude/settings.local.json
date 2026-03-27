@@ -12,7 +12,10 @@
       "Bash(grep -r api/ c:UsersDellProjectsFlowjuyu-1.0flowjuyu-frontend/src --include=*.ts --include=*.tsx)",
       "Bash(find /c/Users/Dell/Projects/Flowjuyu-1.0/flowjuyu-frontend -name *.sql -o -name *migration* -o -name *schema*)",
       "Bash(xargs wc:*)",
-      "Bash(ls -la /c/Users/Dell/Projects/Flowjuyu-1.0/flowjuyu-backend/.env*)"
+      "Bash(ls -la /c/Users/Dell/Projects/Flowjuyu-1.0/flowjuyu-backend/.env*)",
+      "Bash(head -10 grep -n \"seller_id\\\\|product_id\\\\|buyer_id\" /c/Users/Dell/Projects/Flowjuyu-1.0/flowjuyu-backend/src/controllers/review.controller.ts)",
+      "Bash(head -10 grep -n \"logoutAll\\\\|/logout\" /c/Users/Dell/Projects/Flowjuyu-1.0/flowjuyu-backend/src/routes/auth.routes.ts)",
+      "Bash(head -30 find /c/Users/Dell/Projects/Flowjuyu-1.0/flowjuyu-frontend/src/app -name *.png -o -name *.ico -o -name *.svg)"
     ]
   }
 }

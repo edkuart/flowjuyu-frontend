@@ -6,13 +6,11 @@
 // Fetches client-side because the JWT lives in localStorage.
 // Renders nothing for unauthenticated visitors.
 
-import { useEffect, useState } from "react";
 import Link from "next/link";
 import { Sparkles } from "lucide-react";
 import { useAuth } from "@/context/AuthContext";
-import { apiFetch } from "@/lib/api";
+import { useRecommendedProducts } from "@/hooks/useRecommendedProducts";
 import ArtisanCard from "@/components/product/ArtisanCard";
-import type { ArtisanProduct } from "@/types/artisan";
 
 // ─── Skeleton ─────────────────────────────────────────────────────────────────
 
@@ -36,58 +34,9 @@ function SkeletonGrid() {
 
 export default function RecommendedSection() {
   const { user } = useAuth();
-  const [products, setProducts] = useState<ArtisanProduct[]>([]);
-  const [personalized, setPersonalized] = useState(false);
-  const [loading, setLoading] = useState(false);
-  const [done, setDone] = useState(false);
+  const { data: products, loading, personalized, done } = useRecommendedProducts();
 
-  useEffect(() => {
-    if (!user) return;
-
-    let cancelled = false;
-    setLoading(true);
-
-    apiFetch("/api/products/recommended")
-      .then(async (res) => {
-        if (!res.ok || cancelled) return;
-        const json = await res.json();
-        if (cancelled) return;
-
-        const items: ArtisanProduct[] = (json.data ?? []).map((p: any) => ({
-          id: p.id,
-          nombre: p.nombre,
-          precio: p.precio,
-          imagen_url: p.imagen_url,
-          rating_avg: p.rating_avg,
-          rating_count: p.rating_count,
-          departamento: p.departamento,
-          municipio: p.municipio,
-          categoria:
-            p.categoria_id
-              ? { id: p.categoria_id, nombre: p.categoria_nombre ?? "" }
-              : null,
-        }));
-
-        setProducts(items);
-        setPersonalized(json.personalized ?? false);
-      })
-      .catch(() => {
-        // silently ignore — section simply won't render
-      })
-      .finally(() => {
-        if (!cancelled) {
-          setLoading(false);
-          setDone(true);
-        }
-      });
-
-    return () => { cancelled = true; };
-  }, [user]);
-
-  // Don't render for unauthenticated visitors
   if (!user) return null;
-
-  // Don't render after load if there's nothing to show
   if (done && products.length === 0) return null;
 
   return (

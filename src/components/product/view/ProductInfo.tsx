@@ -2,7 +2,8 @@
 
 // src/components/product/view/ProductInfo.tsx
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
+import { trackNavigationEnd } from "@/lib/performance";
 import Image from "next/image";
 import Link from "next/link";
 import { MapPin, ChevronDown, ShieldCheck } from "lucide-react";
@@ -121,6 +122,8 @@ export default function ProductInfo({
 }: Props) {
   const precioNumber = Number(precio || 0);
   const [codeCopied, setCodeCopied] = useState(false);
+
+  useEffect(() => { trackNavigationEnd("Product Page") }, []);
 
   async function handleCopyCode() {
     if (!internal_code) return;

@@ -44,29 +44,59 @@ export type Tienda = {
 ================================ */
 
 async function fetchJSON<T>(endpoint: string): Promise<T[]> {
-  if (!API) return [];
+  if (!API) {
+    console.warn(`[homeService] API URL not set — skipping ${endpoint}`);
+    return [];
+  }
 
   try {
-    const res = await fetch(`${API}${endpoint}`, {
-      cache: "no-store",
-    });
+    const url = `${API}${endpoint}`;
+    console.log(`[homeService] → GET ${url}`);
+
+    const res = await fetch(url, { cache: "no-store" });
+
+    console.log(`[homeService] ← ${endpoint} status=${res.status} ok=${res.ok}`);
 
     if (!res.ok) return [];
 
     const json = await res.json();
 
-    if (Array.isArray(json)) return json as T[];
-    if (Array.isArray(json?.data)) return json.data as T[];
+    console.log(`[homeService] ${endpoint} raw shape:`, Array.isArray(json) ? `array[${json.length}]` : `object keys=[${Object.keys(json ?? {}).join(",")}]`);
 
+    if (Array.isArray(json)) return json as T[];
+    if (Array.isArray(json?.data)) {
+      console.log(`[homeService] ${endpoint} extracted json.data — ${json.data.length} items`);
+      return json.data as T[];
+    }
+
+    console.warn(`[homeService] ${endpoint} unrecognised shape — returning []`, json);
     return [];
   } catch (error) {
-    console.error(`Error fetching ${endpoint}`, error);
+    console.error(`[homeService] FETCH ERROR ${endpoint}:`, error);
     return [];
   }
 }
 
 /* ================================
-   Home Data Aggregator
+   Individual fetchers
+   (used by self-fetching client components)
+================================ */
+
+export const fetchTrendingProducts = () =>
+  fetchJSON<TrendingProducto>("/api/products/trending");
+
+export const fetchCategorias = () =>
+  fetchJSON<Categoria>("/api/categorias");
+
+export const fetchNuevosProductos = () =>
+  fetchJSON<Producto>("/api/productos/nuevos");
+
+export const fetchTiendas = () =>
+  fetchJSON<Tienda>("/api/seller/sellers/top");
+
+/* ================================
+   Home Data Aggregator (kept for
+   any non-homepage callers)
 ================================ */
 
 export async function getHomeData(): Promise<{
@@ -81,16 +111,11 @@ export async function getHomeData(): Promise<{
     nuevosProductos,
     tiendas,
   ] = await Promise.all([
-    fetchJSON<Categoria>("/api/categorias"),
-    fetchJSON<TrendingProducto>("/api/products/trending"),
-    fetchJSON<Producto>("/api/productos/nuevos"),
-    fetchJSON<Tienda>("/api/seller/sellers/top"),
+    fetchCategorias(),
+    fetchTrendingProducts(),
+    fetchNuevosProductos(),
+    fetchTiendas(),
   ]);
 
-  return {
-    categorias,
-    trendingProducts,
-    nuevosProductos,
-    tiendas,
-  };
+  return { categorias, trendingProducts, nuevosProductos, tiendas };
 }

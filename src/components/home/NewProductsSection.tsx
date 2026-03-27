@@ -8,19 +8,25 @@ import SectionHeader from "@/components/ui/SectionHeader";
 import { FavoriteButton } from "@/components/ui/FavoriteButton";
 import { getProductImage } from "@/lib/getProductImage";
 import { useState } from "react";
+import { useNewProducts, type NewProducto as Producto } from "@/hooks/useNewProducts";
 
-type Producto = {
-  id: string;
-  nombre: string;
-  precio: number;
-  imagen_url?: string | null;
-  imagenes?: { url: string }[];
-  created_at?: string | null;
-};
-
-type Props = {
-  nuevosProductos: Producto[];
-};
+function NewProductsSkeleton() {
+  return (
+    <section className="py-16 md:py-20 bg-[#0f2e22]">
+      <div className="max-w-7xl mx-auto px-4 md:px-12 space-y-10">
+        <div className="space-y-3">
+          <div className="h-3 w-40 bg-white/10 rounded animate-pulse" />
+          <div className="h-7 w-56 bg-white/10 rounded animate-pulse" />
+        </div>
+        <div className="grid gap-4 md:gap-6 grid-cols-2 md:grid-cols-3">
+          {Array.from({ length: 3 }).map((_, i) => (
+            <div key={i} className="aspect-[4/5] bg-white/5 rounded-sm animate-pulse" />
+          ))}
+        </div>
+      </div>
+    </section>
+  );
+}
 
 const formatPrice = (precio: number) =>
   new Intl.NumberFormat("es-GT", {
@@ -105,8 +111,11 @@ function NewProductCard({ product }: { product: Producto }) {
 
 /* ─── Section ───────────────────────────────────────────── */
 
-export default function NewProductsSection({ nuevosProductos }: Props) {
-  if (!nuevosProductos?.length) return null;
+export default function NewProductsSection() {
+  const { data: nuevosProductos, loading } = useNewProducts();
+
+  if (loading) return <NewProductsSkeleton />;
+  if (!nuevosProductos.length) return <NewProductsSkeleton />;
 
   // Solo 3 productos — foco, no catálogo
   const items = nuevosProductos.slice(0, 3);

@@ -72,7 +72,7 @@ type Review = {
   created_at: string;
 };
 
-type RatingSummary = { avg_rating: number | null; total: number };
+type RatingSummary = { rating: number; total_reviews: number };
 
 // HeaderStyle, DEFAULT_HEADER_STYLE, buildHeaderStyle — imported from @/lib/headerStyle
 
@@ -268,6 +268,10 @@ export default function StoreClient({
   initialProducts: Producto[];
   layoutConfig?: Partial<StoreLayoutConfig>;
 }) {
+  console.log("[DEBUG] Component render triggered");
+  console.log("[DEBUG] seller object:", seller);
+  console.log("[DEBUG] seller.id:", seller?.id, "| type:", typeof seller?.id);
+  console.log("[DEBUG] initialProducts:", Array.isArray(initialProducts) ? `array[${initialProducts.length}]` : initialProducts);
   const config = useMemo<StoreLayoutConfig>(
     () => ({ ...DEFAULT_LAYOUT, ...layoutConfig }),
     // layoutConfig is expected to be a stable object from the parent
@@ -285,6 +289,30 @@ export default function StoreClient({
   const [reviews, setReviews]             = useState<Review[]>([]);
   const [showAllReviews, setShowAllReviews] = useState(false);
 
+  console.log("[DEBUG] Render ratingSummary:", ratingSummary);
+
+  /* ── Trace ratingSummary state changes ── */
+  useEffect(() => {
+    if (ratingSummary === null) {
+      console.log("[DEBUG] Showing skeleton — ratingSummary is:", ratingSummary);
+    } else {
+      console.log("[DEBUG] ratingSummary set — rating:", ratingSummary.rating, "total_reviews:", ratingSummary.total_reviews);
+      if (ratingSummary.total_reviews === 0) {
+        console.warn("[DEBUG] total_reviews is 0 — rating badge will NOT render");
+      }
+    }
+  }, [ratingSummary]);
+
+  /* ── Mount diagnostics ── */
+  useEffect(() => {
+    console.log("[DEBUG] MOUNT — seller.id:", seller?.id, "| initialProducts.length:", initialProducts?.length);
+    console.log("[DEBUG] MOUNT — config:", config);
+    console.log("[DEBUG] MOUNT — seller.descripcion:", !!seller?.descripcion, "| seller.plan:", seller?.plan, "| estado_validacion:", seller?.estado_validacion);
+    console.log("[DEBUG] MOUNT — productos_destacados:", seller?.productos_destacados?.length ?? 0, "| identidad_tags:", seller?.identidad_tags?.length ?? 0);
+    if (!seller?.id) console.error("[DEBUG] BLOCKER — seller.id is missing! seller:", seller);
+    if (!Array.isArray(initialProducts)) console.error("[DEBUG] BLOCKER — initialProducts is NOT an array:", initialProducts);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   /* ── FAB scroll ── */
   useEffect(() => {
@@ -295,18 +323,36 @@ export default function StoreClient({
 
   /* ── Load reviews ── */
   const loadReviews = useCallback(async () => {
+    console.log("[DEBUG] Fetching rating for seller:", seller.id);
     try {
       const [ratingRes, reviewsRes] = await Promise.all([
         fetch(`${API}/api/reviews/seller/${seller.id}/rating`),
         fetch(`${API}/api/reviews/seller/${seller.id}?limit=20`),
       ]);
-      if (ratingRes.ok) setRatingSummary(await ratingRes.json());
+
+      console.log("[DEBUG] ratingRes.status:", ratingRes.status, "ok:", ratingRes.ok);
+
+      if (ratingRes.ok) {
+        const json = await ratingRes.json();
+        console.log("[DEBUG] Raw response:", json);
+        console.log("[DEBUG] json.success:", json?.success, "json.data:", json?.data);
+
+        if (json?.success && json.data) {
+          console.log("[DEBUG] Setting ratingSummary:", json.data);
+          setRatingSummary(json.data);
+        } else {
+          console.warn("[DEBUG] Condition failed — ratingSummary NOT set. success:", json?.success, "data:", json?.data);
+        }
+      } else {
+        console.error("[DEBUG] ratingRes NOT ok — status:", ratingRes.status);
+      }
+
       if (reviewsRes.ok) {
         const d = await reviewsRes.json();
         setReviews(d.data || []);
       }
     } catch (err) {
-      if (process.env.NODE_ENV !== "production") console.warn("[StoreClient] reviews fetch failed:", err);
+      console.error("[DEBUG] Fetch failed:", err);
     }
   }, [seller.id]);
 
@@ -438,11 +484,17 @@ export default function StoreClient({
                   <span className="px-3 py-0.5 bg-white/15 backdrop-blur border border-white/20 text-white/80 text-[10px] font-semibold rounded-full">
                     🧵 Hecho a mano
                   </span>
-                  {ratingSummary && ratingSummary.total > 0 && (
-                    <span className="inline-flex items-center gap-1 px-3 py-0.5 bg-amber-400/20 border border-amber-300/30 text-amber-200 text-[10px] font-bold rounded-full">
-                      <Star className="w-3 h-3 fill-amber-300 text-amber-300" />
-                      {ratingSummary.avg_rating?.toFixed(1)} ({ratingSummary.total})
-                    </span>
+                  {ratingSummary && (
+                    ratingSummary.total_reviews > 0 ? (
+                      <span className="inline-flex items-center gap-1 px-3 py-0.5 bg-amber-400/20 border border-amber-300/30 text-amber-200 text-[10px] font-bold rounded-full">
+                        <Star className="w-3 h-3 fill-amber-300 text-amber-300" />
+                        {ratingSummary.rating.toFixed(1)} ({ratingSummary.total_reviews})
+                      </span>
+                    ) : (
+                      <span className="px-3 py-0.5 bg-white/10 border border-white/15 text-white/40 text-[10px] rounded-full">
+                        Aún sin reseñas
+                      </span>
+                    )
                   )}
                 </div>
 
@@ -554,6 +606,7 @@ export default function StoreClient({
       {/* ══════════════════════════════════════════════
           ARTISAN STORY SECTION
       ══════════════════════════════════════════════ */}
+      {(console.log("[DEBUG] RENDER CHECK — show_story:", config.show_story, "| descripcion:", !!seller.descripcion), null)}
       {config.show_story && seller.descripcion && (
         <section className="mb-16">
           <div className="bg-gradient-to-br from-amber-50 to-emerald-50 border border-amber-100 rounded-3xl p-8 flex flex-col md:flex-row gap-8 items-start">
@@ -588,6 +641,7 @@ export default function StoreClient({
       {/* ══════════════════════════════════════════════
           FEATURED PRODUCT (when no destacados)
       ══════════════════════════════════════════════ */}
+      {(console.log("[DEBUG] RENDER CHECK — show_featured:", config.show_featured, "| featuredProduct:", !!featuredProduct, "| destacados.length:", destacados.length, "| productos.length:", productos.length), null)}
       {config.show_featured && featuredProduct && (
         <section className="mb-16">
           <div className="mb-6">
@@ -719,6 +773,7 @@ export default function StoreClient({
       {/* ══════════════════════════════════════════════
           REVIEWS SECTION
       ══════════════════════════════════════════════ */}
+      {(console.log("[DEBUG] RENDER CHECK — show_reviews:", config.show_reviews, "| ratingSummary:", ratingSummary, "| reviews.length:", reviews.length), null)}
       {config.show_reviews && (
       <section className="mt-20">
         <div className="mb-8 flex items-end justify-between">
@@ -728,14 +783,18 @@ export default function StoreClient({
           </div>
 
           {/* Rating summary */}
-          {ratingSummary && ratingSummary.total > 0 && (
-            <div className="text-right">
-              <div className="text-3xl font-black text-neutral-900">
-                {ratingSummary.avg_rating?.toFixed(1)}
+          {ratingSummary && (
+            ratingSummary.total_reviews > 0 ? (
+              <div className="text-right">
+                <div className="text-3xl font-black text-neutral-900">
+                  {ratingSummary.rating.toFixed(1)}
+                </div>
+                <Stars rating={Math.round(ratingSummary.rating)} size="sm" />
+                <p className="text-xs text-neutral-400 mt-0.5">{ratingSummary.total_reviews} reseñas</p>
               </div>
-              <Stars rating={Math.round(ratingSummary.avg_rating ?? 0)} size="sm" />
-              <p className="text-xs text-neutral-400 mt-0.5">{ratingSummary.total} reseñas</p>
-            </div>
+            ) : (
+              <p className="text-sm text-neutral-400 italic">Sin calificación todavía</p>
+            )
           )}
         </div>
 

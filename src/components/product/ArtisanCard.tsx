@@ -21,6 +21,8 @@ import { ProductStatusBadge, DiscoveryBadge } from "@/components/product/ui/Stat
 import { deriveProductStatus } from "@/lib/product-status";
 import { FavoriteButton } from "@/components/ui/FavoriteButton";
 import type { ArtisanProduct, DiscoverySignal } from "@/types/artisan";
+import { cardImageUrl } from "@/lib/imageUrl";
+import { usePrefetch } from "@/hooks/usePrefetch";
 
 /* ─── Price formatter ─────────────────────────────────────── */
 
@@ -79,11 +81,10 @@ export default function ArtisanCard({
   size = "md",
 }: ArtisanCardProps) {
   const [imgError, setImgError] = useState(false);
+  const prefetchHandlers = usePrefetch(`/api/products/${product.id}`);
 
-  const src =
-    !imgError && (product.imagen_principal || product.imagen_url)
-      ? (product.imagen_principal || product.imagen_url)!
-      : "/images/productos/default.jpg";
+  const rawSrc = !imgError ? (product.imagen_principal || product.imagen_url) : null;
+  const src    = rawSrc ? cardImageUrl(rawSrc) : "/images/productos/default.jpg";
 
   const status = deriveProductStatus(product.stock);
   const isAgotado = status === "agotado";
@@ -101,6 +102,7 @@ export default function ArtisanCard({
       href={`/product/${product.id}`}
       className={`group block${isAgotado ? " opacity-60" : ""}`}
       aria-label={product.nombre}
+      {...prefetchHandlers}
     >
       <article className="bg-white rounded-sm overflow-hidden border border-[#0d2d20]/10 transition-all duration-300 hover:-translate-y-1 hover:shadow-[0_8px_32px_rgba(13,45,32,0.10)]">
 

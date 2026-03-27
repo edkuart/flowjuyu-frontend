@@ -7,11 +7,17 @@ module.exports = withIntl({
 
   images: {
     remotePatterns: [
-      // 🔥 Supabase Storage público
+      // Supabase Storage — original objects
       {
         protocol: "https",
         hostname: "yjoybxvmnfwkuzrthdge.supabase.co",
         pathname: "/storage/v1/object/public/**",
+      },
+      // Supabase Image Transform — render/image endpoint (requires Pro tier)
+      {
+        protocol: "https",
+        hostname: "yjoybxvmnfwkuzrthdge.supabase.co",
+        pathname: "/storage/v1/render/image/public/**",
       },
 
       // 🔥 Dominio principal Flowjuyu (para banners externos)

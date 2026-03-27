@@ -1,5 +1,3 @@
-"use client";
-
 // src/components/home/TrendingSection.tsx
 
 import SectionHeader from "@/components/ui/SectionHeader";
@@ -24,8 +22,28 @@ function toArtisanProduct(p: TrendingProducto): ArtisanProduct {
   };
 }
 
+function TrendingSkeleton() {
+  return (
+    <section className="bg-[#faf7f2] py-16 md:py-20">
+      <div className="max-w-7xl mx-auto px-4 md:px-12 space-y-10">
+        <div className="space-y-3">
+          <div className="h-3 w-44 bg-[#0d2d20]/8 rounded" />
+          <div className="h-7 w-60 bg-[#0d2d20]/8 rounded" />
+        </div>
+        <div className="h-px bg-gradient-to-r from-[#0d2d20]/20 to-transparent" />
+        <div className="grid grid-cols-2 md:grid-cols-4 gap-4 md:gap-6">
+          {Array.from({ length: 4 }).map((_, i) => (
+            <div key={i} className="aspect-[3/4] rounded-sm bg-[#0d2d20]/6" />
+          ))}
+        </div>
+      </div>
+    </section>
+  );
+}
+
 export default function TrendingSection({ trendingProducts }: Props) {
-  if (!trendingProducts?.length) return null;
+  console.log(`[TrendingSection] received ${trendingProducts?.length ?? "undefined"} products`);
+  if (!trendingProducts?.length) return <TrendingSkeleton />;
 
   return (
     <section className="bg-[#faf7f2] py-16 md:py-20">
