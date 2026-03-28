@@ -29,6 +29,8 @@ import { apiGetVendedorPerfil } from "@/services/vendedorPerfil"
 import { ProductConversionCard } from "@/components/product/ProductConversionCard"
 import { getProductConversionInsights } from "@/lib/productConversion"
 import { compressImages } from "@/lib/imageCompression"
+import { getTaxonomyRule } from "@/config/taxonomyRules"
+import { sortClases, formatClaseLabel } from "@/lib/formatClase"
 
 import type { Opcion, Clase, OtroTipo } from "@/types/product"
 
@@ -546,56 +548,42 @@ export default function AddProductPage() {
   }, [productId, dataReady])
 
   /* ── Category rules ── */
-  const reglasCategoria: Record<string, { clase: boolean; tela: boolean; accesorio: boolean }> = {
-    hupil:             { clase: true,  tela: true,  accesorio: false },
-    hupiles:           { clase: true,  tela: true,  accesorio: false },
-    corte:             { clase: true,  tela: true,  accesorio: false },
-    cortes:            { clase: true,  tela: true,  accesorio: false },
-    faja:              { clase: true,  tela: true,  accesorio: false },
-    fajas:             { clase: true,  tela: true,  accesorio: false },
-    tela:              { clase: true,  tela: true,  accesorio: false },
-    telas:             { clase: true,  tela: true,  accesorio: false },
-    calzado:           { clase: true,  tela: true,  accesorio: false },
-    calzados:          { clase: true,  tela: true,  accesorio: false },
-    accesorio:         { clase: false, tela: false, accesorio: true  },
-    accesorios:        { clase: false, tela: false, accesorio: true  },
-    "accesorios típicos": { clase: false, tela: false, accesorio: true },
-    Calzado:           { clase: false, tela: false, accesorio: false },
-    default:           { clase: false, tela: false, accesorio: false },
-  }
-
   const nombreCategoriaSel = useMemo(() => {
     const cat = categorias.find(c => String(c.id) === categoriaSel)
-    return cat?.nombre?.toLowerCase().trim() || ""
+    return cat?.nombre ?? ""
   }, [categorias, categoriaSel])
 
-  const reglas = useMemo(
-    () => reglasCategoria[nombreCategoriaSel] ?? reglasCategoria.default,
+  const rule = useMemo(
+    () => getTaxonomyRule(nombreCategoriaSel),
     [nombreCategoriaSel]
   )
 
-  const esAccesorio = ["accesorio", "accesorios"].includes(nombreCategoriaSel)
-  const esAccesorioTipico = nombreCategoriaSel === "accesorios típicos"
-
   /* ── Accessories ── */
   useEffect(() => {
-    if (!(esAccesorio || esAccesorioTipico)) return setAccesorios([])
-    const tipo = esAccesorio ? "normal" : "tipico"
-    fetch(`${API}/api/accesorios?tipo=${tipo}`, { credentials: "include", cache: "no-store" })
+    if (!rule.showAccesorios || !rule.accesorioTipo) return setAccesorios([])
+    fetch(`${API}/api/accesorios?tipo=${rule.accesorioTipo}`, { credentials: "include", cache: "no-store" })
       .then(r => r.json()).then(d => setAccesorios(Array.isArray(d) ? d : d?.data ?? [])).catch(() => setAccesorios([]))
-  }, [esAccesorio, esAccesorioTipico])
+  }, [rule.showAccesorios, rule.accesorioTipo])
 
   useEffect(() => {
-    if (!(esAccesorio || esAccesorioTipico) || !accesorioSel || accesorioSel === OTROS) return setTipos([])
+    if (!rule.showAccesorios || !accesorioSel || accesorioSel === OTROS) return setTipos([])
     fetch(`${API}/api/accesorio-tipos?accesorio_id=${accesorioSel}`, { credentials: "include", cache: "no-store" })
       .then(r => r.json()).then(d => setTipos(Array.isArray(d) ? d : d?.data ?? [])).catch(() => setTipos([]))
-  }, [esAccesorio, esAccesorioTipico, accesorioSel])
+  }, [rule.showAccesorios, accesorioSel])
 
   useEffect(() => {
-    if ((!esAccesorio && !esAccesorioTipico) || !accesorioSel || accesorioSel === OTROS) return setMateriales([])
+    if (!rule.showAccesorios || !accesorioSel || accesorioSel === OTROS) return setMateriales([])
     fetch(`${API}/api/accesorio-materiales?accesorio_id=${accesorioSel}`, { credentials: "include", cache: "no-store" })
       .then(r => r.json()).then(d => setMateriales(Array.isArray(d) ? d : d?.data ?? [])).catch(() => setMateriales([]))
-  }, [esAccesorio, esAccesorioTipico, accesorioSel, tipoSel])
+  }, [rule.showAccesorios, accesorioSel, tipoSel])
+
+  // When clase is hidden by taxonomy (e.g. accessories, calzado), auto-assign the first
+  // available clase so the backend's NOT NULL constraint is still satisfied.
+  useEffect(() => {
+    if (!rule.showClase && clases.length > 0 && !claseSel) {
+      setClaseSel(String(clases[0].id))
+    }
+  }, [rule.showClase, clases, claseSel])
 
   /* ────────────────────────────────────────
      HELPERS
@@ -643,6 +631,10 @@ export default function AddProductPage() {
       if (nombre.trim().length < 5) return "El nombre debe tener al menos 5 caracteres."
       if (!precio || Number(toDecimal(precio)) <= 0) return "Ingresa un precio válido (mayor a 0)."
       if (!descripcion.trim()) return "Agrega una descripción del producto."
+    }
+    if (s === 2) {
+      // clase is required when visible (auto-assigned otherwise via useEffect)
+      if (rule.showClase && !claseSel) return "La clase del producto es obligatoria."
     }
     if (s === 4 && totalImages === 0 && !isEditing) {
       return null // soft warning only, not blocking
@@ -696,18 +688,19 @@ export default function AddProductPage() {
       if (categoriaSel === OTROS) fd.set("categoria_custom", categoriaInput)
       else fd.set("categoria_id", categoriaSel)
 
-      if (reglas.clase) fd.set("clase_id", claseSel)
+      if (claseSel) fd.set("clase_id", claseSel)
 
-      if (reglas.tela) {
+      if (rule.showTela) {
         if (telaSel === OTROS) fd.set("tela_custom", telaInput)
         else if (telaSel && telaSel !== NA) fd.set("tela_id", telaSel)
       }
 
-      if (reglas.accesorio && (esAccesorio || esAccesorioTipico) && accesorioSel) {
+      if (rule.showAccesorios && accesorioSel) {
         if (accesorioSel === OTROS) fd.set("accesorio_custom", accesorioInput)
         else fd.set("accesorio_id", accesorioSel)
 
-        if (esAccesorio && tipoSel) {
+        // Tipos only exist for normal accessories (not tipico)
+        if (rule.accesorioTipo === "normal" && tipoSel) {
           if (tipoSel === OTROS) fd.set("accesorio_tipo_custom", tipoInput)
           else fd.set("accesorio_tipo_id", tipoSel)
         }
@@ -721,7 +714,6 @@ export default function AddProductPage() {
       fd.set("departamento", departamentoSel || "")
       fd.set("municipio", municipioSel || "")
 
-      console.log("[submit] images state:", images.map(f => ({ name: f.name, size: f.size, type: f.type })))
       images.forEach(f => fd.append("imagenes", f))
 
       const url = isEditing ? `${API}/api/productos/${productId}` : `${API}/api/productos`
@@ -849,6 +841,7 @@ export default function AddProductPage() {
     { icon: "📝", label: "Nombre (mínimo 5 caracteres)",      ok: nombre.trim().length >= 5 },
     { icon: "📄", label: "Descripción del producto",          ok: descripcion.trim().length > 0 },
     { icon: "🏷️", label: "Categoría seleccionada",            ok: !!(categoriaSel || categoriaInput) },
+    { icon: "🎨", label: "Clase del producto seleccionada",   ok: !rule.showClase || !!claseSel },
     { icon: "💰", label: "Precio válido",                     ok: Number(toDecimal(precio || "0")) > 0 },
     { icon: "📍", label: "Ubicación del producto",            ok: !!(departamentoSel || municipioSel) },
   ]
@@ -1105,16 +1098,16 @@ export default function AddProductPage() {
                     <div className="flex items-start gap-2 bg-amber-50 border border-amber-100 rounded-xl px-4 py-3">
                       <span className="text-amber-500 mt-0.5">💡</span>
                       <p className="text-sm text-amber-800">
-                        {reglas.tela
+                        {rule.showTela
                           ? "Este tipo de producto requiere especificar la tela o material."
-                          : reglas.accesorio
+                          : rule.showAccesorios
                           ? "Este producto es un accesorio — selecciona el tipo y material."
                           : "Categoría seleccionada. Sin campos adicionales requeridos."}
                       </p>
                     </div>
                   )}
 
-                  {reglas.accesorio && (esAccesorio || esAccesorioTipico) && (
+                  {rule.showAccesorios && (
                     <>
                       <AccesorioSelect
                         accesorios={accesorios}
@@ -1128,15 +1121,18 @@ export default function AddProductPage() {
 
                       {accesorioSel && accesorioSel !== OTROS && (
                         <>
-                          <TipoAccesorioSelect
-                            tipos={tipos}
-                            tipoSel={tipoSel}
-                            setTipoSel={setTipoSel}
-                            tipoInput={tipoInput}
-                            setTipoInput={setTipoInput}
-                            OTROS={OTROS}
-                            confirmarOtro={confirmarOtro}
-                          />
+                          {/* Tipos only exist for normal (non-tipico) accessories */}
+                          {rule.accesorioTipo === "normal" && (
+                            <TipoAccesorioSelect
+                              tipos={tipos}
+                              tipoSel={tipoSel}
+                              setTipoSel={setTipoSel}
+                              tipoInput={tipoInput}
+                              setTipoInput={setTipoInput}
+                              OTROS={OTROS}
+                              confirmarOtro={confirmarOtro}
+                            />
+                          )}
                           <MaterialSelect
                             materiales={materiales}
                             materialSel={materialSel}
@@ -1151,22 +1147,22 @@ export default function AddProductPage() {
                     </>
                   )}
 
-                  {reglas.clase && (
-                    <Field label="Clase" hint="Especifica el tipo o estilo dentro de la categoría.">
+                  {rule.showClase && (
+                    <Field label="Clase *" hint="Especifica el tipo o estilo dentro de la categoría.">
                       <select
                         className="w-full border border-neutral-200 rounded-lg px-3 py-2.5 text-sm focus:ring-2 focus:ring-orange-400 focus:outline-none bg-white"
                         value={claseSel}
                         onChange={e => setClaseSel(e.target.value)}
                       >
                         <option value="">Seleccione…</option>
-                        {clases.map(c => (
-                          <option key={c.id} value={String(c.id)}>{c.nombre}</option>
+                        {sortClases(clases).map(c => (
+                          <option key={c.id} value={String(c.id)}>{formatClaseLabel(c)}</option>
                         ))}
                       </select>
                     </Field>
                   )}
 
-                  {reglas.tela && (
+                  {rule.showTela && (
                     <TelaSelect
                       claseSel={claseSel}
                       telas={telas}

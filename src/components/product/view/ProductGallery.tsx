@@ -1,7 +1,8 @@
 "use client";
 
-import { useState, useRef, useMemo, useEffect } from "react";
+import { useState, useRef, useMemo, useEffect, useCallback } from "react";
 import Image from "next/image";
+import { X } from "lucide-react";
 import { galleryMainUrl, galleryFullscreenUrl, thumbnailUrl } from "@/lib/imageUrl";
 
 type ProductGalleryProps = {
@@ -26,6 +27,26 @@ export default function ProductGallery({
   );
 
   useEffect(() => { setActive(0); }, [imagenes]);
+
+  const closeFullscreen = useCallback(() => setFullscreen(false), []);
+
+  // ESC key closes fullscreen
+  useEffect(() => {
+    if (!fullscreen) return;
+    const handler = (e: KeyboardEvent) => { if (e.key === "Escape") closeFullscreen(); };
+    window.addEventListener("keydown", handler);
+    return () => window.removeEventListener("keydown", handler);
+  }, [fullscreen, closeFullscreen]);
+
+  // Lock body scroll while fullscreen is open
+  useEffect(() => {
+    if (fullscreen) {
+      document.body.style.overflow = "hidden";
+    } else {
+      document.body.style.overflow = "";
+    }
+    return () => { document.body.style.overflow = ""; };
+  }, [fullscreen]);
 
   if (!imageUrls.length) {
     return (
@@ -83,20 +104,21 @@ export default function ProductGallery({
         {/* ── MAIN IMAGE ── */}
         <div
           ref={containerRef}
-          className="relative flex-1 aspect-[3/4] overflow-hidden rounded-sm bg-[#ede8e0] border border-[#0d2d20]/8 cursor-zoom-in group"
+          className="relative flex-1 w-full aspect-[4/5] md:aspect-square bg-[#f5f4f2] overflow-hidden rounded-sm border border-[#0d2d20]/8 cursor-zoom-in group flex items-center justify-center"
           onMouseMove={handleMouseMove}
           onMouseEnter={() => setZooming(true)}
           onMouseLeave={() => setZooming(false)}
           onClick={() => setFullscreen(true)}
+          style={{ touchAction: "manipulation" }}
         >
-          {/* The image itself — zooms in-place on hover via transform */}
+          {/* The image itself — zooms in-place on hover via transform (desktop only) */}
           <Image
             src={galleryMainUrl(current)}
             alt={titulo}
             fill
             priority
             sizes="(max-width: 768px) 100vw, 500px"
-            className="object-contain transition-transform duration-200 ease-out will-change-transform"
+            className="object-contain object-center md:object-cover transition-transform duration-200 ease-out will-change-transform"
             style={{
               transform:       zooming ? "scale(2.2)" : "scale(1)",
               transformOrigin: `${zoomPos.x}% ${zoomPos.y}%`,
@@ -173,10 +195,27 @@ export default function ProductGallery({
       {fullscreen && (
         <div
           className="fixed inset-0 bg-black/95 z-[9999] flex items-center justify-center"
-          onClick={() => setFullscreen(false)}
+          onClick={closeFullscreen}
         >
+          {/* Close button — prominent, always on top, never inside the image container */}
+          <button
+            onClick={(e) => { e.stopPropagation(); closeFullscreen(); }}
+            className="absolute top-4 right-4 z-[10001] bg-black/60 hover:bg-black/80 border border-white/20 text-white rounded-full p-2.5 transition-colors"
+            aria-label="Cerrar visor"
+          >
+            <X className="w-5 h-5" />
+          </button>
+
+          {/* Counter */}
+          {total > 1 && (
+            <p className="absolute top-5 left-1/2 -translate-x-1/2 z-[10001] text-white/60 text-sm tabular-nums pointer-events-none">
+              {active + 1} / {total}
+            </p>
+          )}
+
+          {/* Image container — stop propagation so clicking the image itself doesn't close */}
           <div
-            className="relative w-[92vw] h-[90vh] max-w-5xl"
+            className="relative w-[92vw] h-[88vh] max-w-5xl"
             onClick={(e) => e.stopPropagation()}
           >
             <Image
@@ -191,31 +230,19 @@ export default function ProductGallery({
               <>
                 <button
                   onClick={prev}
-                  className="absolute left-0 top-1/2 -translate-y-1/2 -translate-x-14 text-white/60 hover:text-white text-5xl transition-colors select-none"
+                  className="absolute left-2 top-1/2 -translate-y-1/2 bg-black/50 hover:bg-black/70 border border-white/15 text-white rounded-full w-10 h-10 flex items-center justify-center text-2xl font-bold transition-colors select-none"
+                  aria-label="Imagen anterior"
                 >
                   ‹
                 </button>
                 <button
                   onClick={next}
-                  className="absolute right-0 top-1/2 -translate-y-1/2 translate-x-14 text-white/60 hover:text-white text-5xl transition-colors select-none"
+                  className="absolute right-2 top-1/2 -translate-y-1/2 bg-black/50 hover:bg-black/70 border border-white/15 text-white rounded-full w-10 h-10 flex items-center justify-center text-2xl font-bold transition-colors select-none"
+                  aria-label="Imagen siguiente"
                 >
                   ›
                 </button>
               </>
-            )}
-
-            <button
-              onClick={() => setFullscreen(false)}
-              className="absolute top-0 right-0 translate-x-12 text-white/60 hover:text-white text-3xl transition-colors"
-              aria-label="Cerrar"
-            >
-              ✕
-            </button>
-
-            {total > 1 && (
-              <p className="absolute bottom-0 left-1/2 -translate-x-1/2 translate-y-10 text-white/50 text-sm tabular-nums">
-                {active + 1} / {total}
-              </p>
             )}
           </div>
         </div>

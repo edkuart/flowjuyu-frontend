@@ -4,9 +4,10 @@
 import { useCallback } from "react";
 import { Button } from "@/components/ui/button";
 import { departamentosConMunicipios } from "@/data/municipios";
+import { sortClases, formatClaseLabel } from "@/lib/formatClase";
 
 type Categoria = { id: number; nombre: string };
-type Clase = { id: number; nombre: string };
+type Clase = { id: number; nombre: string; alias?: string };
 type Tela = { id: number; nombre: string };
 type Accesorio = { id: number; nombre: string };
 type AccesorioTipo = { id: number; nombre: string };
@@ -385,9 +386,9 @@ export default function FilterSidebar({
                     }
                   >
                     <option value="">Todas las clases</option>
-                    {clases.map((c) => (
+                    {sortClases(clases).map((c) => (
                       <option key={c.id} value={c.id}>
-                        {c.nombre}
+                        {formatClaseLabel(c)}
                       </option>
                     ))}
                   </select>

@@ -80,12 +80,12 @@ export default async function ProductPage({
         <div className="grid grid-cols-1 md:grid-cols-2 gap-10 md:gap-14 items-start">
 
           {/* GALLERY — sticky desde tablet (768px) hacia arriba */}
-          <div className="md:sticky md:top-24">
+          <div className="md:sticky md:top-24 self-start">
             <ProductGallery imagenes={imagenes} titulo={product.nombre} />
           </div>
 
           {/* INFO + SPECS — toda la decisión de compra en una columna */}
-          <div className="space-y-0">
+          <div className="space-y-6">
             <ProductInfo
               nombre={product.nombre}
               descripcion={product.descripcion}
@@ -105,20 +105,20 @@ export default async function ProductPage({
               internal_code={product.internal_code}
             />
 
-            {/* Especificaciones en la misma columna, debajo de la info */}
-            <div className="mt-6">
-              <ProductSpecs
-                categoria={product.categoria}
-                clase={product.clase}
-                tela={product.tela}
-                departamento={product.departamento}
-                municipio={product.municipio}
-                categoria_custom={product.categoria_custom}
-                tela_custom={product.tela_custom}
-                departamento_custom={product.departamento_custom}
-                municipio_custom={product.municipio_custom}
-              />
-            </div>
+            <ProductSpecs
+              categoria={product.categoria}
+              clase={product.clase}
+              tela={product.tela}
+              departamento={product.departamento}
+              municipio={product.municipio}
+              categoria_custom={product.categoria_custom}
+              tela_custom={product.tela_custom}
+              departamento_custom={product.departamento_custom}
+              municipio_custom={product.municipio_custom}
+              accesorio={product.accesorio}
+              accesorio_tipo={product.accesorio_tipo}
+              accesorio_material={product.accesorio_material}
+            />
           </div>
 
         </div>

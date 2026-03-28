@@ -678,7 +678,7 @@ export default function SellerProductsPage() {
                         {/* Secondary grid */}
                         <div className="grid grid-cols-2 gap-2">
                           <Button asChild variant="outline" className="rounded-lg gap-1.5">
-                            <Link href={`/seller/products/new?id=${p.id}`}>
+                            <Link href={`/seller/productos/${p.id}/editar`}>
                               <Pencil className="w-3.5 h-3.5" />
                               Editar producto
                             </Link>
@@ -828,7 +828,7 @@ export default function SellerProductsPage() {
                         {/* Secondary grid */}
                         <div className="grid grid-cols-2 gap-2">
                           <Button asChild variant="outline" className="w-full gap-1.5">
-                            <Link href={`/seller/products/new?id=${p.id}`}>
+                            <Link href={`/seller/productos/${p.id}/editar`}>
                               <Pencil className="w-3.5 h-3.5" />
                               Editar producto
                             </Link>
@@ -943,7 +943,7 @@ export default function SellerProductsPage() {
                 </Button>
 
                 <Button asChild className="bg-primary hover:bg-primary/90 text-primary-foreground">
-                  <Link href={`/seller/products/new?id=${selectedImage.id}`}>
+                  <Link href={`/seller/productos/${selectedImage.id}/editar`}>
                     Editar producto
                   </Link>
                 </Button>
