@@ -32,7 +32,7 @@ function EditSkeleton() {
   return (
     <div className="min-h-screen bg-[#f5f4f2]">
       <div className="h-14 bg-white border-b shadow-sm" />
-      <div className="max-w-5xl mx-auto px-4 py-6 lg:grid lg:grid-cols-[1fr_300px] lg:gap-6 animate-pulse">
+      <div className="max-w-5xl mx-auto px-3 sm:px-4 py-4 sm:py-6 lg:grid lg:grid-cols-[1fr_300px] lg:gap-6 animate-pulse">
         <div className="space-y-4">
           <div className="h-24 bg-white border rounded-xl" />
           {[...Array(4)].map((_, i) => (
@@ -137,11 +137,11 @@ export default function EditProductPage() {
       </div>
 
       {/* Two-column layout: form (left) + preview (right, sticky) */}
-      <div className="max-w-5xl mx-auto px-4 py-7">
+      <div className="max-w-5xl mx-auto px-3 sm:px-4 py-4 sm:py-7">
         <div className="lg:grid lg:grid-cols-[1fr_300px] lg:gap-7 lg:items-start">
 
           {/* ── Left: sections ── */}
-          <div className="space-y-5">
+          <div className="space-y-4 sm:space-y-5">
             {/* Header card — product identity, activo badge */}
             <ProductEditHeader product={product} />
 

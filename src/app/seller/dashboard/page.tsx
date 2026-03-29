@@ -440,7 +440,8 @@ export default function SellerDashboardPage() {
       )}
 
       {/* ── TAB SWITCHER ── */}
-      <div className="flex gap-1 p-1 bg-white/70 backdrop-blur-sm rounded-full w-fit border border-neutral-100 shadow-sm animate-fade-in">
+      <div className="overflow-x-auto">
+      <div className="flex gap-1 p-1 bg-white/70 backdrop-blur-sm rounded-full w-fit min-w-max border border-neutral-100 shadow-sm animate-fade-in">
         {VIEWS.map(({ id, label }) => (
           <button
             key={id}
@@ -454,6 +455,7 @@ export default function SellerDashboardPage() {
             {label}
           </button>
         ))}
+      </div>
       </div>
 
       {/* ══════════════════════════════
@@ -634,8 +636,8 @@ export default function SellerDashboardPage() {
 
             {/* Metrics */}
             <Card className="bg-white border shadow-sm">
-              <CardContent className="p-8 space-y-6">
-                <div className="grid gap-8 sm:grid-cols-3">
+              <CardContent className="p-4 sm:p-8 space-y-6">
+                <div className="grid gap-4 sm:gap-8 sm:grid-cols-3">
                   {/* Intentions */}
                   {(() => {
                     const interp = interpretMetric("intentions", analytics.totalIntentions)
