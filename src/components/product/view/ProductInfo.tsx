@@ -149,7 +149,7 @@ export default function ProductInfo({
 
   return (
     <>
-      <section className="space-y-6 bg-white rounded-sm p-6 md:p-8 border border-[#0d2d20]/8">
+      <section className="space-y-4 md:space-y-6 bg-white rounded-sm p-4 md:p-8 border border-[#0d2d20]/8">
 
         {/* ── Eyebrow: categoría + origen ── */}
         <div className="flex flex-wrap items-center gap-x-3 gap-y-1 text-[10px] uppercase tracking-[0.26em] text-[#0d2d20]/55">

@@ -7,6 +7,7 @@ import ProductReviews from "@/components/product/view/ProductReviews";
 import ProductRelated from "@/components/product/view/ProductRelated";
 import ArtisanStory from "@/components/product/view/ArtisanStory";
 import HowToUse from "@/components/product/view/HowToUse";
+import { ProductStickyBar } from "@/components/product/ProductStickyBar";
 
 const API = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8800";
 
@@ -70,14 +71,14 @@ export default async function ProductPage({
 
   return (
     <div className="bg-[#f6f2ea] min-h-screen">
-      <div className="max-w-7xl mx-auto px-4 md:px-8 pt-8 pb-20">
+      <div className="max-w-7xl mx-auto px-4 md:px-8 pt-8 pb-28 md:pb-20">
 
         {/* ══════════════════════════════════════════════════
             ZONA DE DECISIÓN — Gallery + Info en 2 columnas
             La galería es sticky en desktop para que el usuario
             siempre vea el producto mientras lee la info.
         ══════════════════════════════════════════════════ */}
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-10 md:gap-14 items-start">
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-6 md:gap-14 items-start">
 
           {/* GALLERY — sticky desde tablet (768px) hacia arriba */}
           <div className="md:sticky md:top-24 self-start">
@@ -164,6 +165,19 @@ export default async function ProductPage({
         )}
 
       </div>
+
+      {/* Mobile sticky CTA — fixed to viewport bottom, hidden on md+ */}
+      <ProductStickyBar
+        precio={product.precio}
+        productId={product.id}
+        productNombre={product.nombre}
+        productPrecio={product.precio}
+        productImagen={imagenes[0] ?? null}
+        internalCode={product.internal_code}
+        productUrl={product.internal_code ? `/p/${product.internal_code}` : undefined}
+        sellerWhatsapp={vendedor.whatsapp}
+        sellerNombre={vendedor.nombre_comercio}
+      />
     </div>
   );
 }

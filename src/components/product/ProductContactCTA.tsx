@@ -16,6 +16,8 @@ export interface ProductContactCTAProps {
   productUrl?:    string | null
   sellerWhatsapp?: unknown
   sellerNombre?:  string | null
+  /** Compact mode: renders only the primary button + modal (no secondary actions). Used by the mobile sticky bar. */
+  compact?:       boolean
 }
 
 /**
@@ -60,6 +62,7 @@ export function ProductContactCTA({
   productUrl,
   sellerWhatsapp,
   sellerNombre,
+  compact = false,
 }: ProductContactCTAProps) {
   const [modalOpen, setModalOpen] = useState(false)
 
@@ -124,6 +127,38 @@ export function ProductContactCTA({
       `https://wa.me/?text=${encodeURIComponent(text)}`,
       "_blank",
       "noopener,noreferrer"
+    )
+  }
+
+  // ── Compact mode: primary button only (used by mobile sticky bar) ────────
+  if (compact) {
+    return (
+      <>
+        {hasPhone ? (
+          <button
+            onClick={() => setModalOpen(true)}
+            className="flex items-center justify-center gap-2 bg-[#0d2d20] hover:bg-[#163a2b] text-white text-[11px] uppercase tracking-[0.18em] px-5 py-3 rounded-xl font-semibold transition-colors duration-200 w-full"
+          >
+            {WA_ICON}
+            Contactar
+          </button>
+        ) : (
+          <div className="flex items-center justify-center gap-2 bg-[#0d2d20]/25 text-white/50 text-[11px] uppercase tracking-[0.18em] px-5 py-3 rounded-xl cursor-not-allowed select-none w-full">
+            {WA_ICON}
+            Contactar
+          </div>
+        )}
+        {hasPhone && (
+          <WhatsAppModal
+            open={modalOpen}
+            onClose={() => setModalOpen(false)}
+            onConfirm={handleConfirm}
+            product={{ nombre: productNombre, precio: productPrecio ?? 0, imagen: productImagen }}
+            seller={{ nombre: sellerNombre ?? null }}
+            initialMessage={buildMessage()}
+          />
+        )}
+      </>
     )
   }
 

@@ -19,7 +19,10 @@ export default function ProductGallery({
   const [zooming, setZooming]     = useState(false);
   const [fullscreen, setFullscreen] = useState(false);
 
-  const containerRef = useRef<HTMLDivElement | null>(null);
+  const containerRef  = useRef<HTMLDivElement | null>(null);
+  const touchStartX   = useRef(0);
+  const touchStartY   = useRef(0);
+  const swipeHandled  = useRef(false);
 
   const imageUrls = useMemo(
     () => [...new Set(imagenes.filter(Boolean))],
@@ -72,6 +75,22 @@ export default function ProductGallery({
   const prev = () => setActive((i) => (i === 0       ? total - 1 : i - 1));
   const next = () => setActive((i) => (i === total - 1 ? 0       : i + 1));
 
+  function handleTouchStart(e: React.TouchEvent) {
+    touchStartX.current  = e.touches[0].clientX;
+    touchStartY.current  = e.touches[0].clientY;
+    swipeHandled.current = false;
+  }
+
+  function handleTouchEnd(e: React.TouchEvent) {
+    const dx = e.changedTouches[0].clientX - touchStartX.current;
+    const dy = e.changedTouches[0].clientY - touchStartY.current;
+    // Only fire on clearly horizontal gestures (> 40px, more horizontal than vertical)
+    if (Math.abs(dx) > 40 && Math.abs(dx) > Math.abs(dy)) {
+      swipeHandled.current = true;
+      if (dx < 0) next(); else prev();
+    }
+  }
+
   return (
     <>
       {/* ── OUTER LAYOUT: thumbnails left / main right ── */}
@@ -108,8 +127,10 @@ export default function ProductGallery({
           onMouseMove={handleMouseMove}
           onMouseEnter={() => setZooming(true)}
           onMouseLeave={() => setZooming(false)}
-          onClick={() => setFullscreen(true)}
-          style={{ touchAction: "manipulation" }}
+          onClick={() => { if (!swipeHandled.current) setFullscreen(true); }}
+          onTouchStart={handleTouchStart}
+          onTouchEnd={handleTouchEnd}
+          style={{ touchAction: "pan-y" }}
         >
           {/* The image itself — zooms in-place on hover via transform (desktop only) */}
           <Image
@@ -141,9 +162,9 @@ export default function ProductGallery({
             </div>
           )}
 
-          {/* Zoom hint */}
+          {/* Zoom hint — desktop only (cursor language irrelevant on touch) */}
           {!zooming && (
-            <div className="absolute bottom-3 right-3 z-10 pointer-events-none opacity-80">
+            <div className="absolute bottom-3 right-3 z-10 pointer-events-none opacity-80 hidden md:block">
               <span className="bg-black/45 backdrop-blur-sm text-white text-[10px] px-2.5 py-1.5 rounded-full">
                 🔍 Pasa el cursor para ampliar
               </span>
@@ -155,14 +176,14 @@ export default function ProductGallery({
             <>
               <button
                 onClick={(e) => { e.stopPropagation(); prev(); }}
-                className="absolute left-2 top-1/2 -translate-y-1/2 z-10 bg-white/85 backdrop-blur rounded-full w-8 h-8 flex items-center justify-center shadow text-lg font-bold text-neutral-700 hover:bg-white transition-colors"
+                className="absolute left-2 top-1/2 -translate-y-1/2 z-10 bg-white/85 backdrop-blur rounded-full w-10 h-10 flex items-center justify-center shadow text-lg font-bold text-neutral-700 hover:bg-white transition-colors"
                 aria-label="Imagen anterior"
               >
                 ‹
               </button>
               <button
                 onClick={(e) => { e.stopPropagation(); next(); }}
-                className="absolute right-2 top-1/2 -translate-y-1/2 z-10 bg-white/85 backdrop-blur rounded-full w-8 h-8 flex items-center justify-center shadow text-lg font-bold text-neutral-700 hover:bg-white transition-colors"
+                className="absolute right-2 top-1/2 -translate-y-1/2 z-10 bg-white/85 backdrop-blur rounded-full w-10 h-10 flex items-center justify-center shadow text-lg font-bold text-neutral-700 hover:bg-white transition-colors"
                 aria-label="Imagen siguiente"
               >
                 ›
@@ -170,20 +191,22 @@ export default function ProductGallery({
             </>
           )}
 
-          {/* Dot indicators */}
+          {/* Dot indicators — 44px tap target wrapping small visual dot */}
           {total > 1 && (
-            <div className="absolute bottom-3 left-1/2 -translate-x-1/2 z-10 flex gap-1.5">
+            <div className="absolute bottom-0 left-1/2 -translate-x-1/2 z-10 flex">
               {imageUrls.map((_, i) => (
                 <button
                   key={i}
                   onClick={(e) => { e.stopPropagation(); setActive(i); }}
                   aria-label={`Imagen ${i + 1}`}
-                  className={`rounded-full transition-all duration-200 ${
+                  className="h-11 px-1.5 flex items-center justify-center"
+                >
+                  <span className={`rounded-full transition-all duration-200 block ${
                     i === active
                       ? "w-5 h-2 bg-white shadow"
                       : "w-2 h-2 bg-white/50 hover:bg-white/80"
-                  }`}
-                />
+                  }`} />
+                </button>
               ))}
             </div>
           )}

@@ -229,7 +229,7 @@ export function SectionImagenes({
                   )}
 
                   {/* Action overlay — visible on hover or on touch */}
-                  <div className="absolute inset-x-0 bottom-0 bg-gradient-to-t from-black/70 to-transparent p-2 flex gap-1 justify-end opacity-0 group-hover:opacity-100 focus-within:opacity-100 transition-opacity">
+                  <div className="absolute inset-x-0 bottom-0 bg-gradient-to-t from-black/70 to-transparent p-2 flex gap-1 justify-end opacity-100 md:opacity-0 md:group-hover:opacity-100 focus-within:opacity-100 transition-opacity">
                     {/* Set as principal */}
                     {!isPrincipal && (
                       <button
