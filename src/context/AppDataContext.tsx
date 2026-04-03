@@ -16,7 +16,14 @@ import {
 } from "react";
 import { apiFetch } from "@/lib/api";
 
-export type Categoria  = { id: number; nombre: string; imagen_url?: string | null };
+export type Categoria  = {
+  id: number;
+  nombre: string;
+  imagen_url?: string | null;
+  nombre_kiche?: string | null;
+  nombre_kaqchikel?: string | null;
+  nombre_qeqchi?: string | null;
+};
 export type Clase      = { id: number; nombre: string; alias?: string | null };
 export type Accesorio  = { id: number; nombre: string; categoria_tipo?: string | null };
 

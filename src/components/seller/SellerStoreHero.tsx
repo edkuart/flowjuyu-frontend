@@ -5,6 +5,9 @@ import Link from 'next/link'
 import { Eye, Pencil, Star, MapPin } from 'lucide-react'
 
 import { Button } from '@/components/ui/button'
+import { useLanguage } from '@/i18n/context/useLanguage'
+import { createT } from '@/i18n/utils/t'
+import esDictionary from '@/i18n/dictionaries/es'
 
 type Props = {
   nombreComercio: string
@@ -29,6 +32,9 @@ export default function SellerStoreHero({
   viewAsClientUrl = '#',
   editProfileUrl = '/seller/profile',
 }: Props) {
+  const { dictionary } = useLanguage()
+  const tr = createT(dictionary ?? esDictionary)
+
   return (
     <section className="bg-[#f8f5ef] border-b">
       <div className="max-w-7xl mx-auto px-4 py-10 flex flex-col md:flex-row gap-6 items-start md:items-center">
@@ -44,7 +50,7 @@ export default function SellerStoreHero({
             />
           ) : (
             <div className="w-full h-full flex items-center justify-center text-sm text-muted-foreground">
-              Sin logo
+              {tr("seller.noLogo")}
             </div>
           )}
         </div>
@@ -77,7 +83,7 @@ export default function SellerStoreHero({
               {ratingAvg ? ratingAvg.toFixed(1) : '—'}
             </span>
             <span className="text-muted-foreground">
-              ({ratingCount} reseñas)
+              ({ratingCount} {ratingCount === 1 ? tr("seller.reviewSingular") : tr("seller.reviewPlural")})
             </span>
           </div>
         </div>
@@ -87,14 +93,14 @@ export default function SellerStoreHero({
           <Link href={editProfileUrl}>
             <Button variant="outline" className="gap-2">
               <Pencil className="w-4 h-4" />
-              Editar perfil
+              {tr("seller.editProfile")}
             </Button>
           </Link>
 
           <Link href={viewAsClientUrl}>
             <Button className="gap-2">
               <Eye className="w-4 h-4" />
-              Ver como cliente
+              {tr("seller.viewAsClient")}
             </Button>
           </Link>
         </div>

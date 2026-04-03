@@ -1,81 +1,68 @@
-// src/components/home/CodeSearchInput.tsx
-// Client Component — interactive code lookup bar embedded in the hero.
-// HeroSection is a Server Component so this is extracted to keep that boundary.
-"use client"
+"use client";
 
-import { useState, useRef, useEffect } from "react"
-import { useRouter } from "next/navigation"
+import { useEffect, useRef, useState } from "react";
+import { useRouter } from "next/navigation";
+
+import { useLanguage } from "@/i18n/context/useLanguage";
+import esDictionary from "@/i18n/dictionaries/es";
+import { createT } from "@/i18n/utils/t";
 
 export default function CodeSearchInput() {
-  const [code, setCode] = useState("")
-  const router = useRouter()
-  const inputRef = useRef<HTMLInputElement>(null)
+  const [code, setCode] = useState("");
+  const router = useRouter();
+  const inputRef = useRef<HTMLInputElement>(null);
+  const { dictionary } = useLanguage();
+  const tr = createT(dictionary ?? esDictionary);
 
-  // Auto-focus on mount (desktop only — avoids keyboard pop on mobile)
   useEffect(() => {
     if (window.matchMedia("(min-width: 1024px)").matches) {
-      inputRef.current?.focus()
+      inputRef.current?.focus();
     }
-  }, [])
+  }, []);
 
   function handleSubmit(e: React.FormEvent) {
-    e.preventDefault()
-    const trimmed = code.trim().toUpperCase()
-    if (!trimmed) return
-    router.push(`/p/${encodeURIComponent(trimmed)}`)
+    e.preventDefault();
+    const trimmed = code.trim().toUpperCase();
+    if (!trimmed) return;
+    router.push(`/p/${encodeURIComponent(trimmed)}`);
   }
 
   return (
     <div className="mt-7">
-      <p className="text-[9px] md:text-[10px] uppercase tracking-[0.24em] text-white/40 mb-2">
-        ¿Tienes un código?
+      <p className="mb-2 text-[9px] tracking-[0.24em] text-white/40 uppercase md:text-[10px]">
+        {tr("home.codePrompt")}
       </p>
 
-      <form onSubmit={handleSubmit} className="flex items-center gap-2 max-w-[360px]">
+      <form
+        onSubmit={handleSubmit}
+        className="flex max-w-[360px] items-center gap-2"
+      >
         <div className="relative flex-1">
           <input
             ref={inputRef}
             type="text"
             value={code}
             onChange={(e) => setCode(e.target.value)}
-            placeholder="Ej: FJ-XXXX"
+            placeholder={tr("home.codePlaceholder")}
             spellCheck={false}
             autoComplete="off"
-            aria-label="Código de producto"
-            className="
-              w-full
-              bg-white/10 hover:bg-white/[0.14] focus:bg-white/[0.14]
-              border border-white/15 focus:border-white/30
-              text-white placeholder:text-white/30
-              text-sm font-mono tracking-wider
-              rounded-md
-              px-4 py-[11px] pr-3
-              outline-none
-              transition-colors duration-150
-            "
+            aria-label={tr("home.codeLabel")}
+            className="w-full rounded-md border border-white/15 bg-white/10 px-4 py-[11px] pr-3 font-mono text-sm tracking-wider text-white transition-colors duration-150 outline-none placeholder:text-white/30 hover:bg-white/[0.14] focus:border-white/30 focus:bg-white/[0.14]"
           />
         </div>
 
         <button
           type="submit"
           disabled={!code.trim()}
-          className="
-            flex-shrink-0
-            bg-white text-[#0d0d0b]
-            text-[11px] uppercase tracking-[0.18em] font-semibold
-            px-5 py-[11px] rounded-md
-            hover:bg-white/90
-            disabled:opacity-40 disabled:cursor-not-allowed
-            transition-all duration-150
-          "
+          className="flex-shrink-0 rounded-md bg-white px-5 py-[11px] text-[11px] font-semibold tracking-[0.18em] text-[#0d0d0b] uppercase transition-all duration-150 hover:bg-white/90 disabled:cursor-not-allowed disabled:opacity-40"
         >
-          Buscar
+          {tr("home.codeButton")}
         </button>
       </form>
 
-      <p className="mt-2 text-[9px] text-white/25 tracking-wide">
-        Puedes pedir el código al vendedor
+      <p className="mt-2 text-[9px] tracking-wide text-white/25">
+        {tr("home.codeHint")}
       </p>
     </div>
-  )
+  );
 }

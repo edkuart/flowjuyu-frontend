@@ -6,7 +6,11 @@
 // Si la categoría no coincide con ninguna entrada, usa la guía genérica.
 // No muestra emojis. No duplica información ya visible en ProductSpecs.
 
-import type { ReactNode } from "react";
+"use client";
+
+import { useLanguage } from "@/i18n/context/useLanguage";
+import { createT } from "@/i18n/utils/t";
+import esDictionary from "@/i18n/dictionaries/es";
 
 /* ─── Tipos ───────────────────────────────────────────────── */
 
@@ -271,6 +275,8 @@ interface HowToUseProps {
 }
 
 export default function HowToUse({ categoria }: HowToUseProps) {
+  const { dictionary } = useLanguage();
+  const tr = createT(dictionary ?? esDictionary);
   const guide = matchGuide(categoria);
 
   return (
@@ -279,7 +285,7 @@ export default function HowToUse({ categoria }: HowToUseProps) {
       {/* Header */}
       <div className="space-y-2">
         <p className="text-[10px] uppercase tracking-[0.28em] text-[#0d0d0b]/40">
-          Guía de uso y cuidado
+          {tr("pdp.howToUseEyebrow")}
         </p>
         <h2 className="font-serif italic text-[20px] text-[#0d0d0b]">
           {guide.titulo}

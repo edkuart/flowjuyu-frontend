@@ -5,6 +5,9 @@ import { getProductImage } from '@/lib/getProductImage'
 import Link from 'next/link'
 import { Card, CardContent } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
+import { useLanguage } from '@/i18n/context/useLanguage'
+import { createT } from '@/i18n/utils/t'
+import esDictionary from '@/i18n/dictionaries/es'
 
 type Producto = {
   id: string
@@ -19,14 +22,17 @@ type Props = {
 }
 
 export default function SellerStoreProducts({ productos }: Props) {
+  const { dictionary } = useLanguage()
+  const tr = createT(dictionary ?? esDictionary)
+
   return (
     <section className="space-y-4">
       <div className="flex items-center justify-between">
-        <h2 className="text-lg font-semibold">Productos destacados</h2>
+        <h2 className="text-lg font-semibold">{tr("seller.featuredProducts")}</h2>
 
         <Link href="/seller/products">
           <Button variant="outline" size="sm">
-            Gestionar productos
+            {tr("seller.manageProducts")}
           </Button>
         </Link>
       </div>
@@ -34,7 +40,7 @@ export default function SellerStoreProducts({ productos }: Props) {
       {productos.length === 0 ? (
         <Card>
           <CardContent className="p-6 text-sm text-muted-foreground">
-            Aún no tienes productos publicados.
+            {tr("seller.noPublishedProducts")}
           </CardContent>
         </Card>
       ) : (

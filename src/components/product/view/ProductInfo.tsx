@@ -9,6 +9,9 @@ import Link from "next/link";
 import { MapPin, ChevronDown, ShieldCheck } from "lucide-react";
 import { FavoriteButton } from "@/components/ui/FavoriteButton";
 import { ProductContactCTA } from "@/components/product/ProductContactCTA";
+import { useLanguage } from "@/i18n/context/useLanguage";
+import { createT } from "@/i18n/utils/t";
+import esDictionary from "@/i18n/dictionaries/es";
 
 type Props = {
   nombre: string;
@@ -37,22 +40,6 @@ const formatPrice = (n: number) =>
     minimumFractionDigits: 0,
   }).format(n);
 
-/* ─── FAQ acordeón ─── */
-const FAQ = [
-  {
-    q: "¿Cómo coordino el envío?",
-    a: "Al contactar al artesano directamente, puedes coordinar el método de envío — correo, encomienda o entrega en persona si estás en el mismo departamento.",
-  },
-  {
-    q: "¿Puedo pedir medidas exactas?",
-    a: "Sí. Al ser piezas artesanales, muchos vendedores pueden adaptar dimensiones bajo pedido. Consúltalo directamente antes de confirmar tu compra.",
-  },
-  {
-    q: "¿Esta pieza es exactamente igual a la foto?",
-    a: "Los textiles artesanales tienen pequeñas variaciones naturales entre piezas — colores, tramas y detalles pueden variar ligeramente. Esto es parte de su autenticidad, no un defecto.",
-  },
-];
-
 function FaqItem({ q, a }: { q: string; a: string }) {
   const [open, setOpen] = useState(false);
   return (
@@ -80,7 +67,6 @@ function FaqItem({ q, a }: { q: string; a: string }) {
   );
 }
 
-/* ─── Stars ─── */
 function Stars({ rating }: { rating: number }) {
   return (
     <div className="flex gap-[2px]">
@@ -100,7 +86,6 @@ function Stars({ rating }: { rating: number }) {
   );
 }
 
-/* ─── Main component ─── */
 export default function ProductInfo({
   nombre,
   descripcion,
@@ -120,6 +105,15 @@ export default function ProductInfo({
   stock,
   internal_code,
 }: Props) {
+  const { dictionary } = useLanguage();
+  const tr = createT(dictionary ?? esDictionary);
+
+  const FAQ = [
+    { q: tr("pdp.faqShipping"),  a: tr("pdp.faqShippingAnswer") },
+    { q: tr("pdp.faqMeasures"),  a: tr("pdp.faqMeasuresAnswer") },
+    { q: tr("pdp.faqExact"),     a: tr("pdp.faqExactAnswer") },
+  ];
+
   const precioNumber = Number(precio || 0);
   const [codeCopied, setCodeCopied] = useState(false);
 
@@ -130,7 +124,6 @@ export default function ProductInfo({
     try {
       await navigator.clipboard.writeText(internal_code);
     } catch {
-      // fallback for older browsers
       const el = document.createElement("textarea");
       el.value = internal_code;
       document.body.appendChild(el);
@@ -173,12 +166,12 @@ export default function ProductInfo({
           <a
             href="#reviews"
             className="flex items-center gap-2 group w-fit"
-            aria-label="Ver reseñas"
+            aria-label={tr("pdp.seeReviews")}
           >
             <Stars rating={rating_avg} />
             <span className="text-[12px] text-[#0d0d0b]/50 group-hover:text-[#0d2d20] transition">
               {rating_avg.toFixed(1)} · {rating_count}{" "}
-              {rating_count === 1 ? "reseña" : "reseñas"}
+              {rating_count === 1 ? tr("pdp.review") : tr("pdp.reviews")}
             </span>
           </a>
         ) : (
@@ -186,24 +179,24 @@ export default function ProductInfo({
             href="#reviews"
             className="text-[12px] text-[#0d0d0b]/35 hover:text-[#0d2d20] transition w-fit block"
           >
-            Sin reseñas todavía — sé el primero
+            {tr("pdp.noReviews")}
           </a>
         )}
 
         {internal_code && (
           <div className="flex items-center gap-2 text-[11px] text-[#0d0d0b]/40">
             <span>
-              Código:{" "}
+              {tr("pdp.code")}:{" "}
               <span className="font-mono text-[#0d0d0b]/60">{internal_code}</span>
             </span>
             <button
               onClick={handleCopyCode}
               className="hover:text-[#0d0d0b]/70 transition-colors"
-              aria-label="Copiar código"
+              aria-label={tr("pdp.copyCode")}
             >
               {codeCopied
-                ? <span className="text-green-600">Copiado ✓</span>
-                : <span>Copiar</span>
+                ? <span className="text-green-600">{tr("pdp.copied")}</span>
+                : <span>{tr("pdp.copy")}</span>
               }
             </button>
           </div>
@@ -220,7 +213,7 @@ export default function ProductInfo({
 
         <div className="h-px bg-[#0d2d20]/8" />
 
-        {/* ── Descripción — genera deseo antes del CTA ── */}
+        {/* ── Descripción ── */}
         {descripcion && (
           <p className="text-[14px] text-[#0d0d0b]/65 leading-relaxed">
             {descripcion}
@@ -230,15 +223,13 @@ export default function ProductInfo({
         {/* ── Urgencia + seller + CTAs ── */}
         <div className="space-y-4">
 
-          {/* Urgencia contextual — solo cuando hay stock=1 */}
           {stock === 1 && (
             <p className="text-[11px] uppercase tracking-[0.22em] text-[#0d2d20] flex items-center gap-2">
               <span className="text-[8px]">✦</span>
-              Última pieza disponible
+              {tr("pdp.lastPiece")}
             </p>
           )}
 
-          {/* Seller badge — confianza antes del clic */}
           {(sellerNombre || sellerId) && (
             <div className="flex items-center gap-3 py-3 px-4 bg-[#f6f2ea] border border-[#0d2d20]/10 rounded-sm">
               <div className="relative w-9 h-9 rounded-full overflow-hidden flex-shrink-0 border border-[#0d2d20]/10 bg-[#0d2d20]/10 flex items-center justify-center">
@@ -262,7 +253,7 @@ export default function ProductInfo({
                 <div className="flex items-center gap-1 mt-[2px]">
                   <ShieldCheck className="w-3 h-3 text-[#0d2d20]" />
                   <span className="text-[10px] text-[#0d2d20] uppercase tracking-[0.18em]">
-                    Verificado por Flowjuyu
+                    {tr("pdp.verifiedBy")}
                   </span>
                 </div>
               </div>
@@ -271,13 +262,12 @@ export default function ProductInfo({
                   href={`/store/${sellerId}`}
                   className="text-[10px] uppercase tracking-[0.20em] text-[#0d0d0b]/40 hover:text-[#0d2d20] transition flex-shrink-0"
                 >
-                  Ver tienda →
+                  {tr("pdp.viewStore")}
                 </Link>
               )}
             </div>
           )}
 
-          {/* CTAs */}
           <ProductContactCTA
             productId={productId}
             productNombre={nombre}
@@ -289,11 +279,10 @@ export default function ProductInfo({
             sellerNombre={sellerNombre}
           />
 
-          {/* Guardar pieza + nota de envío */}
           <div className="flex items-center justify-between pt-1">
             <FavoriteButton productId={productId} showLabel />
             <p className="text-[10px] text-[#0d0d0b]/35 tracking-wide text-right">
-              El artesano responde directo
+              {tr("pdp.artisanResponds")}
             </p>
           </div>
 
@@ -303,10 +292,7 @@ export default function ProductInfo({
 
         {/* ── Trust signals ── */}
         <ul className="space-y-[6px]">
-          {[
-            "Técnicas y materiales tradicionales",
-            "Contacto directo con quien la hizo",
-          ].map((text) => (
+          {[tr("pdp.trustHandmade"), tr("pdp.trustDirect")].map((text) => (
             <li key={text} className="flex items-center gap-2 text-[11px] text-[#0d0d0b]/50">
               <span className="text-[#0d2d20] font-bold flex-shrink-0 text-[10px]">✔</span>
               {text}
@@ -317,7 +303,7 @@ export default function ProductInfo({
         {/* ── FAQ ── */}
         <div className="space-y-0">
           <p className="text-[10px] uppercase tracking-[0.28em] text-[#0d0d0b]/40 mb-3">
-            Preguntas frecuentes
+            {tr("pdp.faqTitle")}
           </p>
           {FAQ.map((item) => (
             <FaqItem key={item.q} q={item.q} a={item.a} />
@@ -325,7 +311,6 @@ export default function ProductInfo({
         </div>
 
       </section>
-
     </>
   );
 }

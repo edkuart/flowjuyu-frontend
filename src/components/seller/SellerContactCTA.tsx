@@ -1,98 +1,140 @@
-// src/components/seller/SellerContactCTA.tsx
-// Server Component — renders anchor/button, no client state needed
-import { MessageCircle, ChevronRight, Hand, Leaf, ShieldCheck } from "lucide-react"
+"use client";
 
-/* ──────────────────────────────────────────
-   TYPES
-────────────────────────────────────────── */
+import {
+  ChevronRight,
+  Hand,
+  Leaf,
+  MessageCircle,
+  ShieldCheck,
+} from "lucide-react";
+import { useMemo, useState } from "react";
+
+import WhatsAppModal from "@/components/product/WhatsAppModal";
+import { useLanguage } from "@/i18n/context/useLanguage";
+import esDictionary from "@/i18n/dictionaries/es";
+import { createT } from "@/i18n/utils/t";
+import { buildWhatsAppHref, extractWhatsAppPhone } from "@/lib/whatsapp";
 
 export interface SellerContactCTAProps {
-  whatsapp?:      string | null
-  nombreComercio?: string | null
-  storeUrl?:      string | null
+  whatsapp?: string | null;
+  nombreComercio?: string | null;
+  storeUrl?: string | null;
 }
 
-/* ──────────────────────────────────────────
-   HELPERS
-────────────────────────────────────────── */
-
-// Accepts either a full wa.me URL (from phoneToWaUrl) or a raw number string for legacy callers
-function buildWaHref(raw: string): string {
-  if (raw.startsWith("https://")) return raw
-  return `https://wa.me/${raw.replace(/[\s\-().]/g, "")}`
+function fillTemplate(template: string, values: Record<string, string>) {
+  return Object.entries(values).reduce(
+    (result, [key, value]) => result.replaceAll(`{${key}}`, value),
+    template,
+  );
 }
 
-/* ──────────────────────────────────────────
-   TRUST BADGES
-────────────────────────────────────────── */
+export function SellerContactCTA({
+  whatsapp,
+  nombreComercio,
+  storeUrl,
+}: SellerContactCTAProps) {
+  const { dictionary } = useLanguage();
+  const tr = createT(dictionary ?? esDictionary);
+  const [modalOpen, setModalOpen] = useState(false);
 
-const TRUST_BADGES = [
-  { icon: Hand,        label: "Hecho a mano"       },
-  { icon: Leaf,        label: "Producción local"    },
-  { icon: ShieldCheck, label: "Artesano verificado" },
-] as const
+  const cleanPhone = extractWhatsAppPhone(whatsapp);
+  const hasWhatsapp = Boolean(cleanPhone);
 
-/* ──────────────────────────────────────────
-   COMPONENT
-────────────────────────────────────────── */
+  const buttonLabel = useMemo(() => {
+    if (nombreComercio) {
+      return fillTemplate(tr("seller.talkWithName"), { name: nombreComercio });
+    }
 
-export function SellerContactCTA({ whatsapp, nombreComercio, storeUrl }: SellerContactCTAProps) {
-  const hasWhatsapp = Boolean(whatsapp?.trim())
+    return tr("seller.talkWithArtisan");
+  }, [nombreComercio, tr]);
+
+  const initialMessage = useMemo(
+    () =>
+      fillTemplate(tr("seller.whatsappMessageTemplate"), {
+        namePart: nombreComercio ? ` ${nombreComercio}` : "",
+      }),
+    [nombreComercio, tr],
+  );
+
+  const trustBadges = [
+    { icon: Hand, label: tr("seller.badgeHandmade") },
+    { icon: Leaf, label: tr("seller.badgeLocal") },
+    { icon: ShieldCheck, label: tr("seller.badgeVerified") },
+  ];
 
   return (
     <div className="space-y-3">
-
-      {/* ── Primary CTA ── */}
       {hasWhatsapp ? (
-        <a
-          href={buildWaHref(whatsapp!)}
-          target="_blank"
-          rel="noopener noreferrer"
-          className="flex items-center justify-center gap-3 w-full px-6 py-4 rounded-2xl bg-[#16a34a] hover:bg-[#15803d] hover:-translate-y-0.5 active:scale-[0.98] active:translate-y-0 text-white font-bold text-base transition-all duration-200 shadow-md hover:shadow-xl"
+        <button
+          onClick={() => setModalOpen(true)}
+          className="flex w-full items-center justify-center gap-3 rounded-2xl bg-[#16a34a] px-6 py-4 text-base font-bold text-white shadow-md transition-all duration-200 hover:-translate-y-0.5 hover:bg-[#15803d] hover:shadow-xl active:translate-y-0 active:scale-[0.98]"
         >
-          <MessageCircle className="w-5 h-5 flex-shrink-0" />
-          Hablar con el artesano
-        </a>
+          <MessageCircle className="h-5 w-5 flex-shrink-0" />
+          {buttonLabel}
+        </button>
       ) : (
-        <div className="flex items-center justify-center gap-2.5 w-full px-6 py-4 rounded-2xl bg-neutral-100 border border-neutral-200 text-neutral-400 font-semibold text-base cursor-not-allowed select-none">
-          <MessageCircle className="w-5 h-5 flex-shrink-0" />
-          Hablar con el artesano
+        <div className="flex w-full cursor-not-allowed items-center justify-center gap-2.5 rounded-2xl border border-neutral-200 bg-neutral-100 px-6 py-4 text-base font-semibold text-neutral-400 select-none">
+          <MessageCircle className="h-5 w-5 flex-shrink-0" />
+          {buttonLabel}
         </div>
       )}
 
-      {/* ── Secondary CTA ── */}
       {storeUrl && (
         <a
           href={storeUrl}
-          className="flex items-center justify-center gap-2 w-full px-6 py-3 rounded-2xl border border-neutral-200 bg-white hover:bg-neutral-50 hover:border-neutral-300 hover:-translate-y-0.5 text-neutral-700 font-semibold text-sm transition-all duration-200"
+          className="flex w-full items-center justify-center gap-2 rounded-2xl border border-neutral-200 bg-white px-6 py-3 text-sm font-semibold text-neutral-700 transition-all duration-200 hover:-translate-y-0.5 hover:border-neutral-300 hover:bg-neutral-50"
         >
-          Ver catálogo
-          <ChevronRight className="w-4 h-4 text-neutral-400" />
+          {tr("seller.viewCatalog")}
+          <ChevronRight className="h-4 w-4 text-neutral-400" />
         </a>
       )}
 
-      {/* ── Subtitle ── */}
       <p className="text-center text-xs text-neutral-400">
         {hasWhatsapp
-          ? "Respuesta rápida · Sin compromiso"
+          ? tr("seller.fastReplyNoCommitment")
           : nombreComercio
-          ? `${nombreComercio} aún no tiene WhatsApp activo`
-          : "El artesano no tiene WhatsApp activo"}
+            ? `${nombreComercio} — ${tr("seller.noWhatsapp")}`
+            : tr("seller.noWhatsapp")}
       </p>
 
-      {/* ── Trust badges ── */}
       <div className="grid grid-cols-3 gap-2 pt-1">
-        {TRUST_BADGES.map(({ icon: Icon, label }) => (
+        {trustBadges.map(({ icon: Icon, label }) => (
           <div
             key={label}
-            className="flex flex-col items-center gap-1.5 bg-neutral-50 border border-neutral-100 rounded-xl px-2 py-3 text-center"
+            className="flex flex-col items-center gap-1.5 rounded-xl border border-neutral-100 bg-neutral-50 px-2 py-3 text-center"
           >
-            <Icon className="w-4 h-4 text-[#0F3D3A]" />
-            <span className="text-[10px] font-semibold text-neutral-600 leading-tight">{label}</span>
+            <Icon className="h-4 w-4 text-[#0F3D3A]" />
+            <span className="text-[10px] leading-tight font-semibold text-neutral-600">
+              {label}
+            </span>
           </div>
         ))}
       </div>
 
+      {hasWhatsapp && (
+        <WhatsAppModal
+          open={modalOpen}
+          onClose={() => setModalOpen(false)}
+          onConfirm={(message) => {
+            setModalOpen(false);
+            const href = buildWhatsAppHref(cleanPhone ?? "", message);
+            if (!href) return;
+            window.open(href, "_blank", "noopener,noreferrer");
+          }}
+          seller={{ nombre: nombreComercio ?? null }}
+          initialMessage={initialMessage}
+          copy={{
+            ariaLabel: tr("seller.whatsappModalAriaLabel"),
+            title: tr("seller.whatsappModalTitle"),
+            subtitle: tr("seller.whatsappModalSubtitle"),
+            messageLabel: tr("seller.whatsappModalMessageLabel"),
+            hint: tr("seller.whatsappModalHint"),
+            confirm: tr("seller.whatsappModalConfirm"),
+            cancel: tr("seller.whatsappModalCancel"),
+            footer: tr("seller.whatsappModalFooter"),
+          }}
+        />
+      )}
     </div>
-  )
+  );
 }

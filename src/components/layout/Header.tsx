@@ -4,7 +4,7 @@
 
 import Link from "next/link";
 import Image from "next/image";
-import { useEffect, useRef, useState, useMemo } from "react";
+import { useEffect, useRef, useState } from "react";
 import {
   Search,
   User,
@@ -38,26 +38,134 @@ import { useNotifications } from "@/hooks/useNotifications";
 import { useFavorites } from "@/hooks/useFavorites";
 import { timeAgo } from "@/lib/adminHelpers";
 
+import { useLanguage } from "@/i18n/context/useLanguage";
+import { createT } from "@/i18n/utils/t";
+import esDictionary from "@/i18n/dictionaries/es";
+import { LANGUAGES } from "@/i18n/languages";
+import { SUPPORTED_LANGUAGES } from "@/i18n/config";
+
 // ── Stat tile color helpers ─────────────────────────────────────────────────
 
 function ticketStyle(n: number) {
-  if (n >= 10) return { tile: "bg-red-50",    value: "text-red-700",    label: "text-red-400"    }
-  if (n >= 5)  return { tile: "bg-amber-50",  value: "text-amber-700",  label: "text-amber-400"  }
-  if (n > 0)   return { tile: "bg-zinc-50",   value: "text-zinc-700",   label: "text-zinc-400"   }
-  return              { tile: "bg-zinc-50",   value: "text-zinc-400",   label: "text-zinc-300"   }
+  if (n >= 10)
+    return { tile: "bg-red-50", value: "text-red-700", label: "text-red-400" };
+  if (n >= 5)
+    return {
+      tile: "bg-amber-50",
+      value: "text-amber-700",
+      label: "text-amber-400",
+    };
+  if (n > 0)
+    return {
+      tile: "bg-zinc-50",
+      value: "text-zinc-700",
+      label: "text-zinc-400",
+    };
+  return { tile: "bg-zinc-50", value: "text-zinc-400", label: "text-zinc-300" };
 }
 
 function sellerStyle(n: number) {
-  if (n >= 3) return { tile: "bg-amber-50",  value: "text-amber-700",  label: "text-amber-400"  }
-  if (n > 0)  return { tile: "bg-zinc-50",   value: "text-zinc-700",   label: "text-zinc-400"   }
-  return             { tile: "bg-zinc-50",   value: "text-zinc-400",   label: "text-zinc-300"   }
+  if (n >= 3)
+    return {
+      tile: "bg-amber-50",
+      value: "text-amber-700",
+      label: "text-amber-400",
+    };
+  if (n > 0)
+    return {
+      tile: "bg-zinc-50",
+      value: "text-zinc-700",
+      label: "text-zinc-400",
+    };
+  return { tile: "bg-zinc-50", value: "text-zinc-400", label: "text-zinc-300" };
 }
 
 function leadStyle(n: number) {
-  if (n > 0) return { tile: "bg-blue-50",   value: "text-blue-700",   label: "text-blue-400"   }
-  return            { tile: "bg-zinc-50",   value: "text-zinc-400",   label: "text-zinc-300"   }
+  if (n > 0)
+    return {
+      tile: "bg-blue-50",
+      value: "text-blue-700",
+      label: "text-blue-400",
+    };
+  return { tile: "bg-zinc-50", value: "text-zinc-400", label: "text-zinc-300" };
 }
 
+// ── Language Switcher ───────────────────────────────────────────────────────
+
+function LanguageSwitcher({ className }: { className: string }) {
+  const { language, setLanguage, meta, dictionary } = useLanguage();
+  const tr = createT(dictionary ?? esDictionary);
+  const [open, setOpen] = useState(false);
+  const ref = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    const onDocClick = (e: MouseEvent) => {
+      if (ref.current && !ref.current.contains(e.target as Node))
+        setOpen(false);
+    };
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key === "Escape") setOpen(false);
+    };
+    document.addEventListener("mousedown", onDocClick);
+    document.addEventListener("keydown", onKey);
+    return () => {
+      document.removeEventListener("mousedown", onDocClick);
+      document.removeEventListener("keydown", onKey);
+    };
+  }, []);
+
+  return (
+    <div className={`relative ${className}`} ref={ref}>
+      <button
+        type="button"
+        onClick={() => setOpen((v) => !v)}
+        aria-label={tr("language.label")}
+        aria-expanded={open}
+        aria-haspopup="listbox"
+        className="inline-flex items-center gap-1.5 rounded-lg border border-white/20 px-2.5 py-1.5 text-sm transition-colors hover:bg-white/10 focus-visible:outline focus-visible:outline-2 focus-visible:outline-amber-400"
+      >
+        <Globe className="h-4 w-4" />
+        {meta.shortCode}
+      </button>
+
+      {open && (
+        <div
+          className="absolute top-full right-0 z-50 pt-2"
+          role="listbox"
+          aria-label={tr("language.label")}
+        >
+          <div className="w-44 rounded-xl border border-neutral-100 bg-white py-1.5 text-sm text-neutral-800 shadow-2xl">
+            {SUPPORTED_LANGUAGES.map((lang) => {
+              const active = language === lang;
+              return (
+                <button
+                  key={lang}
+                  type="button"
+                  role="option"
+                  aria-selected={active}
+                  onClick={() => {
+                    setLanguage(lang);
+                    setOpen(false);
+                  }}
+                  className={`flex w-full items-center gap-2.5 px-4 py-2 text-left transition-colors hover:bg-neutral-50 ${
+                    active ? "font-semibold text-[#0f2e22]" : "text-neutral-700"
+                  }`}
+                >
+                  <span
+                    className={`h-1.5 w-1.5 shrink-0 rounded-full ${
+                      active ? "bg-[#0f2e22]" : "bg-transparent"
+                    }`}
+                  />
+                  {LANGUAGES[lang].nativeLabel}
+                </button>
+              );
+            })}
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}
 // ── Buyer dropdown ──────────────────────────────────────────────────────────
 
 function BuyerDropdown({
@@ -69,50 +177,63 @@ function BuyerDropdown({
   onClose: () => void;
   onLogout: () => void;
 }) {
+  const { dictionary } = useLanguage();
+  const tr = createT(dictionary ?? esDictionary);
+
   const { unread, notifications, markAsRead } = useNotifications();
   const { favorites } = useFavorites();
   const favCount = favorites.length;
   const recentActivity = notifications.slice(0, 2);
 
   return (
-    <div className="w-60 bg-white rounded-xl shadow-2xl border border-neutral-100 py-1.5 text-neutral-800 text-sm">
-
+    <div className="w-60 rounded-xl border border-neutral-100 bg-white py-1.5 text-sm text-neutral-800 shadow-2xl">
       {/* Identity header */}
-      <div className="px-4 pb-2 mb-1 border-b border-neutral-100 flex items-center gap-2.5">
-        <div className="w-8 h-8 rounded-full bg-orange-100 flex items-center justify-center shrink-0 text-sm font-bold text-orange-600 uppercase">
+      <div className="mb-1 flex items-center gap-2.5 border-b border-neutral-100 px-4 pb-2">
+        <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-orange-100 text-sm font-bold text-orange-600 uppercase">
           {user.name?.charAt(0) ?? "?"}
         </div>
         <div className="min-w-0">
-          <p className="text-xs font-semibold leading-none truncate">{user.name ?? "Usuario"}</p>
-          <p className="text-[10px] text-neutral-400 mt-0.5">Flowjuyu Buyer</p>
+          <p className="truncate text-xs leading-none font-semibold">
+            {user.name ?? "Usuario"}
+          </p>
+          <p className="mt-0.5 text-[10px] text-neutral-400">Flowjuyu Buyer</p>
         </div>
       </div>
 
       {/* ACTIVIDAD */}
       <p className="px-4 pt-1 pb-1 text-[10px] font-semibold tracking-widest text-neutral-400 uppercase">
-        Actividad
+        {tr("nav.activity")}
       </p>
-      <Link href="/buyer/orders" onClick={onClose}
-        className="flex items-center gap-2.5 px-4 py-2 hover:bg-neutral-50 transition-colors">
-        <Package className="w-3.5 h-3.5 text-zinc-500 shrink-0" />
-        <span className="flex-1">Mis pedidos</span>
+      <Link
+        href="/buyer/orders"
+        onClick={onClose}
+        className="flex items-center gap-2.5 px-4 py-2 transition-colors hover:bg-neutral-50"
+      >
+        <Package className="h-3.5 w-3.5 shrink-0 text-zinc-500" />
+        <span className="flex-1">{tr("nav.myOrders")}</span>
       </Link>
-      <Link href="/buyer/favorites" onClick={onClose}
-        className="flex items-center gap-2.5 px-4 py-2 hover:bg-neutral-50 transition-colors">
-        <Heart className="w-3.5 h-3.5 text-zinc-500 shrink-0" />
-        <span className="flex-1">Mis favoritos</span>
+      <Link
+        href="/buyer/favorites"
+        onClick={onClose}
+        className="flex items-center gap-2.5 px-4 py-2 transition-colors hover:bg-neutral-50"
+      >
+        <Heart className="h-3.5 w-3.5 shrink-0 text-zinc-500" />
+        <span className="flex-1">{tr("nav.myFavorites")}</span>
         {favCount > 0 && (
-          <span className="text-[10px] font-semibold px-1.5 py-0.5 rounded-full bg-orange-100 text-orange-600 leading-tight tabular-nums">
+          <span className="rounded-full bg-orange-100 px-1.5 py-0.5 text-[10px] leading-tight font-semibold text-orange-600 tabular-nums">
             {favCount}
           </span>
         )}
       </Link>
-      <Link href="/buyer/notifications" onClick={onClose}
-        className="flex items-center gap-2.5 px-4 py-2 hover:bg-neutral-50 transition-colors">
-        <Bell className="w-3.5 h-3.5 text-zinc-500 shrink-0" />
-        <span className="flex-1">Notificaciones</span>
+      <Link
+        href="/buyer/notifications"
+        onClick={onClose}
+        className="flex items-center gap-2.5 px-4 py-2 transition-colors hover:bg-neutral-50"
+      >
+        <Bell className="h-3.5 w-3.5 shrink-0 text-zinc-500" />
+        <span className="flex-1">{tr("nav.notifications")}</span>
         {unread > 0 && (
-          <span className="text-[10px] font-semibold px-1.5 py-0.5 rounded-full bg-red-100 text-red-600 leading-tight tabular-nums">
+          <span className="rounded-full bg-red-100 px-1.5 py-0.5 text-[10px] leading-tight font-semibold text-red-600 tabular-nums">
             {unread > 99 ? "99+" : unread}
           </span>
         )}
@@ -121,43 +242,52 @@ function BuyerDropdown({
       {/* MI CUENTA */}
       <div className="my-1.5 border-t border-neutral-100" />
       <p className="px-4 pb-1 text-[10px] font-semibold tracking-widest text-neutral-400 uppercase">
-        Mi cuenta
+        {tr("nav.account")}
       </p>
-      <Link href="/buyer/profile" onClick={onClose}
-        className="flex items-center gap-2.5 px-4 py-2 hover:bg-neutral-50 transition-colors">
-        <User className="w-3.5 h-3.5 text-zinc-500 shrink-0" />
-        Mi perfil
+      <Link
+        href="/buyer/profile"
+        onClick={onClose}
+        className="flex items-center gap-2.5 px-4 py-2 transition-colors hover:bg-neutral-50"
+      >
+        <User className="h-3.5 w-3.5 shrink-0 text-zinc-500" />
+        {tr("nav.myProfile")}
       </Link>
-      <Link href="/buyer/addresses" onClick={onClose}
-        className="flex items-center gap-2.5 px-4 py-2 hover:bg-neutral-50 transition-colors">
-        <MapPin className="w-3.5 h-3.5 text-zinc-500 shrink-0" />
-        Direcciones
+      <Link
+        href="/buyer/addresses"
+        onClick={onClose}
+        className="flex items-center gap-2.5 px-4 py-2 transition-colors hover:bg-neutral-50"
+      >
+        <MapPin className="h-3.5 w-3.5 shrink-0 text-zinc-500" />
+        {tr("nav.addresses")}
       </Link>
 
       {/* ACTIVIDAD RECIENTE */}
       <div className="my-1.5 border-t border-neutral-100" />
-      <div className="px-4 pt-1 pb-1 flex items-center justify-between">
+      <div className="flex items-center justify-between px-4 pt-1 pb-1">
         <p className="text-[10px] font-semibold tracking-widest text-neutral-400 uppercase">
-          Actividad reciente
+          {tr("nav.recentActivity")}
         </p>
         {recentActivity.length > 0 && (
-          <Link href="/buyer/notifications" onClick={onClose}
-            className="text-[10px] text-neutral-400 hover:text-neutral-600 transition-colors">
-            Ver todas
+          <Link
+            href="/buyer/notifications"
+            onClick={onClose}
+            className="text-[10px] text-neutral-400 transition-colors hover:text-neutral-600"
+          >
+            {tr("nav.seeAll")}
           </Link>
         )}
       </div>
 
       {recentActivity.length === 0 ? (
         <p className="px-4 py-2 text-xs text-neutral-400 italic">
-          Aún no tienes actividad
+          {tr("nav.noActivity")}
         </p>
       ) : (
-        <div className="px-2 pb-1 space-y-0.5">
+        <div className="space-y-0.5 px-2 pb-1">
           {recentActivity.map((n) => {
             const inner = (
               <div
-                className={`px-2 py-2 rounded-lg hover:bg-neutral-50 transition-colors cursor-pointer ${
+                className={`cursor-pointer rounded-lg px-2 py-2 transition-colors hover:bg-neutral-50 ${
                   !n.is_read ? "bg-orange-50/60" : ""
                 }`}
                 onClick={() => {
@@ -165,13 +295,13 @@ function BuyerDropdown({
                   onClose();
                 }}
               >
-                <p className="text-xs font-semibold text-neutral-800 leading-snug truncate">
+                <p className="truncate text-xs leading-snug font-semibold text-neutral-800">
                   {n.title}
                 </p>
-                <p className="text-[11px] text-neutral-500 leading-snug truncate mt-0.5">
+                <p className="mt-0.5 truncate text-[11px] leading-snug text-neutral-500">
                   {n.message}
                 </p>
-                <p className="text-[10px] text-neutral-400 mt-1">
+                <p className="mt-1 text-[10px] text-neutral-400">
                   {timeAgo(n.created_at)}
                 </p>
               </div>
@@ -191,11 +321,14 @@ function BuyerDropdown({
       {/* Logout */}
       <div className="mt-1.5 border-t border-neutral-100" />
       <button
-        onClick={() => { onClose(); onLogout(); }}
-        className="w-full flex items-center gap-2.5 px-4 py-2.5 text-left text-red-600 hover:bg-neutral-50 transition-colors"
+        onClick={() => {
+          onClose();
+          onLogout();
+        }}
+        className="flex w-full items-center gap-2.5 px-4 py-2.5 text-left text-red-600 transition-colors hover:bg-neutral-50"
       >
-        <LogOut className="w-3.5 h-3.5 shrink-0" />
-        Cerrar sesión
+        <LogOut className="h-3.5 w-3.5 shrink-0" />
+        {tr("nav.logout")}
       </button>
     </div>
   );
@@ -203,24 +336,31 @@ function BuyerDropdown({
 
 // ── Admin dropdown (isolated so useAdminStats only runs for admins) ─────────
 
-function AdminDropdown({ onClose, onLogout }: { onClose: () => void; onLogout: () => void }) {
-  const stats = useAdminStats()
+function AdminDropdown({
+  onClose,
+  onLogout,
+}: {
+  onClose: () => void;
+  onLogout: () => void;
+}) {
+  const stats = useAdminStats();
+  const { dictionary } = useLanguage();
+  const tr = createT(dictionary ?? esDictionary);
 
-  const ts = ticketStyle(stats.tickets)
-  const ss = sellerStyle(stats.sellersPendientes)
-  const ls = leadStyle(stats.leads)
+  const ts = ticketStyle(stats.tickets);
+  const ss = sellerStyle(stats.sellersPendientes);
+  const ls = leadStyle(stats.leads);
 
   return (
-    <div className="w-64 bg-white rounded-xl shadow-2xl border border-neutral-100 py-2 text-neutral-800 text-sm">
-
+    <div className="w-64 rounded-xl border border-neutral-100 bg-white py-2 text-sm text-neutral-800 shadow-2xl">
       {/* Header pill */}
-      <div className="px-4 pb-2 mb-1 border-b border-neutral-100 flex items-center gap-2">
-        <div className="w-6 h-6 rounded-md bg-zinc-900 flex items-center justify-center shrink-0">
-          <span className="text-white text-[10px] font-bold">A</span>
+      <div className="mb-1 flex items-center gap-2 border-b border-neutral-100 px-4 pb-2">
+        <div className="flex h-6 w-6 shrink-0 items-center justify-center rounded-md bg-zinc-900">
+          <span className="text-[10px] font-bold text-white">A</span>
         </div>
         <div>
-          <p className="text-xs font-semibold leading-none">Atlas Control</p>
-          <p className="text-[10px] text-neutral-400 mt-0.5">Flowjuyu Admin</p>
+          <p className="text-xs leading-none font-semibold">Atlas Control</p>
+          <p className="mt-0.5 text-[10px] text-neutral-400">Flowjuyu Admin</p>
         </div>
       </div>
 
@@ -230,31 +370,56 @@ function AdminDropdown({ onClose, onLogout }: { onClose: () => void; onLogout: (
           Quick Stats
         </p>
         <div className="grid grid-cols-3 gap-1.5">
-
-          <Link href="/admin/tickets" onClick={onClose}
-            className={`${ts.tile} rounded-lg px-2 py-2 flex flex-col gap-0.5 hover:brightness-95 transition-all`}>
-            <span className={`text-base font-bold leading-none tabular-nums ${ts.value}`}>
+          <Link
+            href="/admin/tickets"
+            onClick={onClose}
+            className={`${ts.tile} flex flex-col gap-0.5 rounded-lg px-2 py-2 transition-all hover:brightness-95`}
+          >
+            <span
+              className={`text-base leading-none font-bold tabular-nums ${ts.value}`}
+            >
               {stats.tickets > 99 ? "99+" : stats.tickets}
             </span>
-            <span className={`text-[10px] font-medium leading-none ${ts.label}`}>Tickets</span>
+            <span
+              className={`text-[10px] leading-none font-medium ${ts.label}`}
+            >
+              Tickets
+            </span>
           </Link>
 
-          <Link href="/admin/sellers" onClick={onClose}
-            className={`${ss.tile} rounded-lg px-2 py-2 flex flex-col gap-0.5 hover:brightness-95 transition-all`}>
-            <span className={`text-base font-bold leading-none tabular-nums ${ss.value}`}>
+          <Link
+            href="/admin/sellers"
+            onClick={onClose}
+            className={`${ss.tile} flex flex-col gap-0.5 rounded-lg px-2 py-2 transition-all hover:brightness-95`}
+          >
+            <span
+              className={`text-base leading-none font-bold tabular-nums ${ss.value}`}
+            >
               {stats.sellersPendientes > 99 ? "99+" : stats.sellersPendientes}
             </span>
-            <span className={`text-[10px] font-medium leading-none ${ss.label}`}>Sellers</span>
+            <span
+              className={`text-[10px] leading-none font-medium ${ss.label}`}
+            >
+              Sellers
+            </span>
           </Link>
 
-          <Link href="/admin/leads" onClick={onClose}
-            className={`${ls.tile} rounded-lg px-2 py-2 flex flex-col gap-0.5 hover:brightness-95 transition-all`}>
-            <span className={`text-base font-bold leading-none tabular-nums ${ls.value}`}>
+          <Link
+            href="/admin/leads"
+            onClick={onClose}
+            className={`${ls.tile} flex flex-col gap-0.5 rounded-lg px-2 py-2 transition-all hover:brightness-95`}
+          >
+            <span
+              className={`text-base leading-none font-bold tabular-nums ${ls.value}`}
+            >
               {stats.leads > 99 ? "99+" : stats.leads}
             </span>
-            <span className={`text-[10px] font-medium leading-none ${ls.label}`}>Leads</span>
+            <span
+              className={`text-[10px] leading-none font-medium ${ls.label}`}
+            >
+              Leads
+            </span>
           </Link>
-
         </div>
       </div>
 
@@ -263,14 +428,20 @@ function AdminDropdown({ onClose, onLogout }: { onClose: () => void; onLogout: (
         <p className="px-4 pt-1 pb-1 text-[10px] font-semibold tracking-widest text-neutral-400 uppercase">
           Main
         </p>
-        <Link href="/admin" onClick={onClose}
-          className="flex items-center gap-2.5 px-4 py-2 hover:bg-neutral-50 transition-colors">
-          <LayoutDashboard className="w-3.5 h-3.5 text-zinc-500 shrink-0" />
+        <Link
+          href="/admin"
+          onClick={onClose}
+          className="flex items-center gap-2.5 px-4 py-2 transition-colors hover:bg-neutral-50"
+        >
+          <LayoutDashboard className="h-3.5 w-3.5 shrink-0 text-zinc-500" />
           Dashboard
         </Link>
-        <Link href="/admin/leads" onClick={onClose}
-          className="flex items-center gap-2.5 px-4 py-2 hover:bg-neutral-50 transition-colors">
-          <Users className="w-3.5 h-3.5 text-zinc-500 shrink-0" />
+        <Link
+          href="/admin/leads"
+          onClick={onClose}
+          className="flex items-center gap-2.5 px-4 py-2 transition-colors hover:bg-neutral-50"
+        >
+          <Users className="h-3.5 w-3.5 shrink-0 text-zinc-500" />
           Leads
         </Link>
       </div>
@@ -280,19 +451,28 @@ function AdminDropdown({ onClose, onLogout }: { onClose: () => void; onLogout: (
       <p className="px-4 pb-1 text-[10px] font-semibold tracking-widest text-neutral-400 uppercase">
         Operations
       </p>
-      <Link href="/admin/sellers" onClick={onClose}
-        className="flex items-center gap-2.5 px-4 py-2 hover:bg-neutral-50 transition-colors">
-        <Store className="w-3.5 h-3.5 text-zinc-500 shrink-0" />
+      <Link
+        href="/admin/sellers"
+        onClick={onClose}
+        className="flex items-center gap-2.5 px-4 py-2 transition-colors hover:bg-neutral-50"
+      >
+        <Store className="h-3.5 w-3.5 shrink-0 text-zinc-500" />
         Sellers
       </Link>
-      <Link href="/admin/products" onClick={onClose}
-        className="flex items-center gap-2.5 px-4 py-2 hover:bg-neutral-50 transition-colors">
-        <Package className="w-3.5 h-3.5 text-zinc-500 shrink-0" />
+      <Link
+        href="/admin/products"
+        onClick={onClose}
+        className="flex items-center gap-2.5 px-4 py-2 transition-colors hover:bg-neutral-50"
+      >
+        <Package className="h-3.5 w-3.5 shrink-0 text-zinc-500" />
         Products
       </Link>
-      <Link href="/admin/tickets" onClick={onClose}
-        className="flex items-center gap-2.5 px-4 py-2 hover:bg-neutral-50 transition-colors">
-        <Ticket className="w-3.5 h-3.5 text-zinc-500 shrink-0" />
+      <Link
+        href="/admin/tickets"
+        onClick={onClose}
+        className="flex items-center gap-2.5 px-4 py-2 transition-colors hover:bg-neutral-50"
+      >
+        <Ticket className="h-3.5 w-3.5 shrink-0 text-zinc-500" />
         Tickets
       </Link>
 
@@ -301,23 +481,29 @@ function AdminDropdown({ onClose, onLogout }: { onClose: () => void; onLogout: (
       <p className="px-4 pb-1 text-[10px] font-semibold tracking-widest text-neutral-400 uppercase">
         Intelligence
       </p>
-      <Link href="/admin/ai" onClick={onClose}
-        className="flex items-center gap-2.5 px-4 py-2 hover:bg-neutral-50 transition-colors">
-        <Brain className="w-3.5 h-3.5 text-zinc-500 shrink-0" />
+      <Link
+        href="/admin/ai"
+        onClick={onClose}
+        className="flex items-center gap-2.5 px-4 py-2 transition-colors hover:bg-neutral-50"
+      >
+        <Brain className="h-3.5 w-3.5 shrink-0 text-zinc-500" />
         AI Control
       </Link>
 
       {/* Logout */}
       <div className="mt-1.5 border-t border-neutral-100" />
       <button
-        onClick={() => { onClose(); onLogout(); }}
-        className="w-full flex items-center gap-2.5 px-4 py-2.5 text-left text-red-600 hover:bg-neutral-50 transition-colors"
+        onClick={() => {
+          onClose();
+          onLogout();
+        }}
+        className="flex w-full items-center gap-2.5 px-4 py-2.5 text-left text-red-600 transition-colors hover:bg-neutral-50"
       >
-        <LogOut className="w-3.5 h-3.5 shrink-0" />
-        Cerrar sesión
+        <LogOut className="h-3.5 w-3.5 shrink-0" />
+        {tr("nav.logout")}
       </button>
     </div>
-  )
+  );
 }
 
 // ── Main Header ─────────────────────────────────────────────────────────────
@@ -326,6 +512,11 @@ export default function Header() {
   const { user, logout } = useAuth();
   const { count } = useCart();
   const pathname = usePathname();
+  const { dictionary } = useLanguage();
+
+  // Safe fallback: use static es dictionary until async load completes.
+  // This prevents any flash of untranslated text on the initial render.
+  const tr = createT(dictionary ?? esDictionary);
 
   const [openCreate, setOpenCreate] = useState(false);
   const [openAccount, setOpenAccount] = useState(false);
@@ -335,18 +526,14 @@ export default function Header() {
   const helpRef = useRef<HTMLLIElement>(null);
   const accountRef = useRef<HTMLDivElement>(null);
   const createRef = useRef<HTMLDivElement>(null);
+  const headerRef = useRef<HTMLElement>(null);
 
   const isSellerPanel = pathname.startsWith("/seller");
+  const normalizedRole = user?.role ?? null;
 
-  const normalizedRole = useMemo(() => {
-    if (!user) return null;
-    // user.role is always canonical after Phase 1 (buyer | seller | admin | support)
-    return user.role ?? null;
-  }, [user]);
-
-  const isBuyer  = normalizedRole === "buyer";
+  const isBuyer = normalizedRole === "buyer";
   const isSeller = normalizedRole === "seller";
-  const isAdmin  = normalizedRole === "admin";
+  const isAdmin = normalizedRole === "admin";
 
   useEffect(() => {
     const onDocClick = (e: MouseEvent) => {
@@ -356,6 +543,8 @@ export default function Header() {
         setOpenAccount(false);
       if (createRef.current && !createRef.current.contains(e.target as Node))
         setOpenCreate(false);
+      if (headerRef.current && !headerRef.current.contains(e.target as Node))
+        setMobileSearchOpen(false);
     };
 
     const onKey = (e: KeyboardEvent) => {
@@ -375,17 +564,22 @@ export default function Header() {
     };
   }, []);
 
+  useEffect(() => {
+    setHelpOpen(false);
+    setOpenAccount(false);
+    setOpenCreate(false);
+    setMobileSearchOpen(false);
+  }, [pathname]);
+
   if (isSellerPanel) return null;
 
   return (
-    <header className="w-full sticky top-0 z-50 shadow-md">
-
+    <header className="sticky top-0 z-50 w-full shadow-md" ref={headerRef}>
       {/* ── Top bar ──────────────────────────────────────────── */}
       <div className="bg-gradient-to-r from-[#0f2e22] to-[#184c37] text-white">
-        <div className="max-w-screen-xl mx-auto px-4 md:px-8 h-14 md:h-16 flex items-center gap-2 md:gap-4">
-
+        <div className="mx-auto flex h-14 max-w-screen-xl items-center gap-2 px-4 md:h-16 md:gap-4 md:px-8">
           {/* Mobile: sidebar trigger */}
-          <div className="md:hidden shrink-0">
+          <div className="shrink-0 md:hidden">
             <SidebarTrigger className="text-white" />
           </div>
 
@@ -393,93 +587,121 @@ export default function Header() {
           <Link
             href="/"
             aria-label="Flowjuyu — Inicio"
-            className="shrink-0 flex items-center"
+            className="flex shrink-0 items-center"
           >
-            {/* Mobile — bare isotipo, no container box */}
             <Image
               src="/flowjuyu-isotipo.png"
               alt=""
               width={36}
               height={36}
               priority
-              className="md:hidden object-contain"
+              className="object-contain md:hidden"
             />
-
-            {/* Desktop wordmark */}
-            <div className="hidden md:flex items-center rounded-lg bg-[#f6f2ea] px-2 py-1 ring-1 ring-white/20 shadow-md">
+            <div className="hidden items-center rounded-lg bg-[#f6f2ea] px-2 py-1 shadow-md ring-1 ring-white/20 md:flex">
               <Image
                 src="/flowjuyu-logo-completo.png"
                 alt=""
                 width={170}
                 height={52}
                 priority
-                className="object-contain h-10 w-auto"
+                className="h-10 w-auto object-contain"
               />
             </div>
           </Link>
 
           {/* Search — desktop center */}
-          <div className="hidden sm:flex flex-1 max-w-2xl mx-4">
+          <div className="mx-4 hidden max-w-2xl flex-1 sm:flex">
             <SearchBar />
           </div>
 
           {/* Actions — right side */}
           <div className="ml-auto flex items-center gap-2 md:gap-2">
-
             {/* Search toggle — mobile only */}
-            <button
-              type="button"
-              onClick={() => setMobileSearchOpen((v) => !v)}
-              aria-label={mobileSearchOpen ? "Cerrar búsqueda" : "Buscar"}
-              aria-expanded={mobileSearchOpen}
-              className="sm:hidden inline-flex items-center justify-center w-10 h-10 rounded-full hover:bg-white/10 active:scale-95 transition-all duration-150"
-            >
-              {mobileSearchOpen
-                ? <X className="w-5 h-5" />
-                : <Search className="w-5 h-5" />
-              }
-            </button>
+            <div className="sm:hidden">
+              <button
+                type="button"
+                onClick={() => {
+                  setHelpOpen(false);
+                  setOpenAccount(false);
+                  setOpenCreate(false);
+                  setMobileSearchOpen((v) => !v);
+                }}
+                aria-label={
+                  mobileSearchOpen ? tr("nav.closeSearch") : tr("common.search")
+                }
+                aria-expanded={mobileSearchOpen}
+                className="inline-flex h-10 w-10 items-center justify-center rounded-full transition-all duration-150 hover:bg-white/10 active:scale-95"
+              >
+                {mobileSearchOpen ? (
+                  <X className="h-5 w-5" />
+                ) : (
+                  <Search className="h-5 w-5" />
+                )}
+              </button>
+            </div>
 
             {/* Account */}
             {user ? (
               <div className="relative" ref={accountRef}>
                 {/* Mobile — icon-only circle */}
                 <button
-                  onClick={() => setOpenAccount((v) => !v)}
+                  type="button"
+                  onClick={() => {
+                    setHelpOpen(false);
+                    setOpenCreate(false);
+                    setMobileSearchOpen(false);
+                    setOpenAccount((v) => !v);
+                  }}
                   aria-expanded={openAccount}
                   aria-haspopup="true"
-                  aria-label={isAdmin ? "Admin" : isSeller ? "Mi panel" : "Mi cuenta"}
-                  className="md:hidden inline-flex items-center justify-center w-10 h-10 rounded-full hover:bg-white/10 active:scale-95 transition-all duration-150 focus-visible:outline focus-visible:outline-2 focus-visible:outline-amber-400"
-                >
-                  {isAdmin
-                    ? <ShieldCheck className="w-5 h-5" />
-                    : <User className="w-5 h-5" />
+                  aria-label={
+                    isAdmin
+                      ? "Admin"
+                      : isSeller
+                        ? tr("nav.sellerPanel")
+                        : tr("nav.account")
                   }
+                  className="inline-flex h-10 w-10 items-center justify-center rounded-full transition-all duration-150 hover:bg-white/10 focus-visible:outline focus-visible:outline-2 focus-visible:outline-amber-400 active:scale-95 md:hidden"
+                >
+                  {isAdmin ? (
+                    <ShieldCheck className="h-5 w-5" />
+                  ) : (
+                    <User className="h-5 w-5" />
+                  )}
                 </button>
 
                 {/* Desktop — text pill */}
                 <button
-                  onClick={() => setOpenAccount((v) => !v)}
+                  type="button"
+                  onClick={() => {
+                    setHelpOpen(false);
+                    setOpenCreate(false);
+                    setMobileSearchOpen(false);
+                    setOpenAccount((v) => !v);
+                  }}
                   aria-expanded={openAccount}
                   aria-haspopup="true"
-                  className="hidden md:inline-flex items-center gap-1.5 rounded-xl border border-white/20 px-3 py-2 text-sm hover:bg-white/10 transition-colors focus-visible:outline focus-visible:outline-2 focus-visible:outline-amber-400"
+                  className="hidden items-center gap-1.5 rounded-xl border border-white/20 px-3 py-2 text-sm transition-colors hover:bg-white/10 focus-visible:outline focus-visible:outline-2 focus-visible:outline-amber-400 md:inline-flex"
                 >
+                  {isAdmin ? (
+                    <ShieldCheck className="h-4 w-4 shrink-0" />
+                  ) : (
+                    <User className="h-4 w-4 shrink-0" />
+                  )}
                   {isAdmin
-                    ? <ShieldCheck className="w-4 h-4 shrink-0" />
-                    : <User className="w-4 h-4 shrink-0" />
-                  }
-                  {isAdmin ? "Admin" : isSeller ? "Mi panel" : "Mi cuenta"}
+                    ? "Admin"
+                    : isSeller
+                      ? tr("nav.sellerPanel")
+                      : tr("nav.account")}
                   <ChevronDown
-                    className={`w-4 h-4 shrink-0 transition-transform duration-200 ${
+                    className={`h-4 w-4 shrink-0 transition-transform duration-200 ${
                       openAccount ? "rotate-180" : ""
                     }`}
                   />
                 </button>
 
                 {openAccount && (
-                  <div className="absolute right-0 top-full pt-2 z-50">
-
-                    {/* ── Admin dropdown ── */}
+                  <div className="absolute top-full right-0 z-50 pt-2">
                     {isAdmin && (
                       <AdminDropdown
                         onClose={() => setOpenAccount(false)}
@@ -487,7 +709,6 @@ export default function Header() {
                       />
                     )}
 
-                    {/* ── Buyer dropdown ── */}
                     {isBuyer && (
                       <BuyerDropdown
                         user={user}
@@ -496,144 +717,167 @@ export default function Header() {
                       />
                     )}
 
-                    {/* ── Seller dropdown ── */}
                     {!isAdmin && isSeller && (
-                      <div className="w-60 bg-white rounded-xl shadow-2xl border border-neutral-100 py-1.5 text-neutral-800 text-sm">
-
-                        {/* Header pill */}
-                        <div className="px-4 pb-2 mb-1 border-b border-neutral-100 flex items-center gap-2">
-                          <div className="w-6 h-6 rounded-md bg-[#0f2e22] flex items-center justify-center shrink-0">
-                            <Store className="w-3.5 h-3.5 text-white" />
+                      <div className="w-60 rounded-xl border border-neutral-100 bg-white py-1.5 text-sm text-neutral-800 shadow-2xl">
+                        <div className="mb-1 flex items-center gap-2 border-b border-neutral-100 px-4 pb-2">
+                          <div className="flex h-6 w-6 shrink-0 items-center justify-center rounded-md bg-[#0f2e22]">
+                            <Store className="h-3.5 w-3.5 text-white" />
                           </div>
                           <div>
-                            <p className="text-xs font-semibold leading-none">Panel vendedor</p>
-                            <p className="text-[10px] text-neutral-400 mt-0.5">Flowjuyu Seller</p>
+                            <p className="text-xs leading-none font-semibold">
+                              {tr("nav.sellerPanel")}
+                            </p>
+                            <p className="mt-0.5 text-[10px] text-neutral-400">
+                              Flowjuyu Seller
+                            </p>
                           </div>
                         </div>
 
-                        {/* ACTIVIDAD */}
                         <p className="px-4 pt-1 pb-1 text-[10px] font-semibold tracking-widest text-neutral-400 uppercase">
-                          Actividad
+                          {tr("nav.activity")}
                         </p>
-                        <Link href="/seller/dashboard" onClick={() => setOpenAccount(false)}
-                          className="flex items-center gap-2.5 px-4 py-2 hover:bg-neutral-50 transition-colors">
-                          <LayoutDashboard className="w-3.5 h-3.5 text-zinc-500 shrink-0" />
-                          Métricas
+                        <Link
+                          href="/seller/dashboard"
+                          onClick={() => setOpenAccount(false)}
+                          className="flex items-center gap-2.5 px-4 py-2 transition-colors hover:bg-neutral-50"
+                        >
+                          <LayoutDashboard className="h-3.5 w-3.5 shrink-0 text-zinc-500" />
+                          {tr("nav.metrics")}
                         </Link>
-                        <Link href="/seller/orders" onClick={() => setOpenAccount(false)}
-                          className="flex items-center gap-2.5 px-4 py-2 hover:bg-neutral-50 transition-colors">
-                          <ShoppingBag className="w-3.5 h-3.5 text-zinc-500 shrink-0" />
-                          Pedidos
+                        <Link
+                          href="/seller/orders"
+                          onClick={() => setOpenAccount(false)}
+                          className="flex items-center gap-2.5 px-4 py-2 transition-colors hover:bg-neutral-50"
+                        >
+                          <ShoppingBag className="h-3.5 w-3.5 shrink-0 text-zinc-500" />
+                          {tr("nav.orders")}
                         </Link>
-                        <Link href="/seller/products" onClick={() => setOpenAccount(false)}
-                          className="flex items-center gap-2.5 px-4 py-2 hover:bg-neutral-50 transition-colors">
-                          <Package className="w-3.5 h-3.5 text-zinc-500 shrink-0" />
-                          Productos
+                        <Link
+                          href="/seller/products"
+                          onClick={() => setOpenAccount(false)}
+                          className="flex items-center gap-2.5 px-4 py-2 transition-colors hover:bg-neutral-50"
+                        >
+                          <Package className="h-3.5 w-3.5 shrink-0 text-zinc-500" />
+                          {tr("nav.products")}
                         </Link>
 
-                        {/* MI NEGOCIO */}
                         <div className="my-1.5 border-t border-neutral-100" />
                         <p className="px-4 pb-1 text-[10px] font-semibold tracking-widest text-neutral-400 uppercase">
-                          Mi negocio
+                          {tr("nav.myBusiness")}
                         </p>
-                        <Link href="/seller/my-business" onClick={() => setOpenAccount(false)}
-                          className="flex items-center gap-2.5 px-4 py-2 hover:bg-neutral-50 transition-colors">
-                          <Store className="w-3.5 h-3.5 text-zinc-500 shrink-0" />
-                          Mi tienda
+                        <Link
+                          href="/seller/my-business"
+                          onClick={() => setOpenAccount(false)}
+                          className="flex items-center gap-2.5 px-4 py-2 transition-colors hover:bg-neutral-50"
+                        >
+                          <Store className="h-3.5 w-3.5 shrink-0 text-zinc-500" />
+                          {tr("nav.myStore")}
                         </Link>
-                        <Link href="/seller/account" onClick={() => setOpenAccount(false)}
-                          className="flex items-center gap-2.5 px-4 py-2 hover:bg-neutral-50 transition-colors">
-                          <Settings className="w-3.5 h-3.5 text-zinc-500 shrink-0" />
-                          Cuenta y seguridad
+                        <Link
+                          href="/seller/account"
+                          onClick={() => setOpenAccount(false)}
+                          className="flex items-center gap-2.5 px-4 py-2 transition-colors hover:bg-neutral-50"
+                        >
+                          <Settings className="h-3.5 w-3.5 shrink-0 text-zinc-500" />
+                          {tr("nav.accountSecurity")}
                         </Link>
 
                         <div className="my-1 border-t border-neutral-100" />
-
                         <button
-                          onClick={() => { setOpenAccount(false); logout(); }}
-                          className="w-full flex items-center gap-2.5 px-4 py-2.5 text-left text-red-600 hover:bg-neutral-50 transition-colors"
+                          onClick={() => {
+                            setOpenAccount(false);
+                            logout();
+                          }}
+                          className="flex w-full items-center gap-2.5 px-4 py-2.5 text-left text-red-600 transition-colors hover:bg-neutral-50"
                         >
-                          <LogOut className="w-4 h-4 shrink-0" />
-                          Cerrar sesión
+                          <LogOut className="h-4 w-4 shrink-0" />
+                          {tr("nav.logout")}
                         </button>
                       </div>
                     )}
-
                   </div>
                 )}
               </div>
             ) : (
               <>
-                {/* Desktop: inline "Iniciar sesión" shortcut */}
                 <Link
                   href="/login"
-                  className="hidden sm:inline-flex items-center px-2 py-2 text-sm hover:text-amber-300 transition-colors"
+                  className="hidden items-center px-2 py-2 text-sm transition-colors hover:text-amber-300 sm:inline-flex"
                 >
-                  Iniciar sesión
+                  {tr("nav.login")}
                 </Link>
 
-                {/* Account dropdown — icon-only on mobile, text pill on desktop */}
                 <div className="relative" ref={createRef}>
                   {/* Mobile trigger */}
                   <button
-                    onClick={() => setOpenCreate((v) => !v)}
+                    type="button"
+                    onClick={() => {
+                      setHelpOpen(false);
+                      setOpenAccount(false);
+                      setMobileSearchOpen(false);
+                      setOpenCreate((v) => !v);
+                    }}
                     aria-expanded={openCreate}
                     aria-haspopup="true"
-                    aria-label="Cuenta"
-                    className="sm:hidden inline-flex items-center justify-center w-10 h-10 rounded-full hover:bg-white/10 active:scale-95 transition-all duration-150 focus-visible:outline focus-visible:outline-2 focus-visible:outline-amber-400"
+                    aria-label={tr("nav.account")}
+                    className="inline-flex h-10 w-10 items-center justify-center rounded-full transition-all duration-150 hover:bg-white/10 focus-visible:outline focus-visible:outline-2 focus-visible:outline-amber-400 active:scale-95 sm:hidden"
                   >
-                    <User className="w-5 h-5" />
+                    <User className="h-5 w-5" />
                   </button>
 
                   {/* Desktop trigger */}
                   <button
-                    onClick={() => setOpenCreate((v) => !v)}
+                    type="button"
+                    onClick={() => {
+                      setHelpOpen(false);
+                      setOpenAccount(false);
+                      setMobileSearchOpen(false);
+                      setOpenCreate((v) => !v);
+                    }}
                     aria-expanded={openCreate}
                     aria-haspopup="true"
-                    className="hidden sm:inline-flex items-center gap-1.5 rounded-xl border border-white/20 px-3 py-2 text-sm hover:bg-white/10 transition-colors focus-visible:outline focus-visible:outline-2 focus-visible:outline-amber-400"
+                    className="hidden items-center gap-1.5 rounded-xl border border-white/20 px-3 py-2 text-sm transition-colors hover:bg-white/10 focus-visible:outline focus-visible:outline-2 focus-visible:outline-amber-400 sm:inline-flex"
                   >
-                    <User className="w-4 h-4 shrink-0" />
-                    Crear cuenta
+                    <User className="h-4 w-4 shrink-0" />
+                    {tr("nav.createAccount")}
                     <ChevronDown
-                      className={`w-4 h-4 shrink-0 transition-transform duration-200 ${
+                      className={`h-4 w-4 shrink-0 transition-transform duration-200 ${
                         openCreate ? "rotate-180" : ""
                       }`}
                     />
                   </button>
 
                   {openCreate && (
-                    <div className="absolute right-0 top-full pt-2 w-56 z-50">
-                      <div className="bg-white rounded-xl shadow-2xl border border-neutral-100 py-1.5 text-neutral-800 text-sm">
-
-                        {/* Login — visible in dropdown on mobile (desktop has inline link) */}
+                    <div className="absolute top-full right-0 z-50 w-56 pt-2">
+                      <div className="rounded-xl border border-neutral-100 bg-white py-1.5 text-sm text-neutral-800 shadow-2xl">
                         <Link
                           href="/login"
                           onClick={() => setOpenCreate(false)}
-                          className="sm:hidden flex items-center gap-2.5 px-4 py-2.5 hover:bg-neutral-50 transition-colors"
+                          className="flex items-center gap-2.5 px-4 py-2.5 transition-colors hover:bg-neutral-50 sm:hidden"
                         >
-                          <User className="w-3.5 h-3.5 text-zinc-400 shrink-0" />
-                          Iniciar sesión
+                          <User className="h-3.5 w-3.5 shrink-0 text-zinc-400" />
+                          {tr("nav.login")}
                         </Link>
-                        <div className="sm:hidden my-1 border-t border-neutral-100" />
+                        <div className="my-1 border-t border-neutral-100 sm:hidden" />
 
                         <p className="px-4 pt-2 pb-1.5 text-[10px] font-semibold tracking-widest text-neutral-400 uppercase">
-                          Crear cuenta
+                          {tr("nav.createAccount")}
                         </p>
                         <Link
                           href="/register/buyer"
                           onClick={() => setOpenCreate(false)}
-                          className="flex items-center gap-2.5 px-4 py-2.5 hover:bg-neutral-50 transition-colors"
+                          className="flex items-center gap-2.5 px-4 py-2.5 transition-colors hover:bg-neutral-50"
                         >
-                          <ShoppingBag className="w-3.5 h-3.5 text-zinc-400 shrink-0" />
-                          Comprador
+                          <ShoppingBag className="h-3.5 w-3.5 shrink-0 text-zinc-400" />
+                          {tr("nav.buyer")}
                         </Link>
                         <Link
                           href="/register/seller"
                           onClick={() => setOpenCreate(false)}
-                          className="flex items-center gap-2.5 px-4 py-2.5 hover:bg-neutral-50 transition-colors"
+                          className="flex items-center gap-2.5 px-4 py-2.5 transition-colors hover:bg-neutral-50"
                         >
-                          <Store className="w-3.5 h-3.5 text-zinc-400 shrink-0" />
-                          Vender en Flowjuyu
+                          <Store className="h-3.5 w-3.5 shrink-0 text-zinc-400" />
+                          {tr("nav.sellOnRegister")}
                         </Link>
                       </div>
                     </div>
@@ -643,40 +887,40 @@ export default function Header() {
             )}
 
             {/* Notification bell — buyers only, desktop only */}
-            {isBuyer && <div className="hidden sm:block"><NotificationBell /></div>}
+            {isBuyer && (
+              <div className="hidden sm:block">
+                <NotificationBell />
+              </div>
+            )}
 
             {/* Cart */}
             <Link
               href="/carrito"
-              aria-label={count > 0 ? `Carrito, ${count} artículos` : "Carrito"}
-              className="relative inline-flex items-center justify-center w-10 h-10 rounded-full hover:bg-white/10 active:scale-95 transition-all duration-150"
+              aria-label={
+                count > 0 ? `${tr("nav.cart")}, ${count}` : tr("nav.cart")
+              }
+              className="relative inline-flex h-10 w-10 items-center justify-center rounded-full transition-all duration-150 hover:bg-white/10 active:scale-95"
             >
-              <ShoppingCart className="w-5 h-5" />
+              <ShoppingCart className="h-5 w-5" />
               {count > 0 && (
                 <span
                   aria-hidden="true"
-                  className="absolute top-0.5 right-0.5 min-w-[18px] h-[18px] flex items-center justify-center rounded-full bg-amber-500 text-white text-[10px] font-medium px-1 leading-none"
+                  className="absolute top-0.5 right-0.5 flex h-[18px] min-w-[18px] items-center justify-center rounded-full bg-amber-500 px-1 text-[10px] leading-none font-medium text-white"
                 >
                   {count > 99 ? "99+" : count}
                 </span>
               )}
             </Link>
 
-            {/* Language */}
-            <button
-              aria-label="Cambiar idioma"
-              className="hidden sm:inline-flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg border border-white/20 text-sm hover:bg-white/10 transition-colors"
-            >
-              <Globe className="w-4 h-4" />
-              ES
-            </button>
-
+            {/* Language switcher */}
+            <LanguageSwitcher className="sm:hidden" />
+            <LanguageSwitcher className="hidden sm:block" />
           </div>
         </div>
 
         {/* Mobile search expansion */}
         {mobileSearchOpen && (
-          <div className="sm:hidden px-4 pb-3 border-t border-white/10 pt-3">
+          <div className="border-t border-white/10 px-4 pt-3 pb-3 sm:hidden">
             <SearchBar />
           </div>
         )}
@@ -685,68 +929,72 @@ export default function Header() {
       {/* ── Bottom nav ───────────────────────────────────────── */}
       <nav
         aria-label="Navegación secundaria"
-        className="bg-[#081a13] border-t border-white/10 text-white/80"
+        className="border-t border-white/10 bg-[#081a13] text-white/80"
       >
-        <div className="max-w-screen-xl mx-auto h-10 px-4 md:px-8 flex items-center justify-between text-sm">
-
+        <div className="mx-auto flex h-10 max-w-screen-xl items-center justify-between px-4 text-sm md:px-8">
           <ul className="flex items-center gap-6" role="list">
             <li>
               <Link
                 href="/new-arrivals"
-                className="hover:text-amber-300 transition-colors"
+                className="transition-colors hover:text-amber-300"
               >
-                Lo + nuevo
+                {tr("nav.newArrivals")}
               </Link>
             </li>
 
             <li>
               <Link
                 href="/sell"
-                className="hover:text-amber-300 transition-colors"
+                className="transition-colors hover:text-amber-300"
               >
-                Vende en Flowjuyu
+                {tr("nav.sellOn")}
               </Link>
             </li>
 
             <li ref={helpRef} className="relative">
               <button
                 type="button"
-                onClick={() => setHelpOpen((v) => !v)}
+                onClick={() => {
+                  setOpenAccount(false);
+                  setOpenCreate(false);
+                  setMobileSearchOpen(false);
+                  setHelpOpen((v) => !v);
+                }}
                 aria-expanded={helpOpen}
                 aria-haspopup="true"
-                className="inline-flex items-center gap-1 hover:text-amber-300 transition-colors"
+                className="inline-flex items-center gap-1 transition-colors hover:text-amber-300"
               >
-                Ayuda
+                {tr("nav.help")}
                 <ChevronDown
-                  className={`w-4 h-4 transition-transform duration-200 ${
+                  className={`h-4 w-4 transition-transform duration-200 ${
                     helpOpen ? "rotate-180" : ""
                   }`}
                 />
               </button>
 
               {helpOpen && (
-                <div className="absolute left-0 top-full pt-2 z-50">
-                  <div className="w-52 bg-white rounded-xl shadow-2xl border border-neutral-100 py-1.5 text-neutral-800 text-sm">
+                <div className="absolute top-full left-0 z-50 pt-2">
+                  <div className="w-52 rounded-xl border border-neutral-100 bg-white py-1.5 text-sm text-neutral-800 shadow-2xl">
                     <Link
                       href="/ayuda/faq"
                       onClick={() => setHelpOpen(false)}
-                      className="block px-4 py-2.5 hover:bg-neutral-50 transition-colors"
+                      className="block px-4 py-2.5 transition-colors hover:bg-neutral-50"
                     >
-                      Preguntas frecuentes
+                      {tr("nav.faq")}
                     </Link>
                     <Link
                       href="/ayuda/contacto"
                       onClick={() => setHelpOpen(false)}
-                      className="block px-4 py-2.5 hover:bg-neutral-50 transition-colors"
+                      className="block px-4 py-2.5 transition-colors hover:bg-neutral-50"
                     >
-                      Contáctanos
+                      {tr("nav.contactUs")}
                     </Link>
                     <Link
                       href="/ayuda/devoluciones"
                       onClick={() => setHelpOpen(false)}
-                      className="block px-4 py-2.5 hover:bg-neutral-50 transition-colors"
+                      className="block px-4 py-2.5 transition-colors hover:bg-neutral-50"
                     >
-                      Devoluciones
+                      {tr("nav.returns")}
                     </Link>
                   </div>
                 </div>
@@ -754,10 +1002,9 @@ export default function Header() {
             </li>
           </ul>
 
-          <span className="hidden md:block text-xs text-white/50 tracking-wide">
+          <span className="hidden text-xs tracking-wide text-white/50 md:block">
             100% chapines
           </span>
-
         </div>
       </nav>
     </header>

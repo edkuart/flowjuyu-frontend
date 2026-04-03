@@ -1,4 +1,9 @@
+"use client";
+
 import { Tag, Layers, Scissors, MapPin, Building2, Gem, Package } from "lucide-react";
+import { useLanguage } from "@/i18n/context/useLanguage";
+import { createT } from "@/i18n/utils/t";
+import esDictionary from "@/i18n/dictionaries/es";
 
 type SpecsProps = {
   categoria?: any;
@@ -37,36 +42,37 @@ function group(heading: string, rows: (Entry | null)[]): Group | null {
 }
 
 export default function ProductSpecs(specs: SpecsProps) {
+  const { dictionary } = useLanguage();
+  const tr = createT(dictionary ?? esDictionary);
+
   const categoriaName = getValue(specs.categoria) || specs.categoria_custom;
   const isAccesorio   = !!getValue(specs.accesorio) || !!specs.accesorio_tipo || !!specs.accesorio_material;
 
   const groups: Group[] = isAccesorio
-    ? // ── ACCESORIO ─────────────────────────────────────────
-      [
-        group("Categoría", [
-          entry("Categoría", categoriaName, Tag),
+    ? [
+        group(tr("pdp.specCategory"), [
+          entry(tr("pdp.specCategory"), categoriaName, Tag),
         ]),
-        group("Características", [
-          entry("Tipo",     specs.accesorio_tipo,     Gem),
-          entry("Material", specs.accesorio_material, Package),
+        group(tr("pdp.specCharacteristics"), [
+          entry(tr("pdp.specType"),     specs.accesorio_tipo,     Gem),
+          entry(tr("pdp.specMaterial"), specs.accesorio_material, Package),
         ]),
-        group("Origen", [
-          entry("Departamento", specs.departamento || specs.departamento_custom, MapPin),
-          entry("Municipio",    specs.municipio    || specs.municipio_custom,    Building2),
+        group(tr("pdp.specOrigin"), [
+          entry(tr("pdp.specDepartment"), specs.departamento || specs.departamento_custom, MapPin),
+          entry(tr("pdp.specMunicipality"), specs.municipio  || specs.municipio_custom,    Building2),
         ]),
       ].filter(Boolean) as Group[]
-    : // ── TEXTIL / default ──────────────────────────────────
-      [
-        group("Categoría", [
-          entry("Categoría", categoriaName, Tag),
+    : [
+        group(tr("pdp.specCategory"), [
+          entry(tr("pdp.specCategory"), categoriaName, Tag),
         ]),
-        group("Características", [
-          entry("Clase",          getValue(specs.clase),                      Layers),
-          entry("Tela / Material", getValue(specs.tela) || specs.tela_custom, Scissors),
+        group(tr("pdp.specCharacteristics"), [
+          entry(tr("pdp.specClass"),          getValue(specs.clase),                      Layers),
+          entry(tr("pdp.specFabric"), getValue(specs.tela) || specs.tela_custom, Scissors),
         ]),
-        group("Origen", [
-          entry("Departamento", specs.departamento || specs.departamento_custom, MapPin),
-          entry("Municipio",    specs.municipio    || specs.municipio_custom,    Building2),
+        group(tr("pdp.specOrigin"), [
+          entry(tr("pdp.specDepartment"), specs.departamento || specs.departamento_custom, MapPin),
+          entry(tr("pdp.specMunicipality"), specs.municipio  || specs.municipio_custom,    Building2),
         ]),
       ].filter(Boolean) as Group[];
 
@@ -74,23 +80,18 @@ export default function ProductSpecs(specs: SpecsProps) {
 
   return (
     <div className="rounded-2xl border border-neutral-100 bg-white overflow-hidden">
-      {/* Title */}
       <div className="px-5 py-4 border-b border-neutral-100">
         <h3 className="text-[11px] font-semibold text-neutral-400 uppercase tracking-widest">
-          Información del producto
+          {tr("pdp.productInfo")}
         </h3>
       </div>
 
-      {/* Groups */}
       <div className="divide-y divide-neutral-50">
         {groups.map(({ heading, entries }) => (
           <div key={heading} className="px-5 py-4 space-y-3">
-            {/* Group heading */}
             <p className="text-[10px] font-bold text-neutral-300 uppercase tracking-widest">
               {heading}
             </p>
-
-            {/* Rows */}
             <div className="space-y-2.5">
               {entries.map(({ label, value, Icon }) => (
                 <div key={label} className="flex items-start gap-3">

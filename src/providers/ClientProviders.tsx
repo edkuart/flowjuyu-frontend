@@ -1,16 +1,16 @@
-'use client';
+"use client";
 
-import { SidebarProvider } from '@/components/ui/sidebar/SidebarContext';
-import { NextIntlClientProvider } from 'next-intl';
-import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
-import { useState } from 'react';
+import { SidebarProvider } from "@/components/ui/sidebar/SidebarContext";
+import { LanguageSelectorModal } from "@/i18n/components/LanguageSelectorModal";
+import { LanguageProvider } from "@/i18n/context/LanguageProvider";
+import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
+import { useState } from "react";
 
 interface Props {
   children: React.ReactNode;
 }
 
 export function ClientProviders({ children }: Props) {
-  // One QueryClient per browser session — useState ensures it's not recreated on re-renders
   const [queryClient] = useState(
     () =>
       new QueryClient({
@@ -25,12 +25,12 @@ export function ClientProviders({ children }: Props) {
 
   return (
     <QueryClientProvider client={queryClient}>
-      <SidebarProvider>
-        {/* NextIntlClientProvider requiere locale y messages para SSR */}
-        <NextIntlClientProvider locale="es" messages={{}}>
+      <LanguageProvider>
+        <SidebarProvider>
           {children}
-        </NextIntlClientProvider>
-      </SidebarProvider>
+          <LanguageSelectorModal />
+        </SidebarProvider>
+      </LanguageProvider>
     </QueryClientProvider>
   );
 }

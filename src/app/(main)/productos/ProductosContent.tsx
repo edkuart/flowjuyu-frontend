@@ -1,4 +1,3 @@
-// src/app/(main)/productos/ProductosContent.tsx
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
@@ -11,6 +10,9 @@ import { getProductImage } from "@/lib/getProductImage";
 import { Card, CardContent } from "@/components/ui/card";
 import ProductDiscoveryLayout from "@/components/product/discovery/ProductDiscoveryLayout";
 import { FavoriteButton } from "@/components/ui/FavoriteButton";
+import { useLanguage } from "@/i18n/context/useLanguage";
+import esDictionary from "@/i18n/dictionaries/es";
+import { createT } from "@/i18n/utils/t";
 
 const API = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8800";
 
@@ -37,6 +39,8 @@ type Producto = {
 export default function ProductosPage() {
   const searchParams = useSearchParams();
   const router = useRouter();
+  const { dictionary } = useLanguage();
+  const tr = createT(dictionary ?? esDictionary);
 
   // ---------------------------
   // 1. ESTADOS
@@ -57,7 +61,7 @@ export default function ProductosPage() {
   const [categorias, setCategorias] = useState<Categoria[]>([]);
   const [clases, setClases] = useState<Clase[]>([]);
   const [telas, setTelas] = useState<Tela[]>([]);
-  
+
   // Filtros Específicos (Textil)
   const [claseId, setClaseId] = useState<number | null>(null);
   const [telaId, setTelaId] = useState<number | null>(null);
@@ -65,18 +69,23 @@ export default function ProductosPage() {
   // Filtros Específicos (Accesorios)
   const [accesorios, setAccesorios] = useState<Accesorio[]>([]);
   const [accesorioTipos, setAccesorioTipos] = useState<AccesorioTipo[]>([]);
-  const [accesorioMateriales, setAccesorioMateriales] = useState<AccesorioMaterial[]>([]);
-  
+  const [accesorioMateriales, setAccesorioMateriales] = useState<
+    AccesorioMaterial[]
+  >([]);
+
   const [accesorioId, setAccesorioId] = useState<number | null>(null);
   const [accesorioTipoId, setAccesorioTipoId] = useState<number | null>(null);
-  const [accesorioMaterialId, setAccesorioMaterialId] = useState<number | null>(null);
+  const [accesorioMaterialId, setAccesorioMaterialId] = useState<number | null>(
+    null,
+  );
 
   // ---------------------------
   // 2. INICIALIZAR DESDE URL
   // ---------------------------
   useEffect(() => {
     // Categoría: Puede venir como "categoria" (Home) o "categoria_id" (Search)
-    const cat = searchParams.get("categoria") || searchParams.get("categoria_id");
+    const cat =
+      searchParams.get("categoria") || searchParams.get("categoria_id");
     if (cat) setCategoriaId(Number(cat));
 
     const cla = searchParams.get("clase_id");
@@ -131,22 +140,25 @@ export default function ProductosPage() {
       categoriaNombre.includes("huipil") ||
       categoriaNombre.includes("hupil") ||
       categoriaNombre.includes("corte"),
-    [categoriaNombre]
+    [categoriaNombre],
   );
 
   const esAccesorios = useMemo(
     () =>
       categoriaNombre.includes("accesorio") ||
       categoriaNombre.includes("accesorios típico"),
-    [categoriaNombre]
+    [categoriaNombre],
   );
 
-  const esCalzado = useMemo(() => categoriaNombre.includes("calzado"), [categoriaNombre]);
+  const esCalzado = useMemo(
+    () => categoriaNombre.includes("calzado"),
+    [categoriaNombre],
+  );
 
   // ---------------------------
   // 5. CARGA DINÁMICA (Sub-catálogos)
   // ---------------------------
-  
+
   // A. Accesorios
   useEffect(() => {
     if (!esAccesorios) {
@@ -155,7 +167,7 @@ export default function ProductosPage() {
     }
     const tipo = categoriaNombre.includes("típic") ? "tipico" : "normal";
     fetch(`${API}/api/accesorios?tipo=${tipo}`)
-      .then(r => r.json())
+      .then((r) => r.json())
       .then(setAccesorios)
       .catch(() => setAccesorios([]));
   }, [esAccesorios, categoriaNombre]);
@@ -167,7 +179,7 @@ export default function ProductosPage() {
       return;
     }
     fetch(`${API}/api/telas?clase_id=${claseId}`)
-      .then(r => r.json())
+      .then((r) => r.json())
       .then(setTelas)
       .catch(() => setTelas([]));
   }, [esTextil, claseId, esCalzado]);
@@ -180,12 +192,18 @@ export default function ProductosPage() {
       return;
     }
     Promise.all([
-      fetch(`${API}/api/accesorio-tipos?accesorio_id=${accesorioId}`).then(r => r.json()),
-      fetch(`${API}/api/accesorio-materiales?accesorio_id=${accesorioId}`).then(r => r.json())
-    ]).then(([tips, mats]) => {
-      setAccesorioTipos(tips);
-      setAccesorioMateriales(mats);
-    }).catch(console.error);
+      fetch(`${API}/api/accesorio-tipos?accesorio_id=${accesorioId}`).then(
+        (r) => r.json(),
+      ),
+      fetch(`${API}/api/accesorio-materiales?accesorio_id=${accesorioId}`).then(
+        (r) => r.json(),
+      ),
+    ])
+      .then(([tips, mats]) => {
+        setAccesorioTipos(tips);
+        setAccesorioMateriales(mats);
+      })
+      .catch(console.error);
   }, [accesorioId]);
 
   // ---------------------------
@@ -199,7 +217,7 @@ export default function ProductosPage() {
 
         // IMPORTANTE: Mapear categoriaId (estado) -> categoria_id (API param)
         if (categoriaId) params.set("categoria_id", String(categoriaId));
-        
+
         if (precioMin > 0) params.set("precioMin", String(precioMin));
         if (precioMax < 2000) params.set("precioMax", String(precioMax));
         if (sort) params.set("sort", sort);
@@ -207,29 +225,42 @@ export default function ProductosPage() {
         if (municipio) params.set("municipio", municipio);
 
         // Sub-filtros
-        if (esTextil && !esCalzado && claseId) params.set("clase_id", String(claseId));
-        if (esTextil && !esCalzado && telaId) params.set("tela_id", String(telaId));
+        if (esTextil && !esCalzado && claseId) {
+          params.set("clase_id", String(claseId));
+        }
+        if (esTextil && !esCalzado && telaId) {
+          params.set("tela_id", String(telaId));
+        }
 
-        if (esAccesorios && accesorioId) params.set("accesorio_id", String(accesorioId));
-        if (esAccesorios && accesorioTipoId) params.set("accesorio_tipo_id", String(accesorioTipoId));
-        if (esAccesorios && accesorioMaterialId) params.set("accesorio_material_id", String(accesorioMaterialId));
+        if (esAccesorios && accesorioId) {
+          params.set("accesorio_id", String(accesorioId));
+        }
+        if (esAccesorios && accesorioTipoId) {
+          params.set("accesorio_tipo_id", String(accesorioTipoId));
+        }
+        if (esAccesorios && accesorioMaterialId) {
+          params.set("accesorio_material_id", String(accesorioMaterialId));
+        }
 
         // Actualizamos URL del navegador (sin recargar)
         // Usamos "categoria" para mantener consistencia con el Home, pero internamente usamos ID
         const browserParams = new URLSearchParams(params.toString());
         if (categoriaId) {
-            browserParams.delete("categoria_id");
-            browserParams.set("categoria", String(categoriaId));
+          browserParams.delete("categoria_id");
+          browserParams.set("categoria", String(categoriaId));
         }
-        router.replace(`/productos?${browserParams.toString()}`, { scroll: false });
+        router.replace(`/productos?${browserParams.toString()}`, {
+          scroll: false,
+        });
 
         // Llamada API (Usando los params correctos para el backend)
-        const res = await fetch(`${API}/api/products?${params.toString()}`, { cache: "no-store" });
+        const res = await fetch(`${API}/api/products?${params.toString()}`, {
+          cache: "no-store",
+        });
         const data = await res.json();
-        
+
         const lista = data.data || data || [];
         setProductos(Array.isArray(lista) ? lista : []);
-
       } catch (error) {
         console.error("Error cargando productos:", error);
         setProductos([]);
@@ -238,16 +269,26 @@ export default function ProductosPage() {
       }
     }
 
-    // Usamos debounce o llamada directa dependiendo de la necesidad. 
+    // Usamos debounce o llamada directa dependiendo de la necesidad.
     // Aquí lo hacemos directo al cambiar filtros.
     fetchProductos();
-
   }, [
-    categoriaId, precioMin, precioMax, sort, departamento, municipio,
-    claseId, telaId, accesorioId, accesorioTipoId, accesorioMaterialId,
-    esTextil, esAccesorios, esCalzado, router
+    categoriaId,
+    precioMin,
+    precioMax,
+    sort,
+    departamento,
+    municipio,
+    claseId,
+    telaId,
+    accesorioId,
+    accesorioTipoId,
+    accesorioMaterialId,
+    esTextil,
+    esAccesorios,
+    esCalzado,
+    router,
   ]);
-
 
   // ---------------------------
   // 7. RESET
@@ -268,110 +309,102 @@ export default function ProductosPage() {
 
   return (
     <ProductDiscoveryLayout
-      title="Nuestros Productos"
-      subtitle="Explora la mejor artesanía de Guatemala"
+      title={tr("product.catalogTitle")}
+      subtitle={tr("product.catalogSubtitle")}
       total={productos.length}
-      
-      // Props de Filtros
       categorias={categorias}
       categoriaId={categoriaId}
       setCategoriaId={setCategoriaId}
-
       precioMin={precioMin}
       setPrecioMin={setPrecioMin}
       precioMax={precioMax}
       setPrecioMax={setPrecioMax}
-      
       sort={sort}
       setSort={setSort}
-      
       departamento={departamento}
       setDepartamento={setDepartamento}
       municipio={municipio}
       setMunicipio={setMunicipio}
-
-      // Props de Sub-filtros (Nuevos)
       clases={clases}
       claseId={claseId}
       setClaseId={setClaseId}
-      
       telas={telas}
       telaId={telaId}
       setTelaId={setTelaId}
-
       accesorios={accesorios}
       accesorioId={accesorioId}
       setAccesorioId={setAccesorioId}
-
       accesorioTipos={accesorioTipos}
       accesorioTipoId={accesorioTipoId}
       setAccesorioTipoId={setAccesorioTipoId}
-
       accesorioMateriales={accesorioMateriales}
       accesorioMaterialId={accesorioMaterialId}
       setAccesorioMaterialId={setAccesorioMaterialId}
-
       onReset={handleReset}
     >
-      
-      {/* GRID RESULTADOS */}
-      <div className="grid grid-cols-2 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4 sm:gap-6">
-        {loading && [...Array(8)].map((_, i) => (
-           <div key={i} className="animate-pulse bg-white border rounded-lg p-3 sm:p-4 shadow-sm">
-             <div className="w-full aspect-square bg-neutral-200 rounded-md mb-3" />
-             <div className="h-4 bg-neutral-200 rounded w-3/4 mb-2" />
-             <div className="h-4 bg-neutral-200 rounded w-1/2" />
-           </div>
-        ))}
+      <div className="grid grid-cols-2 gap-4 sm:grid-cols-2 sm:gap-6 lg:grid-cols-3 xl:grid-cols-4">
+        {loading &&
+          [...Array(8)].map((_, i) => (
+            <div
+              key={i}
+              className="animate-pulse rounded-lg border bg-white p-3 shadow-sm sm:p-4"
+            >
+              <div className="mb-3 aspect-square w-full rounded-md bg-neutral-200" />
+              <div className="mb-2 h-4 w-3/4 rounded bg-neutral-200" />
+              <div className="h-4 w-1/2 rounded bg-neutral-200" />
+            </div>
+          ))}
 
-        {!loading && productos.map((p) => (
-          <Link key={p.id} href={`/product/${p.id}`} className="group block">
-             <Card className="h-full border shadow-sm hover:shadow-md transition duration-300">
-               <CardContent className="p-3 sm:p-4 flex flex-col h-full">
-                 <div className="relative w-full aspect-square bg-neutral-100 rounded-md overflow-hidden mb-3">
-                   <Image
-                     src={getProductImage(p)}
-                     alt={p.nombre}
-                     fill
-                     className="object-cover group-hover:scale-105 transition-transform duration-500"
-                   />
-                   <div className="absolute top-2 right-2 z-10">
-                     <FavoriteButton productId={String(p.id)} size="sm" />
-                   </div>
-                 </div>
-                 
-                 <div className="mb-2">
-                    <h3 className="text-sm sm:text-base font-medium line-clamp-2 text-neutral-800">
-                        {p.nombre}
+        {!loading &&
+          productos.map((p) => (
+            <Link key={p.id} href={`/product/${p.id}`} className="group block">
+              <Card className="h-full border shadow-sm transition duration-300 hover:shadow-md">
+                <CardContent className="flex h-full flex-col p-3 sm:p-4">
+                  <div className="relative mb-3 aspect-square w-full overflow-hidden rounded-md bg-neutral-100">
+                    <Image
+                      src={getProductImage(p)}
+                      alt={p.nombre}
+                      fill
+                      className="object-cover transition-transform duration-500 group-hover:scale-105"
+                    />
+                    <div className="absolute top-2 right-2 z-10">
+                      <FavoriteButton productId={String(p.id)} size="sm" />
+                    </div>
+                  </div>
+
+                  <div className="mb-2">
+                    <h3 className="line-clamp-2 text-sm font-medium text-neutral-800 sm:text-base">
+                      {p.nombre}
                     </h3>
                     {p.categoria && (
-                        <span className="text-xs text-neutral-500">{p.categoria}</span>
+                      <span className="text-xs text-neutral-500">
+                        {p.categoria}
+                      </span>
                     )}
-                 </div>
+                  </div>
 
-                 <div className="mt-auto pt-2 border-t border-neutral-100">
-                   <p className="text-base sm:text-lg font-bold text-neutral-900">
-                     Q{Number(p.precio).toFixed(2)}
-                   </p>
-                 </div>
-               </CardContent>
-             </Card>
-          </Link>
-        ))}
+                  <div className="mt-auto border-t border-neutral-100 pt-2">
+                    <p className="text-base font-bold text-neutral-900 sm:text-lg">
+                      Q{Number(p.precio).toFixed(2)}
+                    </p>
+                  </div>
+                </CardContent>
+              </Card>
+            </Link>
+          ))}
       </div>
 
       {!loading && productos.length === 0 && (
         <div className="py-20 text-center text-neutral-500">
-          <p className="text-lg">No encontramos productos con estos filtros.</p>
-          <button 
-            onClick={handleReset} 
+          <p className="text-lg">{tr("empty.noProductsTitle")}</p>
+          <button
+            onClick={handleReset}
             className="mt-4 text-blue-600 hover:underline"
           >
-            Limpiar filtros
+            {tr("empty.noProductsAction")}
           </button>
         </div>
       )}
-
     </ProductDiscoveryLayout>
   );
 }

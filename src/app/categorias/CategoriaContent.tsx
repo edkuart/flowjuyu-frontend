@@ -59,7 +59,7 @@ export default function CategoriaPage() {
   useEffect(() => {
     fetch(`${API}/api/categorias`)
       .then((r) => r.json())
-      .then((data) => setCategorias(data || []))
+      .then((data) => setCategorias(Array.isArray(data) ? data : (data?.data ?? [])))
       .catch(() => setCategorias([]));
   }, []);
 

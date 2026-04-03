@@ -5,14 +5,13 @@ import { useRouter } from "next/navigation";
 import { apiFetch } from "@/lib/api";
 import { useAuth } from "@/context/AuthContext";
 import { Button } from "@/components/ui/button";
-
-// ─── Types ─────────────────────────────────────────────────────────────────────
-// Shape returned by GET /api/products/:id/reviews
+import { useLanguage } from "@/i18n/context/useLanguage";
+import { createT } from "@/i18n/utils/t";
+import esDictionary from "@/i18n/dictionaries/es";
 
 interface Review {
   id: number;
   rating: number;
-  /** Column name in the legacy reviews table */
   comentario: string | null;
   created_at: string;
   buyer_nombre: string;
@@ -24,17 +23,8 @@ interface ReviewsData {
   rating_count: number;
 }
 
-// ─── Star display (read-only) ─────────────────────────────────────────────────
-
-function StarDisplay({
-  rating,
-  size = "sm",
-}: {
-  rating: number;
-  size?: "sm" | "md" | "lg";
-}) {
-  const cls =
-    size === "lg" ? "text-2xl" : size === "md" ? "text-lg" : "text-sm";
+function StarDisplay({ rating, size = "sm" }: { rating: number; size?: "sm" | "md" | "lg" }) {
+  const cls = size === "lg" ? "text-2xl" : size === "md" ? "text-lg" : "text-sm";
   return (
     <div className={`flex text-yellow-400 ${cls}`}>
       {Array.from({ length: 5 }).map((_, i) => (
@@ -44,22 +34,16 @@ function StarDisplay({
   );
 }
 
-// ─── Rating distribution bars ─────────────────────────────────────────────────
-
 function RatingDistribution({ reviews }: { reviews: Review[] }) {
   const total = reviews.length;
-
   return (
     <div className="space-y-2">
       {[5, 4, 3, 2, 1].map((stars) => {
         const count = reviews.filter((r) => r.rating === stars).length;
         const pct = total > 0 ? (count / total) * 100 : 0;
-
         return (
           <div key={stars} className="flex items-center gap-2 text-sm">
-            <span className="text-neutral-500 w-3 text-right text-xs">
-              {stars}
-            </span>
+            <span className="text-neutral-500 w-3 text-right text-xs">{stars}</span>
             <span className="text-yellow-400 text-xs">★</span>
             <div className="flex-1 bg-gray-100 rounded-full h-2 overflow-hidden">
               <div
@@ -67,9 +51,7 @@ function RatingDistribution({ reviews }: { reviews: Review[] }) {
                 style={{ width: `${pct}%` }}
               />
             </div>
-            <span className="text-neutral-400 w-4 text-xs text-right">
-              {count}
-            </span>
+            <span className="text-neutral-400 w-4 text-xs text-right">{count}</span>
           </div>
         );
       })}
@@ -77,17 +59,16 @@ function RatingDistribution({ reviews }: { reviews: Review[] }) {
   );
 }
 
-// ─── Star selector (interactive) ─────────────────────────────────────────────
-
 function StarSelector({
   value,
   onChange,
+  labels,
 }: {
   value: number;
   onChange: (v: number) => void;
+  labels: string[];
 }) {
   const [hovered, setHovered] = useState(0);
-  const labels = ["", "Malo", "Regular", "Bueno", "Muy bueno", "Excelente"];
 
   return (
     <div>
@@ -105,7 +86,7 @@ function StarSelector({
               onMouseEnter={() => setHovered(star)}
               onMouseLeave={() => setHovered(0)}
               onClick={() => onChange(star)}
-              aria-label={`${star} estrella${star > 1 ? "s" : ""}`}
+              aria-label={`${star} ${labels[star - 1] ?? ""}`}
             >
               ★
             </button>
@@ -113,20 +94,18 @@ function StarSelector({
         })}
       </div>
       <p className="text-xs mt-1.5 h-4 text-amber-600 font-medium">
-        {hovered > 0 ? labels[hovered] : value > 0 ? labels[value] : ""}
+        {hovered > 0 ? labels[hovered - 1] : value > 0 ? labels[value - 1] : ""}
       </p>
     </div>
   );
 }
 
-// ─── Review card ──────────────────────────────────────────────────────────────
-
-function ReviewCard({ review }: { review: Review }) {
-  const formattedDate = new Date(review.created_at).toLocaleDateString(
-    "es-GT",
-    { year: "numeric", month: "long", day: "numeric" }
-  );
-
+function ReviewCard({ review, verifiedLabel }: { review: Review; verifiedLabel: string }) {
+  const formattedDate = new Date(review.created_at).toLocaleDateString("es-GT", {
+    year: "numeric",
+    month: "long",
+    day: "numeric",
+  });
   const initial = (review.buyer_nombre || "C").charAt(0).toUpperCase();
 
   return (
@@ -138,14 +117,13 @@ function ReviewCard({ review }: { review: Review }) {
           </div>
           <div>
             <p className="font-semibold text-neutral-800 text-sm leading-none">
-              {review.buyer_nombre || "Comprador verificado"}
+              {review.buyer_nombre || verifiedLabel}
             </p>
             <p className="text-xs text-neutral-400 mt-0.5">{formattedDate}</p>
           </div>
         </div>
         <StarDisplay rating={review.rating} size="sm" />
       </div>
-
       {review.comentario && (
         <p className="text-neutral-600 text-sm leading-relaxed border-t border-neutral-50 pt-3">
           {review.comentario}
@@ -155,15 +133,16 @@ function ReviewCard({ review }: { review: Review }) {
   );
 }
 
-// ─── Main component ───────────────────────────────────────────────────────────
-
 export default function ProductReviews({ productId }: { productId: string }) {
   const router = useRouter();
   const { user } = useAuth();
+  const { dictionary } = useLanguage();
+  const tr = createT(dictionary ?? esDictionary);
+
+  const starLabels = tr("pdp.starLabels").split(",");
 
   const [data, setData] = useState<ReviewsData | null>(null);
   const [loading, setLoading] = useState(true);
-
   const [rating, setRating] = useState(0);
   const [comentario, setComentario] = useState("");
   const [submitting, setSubmitting] = useState(false);
@@ -190,9 +169,7 @@ export default function ProductReviews({ productId }: { productId: string }) {
     }
   }, [productId]);
 
-  useEffect(() => {
-    fetchReviews();
-  }, [fetchReviews]);
+  useEffect(() => { fetchReviews(); }, [fetchReviews]);
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
@@ -200,34 +177,22 @@ export default function ProductReviews({ productId }: { productId: string }) {
     setFormSuccess(false);
 
     if (rating === 0) {
-      setFormError("Selecciona una calificación.");
+      setFormError(tr("pdp.reviewsRatingRequired"));
       return;
     }
 
     setSubmitting(true);
-
     try {
       const res = await apiFetch(`/api/products/${productId}/reviews`, {
         method: "POST",
         body: JSON.stringify({ rating, comentario }),
       });
 
-      if (res.status === 401) {
-        setFormError("Tu sesión expiró. Por favor vuelve a iniciar sesión.");
-        return;
-      }
-      if (res.status === 403) {
-        setFormError("Solo compradores pueden publicar reseñas.");
-        return;
-      }
-      if (res.status === 400) {
+      if (res.status === 401) { setFormError(tr("pdp.reviewsSession401")); return; }
+      if (res.status === 403) { setFormError(tr("pdp.reviewsRole403")); return; }
+      if (res.status === 400 || !res.ok) {
         const json = await res.json().catch(() => ({}));
-        setFormError(json.message || "Error al enviar la reseña.");
-        return;
-      }
-      if (!res.ok) {
-        const json = await res.json().catch(() => ({}));
-        setFormError(json.message || "Error al enviar la reseña.");
+        setFormError(json.message || tr("pdp.reviewsErrorGeneric"));
         return;
       }
 
@@ -236,31 +201,27 @@ export default function ProductReviews({ productId }: { productId: string }) {
       setFormSuccess(true);
       await fetchReviews();
     } catch {
-      setFormError("Error de conexión. Intenta de nuevo.");
+      setFormError(tr("pdp.reviewsErrorNetwork"));
     } finally {
       setSubmitting(false);
     }
   }
 
-  // ─── Render ────────────────────────────────────────────────────────────────
-
   return (
     <section id="reviews" className="space-y-8 scroll-mt-8">
 
-      {/* Section label */}
       <div className="flex items-center gap-3">
         <h2 className="text-2xl font-bold text-neutral-900">
-          Reseñas de clientes
+          {tr("pdp.reviewsSectionTitle")}
         </h2>
         {!loading && data && data.rating_count > 0 && (
           <span className="text-sm text-neutral-400 font-normal">
             ({data.rating_count}{" "}
-            {data.rating_count === 1 ? "reseña" : "reseñas"})
+            {data.rating_count === 1 ? tr("pdp.review") : tr("pdp.reviews")})
           </span>
         )}
       </div>
 
-      {/* Rating summary */}
       {!loading && data && data.rating_count > 0 && (
         <div className="flex flex-col sm:flex-row gap-6 items-start sm:items-center bg-amber-50 border border-amber-100 rounded-2xl p-6">
           <div className="text-center flex-shrink-0">
@@ -269,20 +230,17 @@ export default function ProductReviews({ productId }: { productId: string }) {
             </p>
             <StarDisplay rating={data.rating_avg} size="lg" />
             <p className="text-xs text-neutral-400 mt-1">
-              Basado en {data.rating_count}{" "}
-              {data.rating_count === 1 ? "reseña" : "reseñas"}
+              {tr("pdp.reviewsBasedOn")} {data.rating_count}{" "}
+              {data.rating_count === 1 ? tr("pdp.review") : tr("pdp.reviews")}
             </p>
           </div>
-
           <div className="hidden sm:block w-px h-20 bg-amber-200" />
-
           <div className="flex-1 w-full">
             <RatingDistribution reviews={data.reviews} />
           </div>
         </div>
       )}
 
-      {/* Content grid */}
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-10">
 
         {/* Reviews list */}
@@ -290,23 +248,22 @@ export default function ProductReviews({ productId }: { productId: string }) {
           {loading ? (
             <div className="space-y-4">
               {[1, 2, 3].map((i) => (
-                <div
-                  key={i}
-                  className="h-28 rounded-2xl bg-gray-100 animate-pulse"
-                />
+                <div key={i} className="h-28 rounded-2xl bg-gray-100 animate-pulse" />
               ))}
             </div>
           ) : !data || data.reviews.length === 0 ? (
             <div className="border border-dashed border-neutral-200 rounded-2xl p-10 text-center bg-gray-50">
               <p className="text-4xl mb-3">✍️</p>
-              <p className="font-semibold text-neutral-600">Sin reseñas aún</p>
-              <p className="text-sm text-neutral-400 mt-1">
-                Sé el primero en compartir tu experiencia.
-              </p>
+              <p className="font-semibold text-neutral-600">{tr("pdp.reviewsNoReviews")}</p>
+              <p className="text-sm text-neutral-400 mt-1">{tr("pdp.reviewsBeFirst")}</p>
             </div>
           ) : (
             data.reviews.map((review) => (
-              <ReviewCard key={review.id} review={review} />
+              <ReviewCard
+                key={review.id}
+                review={review}
+                verifiedLabel={tr("pdp.reviewsVerifiedBuyer")}
+              />
             ))
           )}
         </div>
@@ -314,21 +271,20 @@ export default function ProductReviews({ productId }: { productId: string }) {
         {/* Review form — auth-gated */}
         <div className="lg:col-span-1">
           {user ? (
-            /* Authenticated: show form */
             <div className="border border-neutral-100 rounded-2xl p-6 bg-white shadow-md shadow-neutral-100 space-y-5 sticky top-6">
               <div>
                 <h3 className="font-bold text-neutral-800 text-lg">
-                  Escribe una reseña
+                  {tr("pdp.reviewsWriteTitle")}
                 </h3>
                 <p className="text-xs text-neutral-400 mt-0.5">
-                  Tu opinión ayuda a toda la comunidad
+                  {tr("pdp.reviewsWriteSub")}
                 </p>
               </div>
 
               {formSuccess && (
                 <div className="rounded-xl bg-green-50 border border-green-200 px-4 py-3 text-green-700 text-sm font-medium flex items-center gap-2">
                   <span>✔</span>
-                  ¡Reseña publicada con éxito!
+                  {tr("pdp.reviewsSuccess")}
                 </div>
               )}
 
@@ -341,9 +297,9 @@ export default function ProductReviews({ productId }: { productId: string }) {
               <form onSubmit={handleSubmit} className="space-y-4">
                 <div>
                   <label className="block text-sm font-semibold text-neutral-700 mb-2">
-                    Calificación
+                    {tr("pdp.reviewsRatingLabel")}
                   </label>
-                  <StarSelector value={rating} onChange={setRating} />
+                  <StarSelector value={rating} onChange={setRating} labels={starLabels} />
                 </div>
 
                 <div>
@@ -351,9 +307,9 @@ export default function ProductReviews({ productId }: { productId: string }) {
                     htmlFor="comentario"
                     className="block text-sm font-semibold text-neutral-700 mb-2"
                   >
-                    Comentario{" "}
+                    {tr("pdp.reviewsCommentLabel")}{" "}
                     <span className="text-neutral-400 font-normal">
-                      (opcional)
+                      ({tr("common.optional")})
                     </span>
                   </label>
                   <textarea
@@ -361,7 +317,7 @@ export default function ProductReviews({ productId }: { productId: string }) {
                     rows={4}
                     value={comentario}
                     onChange={(e) => setComentario(e.target.value)}
-                    placeholder="¿Qué te pareció el producto?"
+                    placeholder={tr("pdp.reviewsCommentPlaceholder")}
                     className="w-full border border-gray-200 rounded-xl px-3 py-2.5 text-sm text-neutral-700 placeholder:text-neutral-400 focus:outline-none focus:ring-2 focus:ring-orange-400 resize-none bg-gray-50 focus:bg-white transition-colors"
                     maxLength={500}
                   />
@@ -375,22 +331,19 @@ export default function ProductReviews({ productId }: { productId: string }) {
                   disabled={submitting}
                   className="w-full h-11 bg-orange-600 hover:bg-orange-700 text-white font-bold shadow-sm shadow-orange-100"
                 >
-                  {submitting ? "Publicando..." : "Publicar reseña"}
+                  {submitting ? tr("pdp.reviewsSubmitting") : tr("pdp.reviewsPublish")}
                 </Button>
               </form>
             </div>
           ) : (
-            /* Not authenticated: invitation block */
             <div className="border border-yellow-200 rounded-2xl p-6 bg-yellow-50 space-y-5 sticky top-6">
               <div className="text-center space-y-2">
                 <p className="text-3xl">✨</p>
                 <h3 className="font-bold text-neutral-800 text-lg leading-snug">
-                  ¿Ya conoces este producto?
+                  {tr("pdp.reviewsGuestTitle")}
                 </h3>
                 <p className="text-sm text-neutral-500 leading-relaxed">
-                  Únete a la comunidad y comparte tu opinión.
-                  Tus reseñas ayudan a otros compradores a
-                  tomar mejores decisiones.
+                  {tr("pdp.reviewsGuestSub")}
                 </p>
               </div>
 
@@ -399,19 +352,19 @@ export default function ProductReviews({ productId }: { productId: string }) {
                   className="w-full h-11 bg-orange-600 hover:bg-orange-700 text-white font-bold"
                   onClick={() => router.push("/login")}
                 >
-                  Iniciar sesión
+                  {tr("pdp.reviewsGuestLogin")}
                 </Button>
                 <Button
                   variant="outline"
                   className="w-full h-10 font-semibold border-neutral-300 text-neutral-700"
                   onClick={() => router.push("/register")}
                 >
-                  Crear cuenta gratis
+                  {tr("pdp.reviewsGuestRegister")}
                 </Button>
               </div>
 
               <p className="text-xs text-neutral-400 text-center leading-relaxed">
-                Es gratis. Tu opinión importa.
+                {tr("pdp.reviewsGuestFooter")}
               </p>
             </div>
           )}

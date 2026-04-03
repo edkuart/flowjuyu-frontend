@@ -1,26 +1,34 @@
-// src/components/home/NewProductsSection.tsx
-
 "use client";
 
-import Link from "next/link";
 import Image from "next/image";
-import SectionHeader from "@/components/ui/SectionHeader";
-import { FavoriteButton } from "@/components/ui/FavoriteButton";
-import { getProductImage } from "@/lib/getProductImage";
+import Link from "next/link";
 import { useState } from "react";
-import { useNewProducts, type NewProducto as Producto } from "@/hooks/useNewProducts";
+
+import { FavoriteButton } from "@/components/ui/FavoriteButton";
+import SectionHeader from "@/components/ui/SectionHeader";
+import {
+  useNewProducts,
+  type NewProducto as Producto,
+} from "@/hooks/useNewProducts";
+import { useLanguage } from "@/i18n/context/useLanguage";
+import esDictionary from "@/i18n/dictionaries/es";
+import { createT } from "@/i18n/utils/t";
+import { getProductImage } from "@/lib/getProductImage";
 
 function NewProductsSkeleton() {
   return (
-    <section className="py-16 md:py-20 bg-[#0f2e22]">
-      <div className="max-w-7xl mx-auto px-4 md:px-12 space-y-10">
+    <section className="bg-[#0f2e22] py-16 md:py-20">
+      <div className="mx-auto max-w-7xl space-y-10 px-4 md:px-12">
         <div className="space-y-3">
-          <div className="h-3 w-40 bg-white/10 rounded animate-pulse" />
-          <div className="h-7 w-56 bg-white/10 rounded animate-pulse" />
+          <div className="h-3 w-40 animate-pulse rounded bg-white/10" />
+          <div className="h-7 w-56 animate-pulse rounded bg-white/10" />
         </div>
-        <div className="grid gap-4 md:gap-6 grid-cols-2 md:grid-cols-3">
+        <div className="grid grid-cols-2 gap-4 md:grid-cols-3 md:gap-6">
           {Array.from({ length: 3 }).map((_, i) => (
-            <div key={i} className="aspect-[4/5] bg-white/5 rounded-sm animate-pulse" />
+            <div
+              key={i}
+              className="aspect-[4/5] animate-pulse rounded-sm bg-white/5"
+            />
           ))}
         </div>
       </div>
@@ -35,36 +43,39 @@ const formatPrice = (precio: number) =>
     minimumFractionDigits: 0,
   }).format(precio);
 
-// Calcula hace cuántos días se publicó el producto
-function getDaysAgo(dateStr?: string | null): string | null {
+function getDaysAgoLabel(
+  dateStr: string | null | undefined,
+  tr: ReturnType<typeof createT>,
+): string | null {
   if (!dateStr) return null;
   const diff = Math.floor(
-    (Date.now() - new Date(dateStr).getTime()) / (1000 * 60 * 60 * 24)
+    (Date.now() - new Date(dateStr).getTime()) / (1000 * 60 * 60 * 24),
   );
-  if (diff === 0) return "hoy";
-  if (diff === 1) return "ayer";
-  if (diff <= 7) return `hace ${diff} días`;
-  return null; // más de una semana → no mostrar urgencia temporal
+  if (diff === 0) return tr("home.newBadgeArrivedToday");
+  if (diff === 1) return tr("home.newBadgeArrivedYesterday");
+  if (diff <= 7) {
+    return tr("home.newBadgeArrivedDays").replace("{days}", String(diff));
+  }
+  return null;
 }
-
-/* ─── Card ─────────────────────────────────────────────── */
 
 function NewProductCard({ product }: { product: Producto }) {
   const [imgError, setImgError] = useState(false);
+  const { dictionary } = useLanguage();
+  const tr = createT(dictionary ?? esDictionary);
 
   const src = !imgError
     ? getProductImage(product, "/images/productos/default.jpg")
     : "/images/productos/default.jpg";
 
-  const daysAgo = getDaysAgo(product.created_at);
+  const daysAgoLabel = getDaysAgoLabel(product.created_at, tr);
 
   return (
     <Link
       href={`/product/${product.id}`}
-      className="group block relative overflow-hidden bg-[#0a2219]"
+      className="group relative block overflow-hidden bg-[#0a2219]"
     >
       <div className="relative aspect-[4/5] overflow-hidden">
-
         <Image
           src={src}
           alt={product.nombre}
@@ -74,33 +85,29 @@ function NewProductCard({ product }: { product: Producto }) {
           onError={() => setImgError(true)}
         />
 
-        {/* Gradient */}
         <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/15 to-transparent" />
 
-        {/* Badge temporal — diferenciador de urgencia real */}
         <div className="absolute top-4 left-4 flex flex-col gap-[6px]">
-          <span className="text-[9px] uppercase tracking-[0.28em] text-white bg-white/15 backdrop-blur-sm border border-white/20 px-2 py-[4px]">
-            {daysAgo ? `Llegó ${daysAgo}` : "Nuevo"}
+          <span className="border border-white/20 bg-white/15 px-2 py-[4px] text-[9px] tracking-[0.28em] text-white uppercase backdrop-blur-sm">
+            {daysAgoLabel ?? tr("home.newBadgeNew")}
           </span>
         </div>
 
-        {/* Favorite button */}
         <div className="absolute top-4 right-4 z-10">
           <FavoriteButton productId={product.id} size="sm" />
         </div>
 
-        {/* Info del producto en la imagen */}
-        <div className="absolute bottom-0 p-5 text-white w-full">
-          <div className="h-[1px] w-7 bg-white/35 mb-3 group-hover:w-14 transition-all duration-500" />
-          <p className="font-serif italic text-base md:text-lg leading-snug line-clamp-2">
+        <div className="absolute bottom-0 w-full p-5 text-white">
+          <div className="mb-3 h-[1px] w-7 bg-white/35 transition-all duration-500 group-hover:w-14" />
+          <p className="line-clamp-2 font-serif text-base leading-snug italic md:text-lg">
             {product.nombre}
           </p>
           <div className="mt-2 flex items-center justify-between">
             <p className="text-[12px] tracking-[0.15em] text-white/60">
               {formatPrice(product.precio)}
             </p>
-            <span className="text-[9px] uppercase tracking-[0.22em] text-white/40 group-hover:text-white/70 transition">
-              Ver →
+            <span className="text-[9px] tracking-[0.22em] text-white/40 uppercase transition group-hover:text-white/70">
+              {tr("home.viewPiece")} →
             </span>
           </div>
         </div>
@@ -109,47 +116,42 @@ function NewProductCard({ product }: { product: Producto }) {
   );
 }
 
-/* ─── Section ───────────────────────────────────────────── */
-
 export default function NewProductsSection() {
   const { data: nuevosProductos, loading } = useNewProducts();
+  const { dictionary } = useLanguage();
+  const tr = createT(dictionary ?? esDictionary);
 
   if (loading) return <NewProductsSkeleton />;
   if (!nuevosProductos.length) return <NewProductsSkeleton />;
 
-  // Solo 3 productos — foco, no catálogo
   const items = nuevosProductos.slice(0, 3);
 
   return (
-    <section className="py-16 md:py-20 bg-[#0f2e22] text-white">
-      <div className="max-w-7xl mx-auto px-4 md:px-12 space-y-10">
-
+    <section className="bg-[#0f2e22] py-16 text-white md:py-20">
+      <div className="mx-auto max-w-7xl space-y-10 px-4 md:px-12">
         <SectionHeader
-          eyebrow="El catálogo crece cada semana"
-          title="Recién salido del telar"
+          eyebrow={tr("home.newEyebrow")}
+          title={tr("home.newTitle")}
           linkHref="/productos?sort=new"
-          linkLabel="Ver todas las incorporaciones"
+          linkLabel={tr("home.newLink")}
           dark
         />
 
-        {/* Grid de 3 — distinto de trending (que usa 4 columns) */}
-        <div className="grid gap-4 md:gap-6 grid-cols-2 md:grid-cols-3">
+        <div className="grid grid-cols-2 gap-4 md:grid-cols-3 md:gap-6">
           {items.map((product) => (
             <NewProductCard key={product.id} product={product} />
           ))}
         </div>
 
-        {/* CTA de fondo — recordatorio de que hay más */}
-        <div className="pt-2 flex items-center gap-4">
+        <div className="flex items-center gap-4 pt-2">
           <div className="h-px flex-1 bg-white/10" />
           <Link
             href="/productos?sort=new"
-            className="text-[11px] uppercase tracking-[0.28em] text-white/50 hover:text-white/90 transition whitespace-nowrap"
+            className="text-[11px] tracking-[0.28em] whitespace-nowrap text-white/50 uppercase transition hover:text-white/90"
           >
-            Ver todas las incorporaciones →
+            {tr("home.newLink")} →
           </Link>
         </div>
-
       </div>
     </section>
   );

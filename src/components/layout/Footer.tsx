@@ -1,125 +1,98 @@
+"use client";
+
 import Link from "next/link";
 
+import { useLanguage } from "@/i18n/context/useLanguage";
+import esDictionary from "@/i18n/dictionaries/es";
+import { createT } from "@/i18n/utils/t";
+
 export default function Footer() {
+  const { dictionary } = useLanguage();
+  const tr = createT(dictionary ?? esDictionary);
+
   return (
-    <footer className="bg-gradient-to-r from-[#0f2e22] to-[#184c37] text-white mt-24">
-
-      <div className="max-w-7xl mx-auto px-6 md:px-12 py-16">
-
-        <div className="grid md:grid-cols-4 gap-10">
-
-          {/* Marca */}
+    <footer className="mt-24 bg-gradient-to-r from-[#0f2e22] to-[#184c37] text-white">
+      <div className="mx-auto max-w-7xl px-6 py-16 md:px-12">
+        <div className="grid gap-10 md:grid-cols-4">
           <div>
-            <h3 className="font-serif text-xl mb-3">
-              Flowjuyu
-            </h3>
-
-            <p className="text-sm text-white/70 leading-relaxed">
-              Plataforma dedicada a conectar artesanos guatemaltecos
-              con compradores que valoran la tradición textil.
+            <h3 className="mb-3 font-serif text-xl">Flowjuyu</h3>
+            <p className="text-sm leading-relaxed text-white/70">
+              {tr("footer.brandDescription")}
             </p>
           </div>
 
-          {/* Explorar */}
           <div className="space-y-2 text-sm">
-
-            <p className="text-white/80 font-medium mb-3">
-              Explorar
+            <p className="mb-3 font-medium text-white/80">
+              {tr("footer.exploreTitle")}
             </p>
-
             <Link
               href="/productos"
-              className="block text-white/60 hover:text-white transition"
+              className="block text-white/60 transition hover:text-white"
             >
-              Explorar catálogo
+              {tr("footer.exploreCatalog")}
             </Link>
-
             <Link
               href="/new-arrivals"
-              className="block text-white/60 hover:text-white transition"
+              className="block text-white/60 transition hover:text-white"
             >
-              Lo más nuevo
+              {tr("footer.newArrivals")}
             </Link>
-
             <Link
               href="/sell"
-              className="block text-white/60 hover:text-white transition"
+              className="block text-white/60 transition hover:text-white"
             >
-              Vender en Flowjuyu
+              {tr("footer.sellLink")}
             </Link>
-
           </div>
 
-          {/* Ayuda */}
           <div className="space-y-2 text-sm">
-
-            <p className="text-white/80 font-medium mb-3">
-              Ayuda
+            <p className="mb-3 font-medium text-white/80">
+              {tr("footer.helpTitle")}
             </p>
-
             <Link
               href="/help/faq"
-              className="block text-white/60 hover:text-white transition"
+              className="block text-white/60 transition hover:text-white"
             >
-              Preguntas frecuentes
+              {tr("nav.faq")}
             </Link>
-
             <Link
               href="/help/contact"
-              className="block text-white/60 hover:text-white transition"
+              className="block text-white/60 transition hover:text-white"
             >
-              Contactar soporte
+              {tr("footer.contactSupport")}
             </Link>
-
             <Link
               href="/help/returns"
-              className="block text-white/60 hover:text-white transition"
+              className="block text-white/60 transition hover:text-white"
             >
-              Devoluciones
+              {tr("nav.returns")}
             </Link>
-
           </div>
 
-          {/* Legal */}
           <div className="space-y-2 text-sm">
-
-            <p className="text-white/80 font-medium mb-3">
-              Legal
+            <p className="mb-3 font-medium text-white/80">
+              {tr("footer.legalTitle")}
             </p>
-
             <Link
               href="/privacidad"
-              className="block text-white/60 hover:text-white transition"
+              className="block text-white/60 transition hover:text-white"
             >
-              Política de privacidad
+              {tr("footer.privacy")}
             </Link>
-
             <Link
               href="/terminos"
-              className="block text-white/60 hover:text-white transition"
+              className="block text-white/60 transition hover:text-white"
             >
-              Términos y condiciones
+              {tr("footer.terms")}
             </Link>
-
           </div>
-
         </div>
 
-        {/* Barra inferior */}
-        <div className="mt-12 pt-6 border-t border-white/10 text-xs text-white/40 flex justify-between flex-wrap gap-4">
-
-          <span>
-            © {new Date().getFullYear()} Flowjuyu
-          </span>
-
-          <span>
-            Hecho en Guatemala 🇬🇹
-          </span>
-
+        <div className="mt-12 flex flex-wrap justify-between gap-4 border-t border-white/10 pt-6 text-xs text-white/40">
+          <span>© {new Date().getFullYear()} Flowjuyu</span>
+          <span>{tr("footer.madeInGuatemala")} 🇬🇹</span>
         </div>
-
       </div>
-
     </footer>
   );
 }

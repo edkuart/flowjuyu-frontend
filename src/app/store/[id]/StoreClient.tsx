@@ -3,6 +3,9 @@
 "use client";
 
 import { useMemo, useState, useEffect, useCallback } from "react";
+import { useLanguage } from "@/i18n/context/useLanguage";
+import { createT } from "@/i18n/utils/t";
+import esDictionary from "@/i18n/dictionaries/es";
 import Image from "next/image";
 import Link from "next/link";
 import { getProductImage } from "@/lib/getProductImage";
@@ -20,10 +23,11 @@ import { FavoriteButton } from "@/components/ui/FavoriteButton";
 import SellerQrModal from "@/components/seller/SellerQrModal";
 import SocialButtons from "@/components/seller/SocialButtons";
 import { SellerLogo } from "@/components/seller/SellerLogo";
+import WhatsAppModal from "@/components/product/WhatsAppModal";
 import { buildHeaderStyle, DEFAULT_HEADER_STYLE } from "@/lib/headerStyle";
 import type { HeaderStyle } from "@/lib/headerStyle";
-import { phoneToWaUrl } from "@/lib/phone";
 import type { PhoneNumber } from "@/lib/phone";
+import { buildWhatsAppHref, extractWhatsAppPhone } from "@/lib/whatsapp";
 
 const API = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8800";
 
@@ -52,7 +56,7 @@ type Seller = {
   productos_destacados?: string[] | null;
   mensaje_destacado?: string | null;
   created_at?: string | null;
-  whatsapp?: string | null;          // legacy string (some endpoints still return this)
+  whatsapp?: string | null; // legacy string (some endpoints still return this)
   whatsapp_numero?: PhoneNumber | null;
   plan?: "free" | "founder";
   plan_activo?: boolean;
@@ -95,7 +99,13 @@ const DEFAULT_LAYOUT: StoreLayoutConfig = {
    STAR DISPLAY
 ===================================================== */
 
-function Stars({ rating, size = "sm" }: { rating: number; size?: "sm" | "lg" }) {
+function Stars({
+  rating,
+  size = "sm",
+}: {
+  rating: number;
+  size?: "sm" | "lg";
+}) {
   const s = size === "lg" ? "w-5 h-5" : "w-3.5 h-3.5";
   return (
     <div className="flex items-center gap-0.5">
@@ -114,19 +124,20 @@ function Stars({ rating, size = "sm" }: { rating: number; size?: "sm" | "lg" }) 
 ===================================================== */
 
 function ProductCard({ p }: { p: Producto }) {
+  const { dictionary } = useLanguage();
+  const tr = createT(dictionary ?? esDictionary);
   const precio = Number(p.precio);
 
   return (
     <Link href={p.internal_code ? `/p/${p.internal_code}` : `/product/${p.id}`}>
-      <div className="group bg-white rounded-3xl border border-neutral-200 p-5 hover:shadow-2xl hover:-translate-y-1 transition-all duration-300 overflow-hidden relative">
-
+      <div className="group relative overflow-hidden rounded-3xl border border-neutral-200 bg-white p-5 transition-all duration-300 hover:-translate-y-1 hover:shadow-2xl">
         {/* Favorite button — uses shared useFavorites store */}
         <div className="absolute top-3 right-3 z-10">
           <FavoriteButton productId={p.id} size="sm" />
         </div>
 
         {/* Image */}
-        <div className="relative w-full aspect-square bg-neutral-50 rounded-2xl overflow-hidden mb-4">
+        <div className="relative mb-4 aspect-square w-full overflow-hidden rounded-2xl bg-neutral-50">
           <Image
             src={getProductImage(p)}
             alt={p.nombre}
@@ -134,21 +145,21 @@ function ProductCard({ p }: { p: Producto }) {
             className="object-contain p-2 transition-transform duration-500 group-hover:scale-105"
           />
           <div className="absolute top-2 left-2">
-            <span className="bg-white/90 backdrop-blur-sm text-amber-700 text-[9px] font-bold px-2 py-0.5 rounded-full border border-amber-200 shadow-sm">
-              Artesanal
+            <span className="rounded-full border border-amber-200 bg-white/90 px-2 py-0.5 text-[9px] font-bold text-amber-700 shadow-sm backdrop-blur-sm">
+              {tr("seller.artisanalBadge")}
             </span>
           </div>
-          <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition flex items-center justify-center text-white font-semibold">
-            Ver producto
+          <div className="absolute inset-0 flex items-center justify-center bg-black/40 font-semibold text-white opacity-0 transition group-hover:opacity-100">
+            {tr("seller.viewProduct")}
           </div>
         </div>
 
         {/* Info */}
         <div className="space-y-1">
-          <h3 className="font-semibold text-neutral-800 text-sm leading-snug line-clamp-2 group-hover:text-[#0F3D3A] transition-colors">
+          <h3 className="line-clamp-2 text-sm leading-snug font-semibold text-neutral-800 transition-colors group-hover:text-[#0F3D3A]">
             {p.nombre}
           </h3>
-          <p className="font-black text-[#0F3D3A] text-lg tracking-tight">
+          <p className="text-lg font-black tracking-tight text-[#0F3D3A]">
             Q{precio.toFixed(2)}
           </p>
         </div>
@@ -168,30 +179,43 @@ function ReviewForm({
   sellerId: number;
   onSubmitted: () => void;
 }) {
-  const [rating, setRating]     = useState(0);
-  const [hovered, setHovered]   = useState(0);
-  const [comment, setComment]   = useState("");
-  const [name, setName]         = useState("");
-  const [loading, setLoading]   = useState(false);
-  const [error, setError]       = useState<string | null>(null);
-  const [success, setSuccess]   = useState(false);
+  const { dictionary } = useLanguage();
+  const tr = createT(dictionary ?? esDictionary);
+  const [rating, setRating] = useState(0);
+  const [hovered, setHovered] = useState(0);
+  const [comment, setComment] = useState("");
+  const [name, setName] = useState("");
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  const [success, setSuccess] = useState(false);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!rating) { setError("Selecciona una calificación"); return; }
-    setLoading(true); setError(null);
+    if (!rating) {
+      setError(tr("seller.reviewSelectRating"));
+      return;
+    }
+    setLoading(true);
+    setError(null);
     try {
       const res = await fetch(`${API}/api/reviews/seller/${sellerId}`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ rating, comment: comment || null, buyer_name: name || "Comprador" }),
+        body: JSON.stringify({
+          rating,
+          comment: comment || null,
+          buyer_name: name || "Comprador",
+        }),
       });
-      if (res.status === 409) { setError("Ya dejaste una reseña para esta tienda"); return; }
+      if (res.status === 409) {
+        setError(tr("seller.reviewDuplicate"));
+        return;
+      }
       if (!res.ok) throw new Error();
       setSuccess(true);
       onSubmitted();
     } catch {
-      setError("No se pudo enviar. Intenta de nuevo.");
+      setError(tr("seller.reviewError"));
     } finally {
       setLoading(false);
     }
@@ -199,15 +223,20 @@ function ReviewForm({
 
   if (success) {
     return (
-      <div className="text-center py-6 text-emerald-700 font-semibold">
-        ¡Gracias por tu reseña! 🙏
+      <div className="py-6 text-center font-semibold text-emerald-700">
+        {tr("seller.reviewSuccess")} 🙏
       </div>
     );
   }
 
   return (
-    <form onSubmit={handleSubmit} className="space-y-4 bg-neutral-50 rounded-2xl p-5 border border-neutral-100">
-      <p className="font-semibold text-neutral-800 text-sm">Deja tu opinión</p>
+    <form
+      onSubmit={handleSubmit}
+      className="space-y-4 rounded-2xl border border-neutral-100 bg-neutral-50 p-5"
+    >
+      <p className="text-sm font-semibold text-neutral-800">
+        {tr("seller.reviewFormTitle")}
+      </p>
 
       {/* Star selector */}
       <div className="flex gap-1">
@@ -220,8 +249,10 @@ function ReviewForm({
             onClick={() => setRating(n)}
           >
             <Star
-              className={`w-7 h-7 transition ${
-                n <= (hovered || rating) ? "fill-amber-400 text-amber-400" : "text-neutral-300"
+              className={`h-7 w-7 transition ${
+                n <= (hovered || rating)
+                  ? "fill-amber-400 text-amber-400"
+                  : "text-neutral-300"
               }`}
             />
           </button>
@@ -229,27 +260,27 @@ function ReviewForm({
       </div>
 
       <input
-        placeholder="Tu nombre (opcional)"
+        placeholder={tr("seller.reviewNamePlaceholder")}
         value={name}
         onChange={(e) => setName(e.target.value)}
-        className="w-full border rounded-xl px-3 py-2 text-sm bg-white"
+        className="w-full rounded-xl border bg-white px-3 py-2 text-sm"
       />
       <textarea
-        placeholder="Cuéntanos tu experiencia (opcional)"
+        placeholder={tr("seller.reviewCommentPlaceholder")}
         value={comment}
         onChange={(e) => setComment(e.target.value)}
         rows={3}
-        className="w-full border rounded-xl px-3 py-2 text-sm resize-none bg-white"
+        className="w-full resize-none rounded-xl border bg-white px-3 py-2 text-sm"
       />
 
-      {error && <p className="text-red-500 text-xs">{error}</p>}
+      {error && <p className="text-xs text-red-500">{error}</p>}
 
       <button
         type="submit"
         disabled={loading}
-        className="w-full py-2.5 bg-[#0F3D3A] text-white font-semibold rounded-xl text-sm disabled:opacity-60 transition hover:bg-[#0a2e2b]"
+        className="w-full rounded-xl bg-[#0F3D3A] py-2.5 text-sm font-semibold text-white transition hover:bg-[#0a2e2b] disabled:opacity-60"
       >
-        {loading ? "Enviando…" : "Enviar reseña"}
+        {loading ? tr("seller.reviewSubmitting") : tr("seller.reviewSubmit")}
       </button>
     </form>
   );
@@ -268,25 +299,35 @@ export default function StoreClient({
   initialProducts: Producto[];
   layoutConfig?: Partial<StoreLayoutConfig>;
 }) {
+  const { dictionary } = useLanguage();
+  const tr = createT(dictionary ?? esDictionary);
   console.log("[DEBUG] Component render triggered");
   console.log("[DEBUG] seller object:", seller);
   console.log("[DEBUG] seller.id:", seller?.id, "| type:", typeof seller?.id);
-  console.log("[DEBUG] initialProducts:", Array.isArray(initialProducts) ? `array[${initialProducts.length}]` : initialProducts);
+  console.log(
+    "[DEBUG] initialProducts:",
+    Array.isArray(initialProducts)
+      ? `array[${initialProducts.length}]`
+      : initialProducts,
+  );
   const config = useMemo<StoreLayoutConfig>(
     () => ({ ...DEFAULT_LAYOUT, ...layoutConfig }),
     // layoutConfig is expected to be a stable object from the parent
     // eslint-disable-next-line react-hooks/exhaustive-deps
-    [JSON.stringify(layoutConfig)]
+    [JSON.stringify(layoutConfig)],
   );
   const [precioMin, setPrecioMin] = useState(0);
   const [precioMax, setPrecioMax] = useState(2000);
-  const [sort, setSort]           = useState("");
+  const [sort, setSort] = useState("");
   const [fabVisible, setFabVisible] = useState(false);
-  const [qrOpen, setQrOpen]       = useState(false);
+  const [qrOpen, setQrOpen] = useState(false);
+  const [whatsAppOpen, setWhatsAppOpen] = useState(false);
 
   // Reviews
-  const [ratingSummary, setRatingSummary] = useState<RatingSummary | null>(null);
-  const [reviews, setReviews]             = useState<Review[]>([]);
+  const [ratingSummary, setRatingSummary] = useState<RatingSummary | null>(
+    null,
+  );
+  const [reviews, setReviews] = useState<Review[]>([]);
   const [showAllReviews, setShowAllReviews] = useState(false);
 
   console.log("[DEBUG] Render ratingSummary:", ratingSummary);
@@ -294,24 +335,56 @@ export default function StoreClient({
   /* ── Trace ratingSummary state changes ── */
   useEffect(() => {
     if (ratingSummary === null) {
-      console.log("[DEBUG] Showing skeleton — ratingSummary is:", ratingSummary);
+      console.log(
+        "[DEBUG] Showing skeleton — ratingSummary is:",
+        ratingSummary,
+      );
     } else {
-      console.log("[DEBUG] ratingSummary set — rating:", ratingSummary.rating, "total_reviews:", ratingSummary.total_reviews);
+      console.log(
+        "[DEBUG] ratingSummary set — rating:",
+        ratingSummary.rating,
+        "total_reviews:",
+        ratingSummary.total_reviews,
+      );
       if (ratingSummary.total_reviews === 0) {
-        console.warn("[DEBUG] total_reviews is 0 — rating badge will NOT render");
+        console.warn(
+          "[DEBUG] total_reviews is 0 — rating badge will NOT render",
+        );
       }
     }
   }, [ratingSummary]);
 
   /* ── Mount diagnostics ── */
   useEffect(() => {
-    console.log("[DEBUG] MOUNT — seller.id:", seller?.id, "| initialProducts.length:", initialProducts?.length);
+    console.log(
+      "[DEBUG] MOUNT — seller.id:",
+      seller?.id,
+      "| initialProducts.length:",
+      initialProducts?.length,
+    );
     console.log("[DEBUG] MOUNT — config:", config);
-    console.log("[DEBUG] MOUNT — seller.descripcion:", !!seller?.descripcion, "| seller.plan:", seller?.plan, "| estado_validacion:", seller?.estado_validacion);
-    console.log("[DEBUG] MOUNT — productos_destacados:", seller?.productos_destacados?.length ?? 0, "| identidad_tags:", seller?.identidad_tags?.length ?? 0);
-    if (!seller?.id) console.error("[DEBUG] BLOCKER — seller.id is missing! seller:", seller);
-    if (!Array.isArray(initialProducts)) console.error("[DEBUG] BLOCKER — initialProducts is NOT an array:", initialProducts);
-  // eslint-disable-next-line react-hooks/exhaustive-deps
+    console.log(
+      "[DEBUG] MOUNT — seller.descripcion:",
+      !!seller?.descripcion,
+      "| seller.plan:",
+      seller?.plan,
+      "| estado_validacion:",
+      seller?.estado_validacion,
+    );
+    console.log(
+      "[DEBUG] MOUNT — productos_destacados:",
+      seller?.productos_destacados?.length ?? 0,
+      "| identidad_tags:",
+      seller?.identidad_tags?.length ?? 0,
+    );
+    if (!seller?.id)
+      console.error("[DEBUG] BLOCKER — seller.id is missing! seller:", seller);
+    if (!Array.isArray(initialProducts))
+      console.error(
+        "[DEBUG] BLOCKER — initialProducts is NOT an array:",
+        initialProducts,
+      );
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   /* ── FAB scroll ── */
@@ -330,18 +403,33 @@ export default function StoreClient({
         fetch(`${API}/api/reviews/seller/${seller.id}?limit=20`),
       ]);
 
-      console.log("[DEBUG] ratingRes.status:", ratingRes.status, "ok:", ratingRes.ok);
+      console.log(
+        "[DEBUG] ratingRes.status:",
+        ratingRes.status,
+        "ok:",
+        ratingRes.ok,
+      );
 
       if (ratingRes.ok) {
         const json = await ratingRes.json();
         console.log("[DEBUG] Raw response:", json);
-        console.log("[DEBUG] json.success:", json?.success, "json.data:", json?.data);
+        console.log(
+          "[DEBUG] json.success:",
+          json?.success,
+          "json.data:",
+          json?.data,
+        );
 
         if (json?.success && json.data) {
           console.log("[DEBUG] Setting ratingSummary:", json.data);
           setRatingSummary(json.data);
         } else {
-          console.warn("[DEBUG] Condition failed — ratingSummary NOT set. success:", json?.success, "data:", json?.data);
+          console.warn(
+            "[DEBUG] Condition failed — ratingSummary NOT set. success:",
+            json?.success,
+            "data:",
+            json?.data,
+          );
         }
       } else {
         console.error("[DEBUG] ratingRes NOT ok — status:", ratingRes.status);
@@ -356,7 +444,9 @@ export default function StoreClient({
     }
   }, [seller.id]);
 
-  useEffect(() => { loadReviews(); }, [loadReviews]);
+  useEffect(() => {
+    loadReviews();
+  }, [loadReviews]);
 
   /* ── Filtros + Sort ── */
   const productos = useMemo(() => {
@@ -365,8 +455,10 @@ export default function StoreClient({
       const precio = Number(p.precio);
       return precio >= precioMin && precio <= precioMax;
     });
-    if (sort === "price_asc")  list.sort((a, b) => Number(a.precio) - Number(b.precio));
-    if (sort === "price_desc") list.sort((a, b) => Number(b.precio) - Number(a.precio));
+    if (sort === "price_asc")
+      list.sort((a, b) => Number(a.precio) - Number(b.precio));
+    if (sort === "price_desc")
+      list.sort((a, b) => Number(b.precio) - Number(a.precio));
     return list;
   }, [initialProducts, precioMin, precioMax, sort]);
 
@@ -376,486 +468,677 @@ export default function StoreClient({
       seller.productos_destacados?.length
         ? productos.filter((p) => seller.productos_destacados!.includes(p.id))
         : [],
-    [productos, seller.productos_destacados]
+    [productos, seller.productos_destacados],
   );
 
   /* ── Featured (most relevant if no destacados) ── */
   const featuredProduct = useMemo(
-    () => (destacados.length === 0 && productos.length > 0 ? productos[0] : null),
-    [destacados, productos]
+    () =>
+      destacados.length === 0 && productos.length > 0 ? productos[0] : null,
+    [destacados, productos],
   );
 
   /* ── Member since ── */
   const memberSince = useMemo(
-    () => seller.created_at ? new Date(seller.created_at).getFullYear() : null,
-    [seller.created_at]
+    () =>
+      seller.created_at ? new Date(seller.created_at).getFullYear() : null,
+    [seller.created_at],
   );
 
   /* ── WhatsApp ── */
   const phone = useMemo(
-    () => seller.whatsapp || phoneToWaUrl(seller.whatsapp_numero) || "",
-    [seller.whatsapp, seller.whatsapp_numero]
+    () => extractWhatsAppPhone(seller.whatsapp ?? seller.whatsapp_numero) ?? "",
+    [seller.whatsapp, seller.whatsapp_numero],
   );
   const showWhatsapp = !!phone;
+  const sellerWhatsappLabel = seller.nombre_comercio
+    ? tr("seller.talkWithName").replace("{name}", seller.nombre_comercio)
+    : tr("seller.askWhatsapp");
+  const sellerWhatsappMessage = useMemo(
+    () =>
+      tr("seller.whatsappMessageTemplate").replace(
+        "{namePart}",
+        seller.nombre_comercio ? " " + seller.nombre_comercio : "",
+      ),
+    [seller.nombre_comercio, tr],
+  );
 
   /* ── Header background ── */
   const headerBgStyle = useMemo(
-    () => buildHeaderStyle(seller.header_style ?? DEFAULT_HEADER_STYLE, seller.banner_url),
-    [seller.banner_url, seller.header_style]
+    () =>
+      buildHeaderStyle(
+        seller.header_style ?? DEFAULT_HEADER_STYLE,
+        seller.banner_url,
+      ),
+    [seller.banner_url, seller.header_style],
   );
 
-  const handleWhatsappClick = useCallback((productId?: string) => {
-    // Fire-and-forget — do NOT await; open WhatsApp immediately
-    fetch(`${API}/api/engagement/whatsapp`, {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ seller_id: seller.id, product_id: productId ?? null, type: "click" }),
-    }).catch(() => {});
-    const mensaje = `Hola\n\nEstoy interesado en los productos de "${seller.nombre_comercio}" que vi en Flowjuyu.\n\n¿Podrías brindarme más información?`;
-    window.open(`https://wa.me/${phone}?text=${encodeURIComponent(mensaje)}`, "_blank");
-  }, [seller.id, seller.nombre_comercio, phone]);
+  const handleWhatsappConfirm = useCallback(
+    (message: string, productId?: string) => {
+      fetch(`${API}/api/engagement/whatsapp`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          seller_id: seller.id,
+          product_id: productId ?? null,
+          type: "click",
+        }),
+      }).catch(() => {});
+
+      const href = buildWhatsAppHref(phone, message);
+      if (!href) return;
+
+      window.open(href, "_blank", "noopener,noreferrer");
+    },
+    [phone, seller.id],
+  );
 
   /* =====================================================
      RENDER
   ===================================================== */
   return (
     <>
-    <ProductDiscoveryLayout
-      hideHeader={true}
-      title={seller.nombre_comercio}
-      subtitle={seller.descripcion ?? undefined}
-      total={productos.length}
-      precioMin={precioMin}
-      precioMax={precioMax}
-      setPrecioMin={setPrecioMin}
-      setPrecioMax={setPrecioMax}
-      sort={sort}
-      setSort={setSort}
-      onReset={() => { setPrecioMin(0); setPrecioMax(2000); setSort(""); }}
-    >
-
-      {/* ══════════════════════════════════════════════
+      <ProductDiscoveryLayout
+        hideHeader={true}
+        title={seller.nombre_comercio}
+        subtitle={seller.descripcion ?? undefined}
+        total={productos.length}
+        precioMin={precioMin}
+        precioMax={precioMax}
+        setPrecioMin={setPrecioMin}
+        setPrecioMax={setPrecioMax}
+        sort={sort}
+        setSort={setSort}
+        onReset={() => {
+          setPrecioMin(0);
+          setPrecioMax(2000);
+          setSort("");
+        }}
+      >
+        {/* ══════════════════════════════════════════════
           FLOATING WHATSAPP FAB
       ══════════════════════════════════════════════ */}
-      {showWhatsapp && (
-        <button
-          onClick={() => handleWhatsappClick()}
-          aria-label="Contactar por WhatsApp"
-          className={`fixed bottom-6 right-6 z-50 flex items-center gap-2.5 px-5 py-3.5 bg-green-500 hover:bg-green-600 text-white font-semibold rounded-full shadow-2xl transition-all duration-300 active:scale-95 ${
-            fabVisible ? "opacity-100 translate-y-0" : "opacity-0 translate-y-4 pointer-events-none"
-          }`}
-        >
-          <MessageCircle className="w-5 h-5 shrink-0" />
-          <span className="hidden sm:inline">Consultar por WhatsApp</span>
-        </button>
-      )}
+        {showWhatsapp && (
+          <button
+            onClick={() => setWhatsAppOpen(true)}
+            aria-label={sellerWhatsappLabel}
+            className={`fixed right-6 bottom-6 z-50 flex items-center gap-2.5 rounded-full bg-green-500 px-5 py-3.5 font-semibold text-white shadow-2xl transition-all duration-300 hover:bg-green-600 active:scale-95 ${
+              fabVisible
+                ? "translate-y-0 opacity-100"
+                : "pointer-events-none translate-y-4 opacity-0"
+            }`}
+          >
+            <MessageCircle className="h-5 w-5 shrink-0" />
+            <span className="hidden sm:inline">{sellerWhatsappLabel}</span>
+          </button>
+        )}
 
-      {/* ══════════════════════════════════════════════
+        {/* ══════════════════════════════════════════════
           HERO
           Content drives height; background is absolute.
       ══════════════════════════════════════════════ */}
-      <div className="relative -mx-6 mb-0 rounded-b-[40px] overflow-hidden">
+        <div className="relative -mx-6 mb-0 overflow-hidden rounded-b-[40px]">
+          {/* Background — single computed CSS layer, no separate overlay divs */}
+          <div
+            className="absolute inset-0 bg-cover bg-center transition-[background-image,background-color] duration-300"
+            style={headerBgStyle}
+          />
 
-        {/* Background — single computed CSS layer, no separate overlay divs */}
-        <div className="absolute inset-0 bg-cover bg-center transition-[background-image,background-color] duration-300" style={headerBgStyle} />
-
-        {/* Content layer */}
-        <div className="relative px-6 pt-16 pb-10 md:px-10 md:py-14 text-white">
-          <div className="max-w-6xl mx-auto">
-
-            <div className="flex flex-col sm:flex-row items-start gap-6 md:gap-10">
-
-              <SellerLogo src={seller.logo} alt={seller.nombre_comercio} size="lg" />
-
-              <div className="flex-1 min-w-0">
-
-                {/* Badges */}
-                <div className="flex flex-wrap items-center gap-2 mb-3">
-                  {seller.estado_validacion === "aprobado" && (
-                    <span className="inline-flex items-center gap-1.5 px-3 py-0.5 bg-blue-600/90 text-white text-[10px] font-bold rounded-full">
-                      <ShieldCheck className="w-3 h-3" /> Verificado
-                    </span>
-                  )}
-                  {seller.plan === "founder" && seller.plan_activo && (
-                    <span className="inline-flex items-center gap-1 px-3 py-0.5 bg-amber-500 text-black text-[10px] font-bold rounded-full">
-                      <Star className="w-3 h-3" /> Founder
-                    </span>
-                  )}
-                  <span className="px-3 py-0.5 bg-white/15 backdrop-blur border border-white/20 text-white/80 text-[10px] font-semibold rounded-full">
-                    🧵 Hecho a mano
-                  </span>
-                  {ratingSummary && (
-                    ratingSummary.total_reviews > 0 ? (
-                      <span className="inline-flex items-center gap-1 px-3 py-0.5 bg-amber-400/20 border border-amber-300/30 text-amber-200 text-[10px] font-bold rounded-full">
-                        <Star className="w-3 h-3 fill-amber-300 text-amber-300" />
-                        {ratingSummary.rating.toFixed(1)} ({ratingSummary.total_reviews})
-                      </span>
-                    ) : (
-                      <span className="px-3 py-0.5 bg-white/10 border border-white/15 text-white/40 text-[10px] rounded-full">
-                        Aún sin reseñas
-                      </span>
-                    )
-                  )}
-                </div>
-
-                <h1 className="text-3xl md:text-5xl font-bold tracking-tight leading-tight">
-                  {seller.nombre_comercio}
-                </h1>
-                <div className="mt-3 h-[3px] w-20 bg-amber-400 rounded-full" />
-
-                {(seller.municipio || seller.departamento) && (
-                  <p className="mt-3 flex items-center gap-1.5 text-sm opacity-80">
-                    <MapPin className="w-3.5 h-3.5" />
-                    {[seller.municipio, seller.departamento].filter(Boolean).join(", ")}
-                  </p>
-                )}
-
-                {seller.mensaje_destacado && (
-                  <p className="mt-3 max-w-2xl text-sm md:text-base opacity-90 leading-relaxed">
-                    {seller.mensaje_destacado}
-                  </p>
-                )}
-
-                <SocialButtons
-                  links={{ instagram: seller.instagram, facebook: seller.facebook, tiktok: seller.tiktok }}
-                  className="mt-4"
-                  onLinkClick={(platform) => {
-                    fetch(`${API}/api/engagement/social`, {
-                      method: "POST",
-                      headers: { "Content-Type": "application/json" },
-                      body: JSON.stringify({ seller_id: seller.id, platform, type: "click" }),
-                    }).catch(() => {});
-                  }}
+          {/* Content layer */}
+          <div className="relative px-6 pt-16 pb-10 text-white md:px-10 md:py-14">
+            <div className="mx-auto max-w-6xl">
+              <div className="flex flex-col items-start gap-6 sm:flex-row md:gap-10">
+                <SellerLogo
+                  src={seller.logo}
+                  alt={seller.nombre_comercio}
+                  size="lg"
                 />
 
-                {/* Fast reply badge */}
-                {showWhatsapp && (
-                  <div className="mt-3 inline-flex items-center gap-1.5 px-3 py-1 bg-green-500/20 border border-green-400/30 rounded-full text-green-200 text-xs font-semibold">
-                    <span className="w-2 h-2 rounded-full bg-green-400 animate-pulse" />
-                    Respuesta rápida por WhatsApp
+                <div className="min-w-0 flex-1">
+                  {/* Badges */}
+                  <div className="mb-3 flex flex-wrap items-center gap-2">
+                    {seller.estado_validacion === "aprobado" && (
+                      <span className="inline-flex items-center gap-1.5 rounded-full bg-blue-600/90 px-3 py-0.5 text-[10px] font-bold text-white">
+                        <ShieldCheck className="h-3 w-3" />{" "}
+                        {tr("seller.verified")}
+                      </span>
+                    )}
+                    {seller.plan === "founder" && seller.plan_activo && (
+                      <span className="inline-flex items-center gap-1 rounded-full bg-amber-500 px-3 py-0.5 text-[10px] font-bold text-black">
+                        <Star className="h-3 w-3" /> Founder
+                      </span>
+                    )}
+                    <span className="rounded-full border border-white/20 bg-white/15 px-3 py-0.5 text-[10px] font-semibold text-white/80 backdrop-blur">
+                      🧵 {tr("seller.handmadeBadge")}
+                    </span>
+                    {ratingSummary &&
+                      (ratingSummary.total_reviews > 0 ? (
+                        <span className="inline-flex items-center gap-1 rounded-full border border-amber-300/30 bg-amber-400/20 px-3 py-0.5 text-[10px] font-bold text-amber-200">
+                          <Star className="h-3 w-3 fill-amber-300 text-amber-300" />
+                          {ratingSummary.rating.toFixed(1)} (
+                          {ratingSummary.total_reviews})
+                        </span>
+                      ) : (
+                        <span className="rounded-full border border-white/15 bg-white/10 px-3 py-0.5 text-[10px] text-white/40">
+                          {tr("seller.noReviewsBadge")}
+                        </span>
+                      ))}
                   </div>
-                )}
 
-                <div className="flex flex-wrap gap-5 text-sm mt-4 opacity-80">
-                  <span>🛍 {productos.length} productos</span>
-                  {memberSince && <span>📅 Miembro desde {memberSince}</span>}
-                </div>
+                  <h1 className="text-3xl leading-tight font-bold tracking-tight md:text-5xl">
+                    {seller.nombre_comercio}
+                  </h1>
+                  <div className="mt-3 h-[3px] w-20 rounded-full bg-amber-400" />
 
-                {/* CTAs */}
-                <div className="flex flex-wrap gap-3 mt-6">
-                  {showWhatsapp && (
-                    <button
-                      onClick={() => handleWhatsappClick()}
-                      className="inline-flex items-center gap-2.5 px-7 py-3 bg-green-500 hover:bg-green-600 text-white font-semibold rounded-full shadow-xl transition-all duration-200 active:scale-95 text-sm"
-                    >
-                      <MessageCircle className="w-4 h-4" />
-                      💬 Consultar por WhatsApp
-                    </button>
+                  {(seller.municipio || seller.departamento) && (
+                    <p className="mt-3 flex items-center gap-1.5 text-sm opacity-80">
+                      <MapPin className="h-3.5 w-3.5" />
+                      {[seller.municipio, seller.departamento]
+                        .filter(Boolean)
+                        .join(", ")}
+                    </p>
                   )}
-                  <a
-                    href="#catalogo"
-                    className="inline-flex items-center gap-2 px-7 py-3 bg-white/15 hover:bg-white/25 backdrop-blur border border-white/25 text-white font-semibold rounded-full transition-all duration-200 text-sm"
-                  >
-                    Ver catálogo <ArrowRight className="w-4 h-4" />
-                  </a>
-                  <button
-                    onClick={() => setQrOpen(true)}
-                    className="inline-flex items-center gap-2 px-7 py-3 bg-white/15 hover:bg-white/25 backdrop-blur border border-white/25 text-white font-semibold rounded-full transition-all duration-200 text-sm"
-                  >
-                    <Share2 className="w-4 h-4" />
-                    Compartir
-                  </button>
+
+                  {seller.mensaje_destacado && (
+                    <p className="mt-3 max-w-2xl text-sm leading-relaxed opacity-90 md:text-base">
+                      {seller.mensaje_destacado}
+                    </p>
+                  )}
+
+                  <SocialButtons
+                    links={{
+                      instagram: seller.instagram,
+                      facebook: seller.facebook,
+                      tiktok: seller.tiktok,
+                    }}
+                    className="mt-4"
+                    onLinkClick={(platform) => {
+                      fetch(`${API}/api/engagement/social`, {
+                        method: "POST",
+                        headers: { "Content-Type": "application/json" },
+                        body: JSON.stringify({
+                          seller_id: seller.id,
+                          platform,
+                          type: "click",
+                        }),
+                      }).catch(() => {});
+                    }}
+                  />
+
+                  {/* Fast reply badge */}
+                  {showWhatsapp && (
+                    <div className="mt-3 inline-flex items-center gap-1.5 rounded-full border border-green-400/30 bg-green-500/20 px-3 py-1 text-xs font-semibold text-green-200">
+                      <span className="h-2 w-2 animate-pulse rounded-full bg-green-400" />
+                      {tr("seller.fastReplyBadge")}
+                    </div>
+                  )}
+
+                  <div className="mt-4 flex flex-wrap gap-5 text-sm opacity-80">
+                    <span>
+                      🛍 {productos.length}{" "}
+                      {productos.length === 1
+                        ? tr("seller.productSingular")
+                        : tr("seller.productPlural")}
+                    </span>
+                    {memberSince && (
+                      <span>
+                        📅 {tr("seller.memberSince")} {memberSince}
+                      </span>
+                    )}
+                  </div>
+
+                  {/* CTAs */}
+                  <div className="mt-6 flex flex-wrap gap-3">
+                    {showWhatsapp && (
+                      <button
+                        onClick={() => setWhatsAppOpen(true)}
+                        className="inline-flex items-center gap-2.5 rounded-full bg-green-500 px-7 py-3 text-sm font-semibold text-white shadow-xl transition-all duration-200 hover:bg-green-600 active:scale-95"
+                      >
+                        <MessageCircle className="h-4 w-4" />
+                        💬 {sellerWhatsappLabel}
+                      </button>
+                    )}
+                    <a
+                      href="#catalogo"
+                      className="inline-flex items-center gap-2 rounded-full border border-white/25 bg-white/15 px-7 py-3 text-sm font-semibold text-white backdrop-blur transition-all duration-200 hover:bg-white/25"
+                    >
+                      {tr("seller.viewCatalog")}{" "}
+                      <ArrowRight className="h-4 w-4" />
+                    </a>
+                    <button
+                      onClick={() => setQrOpen(true)}
+                      className="inline-flex items-center gap-2 rounded-full border border-white/25 bg-white/15 px-7 py-3 text-sm font-semibold text-white backdrop-blur transition-all duration-200 hover:bg-white/25"
+                    >
+                      <Share2 className="h-4 w-4" />
+                      {tr("seller.share")}
+                    </button>
+                  </div>
                 </div>
               </div>
-            </div>
 
-            {/* Identity tags */}
-            {seller.identidad_tags && seller.identidad_tags.length > 0 && (
-              <div className="flex flex-wrap gap-2 mt-8">
-                {seller.identidad_tags.slice(0, 5).map((tag, i) => (
-                  <span key={i} className="px-4 py-1.5 bg-white/10 backdrop-blur-md border border-white/20 rounded-full text-xs font-medium hover:bg-white/20 transition">
-                    {tag}
-                  </span>
-                ))}
-              </div>
-            )}
-          </div>
-        </div>
-      </div>
-
-      {/* ══════════════════════════════════════════════
-          TRUST BAR
-      ══════════════════════════════════════════════ */}
-      <div className="flex flex-wrap gap-6 items-center justify-center px-6 py-5 mb-12 bg-white border-b border-neutral-100 -mx-6 text-sm text-neutral-500">
-        <span className="flex items-center gap-2">
-          <span className="text-emerald-600 font-bold">✓</span>
-          Artesanía guatemalteca auténtica
-        </span>
-        <span className="hidden sm:block w-px h-4 bg-neutral-200" />
-        <span className="flex items-center gap-2">
-          <span className="text-emerald-600 font-bold">✓</span>
-          Compra directa al artesano
-        </span>
-        <span className="hidden sm:block w-px h-4 bg-neutral-200" />
-        <span className="flex items-center gap-2">
-          <span className="text-emerald-600 font-bold">✓</span>
-          Pieza única hecha a mano
-        </span>
-      </div>
-
-      {/* ══════════════════════════════════════════════
-          ARTISAN STORY SECTION
-      ══════════════════════════════════════════════ */}
-      {(console.log("[DEBUG] RENDER CHECK — show_story:", config.show_story, "| descripcion:", !!seller.descripcion), null)}
-      {config.show_story && seller.descripcion && (
-        <section className="mb-16">
-          <div className="bg-gradient-to-br from-amber-50 to-emerald-50 border border-amber-100 rounded-3xl p-8 flex flex-col md:flex-row gap-8 items-start">
-            <div className="text-4xl flex-shrink-0">📖</div>
-            <div className="min-w-0">
-              <div className="flex items-center gap-2 mb-3">
-                <BookOpen className="w-4 h-4 text-amber-700" />
-                <p className="text-xs font-bold text-amber-700 uppercase tracking-widest">
-                  Historia del artesano
-                </p>
-              </div>
-              <h2 className="text-xl font-bold text-neutral-900 mb-3">
-                Sobre {seller.nombre_comercio}
-              </h2>
-              <p className="text-neutral-600 leading-relaxed">
-                {seller.descripcion}
-              </p>
-              {showWhatsapp && (
-                <button
-                  onClick={() => handleWhatsappClick()}
-                  className="mt-5 inline-flex items-center gap-2 text-sm font-semibold text-emerald-700 hover:text-emerald-900 transition"
-                >
-                  Hablar directamente con el artesano
-                  <ArrowRight className="w-4 h-4" />
-                </button>
+              {/* Identity tags */}
+              {seller.identidad_tags && seller.identidad_tags.length > 0 && (
+                <div className="mt-8 flex flex-wrap gap-2">
+                  {seller.identidad_tags.slice(0, 5).map((tag, i) => (
+                    <span
+                      key={i}
+                      className="rounded-full border border-white/20 bg-white/10 px-4 py-1.5 text-xs font-medium backdrop-blur-md transition hover:bg-white/20"
+                    >
+                      {tag}
+                    </span>
+                  ))}
+                </div>
               )}
             </div>
           </div>
-        </section>
-      )}
+        </div>
 
-      {/* ══════════════════════════════════════════════
+        {/* ══════════════════════════════════════════════
+          TRUST BAR
+      ══════════════════════════════════════════════ */}
+        <div className="-mx-6 mb-12 flex flex-wrap items-center justify-center gap-6 border-b border-neutral-100 bg-white px-6 py-5 text-sm text-neutral-500">
+          <span className="flex items-center gap-2">
+            <span className="font-bold text-emerald-600">✓</span>
+            {tr("seller.trustAuthentic")}
+          </span>
+          <span className="hidden h-4 w-px bg-neutral-200 sm:block" />
+          <span className="flex items-center gap-2">
+            <span className="font-bold text-emerald-600">✓</span>
+            {tr("seller.trustDirect")}
+          </span>
+          <span className="hidden h-4 w-px bg-neutral-200 sm:block" />
+          <span className="flex items-center gap-2">
+            <span className="font-bold text-emerald-600">✓</span>
+            {tr("seller.trustHandmade")}
+          </span>
+        </div>
+
+        {/* ══════════════════════════════════════════════
+          ARTISAN STORY SECTION
+      ══════════════════════════════════════════════ */}
+        {
+          (console.log(
+            "[DEBUG] RENDER CHECK — show_story:",
+            config.show_story,
+            "| descripcion:",
+            !!seller.descripcion,
+          ),
+          null)
+        }
+        {config.show_story && seller.descripcion && (
+          <section className="mb-16">
+            <div className="flex flex-col items-start gap-8 rounded-3xl border border-amber-100 bg-gradient-to-br from-amber-50 to-emerald-50 p-8 md:flex-row">
+              <div className="flex-shrink-0 text-4xl">📖</div>
+              <div className="min-w-0">
+                <div className="mb-3 flex items-center gap-2">
+                  <BookOpen className="h-4 w-4 text-amber-700" />
+                  <p className="text-xs font-bold tracking-widest text-amber-700 uppercase">
+                    {tr("seller.storyEyebrow")}
+                  </p>
+                </div>
+                <h2 className="mb-3 text-xl font-bold text-neutral-900">
+                  {tr("seller.storyHeading")} {seller.nombre_comercio}
+                </h2>
+                <p className="leading-relaxed text-neutral-600">
+                  {seller.descripcion}
+                </p>
+                {showWhatsapp && (
+                  <button
+                    onClick={() => setWhatsAppOpen(true)}
+                    className="mt-5 inline-flex items-center gap-2 text-sm font-semibold text-emerald-700 transition hover:text-emerald-900"
+                  >
+                    {tr("seller.talkDirectly")}
+                    <ArrowRight className="h-4 w-4" />
+                  </button>
+                )}
+              </div>
+            </div>
+          </section>
+        )}
+
+        {/* ══════════════════════════════════════════════
           FEATURED PRODUCT (when no destacados)
       ══════════════════════════════════════════════ */}
-      {(console.log("[DEBUG] RENDER CHECK — show_featured:", config.show_featured, "| featuredProduct:", !!featuredProduct, "| destacados.length:", destacados.length, "| productos.length:", productos.length), null)}
-      {config.show_featured && featuredProduct && (
-        <section className="mb-16">
-          <div className="mb-6">
-            <p className="text-xs font-bold text-neutral-400 uppercase tracking-widest mb-1">
-              Lo más popular
-            </p>
-            <h2 className="text-2xl font-bold text-neutral-900">Producto destacado</h2>
-          </div>
-          <Link href={featuredProduct.internal_code ? `/p/${featuredProduct.internal_code}` : `/product/${featuredProduct.id}`}>
-            <div className="group flex flex-col sm:flex-row gap-6 bg-white rounded-3xl border border-neutral-100 shadow-sm hover:shadow-xl transition-all p-6 overflow-hidden">
-              <div className="relative w-full sm:w-52 aspect-square bg-neutral-50 rounded-2xl overflow-hidden flex-shrink-0">
-                <Image
-                  src={getProductImage(featuredProduct)}
-                  alt={featuredProduct.nombre}
-                  fill
-                  className="object-contain p-4 group-hover:scale-105 transition-transform duration-500"
-                />
-                <div className="absolute top-3 left-3">
-                  <span className="inline-flex items-center gap-1 bg-amber-500 text-white text-[10px] font-bold px-2.5 py-1 rounded-full shadow">
-                    ⭐ Destacado
+        {
+          (console.log(
+            "[DEBUG] RENDER CHECK — show_featured:",
+            config.show_featured,
+            "| featuredProduct:",
+            !!featuredProduct,
+            "| destacados.length:",
+            destacados.length,
+            "| productos.length:",
+            productos.length,
+          ),
+          null)
+        }
+        {config.show_featured && featuredProduct && (
+          <section className="mb-16">
+            <div className="mb-6">
+              <p className="mb-1 text-xs font-bold tracking-widest text-neutral-400 uppercase">
+                {tr("seller.popularEyebrow")}
+              </p>
+              <h2 className="text-2xl font-bold text-neutral-900">
+                {tr("seller.featuredTitle")}
+              </h2>
+            </div>
+            <Link
+              href={
+                featuredProduct.internal_code
+                  ? `/p/${featuredProduct.internal_code}`
+                  : `/product/${featuredProduct.id}`
+              }
+            >
+              <div className="group flex flex-col gap-6 overflow-hidden rounded-3xl border border-neutral-100 bg-white p-6 shadow-sm transition-all hover:shadow-xl sm:flex-row">
+                <div className="relative aspect-square w-full flex-shrink-0 overflow-hidden rounded-2xl bg-neutral-50 sm:w-52">
+                  <Image
+                    src={getProductImage(featuredProduct)}
+                    alt={featuredProduct.nombre}
+                    fill
+                    className="object-contain p-4 transition-transform duration-500 group-hover:scale-105"
+                  />
+                  <div className="absolute top-3 left-3">
+                    <span className="inline-flex items-center gap-1 rounded-full bg-amber-500 px-2.5 py-1 text-[10px] font-bold text-white shadow">
+                      ⭐ {tr("seller.featuredBadge")}
+                    </span>
+                  </div>
+                </div>
+                <div className="flex min-w-0 flex-col justify-center gap-3">
+                  <p className="text-[10px] font-semibold tracking-wide text-neutral-400 uppercase">
+                    {tr("seller.craftOf")} {seller.nombre_comercio}
+                  </p>
+                  <h3 className="text-xl font-bold text-neutral-900 transition-colors group-hover:text-[#0F3D3A]">
+                    {featuredProduct.nombre}
+                  </h3>
+                  <p className="text-2xl font-black text-[#0F3D3A]">
+                    Q{Number(featuredProduct.precio).toFixed(2)}
+                  </p>
+                  <span className="inline-flex w-fit items-center gap-2 rounded-full border border-[#0F3D3A]/30 px-4 py-2 text-sm font-semibold text-[#0F3D3A] transition-colors group-hover:bg-[#0F3D3A] group-hover:text-white">
+                    {tr("seller.viewProduct")}{" "}
+                    <ArrowRight className="h-4 w-4" />
                   </span>
                 </div>
               </div>
-              <div className="flex flex-col justify-center gap-3 min-w-0">
-                <p className="text-[10px] text-neutral-400 font-semibold uppercase tracking-wide">
-                  Artesanía de {seller.nombre_comercio}
-                </p>
-                <h3 className="text-xl font-bold text-neutral-900 group-hover:text-[#0F3D3A] transition-colors">
-                  {featuredProduct.nombre}
-                </h3>
-                <p className="text-2xl font-black text-[#0F3D3A]">
-                  Q{Number(featuredProduct.precio).toFixed(2)}
-                </p>
-                <span className="inline-flex items-center gap-2 text-sm font-semibold text-[#0F3D3A] border border-[#0F3D3A]/30 px-4 py-2 rounded-full w-fit group-hover:bg-[#0F3D3A] group-hover:text-white transition-colors">
-                  Ver producto <ArrowRight className="w-4 h-4" />
-                </span>
-              </div>
-            </div>
-          </Link>
-        </section>
-      )}
+            </Link>
+          </section>
+        )}
 
-      {/* ══════════════════════════════════════════════
+        {/* ══════════════════════════════════════════════
           DESTACADOS
       ══════════════════════════════════════════════ */}
-      {config.show_featured && destacados.length > 0 && (
-        <section className="mb-20">
-          <div className="mb-8">
-            <p className="text-xs font-bold text-neutral-400 uppercase tracking-widest mb-1">
-              Selección curada
-            </p>
-            <h2 className="text-2xl font-bold text-neutral-900">Productos destacados</h2>
-          </div>
-          <div className="grid md:grid-cols-3 gap-6">
-            {destacados.map((p, index) => (
-              <Link key={p.id} href={p.internal_code ? `/p/${p.internal_code}` : `/product/${p.id}`}>
-                <div className={`group relative rounded-2xl overflow-hidden border border-neutral-100 shadow-sm hover:shadow-xl transition-all duration-500 bg-white ${index === 0 ? "md:col-span-2" : ""}`}>
-                  <div className={`relative bg-neutral-50 ${index === 0 ? "aspect-[16/9]" : "aspect-square"}`}>
-                    <Image src={getProductImage(p)} alt={p.nombre} fill className="object-contain p-4 group-hover:scale-105 transition-transform duration-700" />
-                    <div className="absolute top-3 left-3">
-                      <span className="inline-flex items-center gap-1 bg-amber-500 text-white text-[10px] font-bold px-2.5 py-1 rounded-full shadow">⭐ Destacado</span>
+        {config.show_featured && destacados.length > 0 && (
+          <section className="mb-20">
+            <div className="mb-8">
+              <p className="mb-1 text-xs font-bold tracking-widest text-neutral-400 uppercase">
+                {tr("seller.curatedEyebrow")}
+              </p>
+              <h2 className="text-2xl font-bold text-neutral-900">
+                {tr("seller.destacadosTitle")}
+              </h2>
+            </div>
+            <div className="grid gap-6 md:grid-cols-3">
+              {destacados.map((p, index) => (
+                <Link
+                  key={p.id}
+                  href={
+                    p.internal_code
+                      ? `/p/${p.internal_code}`
+                      : `/product/${p.id}`
+                  }
+                >
+                  <div
+                    className={`group relative overflow-hidden rounded-2xl border border-neutral-100 bg-white shadow-sm transition-all duration-500 hover:shadow-xl ${index === 0 ? "md:col-span-2" : ""}`}
+                  >
+                    <div
+                      className={`relative bg-neutral-50 ${index === 0 ? "aspect-[16/9]" : "aspect-square"}`}
+                    >
+                      <Image
+                        src={getProductImage(p)}
+                        alt={p.nombre}
+                        fill
+                        className="object-contain p-4 transition-transform duration-700 group-hover:scale-105"
+                      />
+                      <div className="absolute top-3 left-3">
+                        <span className="inline-flex items-center gap-1 rounded-full bg-amber-500 px-2.5 py-1 text-[10px] font-bold text-white shadow">
+                          ⭐ {tr("seller.featuredBadge")}
+                        </span>
+                      </div>
+                    </div>
+                    <div className="flex items-center justify-between px-5 py-4">
+                      <div className="min-w-0">
+                        <p className="mb-0.5 text-[10px] font-semibold tracking-wide text-neutral-400 uppercase">
+                          {tr("seller.artisanFeaturedLabel")}
+                        </p>
+                        <h3 className="line-clamp-1 text-sm font-bold text-neutral-800 transition-colors group-hover:text-[#0F3D3A]">
+                          {p.nombre}
+                        </h3>
+                      </div>
+                      <div className="ml-4 flex flex-shrink-0 items-center gap-3">
+                        <p className="text-base font-black text-[#0F3D3A]">
+                          Q{Number(p.precio).toFixed(2)}
+                        </p>
+                        <span className="hidden items-center gap-1 rounded-full border border-[#0F3D3A]/30 px-3 py-1.5 text-xs font-semibold text-[#0F3D3A] transition-colors group-hover:bg-[#0F3D3A] group-hover:text-white sm:flex">
+                          {tr("seller.viewProduct")}{" "}
+                          <ArrowRight className="h-3 w-3" />
+                        </span>
+                      </div>
                     </div>
                   </div>
-                  <div className="px-5 py-4 flex items-center justify-between">
-                    <div className="min-w-0">
-                      <p className="text-[10px] text-neutral-400 font-semibold uppercase tracking-wide mb-0.5">Producto destacado del artesano</p>
-                      <h3 className="font-bold text-neutral-800 text-sm line-clamp-1 group-hover:text-[#0F3D3A] transition-colors">{p.nombre}</h3>
-                    </div>
-                    <div className="flex items-center gap-3 flex-shrink-0 ml-4">
-                      <p className="font-black text-[#0F3D3A] text-base">Q{Number(p.precio).toFixed(2)}</p>
-                      <span className="hidden sm:flex items-center gap-1 text-xs font-semibold text-[#0F3D3A] border border-[#0F3D3A]/30 px-3 py-1.5 rounded-full group-hover:bg-[#0F3D3A] group-hover:text-white transition-colors">
-                        Ver <ArrowRight className="w-3 h-3" />
-                      </span>
-                    </div>
-                  </div>
-                </div>
-              </Link>
-            ))}
-          </div>
-        </section>
-      )}
+                </Link>
+              ))}
+            </div>
+          </section>
+        )}
 
-      {/* ══════════════════════════════════════════════
+        {/* ══════════════════════════════════════════════
           PRODUCT GRID
       ══════════════════════════════════════════════ */}
-      <section id="catalogo">
-        <div className="flex items-end justify-between mb-6">
-          <div>
-            <p className="text-xs font-bold text-neutral-400 uppercase tracking-widest mb-1">Catálogo completo</p>
-            <h2 className="text-2xl font-bold text-neutral-900">Productos disponibles</h2>
-          </div>
-          {productos.length > 0 && (
-            <span className="text-sm text-neutral-400">
-              {productos.length} {productos.length === 1 ? "producto" : "productos"}
-            </span>
-          )}
-        </div>
-
-        <div className="grid grid-cols-2 md:grid-cols-3 xl:grid-cols-4 gap-5">
-          {productos.map((p) => (
-            <ProductCard key={p.id} p={p} />
-          ))}
-          {productos.length === 0 && (
-            <div className="col-span-full text-center py-20 space-y-3">
-              <p className="text-3xl opacity-40">🛍</p>
-              <p className="text-neutral-500 font-medium">Este vendedor aún no tiene productos activos.</p>
-            </div>
-          )}
-        </div>
-
-        {/* Bottom WhatsApp strip */}
-        {showWhatsapp && (
-          <div className="mt-16 rounded-2xl bg-gradient-to-r from-emerald-900 to-emerald-800 p-8 flex flex-col sm:flex-row items-center justify-between gap-6 text-white">
+        <section id="catalogo">
+          <div className="mb-6 flex items-end justify-between">
             <div>
-              <p className="font-bold text-lg">¿Tienes alguna pregunta?</p>
-              <p className="text-sm text-white/70 mt-1">Habla directamente con {seller.nombre_comercio}</p>
+              <p className="mb-1 text-xs font-bold tracking-widest text-neutral-400 uppercase">
+                {tr("seller.catalogEyebrow")}
+              </p>
+              <h2 className="text-2xl font-bold text-neutral-900">
+                {tr("seller.catalogTitle")}
+              </h2>
             </div>
-            <button
-              onClick={() => handleWhatsappClick()}
-              className="shrink-0 inline-flex items-center gap-2.5 px-8 py-3.5 bg-green-500 hover:bg-green-600 text-white font-semibold rounded-full shadow-lg transition-all active:scale-95"
-            >
-              <MessageCircle className="w-5 h-5" />
-              Consultar por WhatsApp
-            </button>
-          </div>
-        )}
-      </section>
-
-      {/* ══════════════════════════════════════════════
-          REVIEWS SECTION
-      ══════════════════════════════════════════════ */}
-      {(console.log("[DEBUG] RENDER CHECK — show_reviews:", config.show_reviews, "| ratingSummary:", ratingSummary, "| reviews.length:", reviews.length), null)}
-      {config.show_reviews && (
-      <section className="mt-20">
-        <div className="mb-8 flex items-end justify-between">
-          <div>
-            <p className="text-xs font-bold text-neutral-400 uppercase tracking-widest mb-1">Opiniones</p>
-            <h2 className="text-2xl font-bold text-neutral-900">Reseñas de clientes</h2>
-          </div>
-
-          {/* Rating summary */}
-          {ratingSummary && (
-            ratingSummary.total_reviews > 0 ? (
-              <div className="text-right">
-                <div className="text-3xl font-black text-neutral-900">
-                  {ratingSummary.rating.toFixed(1)}
-                </div>
-                <Stars rating={Math.round(ratingSummary.rating)} size="sm" />
-                <p className="text-xs text-neutral-400 mt-0.5">{ratingSummary.total_reviews} reseñas</p>
-              </div>
-            ) : (
-              <p className="text-sm text-neutral-400 italic">Sin calificación todavía</p>
-            )
-          )}
-        </div>
-
-        {/* Review list */}
-        {reviews.length > 0 ? (
-          <div className="space-y-4 mb-8">
-            {(showAllReviews ? reviews : reviews.slice(0, 4)).map((r) => (
-              <div key={r.id} className="bg-white border border-neutral-100 rounded-2xl p-5 shadow-sm">
-                <div className="flex items-start justify-between gap-4">
-                  <div className="flex items-center gap-3">
-                    <div className="w-9 h-9 rounded-full bg-gradient-to-br from-emerald-500 to-emerald-700 flex items-center justify-center text-white font-bold text-sm">
-                      {r.buyer_name.charAt(0).toUpperCase()}
-                    </div>
-                    <div>
-                      <p className="font-semibold text-sm text-neutral-800">{r.buyer_name}</p>
-                      <Stars rating={r.rating} />
-                    </div>
-                  </div>
-                  <p className="text-xs text-neutral-400 flex-shrink-0">
-                    {new Date(r.created_at).toLocaleDateString("es-GT", { day: "numeric", month: "short", year: "numeric" })}
-                  </p>
-                </div>
-                {r.comment && (
-                  <p className="mt-3 text-sm text-neutral-600 leading-relaxed">{r.comment}</p>
-                )}
-                {r.product_nombre && (
-                  <p className="mt-2 text-xs text-neutral-400">
-                    Sobre: <span className="text-neutral-600">{r.product_nombre}</span>
-                  </p>
-                )}
-              </div>
-            ))}
-
-            {reviews.length > 4 && (
-              <button
-                onClick={() => setShowAllReviews(!showAllReviews)}
-                className="w-full py-3 text-sm font-semibold text-[#0F3D3A] border border-[#0F3D3A]/30 rounded-xl hover:bg-[#0F3D3A]/5 transition"
-              >
-                {showAllReviews ? "Ver menos" : `Ver todas las reseñas (${reviews.length})`}
-              </button>
+            {productos.length > 0 && (
+              <span className="text-sm text-neutral-400">
+                {productos.length}{" "}
+                {productos.length === 1
+                  ? tr("seller.productSingular")
+                  : tr("seller.productPlural")}
+              </span>
             )}
           </div>
-        ) : (
-          <div className="text-center py-10 text-neutral-400 text-sm mb-8">
-            Aún no hay reseñas. ¡Sé el primero en dejar tu opinión!
-          </div>
-        )}
 
-        {/* Review form */}
-        <ReviewForm sellerId={seller.id} onSubmitted={loadReviews} />
-      </section>
+          <div className="grid grid-cols-2 gap-5 md:grid-cols-3 xl:grid-cols-4">
+            {productos.map((p) => (
+              <ProductCard key={p.id} p={p} />
+            ))}
+            {productos.length === 0 && (
+              <div className="col-span-full space-y-3 py-20 text-center">
+                <p className="text-3xl opacity-40">🛍</p>
+                <p className="font-medium text-neutral-500">
+                  {tr("seller.noProducts")}
+                </p>
+              </div>
+            )}
+          </div>
+
+          {/* Bottom WhatsApp strip */}
+          {showWhatsapp && (
+            <div className="mt-16 flex flex-col items-center justify-between gap-6 rounded-2xl bg-gradient-to-r from-emerald-900 to-emerald-800 p-8 text-white sm:flex-row">
+              <div>
+                <p className="text-lg font-bold">
+                  {tr("seller.questionTitle")}
+                </p>
+                <p className="mt-1 text-sm text-white/70">
+                  {tr("seller.talkWith")} {seller.nombre_comercio}
+                </p>
+              </div>
+              <button
+                onClick={() => setWhatsAppOpen(true)}
+                className="inline-flex shrink-0 items-center gap-2.5 rounded-full bg-green-500 px-8 py-3.5 font-semibold text-white shadow-lg transition-all hover:bg-green-600 active:scale-95"
+              >
+                <MessageCircle className="h-5 w-5" />
+                {sellerWhatsappLabel}
+              </button>
+            </div>
+          )}
+        </section>
+
+        {/* ══════════════════════════════════════════════
+          REVIEWS SECTION
+      ══════════════════════════════════════════════ */}
+        {
+          (console.log(
+            "[DEBUG] RENDER CHECK — show_reviews:",
+            config.show_reviews,
+            "| ratingSummary:",
+            ratingSummary,
+            "| reviews.length:",
+            reviews.length,
+          ),
+          null)
+        }
+        {config.show_reviews && (
+          <section className="mt-20">
+            <div className="mb-8 flex items-end justify-between">
+              <div>
+                <p className="mb-1 text-xs font-bold tracking-widest text-neutral-400 uppercase">
+                  {tr("seller.reviewsEyebrow")}
+                </p>
+                <h2 className="text-2xl font-bold text-neutral-900">
+                  {tr("seller.reviewsTitle")}
+                </h2>
+              </div>
+
+              {/* Rating summary */}
+              {ratingSummary &&
+                (ratingSummary.total_reviews > 0 ? (
+                  <div className="text-right">
+                    <div className="text-3xl font-black text-neutral-900">
+                      {ratingSummary.rating.toFixed(1)}
+                    </div>
+                    <Stars
+                      rating={Math.round(ratingSummary.rating)}
+                      size="sm"
+                    />
+                    <p className="mt-0.5 text-xs text-neutral-400">
+                      {ratingSummary.total_reviews}{" "}
+                      {ratingSummary.total_reviews === 1
+                        ? tr("seller.reviewSingular")
+                        : tr("seller.reviewPlural")}
+                    </p>
+                  </div>
+                ) : (
+                  <p className="text-sm text-neutral-400 italic">
+                    {tr("seller.noRatingYet")}
+                  </p>
+                ))}
+            </div>
+
+            {/* Review list */}
+            {reviews.length > 0 ? (
+              <div className="mb-8 space-y-4">
+                {(showAllReviews ? reviews : reviews.slice(0, 4)).map((r) => (
+                  <div
+                    key={r.id}
+                    className="rounded-2xl border border-neutral-100 bg-white p-5 shadow-sm"
+                  >
+                    <div className="flex items-start justify-between gap-4">
+                      <div className="flex items-center gap-3">
+                        <div className="flex h-9 w-9 items-center justify-center rounded-full bg-gradient-to-br from-emerald-500 to-emerald-700 text-sm font-bold text-white">
+                          {r.buyer_name.charAt(0).toUpperCase()}
+                        </div>
+                        <div>
+                          <p className="text-sm font-semibold text-neutral-800">
+                            {r.buyer_name}
+                          </p>
+                          <Stars rating={r.rating} />
+                        </div>
+                      </div>
+                      <p className="flex-shrink-0 text-xs text-neutral-400">
+                        {new Date(r.created_at).toLocaleDateString("es-GT", {
+                          day: "numeric",
+                          month: "short",
+                          year: "numeric",
+                        })}
+                      </p>
+                    </div>
+                    {r.comment && (
+                      <p className="mt-3 text-sm leading-relaxed text-neutral-600">
+                        {r.comment}
+                      </p>
+                    )}
+                    {r.product_nombre && (
+                      <p className="mt-2 text-xs text-neutral-400">
+                        {tr("seller.reviewAbout")}{" "}
+                        <span className="text-neutral-600">
+                          {r.product_nombre}
+                        </span>
+                      </p>
+                    )}
+                  </div>
+                ))}
+
+                {reviews.length > 4 && (
+                  <button
+                    onClick={() => setShowAllReviews(!showAllReviews)}
+                    className="w-full rounded-xl border border-[#0F3D3A]/30 py-3 text-sm font-semibold text-[#0F3D3A] transition hover:bg-[#0F3D3A]/5"
+                  >
+                    {showAllReviews
+                      ? tr("seller.showLess")
+                      : `${tr("seller.showAllReviews")} (${reviews.length})`}
+                  </button>
+                )}
+              </div>
+            ) : (
+              <div className="mb-8 py-10 text-center text-sm text-neutral-400">
+                {tr("seller.noReviewsYet")}
+              </div>
+            )}
+
+            {/* Review form */}
+            <ReviewForm sellerId={seller.id} onSubmitted={loadReviews} />
+          </section>
+        )}
+      </ProductDiscoveryLayout>
+
+      {showWhatsapp && (
+        <WhatsAppModal
+          open={whatsAppOpen}
+          onClose={() => setWhatsAppOpen(false)}
+          onConfirm={(message) => {
+            setWhatsAppOpen(false);
+            handleWhatsappConfirm(message);
+          }}
+          seller={{
+            nombre: seller.nombre_comercio,
+            imagen: seller.logo ?? null,
+          }}
+          initialMessage={sellerWhatsappMessage}
+          copy={{
+            ariaLabel: tr("seller.whatsappModalAriaLabel"),
+            title: tr("seller.whatsappModalTitle"),
+            subtitle: tr("seller.whatsappModalSubtitle"),
+            messageLabel: tr("seller.whatsappModalMessageLabel"),
+            hint: tr("seller.whatsappModalHint"),
+            confirm: tr("seller.whatsappModalConfirm"),
+            cancel: tr("seller.whatsappModalCancel"),
+            footer: tr("seller.whatsappModalFooter"),
+          }}
+        />
       )}
 
-    </ProductDiscoveryLayout>
-
-    <SellerQrModal
-      open={qrOpen}
-      onClose={() => setQrOpen(false)}
-      sellerId={seller.id}
-      nombreComercio={seller.nombre_comercio}
-    />
+      <SellerQrModal
+        open={qrOpen}
+        onClose={() => setQrOpen(false)}
+        sellerId={seller.id}
+        nombreComercio={seller.nombre_comercio}
+      />
     </>
   );
 }

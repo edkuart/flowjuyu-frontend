@@ -1,51 +1,45 @@
-"use client"
+"use client";
 
-// src/components/product/ProductStickyBar.tsx
-//
-// Mobile-only sticky bottom CTA bar.
-// Always visible while the user scrolls the PDP.
-// Hidden on md+ screens — desktop layout is unchanged.
-//
-// Reuses ProductContactCTA (compact mode) so all business logic
-// (phone parsing, message building, analytics, WhatsApp URL) lives
-// in exactly one place.
-
-import { ProductContactCTA, type ProductContactCTAProps } from "./ProductContactCTA"
+import {
+  ProductContactCTA,
+  type ProductContactCTAProps,
+} from "./ProductContactCTA";
+import { useLanguage } from "@/i18n/context/useLanguage";
+import esDictionary from "@/i18n/dictionaries/es";
+import { createT } from "@/i18n/utils/t";
 
 const formatPrice = (n: number) =>
   new Intl.NumberFormat("es-GT", {
     style: "currency",
     currency: "GTQ",
     minimumFractionDigits: 0,
-  }).format(n)
+  }).format(n);
 
 type Props = Omit<ProductContactCTAProps, "compact"> & {
-  precio: number
-}
+  precio: number;
+};
 
-export function ProductStickyBar({
-  precio,
-  ...ctaProps
-}: Props) {
+export function ProductStickyBar({ precio, ...ctaProps }: Props) {
+  const { dictionary } = useLanguage();
+  const tr = createT(dictionary ?? esDictionary);
+
   return (
     <div
-      className="fixed bottom-0 left-0 right-0 z-50 md:hidden bg-white/95 backdrop-blur-sm border-t border-neutral-200 px-4 py-3 flex items-center gap-3"
+      className="fixed right-0 bottom-0 left-0 z-50 flex items-center gap-3 border-t border-neutral-200 bg-white/95 px-4 py-3 backdrop-blur-sm md:hidden"
       style={{ paddingBottom: "calc(0.75rem + env(safe-area-inset-bottom))" }}
     >
-      {/* Price */}
-      <div className="flex-1 min-w-0">
-        <p className="text-[10px] text-neutral-400 uppercase tracking-wide leading-none mb-0.5">
-          Precio
+      <div className="min-w-0 flex-1">
+        <p className="mb-0.5 text-[10px] leading-none tracking-wide text-neutral-400 uppercase">
+          {tr("pdp.stickyLabel")}
         </p>
-        <p className="text-lg font-bold text-[#0d2d20] leading-none tabular-nums truncate">
+        <p className="truncate text-lg leading-none font-bold text-[#0d2d20] tabular-nums">
           {formatPrice(precio)}
         </p>
       </div>
 
-      {/* CTA — reuses all logic from ProductContactCTA */}
-      <div className="flex-shrink-0 w-[180px]">
+      <div className="w-[180px] flex-shrink-0">
         <ProductContactCTA {...ctaProps} compact />
       </div>
     </div>
-  )
+  );
 }

@@ -1,68 +1,56 @@
-// src/components/home/StoryBridgeSection.tsx
-//
-// Pausa editorial entre secciones de producto.
-// Sin grid, sin cards, sin CTA agresivo.
-// Un solo pensamiento que invita a seguir.
-//
-// Propósito UX: romper el ritmo de "producto → producto → producto"
-// con un momento de cultura. El usuario siente que está leyendo,
-// no escaneando un catálogo. Eso genera curiosidad hacia abajo.
+"use client";
 
 import Link from "next/link";
 
-export default function StoryBridgeSection() {
-  return (
-    <section className="bg-[#0d2d20] py-20 md:py-28 overflow-hidden relative">
+import { useLanguage } from "@/i18n/context/useLanguage";
+import esDictionary from "@/i18n/dictionaries/es";
+import { createT } from "@/i18n/utils/t";
 
-      {/* Textura de grano — consistente con el hero */}
+export default function StoryBridgeSection() {
+  const { dictionary } = useLanguage();
+  const tr = createT(dictionary ?? esDictionary);
+
+  return (
+    <section className="relative overflow-hidden bg-[#0d2d20] py-20 md:py-28">
       <div
-        className="absolute inset-0 opacity-[0.03] pointer-events-none"
+        className="pointer-events-none absolute inset-0 opacity-[0.03]"
         style={{
-          backgroundImage: `url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noise'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noise)'/%3E%3C/svg%3E")`,
+          backgroundImage:
+            "url(\"data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noise'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noise)'/%3E%3C/svg%3E\")",
         }}
       />
 
-      <div className="max-w-4xl mx-auto px-6 md:px-12 text-center relative z-10">
-
-        {/* Ornamento superior */}
-        <div className="flex items-center justify-center gap-4 mb-10">
+      <div className="relative z-10 mx-auto max-w-4xl px-6 text-center md:px-12">
+        <div className="mb-10 flex items-center justify-center gap-4">
           <div className="h-px w-12 bg-white/15" />
-          <span className="text-[#d4a853]/60 text-[10px]">✦</span>
+          <span className="text-[10px] text-[#d4a853]/60">✦</span>
           <div className="h-px w-12 bg-white/15" />
         </div>
 
-        {/* Frase principal — el centro de gravedad de la sección */}
         <blockquote>
-          <p className="font-serif italic text-white text-[28px] md:text-[40px] lg:text-[48px] leading-[1.15] tracking-[-0.01em]">
-            Lo que ves aquí tardó días, semanas,
-            <br className="hidden md:block" />
-            {" "}a veces meses en nacer.
+          <p className="font-serif text-[28px] leading-[1.15] tracking-[-0.01em] text-white italic md:text-[40px] lg:text-[48px]">
+            {tr("home.storyQuoteLine1")}
+            <br className="hidden md:block" /> {tr("home.storyQuoteLine2")}
           </p>
         </blockquote>
 
-        {/* Subtítulo — contextualiza sin vender */}
-        <p className="mt-6 text-white/40 text-[13px] md:text-[15px] leading-relaxed max-w-[42ch] mx-auto">
-          Artesanía guatemalteca hecha a mano — una pieza a la vez,
-          por familias que han conservado estas técnicas por generaciones.
+        <p className="mx-auto mt-6 max-w-[42ch] text-[13px] leading-relaxed text-white/40 md:text-[15px]">
+          {tr("home.storyDescription")}
         </p>
 
-        {/* CTA suave — no "comprar", sino "explorar" */}
         <div className="mt-10">
           <Link
             href="/productos"
-            className="
-              inline-flex items-center gap-3
-              text-[10px] uppercase tracking-[0.30em]
-              text-white/50
-              hover:text-white/90
-              transition-colors duration-300
-              border-b border-white/15
-              hover:border-white/40
-              pb-[3px]
-            "
+            className="inline-flex items-center gap-3 border-b border-white/15 pb-[3px] text-[10px] tracking-[0.30em] text-white/50 uppercase transition-colors duration-300 hover:border-white/40 hover:text-white/90"
           >
-            Explorar el catálogo
-            <svg width="14" height="8" viewBox="0 0 14 8" fill="none" aria-hidden>
+            {tr("home.storyLink")}
+            <svg
+              width="14"
+              height="8"
+              viewBox="0 0 14 8"
+              fill="none"
+              aria-hidden
+            >
               <path
                 d="M0 4H12M9 1L12.5 4L9 7"
                 stroke="currentColor"
@@ -74,15 +62,13 @@ export default function StoryBridgeSection() {
           </Link>
         </div>
 
-        {/* Ornamento inferior */}
-        <div className="flex items-center justify-center gap-4 mt-12">
+        <div className="mt-12 flex items-center justify-center gap-4">
           <div className="h-px w-8 bg-white/10" />
-          <span className="text-white/15 text-[9px] uppercase tracking-[0.3em]">
-            Guatemala · Hecho a mano
+          <span className="text-[9px] tracking-[0.3em] text-white/15 uppercase">
+            {tr("home.storyFooter")}
           </span>
           <div className="h-px w-8 bg-white/10" />
         </div>
-
       </div>
     </section>
   );

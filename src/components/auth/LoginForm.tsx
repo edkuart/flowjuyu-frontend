@@ -1,34 +1,36 @@
-'use client';
+"use client";
 
-import { useForm } from 'react-hook-form';
-import { zodResolver } from '@hookform/resolvers/zod';
-import { loginSchema, LoginValues } from '@/schemas/login-schema';
-import { useState, useEffect, useRef } from 'react';
-import { useAuth } from '@/context/AuthContext';
-import type { User } from '@/context/AuthContext';
-import { safeRedirectForRole } from '@/lib/safeRedirect';
-import { getDefaultDestination } from '@/lib/authRoutes';
-import { auth } from '@/lib/firebase';
-import { GoogleAuthProvider, signInWithPopup } from 'firebase/auth';
+import { useEffect, useRef, useState } from "react";
+import { zodResolver } from "@hookform/resolvers/zod";
+import { GoogleAuthProvider, signInWithPopup } from "firebase/auth";
+import { useForm } from "react-hook-form";
+import Link from "next/link";
+import { FcGoogle } from "react-icons/fc";
 
-import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
-import { FcGoogle } from 'react-icons/fc';
-import Link from 'next/link';
-import AuthLayout from '@/components/auth/AuthLayout';
+import AuthLayout from "@/components/auth/AuthLayout";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { useAuth } from "@/context/AuthContext";
+import type { User } from "@/context/AuthContext";
+import { auth } from "@/lib/firebase";
+import { safeRedirectForRole } from "@/lib/safeRedirect";
+import { getDefaultDestination } from "@/lib/authRoutes";
+import { useLanguage } from "@/i18n/context/useLanguage";
+import esDictionary from "@/i18n/dictionaries/es";
+import { createT } from "@/i18n/utils/t";
+import { loginSchema, LoginValues } from "@/schemas/login-schema";
 
-const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8800';
-
-// ─── Component ────────────────────────────────────────────────────────────────
+const API_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8800";
 
 interface LoginFormProps {
-  /** Validated by safeRedirectForRole before use — cannot cause open redirect. */
   redirectTo?: string;
 }
 
 export function LoginForm({ redirectTo }: LoginFormProps) {
   const { login, isAuthenticated, user, ready } = useAuth();
+  const { dictionary } = useLanguage();
+  const tr = createT(dictionary ?? esDictionary);
 
   const {
     register,
@@ -38,30 +40,8 @@ export function LoginForm({ redirectTo }: LoginFormProps) {
     resolver: zodResolver(loginSchema),
   });
 
-  const [loginError,     setLoginError]     = useState<string | null>(null);
-  const [googleLoading,  setGoogleLoading]  = useState(false);
-
-  // ── Redirect-away for already-authenticated users ─────────────────────────
-  // Middleware is the primary guard, but it fails open when the Edge→backend
-  // call times out. This effect is the guaranteed client-side fallback.
-  //
-  // WHY window.location.replace instead of router.replace:
-  //   router.replace() in Next.js App Router uses React.startTransition
-  //   internally. In production concurrent mode, transitions are lower-priority
-  //   and can be silently abandoned when a higher-priority update (parent
-  //   re-render, prefetch, layout transition) arrives during the navigate.
-  //   window.location.replace() is a synchronous browser API — it cannot be
-  //   cancelled by React's scheduler and commits the navigation immediately.
-  //
-  // WHY useRef guard:
-  //   router from useRouter() gets a new object reference during hydration and
-  //   prefetch updates. Without the guard the effect can fire multiple times,
-  //   and a second router.replace() call can cancel the first in-flight transition.
-  //   The ref ensures we only ever attempt the navigation once per mount.
-  //
-  // WHY router is NOT in the dependency array:
-  //   We no longer call router.replace, so router has no role here. Including
-  //   it was causing spurious re-runs from App Router's context updates.
+  const [loginError, setLoginError] = useState<string | null>(null);
+  const [googleLoading, setGoogleLoading] = useState(false);
   const hasRedirected = useRef(false);
 
   useEffect(() => {
@@ -71,57 +51,51 @@ export function LoginForm({ redirectTo }: LoginFormProps) {
     hasRedirected.current = true;
 
     const destination =
-      safeRedirectForRole(redirectTo, user.role) ?? getDefaultDestination(user.role);
+      safeRedirectForRole(redirectTo, user.role) ??
+      getDefaultDestination(user.role);
 
     window.location.replace(destination);
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [ready, isAuthenticated, user, redirectTo]);
-
-  // ── Email / password login ────────────────────────────────────────────────
 
   const onSubmit = async (data: LoginValues) => {
     setLoginError(null);
 
     try {
       const res = await fetch(`${API_URL}/api/login`, {
-        method:      'POST',
-        credentials: 'include',
-        headers:     { 'Content-Type': 'application/json' },
+        method: "POST",
+        credentials: "include",
+        headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
-          correo:   data.email,
+          correo: data.email,
           password: data.password,
         }),
       });
 
-      const json = await res.json().catch(() => ({})) as Record<string, unknown>;
+      const json = (await res.json().catch(() => ({}))) as Record<
+        string,
+        unknown
+      >;
 
       if (!res.ok || !json.ok || !json.token || !json.user) {
-        const msg = res.status === 429
-          ? 'Demasiadas solicitudes. Espera un momento e inténtalo de nuevo.'
-          : ((json.message as string) || 'Credenciales incorrectas');
+        const msg =
+          res.status === 429
+            ? tr("auth.loginRateLimitError")
+            : (json.message as string) || tr("auth.loginCredentialsError");
         setLoginError(msg);
         return;
       }
 
-      const user = json.user as User;
-      login(user, json.token as string);
+      const nextUser = json.user as User;
+      login(nextUser, json.token as string);
 
       const destination =
-        safeRedirectForRole(redirectTo, user.role) ?? getDefaultDestination(user.role);
+        safeRedirectForRole(redirectTo, nextUser.role) ??
+        getDefaultDestination(nextUser.role);
       window.location.replace(destination);
     } catch {
-      setLoginError('Error de conexión con el servidor');
+      setLoginError(tr("auth.loginConnectionError"));
     }
   };
-
-  // ── Google login ──────────────────────────────────────────────────────────
-  //
-  // Flow:
-  //   1. Firebase popup authenticates the user with Google.
-  //   2. We get a short-lived Firebase ID token (signed by Google).
-  //   3. We POST it to our backend, which verifies it cryptographically
-  //      via Firebase Admin SDK and issues our own JWT + refresh cookie.
-  //   4. Login and redirect via the same path as email/password.
 
   const handleGoogleLogin = async () => {
     setLoginError(null);
@@ -129,158 +103,157 @@ export function LoginForm({ redirectTo }: LoginFormProps) {
 
     try {
       const provider = new GoogleAuthProvider();
-      // Force account picker so users can switch accounts without signing out.
-      provider.setCustomParameters({ prompt: 'select_account' });
+      provider.setCustomParameters({ prompt: "select_account" });
 
-      const result   = await signInWithPopup(auth, provider);
+      const result = await signInWithPopup(auth, provider);
       const id_token = await result.user.getIdToken();
 
       const res = await fetch(`${API_URL}/api/login/google`, {
-        method:      'POST',
-        credentials: 'include',
-        headers:     { 'Content-Type': 'application/json' },
+        method: "POST",
+        credentials: "include",
+        headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ id_token }),
       });
 
-      const json = await res.json().catch(() => ({})) as Record<string, unknown>;
+      const json = (await res.json().catch(() => ({}))) as Record<
+        string,
+        unknown
+      >;
 
       if (!res.ok || !json.ok || !json.token || !json.user) {
-        const msg = res.status === 429
-          ? 'Demasiadas solicitudes. Espera un momento e inténtalo de nuevo.'
-          : ((json.message as string) || 'No se pudo iniciar sesión con Google');
+        const msg =
+          res.status === 429
+            ? tr("auth.loginRateLimitError")
+            : (json.message as string) || tr("auth.loginGoogleError");
         setLoginError(msg);
         return;
       }
 
-      const user = json.user as User;
-      login(user, json.token as string);
+      const nextUser = json.user as User;
+      login(nextUser, json.token as string);
 
-      // New users (just created via Google) go to the welcome page
-      // where they choose between buyer and seller paths.
       if (json.is_new_user) {
-        window.location.replace('/welcome');
+        window.location.replace("/welcome");
         return;
       }
 
       const destination =
-        safeRedirectForRole(redirectTo, user.role) ?? getDefaultDestination(user.role);
+        safeRedirectForRole(redirectTo, nextUser.role) ??
+        getDefaultDestination(nextUser.role);
       window.location.replace(destination);
     } catch (err: any) {
-      // User closed the popup — not an error worth surfacing.
       if (
-        err?.code === 'auth/popup-closed-by-user' ||
-        err?.code === 'auth/cancelled-popup-request'
+        err?.code === "auth/popup-closed-by-user" ||
+        err?.code === "auth/cancelled-popup-request"
       ) {
         return;
       }
-      setLoginError('Error al iniciar sesión con Google. Inténtalo de nuevo.');
+      setLoginError(tr("auth.loginGoogleError"));
     } finally {
       setGoogleLoading(false);
     }
   };
 
-  // ─────────────────────────────────────────────────────────────────────────
-
   return (
-    <AuthLayout heading="Inicia sesión" subheading="Accede a tu cuenta Flowjuyu">
-    <form
-      onSubmit={handleSubmit(onSubmit)}
-      className="flex flex-col gap-6 w-full"
+    <AuthLayout
+      heading={tr("auth.loginHeading")}
+      subheading={tr("auth.loginSubheading")}
     >
-      {/* EMAIL */}
-      <div className="space-y-2">
-        <Label htmlFor="email" className="text-sm text-neutral-700">
-          Correo electrónico
-        </Label>
-        <Input
-          id="email"
-          type="email"
-          placeholder="correo@ejemplo.com"
-          className="h-11 rounded-xl border-neutral-200 focus-visible:ring-2 focus-visible:ring-[#0F3D3A] focus-visible:ring-offset-0 transition-all"
-          {...register('email')}
-        />
-        {errors.email && (
-          <p className="text-xs text-red-500">{errors.email.message}</p>
-        )}
-      </div>
-
-      {/* PASSWORD */}
-      <div className="space-y-2">
-        <div className="flex items-center justify-between">
-          <Label htmlFor="password" className="text-sm text-neutral-700">
-            Contraseña
+      <form
+        onSubmit={handleSubmit(onSubmit)}
+        className="flex w-full flex-col gap-6"
+      >
+        <div className="space-y-2">
+          <Label htmlFor="email" className="text-sm text-neutral-700">
+            {tr("auth.emailLabel")}
           </Label>
-          <a
-            href="/recuperar-password"
-            className="text-xs text-neutral-500 hover:text-[#0F3D3A] transition"
-          >
-            ¿Olvidaste tu contraseña?
-          </a>
+          <Input
+            id="email"
+            type="email"
+            placeholder="correo@ejemplo.com"
+            className="h-11 rounded-xl border-neutral-200 transition-all focus-visible:ring-2 focus-visible:ring-[#0F3D3A] focus-visible:ring-offset-0"
+            {...register("email")}
+          />
+          {errors.email && (
+            <p className="text-xs text-red-500">{errors.email.message}</p>
+          )}
         </div>
 
-        <Input
-          id="password"
-          type="password"
-          className="h-11 rounded-xl border-neutral-200 focus-visible:ring-2 focus-visible:ring-[#0F3D3A] focus-visible:ring-offset-0 transition-all"
-          {...register('password')}
-        />
+        <div className="space-y-2">
+          <div className="flex items-center justify-between">
+            <Label htmlFor="password" className="text-sm text-neutral-700">
+              {tr("auth.passwordLabel")}
+            </Label>
+            <a
+              href="/recuperar-password"
+              className="text-xs text-neutral-500 transition hover:text-[#0F3D3A]"
+            >
+              {tr("auth.forgotPassword")}
+            </a>
+          </div>
 
-        {errors.password && (
-          <p className="text-xs text-red-500">{errors.password.message}</p>
-        )}
-      </div>
+          <Input
+            id="password"
+            type="password"
+            className="h-11 rounded-xl border-neutral-200 transition-all focus-visible:ring-2 focus-visible:ring-[#0F3D3A] focus-visible:ring-offset-0"
+            {...register("password")}
+          />
 
-      {/* ERROR GLOBAL */}
-      {loginError && (
-        <div className="bg-red-50 text-red-600 text-sm p-3 rounded-xl border border-red-200">
-          {loginError}
+          {errors.password && (
+            <p className="text-xs text-red-500">{errors.password.message}</p>
+          )}
         </div>
-      )}
 
-      {/* LOGIN BUTTON */}
-      <Button
-        type="submit"
-        disabled={isSubmitting || googleLoading}
-        className="h-11 rounded-xl bg-[#0F3D3A] hover:bg-[#0c322f] text-white font-medium tracking-wide transition-all duration-200 shadow-sm hover:shadow-md"
-      >
-        {isSubmitting ? 'Ingresando...' : 'Iniciar sesión'}
-      </Button>
-
-      {/* DIVIDER */}
-      <div className="relative text-center text-xs text-neutral-400 my-2">
-        <span className="bg-white px-3 relative z-10">O continúa con</span>
-        <div className="absolute left-0 right-0 top-1/2 border-t border-neutral-200" />
-      </div>
-
-      {/* GOOGLE BUTTON */}
-      <Button
-        type="button"
-        variant="outline"
-        disabled={isSubmitting || googleLoading}
-        className="h-11 rounded-xl flex items-center justify-center gap-2.5 border border-neutral-200 bg-white hover:bg-neutral-50 hover:border-neutral-300 transition-all duration-200 shadow-sm disabled:opacity-60"
-        onClick={handleGoogleLogin}
-      >
-        {googleLoading ? (
-          <span className="w-4 h-4 border-2 border-neutral-300 border-t-neutral-600 rounded-full animate-spin" />
-        ) : (
-          <FcGoogle className="text-lg" />
+        {loginError && (
+          <div className="rounded-xl border border-red-200 bg-red-50 p-3 text-sm text-red-600">
+            {loginError}
+          </div>
         )}
-        <span className="text-sm font-medium text-neutral-700">
-          {googleLoading ? 'Conectando...' : 'Continuar con Google'}
-        </span>
-      </Button>
-    </form>
 
-    {/* NEW USER CTA */}
-    <p className="text-center text-sm text-neutral-500 mt-4">
-      ¿Nuevo en Flowjuyu?{' '}
-      <Link
-        href="/register/buyer"
-        className="font-medium text-[#0F3D3A] hover:text-[#0c322f] hover:underline transition-colors"
-      >
-        Empieza aquí
-      </Link>
-    </p>
+        <Button
+          type="submit"
+          disabled={isSubmitting || googleLoading}
+          className="h-11 rounded-xl bg-[#0F3D3A] font-medium tracking-wide text-white shadow-sm transition-all duration-200 hover:bg-[#0c322f] hover:shadow-md"
+        >
+          {isSubmitting ? tr("auth.loginSubmitting") : tr("auth.loginButton")}
+        </Button>
+
+        <div className="relative my-2 text-center text-xs text-neutral-400">
+          <span className="relative z-10 bg-white px-3">
+            {tr("auth.dividerText")}
+          </span>
+          <div className="absolute top-1/2 right-0 left-0 border-t border-neutral-200" />
+        </div>
+
+        <Button
+          type="button"
+          variant="outline"
+          disabled={isSubmitting || googleLoading}
+          className="flex h-11 items-center justify-center gap-2.5 rounded-xl border border-neutral-200 bg-white shadow-sm transition-all duration-200 hover:border-neutral-300 hover:bg-neutral-50 disabled:opacity-60"
+          onClick={handleGoogleLogin}
+        >
+          {googleLoading ? (
+            <span className="h-4 w-4 animate-spin rounded-full border-2 border-neutral-300 border-t-neutral-600" />
+          ) : (
+            <FcGoogle className="text-lg" />
+          )}
+          <span className="text-sm font-medium text-neutral-700">
+            {googleLoading
+              ? tr("auth.googleConnecting")
+              : tr("auth.googleButton")}
+          </span>
+        </Button>
+      </form>
+
+      <p className="mt-4 text-center text-sm text-neutral-500">
+        {tr("auth.newHere")}{" "}
+        <Link
+          href="/register/buyer"
+          className="font-medium text-[#0F3D3A] transition-colors hover:text-[#0c322f] hover:underline"
+        >
+          {tr("auth.startHere")}
+        </Link>
+      </p>
     </AuthLayout>
   );
 }
