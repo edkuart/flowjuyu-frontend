@@ -13,11 +13,18 @@ import { FavoriteButton } from "@/components/ui/FavoriteButton";
 import { useLanguage } from "@/i18n/context/useLanguage";
 import esDictionary from "@/i18n/dictionaries/es";
 import { createT } from "@/i18n/utils/t";
+import { getLocalizedField } from "@/lib/getLocalizedField";
 
 const API = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8800";
 
 // --- TIPOS ---
-type Categoria = { id: number; nombre: string };
+type Categoria = {
+  id: number;
+  nombre: string;
+  nombre_kiche?: string | null;
+  nombre_kaqchikel?: string | null;
+  nombre_qeqchi?: string | null;
+};
 type Clase = { id: number; nombre: string };
 type Tela = { id: number; nombre: string };
 
@@ -32,6 +39,10 @@ type Producto = {
   imagen_url?: string | null;
   imagenes?: { url: string }[];
   categoria?: string;
+  categoria_obj?: Categoria | null;
+  nombre_kiche?: string | null;
+  nombre_kaqchikel?: string | null;
+  nombre_qeqchi?: string | null;
   departamento?: string;
   municipio?: string;
 };
@@ -39,7 +50,7 @@ type Producto = {
 export default function ProductosPage() {
   const searchParams = useSearchParams();
   const router = useRouter();
-  const { dictionary } = useLanguage();
+  const { dictionary, language } = useLanguage();
   const tr = createT(dictionary ?? esDictionary);
 
   // ---------------------------
@@ -363,7 +374,7 @@ export default function ProductosPage() {
                   <div className="relative mb-3 aspect-square w-full overflow-hidden rounded-md bg-neutral-100">
                     <Image
                       src={getProductImage(p)}
-                      alt={p.nombre}
+                      alt={getLocalizedField(p, "nombre", language) ?? p.nombre}
                       fill
                       className="object-cover transition-transform duration-500 group-hover:scale-105"
                     />
@@ -374,11 +385,15 @@ export default function ProductosPage() {
 
                   <div className="mb-2">
                     <h3 className="line-clamp-2 text-sm font-medium text-neutral-800 sm:text-base">
-                      {p.nombre}
+                      {getLocalizedField(p, "nombre", language) ?? p.nombre}
                     </h3>
                     {p.categoria && (
                       <span className="text-xs text-neutral-500">
-                        {p.categoria}
+                        {getLocalizedField(
+                          p.categoria_obj,
+                          "nombre",
+                          language,
+                        ) ?? p.categoria}
                       </span>
                     )}
                   </div>

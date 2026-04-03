@@ -1,8 +1,6 @@
 "use client";
 
-// src/components/product/view/ProductInfo.tsx
-
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { trackNavigationEnd } from "@/lib/performance";
 import Image from "next/image";
 import Link from "next/link";
@@ -12,10 +10,17 @@ import { ProductContactCTA } from "@/components/product/ProductContactCTA";
 import { useLanguage } from "@/i18n/context/useLanguage";
 import { createT } from "@/i18n/utils/t";
 import esDictionary from "@/i18n/dictionaries/es";
+import { getLocalizedField } from "@/lib/getLocalizedField";
 
 type Props = {
   nombre: string;
+  nombre_kiche?: string | null;
+  nombre_kaqchikel?: string | null;
+  nombre_qeqchi?: string | null;
   descripcion?: string | null;
+  descripcion_kiche?: string | null;
+  descripcion_kaqchikel?: string | null;
+  descripcion_qeqchi?: string | null;
   precio: any;
   productId: string;
   imagen_principal?: string | null;
@@ -29,6 +34,9 @@ type Props = {
   sellerLogo?: string | null;
   ubicacion?: string;
   categoria?: string | null;
+  categoria_kiche?: string | null;
+  categoria_kaqchikel?: string | null;
+  categoria_qeqchi?: string | null;
   stock?: number | null;
   internal_code?: string | null;
 };
@@ -46,20 +54,20 @@ function FaqItem({ q, a }: { q: string; a: string }) {
     <div className="border-b border-[#0d2d20]/10 last:border-0">
       <button
         onClick={() => setOpen((o) => !o)}
-        className="w-full flex items-center justify-between py-3 text-left gap-4 group"
+        className="group flex w-full items-center justify-between gap-4 py-3 text-left"
         aria-expanded={open}
       >
-        <span className="text-[13px] text-[#0d0d0b]/80 font-medium leading-snug">
+        <span className="text-[13px] leading-snug font-medium text-[#0d0d0b]/80">
           {q}
         </span>
         <ChevronDown
-          className={`w-4 h-4 flex-shrink-0 text-[#0d2d20]/50 transition-transform duration-200 ${
+          className={`h-4 w-4 flex-shrink-0 text-[#0d2d20]/50 transition-transform duration-200 ${
             open ? "rotate-180" : ""
           }`}
         />
       </button>
       {open && (
-        <p className="text-[12px] text-[#0d0d0b]/55 leading-relaxed pb-4 pr-6">
+        <p className="pr-6 pb-4 text-[12px] leading-relaxed text-[#0d0d0b]/55">
           {a}
         </p>
       )}
@@ -77,7 +85,9 @@ function Stars({ rating }: { rating: number }) {
           height="11"
           viewBox="0 0 10 10"
           fill="currentColor"
-          className={n <= Math.round(rating) ? "text-[#0d2d20]" : "text-[#0d2d20]/20"}
+          className={
+            n <= Math.round(rating) ? "text-[#0d2d20]" : "text-[#0d2d20]/20"
+          }
         >
           <path d="M5 1l1.12 2.27L8.5 3.64l-1.75 1.7.41 2.41L5 6.52 2.84 7.75l.41-2.41L1.5 3.64l2.38-.37L5 1z" />
         </svg>
@@ -88,10 +98,16 @@ function Stars({ rating }: { rating: number }) {
 
 export default function ProductInfo({
   nombre,
+  nombre_kiche,
+  nombre_kaqchikel,
+  nombre_qeqchi,
   descripcion,
+  descripcion_kiche,
+  descripcion_kaqchikel,
+  descripcion_qeqchi,
   precio,
   productId,
-  imagen_principal: _imagen_principal,
+  imagen_principal: imagenPrincipal,
   rating_avg = 0,
   rating_count = 0,
   sellerId,
@@ -102,22 +118,83 @@ export default function ProductInfo({
   sellerLogo,
   ubicacion,
   categoria,
+  categoria_kiche,
+  categoria_kaqchikel,
+  categoria_qeqchi,
   stock,
   internal_code,
 }: Props) {
-  const { dictionary } = useLanguage();
+  const { dictionary, language } = useLanguage();
   const tr = createT(dictionary ?? esDictionary);
 
+  const localizedNombre = useMemo(
+    () =>
+      getLocalizedField(
+        { nombre, nombre_kiche, nombre_kaqchikel, nombre_qeqchi },
+        "nombre",
+        language,
+      ) ?? nombre,
+    [language, nombre, nombre_kaqchikel, nombre_kiche, nombre_qeqchi],
+  );
+
+  const localizedDescripcion = useMemo(
+    () =>
+      getLocalizedField(
+        {
+          descripcion,
+          descripcion_kiche,
+          descripcion_kaqchikel,
+          descripcion_qeqchi,
+        },
+        "descripcion",
+        language,
+      ) ??
+      descripcion ??
+      null,
+    [
+      descripcion,
+      descripcion_kaqchikel,
+      descripcion_kiche,
+      descripcion_qeqchi,
+      language,
+    ],
+  );
+
+  const localizedCategoria = useMemo(
+    () =>
+      getLocalizedField(
+        {
+          nombre: categoria,
+          nombre_kiche: categoria_kiche,
+          nombre_kaqchikel: categoria_kaqchikel,
+          nombre_qeqchi: categoria_qeqchi,
+        },
+        "nombre",
+        language,
+      ) ??
+      categoria ??
+      null,
+    [
+      categoria,
+      categoria_kaqchikel,
+      categoria_kiche,
+      categoria_qeqchi,
+      language,
+    ],
+  );
+
   const FAQ = [
-    { q: tr("pdp.faqShipping"),  a: tr("pdp.faqShippingAnswer") },
-    { q: tr("pdp.faqMeasures"),  a: tr("pdp.faqMeasuresAnswer") },
-    { q: tr("pdp.faqExact"),     a: tr("pdp.faqExactAnswer") },
+    { q: tr("pdp.faqShipping"), a: tr("pdp.faqShippingAnswer") },
+    { q: tr("pdp.faqMeasures"), a: tr("pdp.faqMeasuresAnswer") },
+    { q: tr("pdp.faqExact"), a: tr("pdp.faqExactAnswer") },
   ];
 
   const precioNumber = Number(precio || 0);
   const [codeCopied, setCodeCopied] = useState(false);
 
-  useEffect(() => { trackNavigationEnd("Product Page") }, []);
+  useEffect(() => {
+    trackNavigationEnd("Product Page");
+  }, []);
 
   async function handleCopyCode() {
     if (!internal_code) return;
@@ -142,34 +219,30 @@ export default function ProductInfo({
 
   return (
     <>
-      <section className="space-y-4 md:space-y-6 bg-white rounded-sm p-4 md:p-8 border border-[#0d2d20]/8">
-
-        {/* ── Eyebrow: categoría + origen ── */}
-        <div className="flex flex-wrap items-center gap-x-3 gap-y-1 text-[10px] uppercase tracking-[0.26em] text-[#0d2d20]/55">
-          {categoria && <span>{categoria}</span>}
-          {categoria && ubicacion && <span aria-hidden>·</span>}
+      <section className="space-y-4 rounded-sm border border-[#0d2d20]/8 bg-white p-4 md:space-y-6 md:p-8">
+        <div className="flex flex-wrap items-center gap-x-3 gap-y-1 text-[10px] tracking-[0.26em] text-[#0d2d20]/55 uppercase">
+          {localizedCategoria && <span>{localizedCategoria}</span>}
+          {localizedCategoria && ubicacion && <span aria-hidden>·</span>}
           {ubicacion && (
             <span className="flex items-center gap-1">
-              <MapPin className="w-3 h-3" />
+              <MapPin className="h-3 w-3" />
               {ubicacion}
             </span>
           )}
         </div>
 
-        {/* ── Título ── */}
-        <h1 className="font-serif italic text-[26px] md:text-[30px] text-[#0d0d0b] leading-[1.1]">
-          {nombre}
+        <h1 className="font-serif text-[26px] leading-[1.1] text-[#0d0d0b] italic md:text-[30px]">
+          {localizedNombre}
         </h1>
 
-        {/* ── Rating ── */}
         {rating_count > 0 ? (
           <a
             href="#reviews"
-            className="flex items-center gap-2 group w-fit"
+            className="group flex w-fit items-center gap-2"
             aria-label={tr("pdp.seeReviews")}
           >
             <Stars rating={rating_avg} />
-            <span className="text-[12px] text-[#0d0d0b]/50 group-hover:text-[#0d2d20] transition">
+            <span className="text-[12px] text-[#0d0d0b]/50 transition group-hover:text-[#0d2d20]">
               {rating_avg.toFixed(1)} · {rating_count}{" "}
               {rating_count === 1 ? tr("pdp.review") : tr("pdp.reviews")}
             </span>
@@ -177,7 +250,7 @@ export default function ProductInfo({
         ) : (
           <a
             href="#reviews"
-            className="text-[12px] text-[#0d0d0b]/35 hover:text-[#0d2d20] transition w-fit block"
+            className="block w-fit text-[12px] text-[#0d0d0b]/35 transition hover:text-[#0d2d20]"
           >
             {tr("pdp.noReviews")}
           </a>
@@ -187,52 +260,51 @@ export default function ProductInfo({
           <div className="flex items-center gap-2 text-[11px] text-[#0d0d0b]/40">
             <span>
               {tr("pdp.code")}:{" "}
-              <span className="font-mono text-[#0d0d0b]/60">{internal_code}</span>
+              <span className="font-mono text-[#0d0d0b]/60">
+                {internal_code}
+              </span>
             </span>
             <button
               onClick={handleCopyCode}
-              className="hover:text-[#0d0d0b]/70 transition-colors"
+              className="transition-colors hover:text-[#0d0d0b]/70"
               aria-label={tr("pdp.copyCode")}
             >
-              {codeCopied
-                ? <span className="text-green-600">{tr("pdp.copied")}</span>
-                : <span>{tr("pdp.copy")}</span>
-              }
+              {codeCopied ? (
+                <span className="text-green-600">{tr("pdp.copied")}</span>
+              ) : (
+                <span>{tr("pdp.copy")}</span>
+              )}
             </button>
           </div>
         )}
 
         <div className="h-px bg-[#0d2d20]/8" />
 
-        {/* ── Precio ── */}
         <div>
-          <p className="font-serif text-[36px] md:text-[40px] text-[#0d2d20] leading-none tracking-tight">
+          <p className="font-serif text-[36px] leading-none tracking-tight text-[#0d2d20] md:text-[40px]">
             {formatPrice(precioNumber)}
           </p>
         </div>
 
         <div className="h-px bg-[#0d2d20]/8" />
 
-        {/* ── Descripción ── */}
-        {descripcion && (
-          <p className="text-[14px] text-[#0d0d0b]/65 leading-relaxed">
-            {descripcion}
+        {localizedDescripcion && (
+          <p className="text-[14px] leading-relaxed text-[#0d0d0b]/65">
+            {localizedDescripcion}
           </p>
         )}
 
-        {/* ── Urgencia + seller + CTAs ── */}
         <div className="space-y-4">
-
           {stock === 1 && (
-            <p className="text-[11px] uppercase tracking-[0.22em] text-[#0d2d20] flex items-center gap-2">
+            <p className="flex items-center gap-2 text-[11px] tracking-[0.22em] text-[#0d2d20] uppercase">
               <span className="text-[8px]">✦</span>
               {tr("pdp.lastPiece")}
             </p>
           )}
 
           {(sellerNombre || sellerId) && (
-            <div className="flex items-center gap-3 py-3 px-4 bg-[#f6f2ea] border border-[#0d2d20]/10 rounded-sm">
-              <div className="relative w-9 h-9 rounded-full overflow-hidden flex-shrink-0 border border-[#0d2d20]/10 bg-[#0d2d20]/10 flex items-center justify-center">
+            <div className="flex items-center gap-3 rounded-sm border border-[#0d2d20]/10 bg-[#f6f2ea] px-4 py-3">
+              <div className="relative flex h-9 w-9 flex-shrink-0 items-center justify-center overflow-hidden rounded-full border border-[#0d2d20]/10 bg-[#0d2d20]/10">
                 {sellerLogo ? (
                   <Image
                     src={logoSrc}
@@ -241,18 +313,18 @@ export default function ProductInfo({
                     className="object-cover"
                   />
                 ) : (
-                  <span className="text-[11px] font-bold text-[#0d2d20] uppercase leading-none">
+                  <span className="text-[11px] leading-none font-bold text-[#0d2d20] uppercase">
                     {(sellerNombre ?? "A").charAt(0)}
                   </span>
                 )}
               </div>
               <div className="min-w-0 flex-1">
-                <p className="text-[13px] font-semibold text-[#0d0d0b] leading-tight truncate">
+                <p className="truncate text-[13px] leading-tight font-semibold text-[#0d0d0b]">
                   {sellerNombre ?? "Tienda artesanal"}
                 </p>
-                <div className="flex items-center gap-1 mt-[2px]">
-                  <ShieldCheck className="w-3 h-3 text-[#0d2d20]" />
-                  <span className="text-[10px] text-[#0d2d20] uppercase tracking-[0.18em]">
+                <div className="mt-[2px] flex items-center gap-1">
+                  <ShieldCheck className="h-3 w-3 text-[#0d2d20]" />
+                  <span className="text-[10px] tracking-[0.18em] text-[#0d2d20] uppercase">
                     {tr("pdp.verifiedBy")}
                   </span>
                 </div>
@@ -260,7 +332,7 @@ export default function ProductInfo({
               {sellerId && (
                 <Link
                   href={`/store/${sellerId}`}
-                  className="text-[10px] uppercase tracking-[0.20em] text-[#0d0d0b]/40 hover:text-[#0d2d20] transition flex-shrink-0"
+                  className="flex-shrink-0 text-[10px] tracking-[0.20em] text-[#0d0d0b]/40 uppercase transition hover:text-[#0d2d20]"
                 >
                   {tr("pdp.viewStore")}
                 </Link>
@@ -270,9 +342,9 @@ export default function ProductInfo({
 
           <ProductContactCTA
             productId={productId}
-            productNombre={nombre}
+            productNombre={localizedNombre}
             productPrecio={precioNumber}
-            productImagen={_imagen_principal}
+            productImagen={imagenPrincipal}
             internalCode={internal_code}
             productUrl={internal_code ? `/p/${internal_code}` : undefined}
             sellerWhatsapp={sellerWhatsapp}
@@ -281,35 +353,36 @@ export default function ProductInfo({
 
           <div className="flex items-center justify-between pt-1">
             <FavoriteButton productId={productId} showLabel />
-            <p className="text-[10px] text-[#0d0d0b]/35 tracking-wide text-right">
+            <p className="text-right text-[10px] tracking-wide text-[#0d0d0b]/35">
               {tr("pdp.artisanResponds")}
             </p>
           </div>
-
         </div>
 
         <div className="h-px bg-[#0d2d20]/8" />
 
-        {/* ── Trust signals ── */}
         <ul className="space-y-[6px]">
           {[tr("pdp.trustHandmade"), tr("pdp.trustDirect")].map((text) => (
-            <li key={text} className="flex items-center gap-2 text-[11px] text-[#0d0d0b]/50">
-              <span className="text-[#0d2d20] font-bold flex-shrink-0 text-[10px]">✔</span>
+            <li
+              key={text}
+              className="flex items-center gap-2 text-[11px] text-[#0d0d0b]/50"
+            >
+              <span className="flex-shrink-0 text-[10px] font-bold text-[#0d2d20]">
+                ✔
+              </span>
               {text}
             </li>
           ))}
         </ul>
 
-        {/* ── FAQ ── */}
         <div className="space-y-0">
-          <p className="text-[10px] uppercase tracking-[0.28em] text-[#0d0d0b]/40 mb-3">
+          <p className="mb-3 text-[10px] tracking-[0.28em] text-[#0d0d0b]/40 uppercase">
             {tr("pdp.faqTitle")}
           </p>
           {FAQ.map((item) => (
             <FaqItem key={item.q} q={item.q} a={item.a} />
           ))}
         </div>
-
       </section>
     </>
   );

@@ -15,20 +15,17 @@
  * Ver: src/lib/product-status.ts
  */
 export type ProductStatus =
-  | "disponible"   // stock > 1 o null (artesano confirma)
-  | "pieza_unica"  // stock === 1 — la última pieza disponible
-  | "bajo_pedido"  // stock === 0 pero acepta encargos (flag manual)
-  | "agotado";     // stock === 0 sin encargos
+  | "disponible"
+  | "pieza_unica"
+  | "bajo_pedido"
+  | "agotado";
 
 /**
  * Nivel de confianza del vendedor.
  * Se DERIVA de plan + plan_activo.
  * Ver: src/lib/seller-trust.ts
  */
-export type SellerTrustLevel =
-  | "verificado"  // plan="founder" && plan_activo=true
-  | "activo"      // plan_activo=true (cualquier plan)
-  | "nuevo";      // recién registrado o sin actividad
+export type SellerTrustLevel = "verificado" | "activo" | "nuevo";
 
 /* ─── Seller ──────────────────────────────────────────────── */
 
@@ -45,70 +42,64 @@ export interface ArtisanSeller {
   total_reviews?: number;
 }
 
+interface LocalizedName {
+  nombre: string;
+  nombre_kiche?: string | null;
+  nombre_kaqchikel?: string | null;
+  nombre_qeqchi?: string | null;
+}
+
 /* ─── Product ─────────────────────────────────────────────── */
 
 export interface ArtisanProduct {
   id: string;
   nombre: string;
+  nombre_kiche?: string | null;
+  nombre_kaqchikel?: string | null;
+  nombre_qeqchi?: string | null;
   precio: number;
-
-  // Imágenes — normalizar en el punto de entrada (page.tsx)
   imagen_url?: string | null;
   imagen_principal?: string | null;
   imagenes?: Array<{ url: string } | string>;
-
-  // Contenido
   descripcion?: string | null;
-
-  // Disponibilidad — fuente de verdad para status
+  descripcion_kiche?: string | null;
+  descripcion_kaqchikel?: string | null;
+  descripcion_qeqchi?: string | null;
   stock?: number | null;
-
-  // Clasificación
-  categoria?: { id: number; nombre: string } | string | null;
+  categoria?: (LocalizedName & { id: number }) | string | null;
   categoria_custom?: string | null;
   clase?: { id: number; nombre: string } | null;
   tela?: { id: number; nombre: string } | string | null;
   tela_custom?: string | null;
-
-  // Origen
   departamento?: string | null;
   municipio?: string | null;
   departamento_custom?: string | null;
   municipio_custom?: string | null;
-
-  // Social proof
   rating_avg?: number;
   rating_count?: number;
   total_reviews?: number;
-
-  // Discovery signals
   trending_score?: number;
   created_at?: string | null;
-
-  // Relaciones
   vendedor?: ArtisanSeller;
 }
 
 /* ─── Discovery ───────────────────────────────────────────── */
 
-/**
- * Señal que determinó por qué este producto está en una sección.
- * Permite que ArtisanCard sepa qué badge mostrar sin lógica extra.
- */
 export type DiscoverySignal =
-  | "trending"    // viene de /api/products/trending
-  | "new"         // viene de /api/productos/nuevos
-  | "featured"    // curado manualmente
-  | "related"     // relacionado con el producto actual
-  | "none";       // sin señal — card estándar
+  | "trending"
+  | "new"
+  | "featured"
+  | "related"
+  | "none";
 
 /* ─── Helpers ─────────────────────────────────────────────── */
 
-/** Devuelve la primera imagen disponible del producto */
 export function getPrimaryImage(product: ArtisanProduct): string {
   const first = product.imagenes?.[0];
   const fromImagenes = first
-    ? typeof first === "string" ? first : first.url
+    ? typeof first === "string"
+      ? first
+      : first.url
     : null;
   return (
     product.imagen_principal ||
@@ -118,7 +109,6 @@ export function getPrimaryImage(product: ArtisanProduct): string {
   );
 }
 
-/** Devuelve la cadena de ubicación del producto */
 export function getProductLocation(product: ArtisanProduct): string {
   return [
     product.municipio || product.municipio_custom,
@@ -128,7 +118,6 @@ export function getProductLocation(product: ArtisanProduct): string {
     .join(", ");
 }
 
-/** Devuelve el nombre de la categoría como string */
 export function getCategoryName(product: ArtisanProduct): string | null {
   const cat = product.categoria;
   if (!cat) return product.categoria_custom ?? null;

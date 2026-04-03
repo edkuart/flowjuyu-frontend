@@ -2,8 +2,7 @@
 
 import Image from "next/image";
 import Link from "next/link";
-import { useState } from "react";
-
+import { useMemo, useState } from "react";
 import { FavoriteButton } from "@/components/ui/FavoriteButton";
 import SectionHeader from "@/components/ui/SectionHeader";
 import {
@@ -14,6 +13,7 @@ import { useLanguage } from "@/i18n/context/useLanguage";
 import esDictionary from "@/i18n/dictionaries/es";
 import { createT } from "@/i18n/utils/t";
 import { getProductImage } from "@/lib/getProductImage";
+import { getLocalizedField } from "@/lib/getLocalizedField";
 
 function NewProductsSkeleton() {
   return (
@@ -53,16 +53,20 @@ function getDaysAgoLabel(
   );
   if (diff === 0) return tr("home.newBadgeArrivedToday");
   if (diff === 1) return tr("home.newBadgeArrivedYesterday");
-  if (diff <= 7) {
+  if (diff <= 7)
     return tr("home.newBadgeArrivedDays").replace("{days}", String(diff));
-  }
   return null;
 }
 
 function NewProductCard({ product }: { product: Producto }) {
   const [imgError, setImgError] = useState(false);
-  const { dictionary } = useLanguage();
+  const { dictionary, language } = useLanguage();
   const tr = createT(dictionary ?? esDictionary);
+
+  const localizedNombre = useMemo(
+    () => getLocalizedField(product, "nombre", language) ?? product.nombre,
+    [language, product],
+  );
 
   const src = !imgError
     ? getProductImage(product, "/images/productos/default.jpg")
@@ -78,7 +82,7 @@ function NewProductCard({ product }: { product: Producto }) {
       <div className="relative aspect-[4/5] overflow-hidden">
         <Image
           src={src}
-          alt={product.nombre}
+          alt={localizedNombre}
           fill
           sizes="(max-width: 768px) 50vw, 33vw"
           className="object-cover object-center transition-transform duration-700 group-hover:scale-[1.04]"
@@ -100,7 +104,7 @@ function NewProductCard({ product }: { product: Producto }) {
         <div className="absolute bottom-0 w-full p-5 text-white">
           <div className="mb-3 h-[1px] w-7 bg-white/35 transition-all duration-500 group-hover:w-14" />
           <p className="line-clamp-2 font-serif text-base leading-snug italic md:text-lg">
-            {product.nombre}
+            {localizedNombre}
           </p>
           <div className="mt-2 flex items-center justify-between">
             <p className="text-[12px] tracking-[0.15em] text-white/60">

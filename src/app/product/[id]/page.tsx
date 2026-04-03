@@ -32,8 +32,8 @@ export default async function ProductPage({
 
   if (!data?.product) {
     return (
-      <div className="w-full flex flex-col items-center justify-center py-32 gap-3 text-center px-4">
-        <p className="font-serif italic text-3xl text-[#0d0d0b]/40">
+      <div className="flex w-full flex-col items-center justify-center gap-3 px-4 py-32 text-center">
+        <p className="font-serif text-3xl text-[#0d0d0b]/40 italic">
           Pieza no encontrada
         </p>
         <p className="text-sm text-[#0d0d0b]/30">
@@ -44,7 +44,9 @@ export default async function ProductPage({
   }
 
   const product = data.product;
-  const relacionados: typeof product[] = Array.isArray(data.related) ? data.related : [];
+  const relacionados: (typeof product)[] = Array.isArray(data.related)
+    ? data.related
+    : [];
   const vendedor = product.vendedor ?? {};
 
   /* ── Normalizar imágenes ── */
@@ -70,18 +72,16 @@ export default async function ProductPage({
     .join(", ");
 
   return (
-    <div className="bg-[#f6f2ea] min-h-screen">
-      <div className="max-w-7xl mx-auto px-4 md:px-8 pt-8 pb-28 md:pb-20">
-
+    <div className="min-h-screen bg-[#f6f2ea]">
+      <div className="mx-auto max-w-7xl px-4 pt-8 pb-28 md:px-8 md:pb-20">
         {/* ══════════════════════════════════════════════════
             ZONA DE DECISIÓN — Gallery + Info en 2 columnas
             La galería es sticky en desktop para que el usuario
             siempre vea el producto mientras lee la info.
         ══════════════════════════════════════════════════ */}
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-6 md:gap-14 items-start">
-
+        <div className="grid grid-cols-1 items-start gap-6 md:grid-cols-2 md:gap-14">
           {/* GALLERY — sticky desde tablet (768px) hacia arriba */}
-          <div className="md:sticky md:top-24 self-start">
+          <div className="self-start md:sticky md:top-24">
             <ProductGallery imagenes={imagenes} titulo={product.nombre} />
           </div>
 
@@ -89,7 +89,13 @@ export default async function ProductPage({
           <div className="space-y-6">
             <ProductInfo
               nombre={product.nombre}
+              nombre_kiche={product.nombre_kiche}
+              nombre_kaqchikel={product.nombre_kaqchikel}
+              nombre_qeqchi={product.nombre_qeqchi}
               descripcion={product.descripcion}
+              descripcion_kiche={product.descripcion_kiche}
+              descripcion_kaqchikel={product.descripcion_kaqchikel}
+              descripcion_qeqchi={product.descripcion_qeqchi}
               precio={product.precio}
               productId={product.id}
               imagen_principal={imagenes[0] ?? "/images/placeholder.png"}
@@ -103,6 +109,9 @@ export default async function ProductPage({
               sellerLogo={vendedor.logo}
               ubicacion={ubicacion || undefined}
               categoria={product.categoria?.nombre ?? product.categoria_custom}
+              categoria_kiche={product.categoria?.nombre_kiche}
+              categoria_kaqchikel={product.categoria?.nombre_kaqchikel}
+              categoria_qeqchi={product.categoria?.nombre_qeqchi}
               internal_code={product.internal_code}
             />
 
@@ -121,7 +130,6 @@ export default async function ProductPage({
               accesorio_material={product.accesorio_material}
             />
           </div>
-
         </div>
 
         {/* ══════════════════════════════════════════════════
@@ -163,7 +171,6 @@ export default async function ProductPage({
             />
           </div>
         )}
-
       </div>
 
       {/* Mobile sticky CTA — fixed to viewport bottom, hidden on md+ */}
@@ -171,10 +178,15 @@ export default async function ProductPage({
         precio={product.precio}
         productId={product.id}
         productNombre={product.nombre}
+        productNombre_kiche={product.nombre_kiche}
+        productNombre_kaqchikel={product.nombre_kaqchikel}
+        productNombre_qeqchi={product.nombre_qeqchi}
         productPrecio={product.precio}
         productImagen={imagenes[0] ?? null}
         internalCode={product.internal_code}
-        productUrl={product.internal_code ? `/p/${product.internal_code}` : undefined}
+        productUrl={
+          product.internal_code ? `/p/${product.internal_code}` : undefined
+        }
         sellerWhatsapp={vendedor.whatsapp}
         sellerNombre={vendedor.nombre_comercio}
       />

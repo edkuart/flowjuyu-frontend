@@ -14,9 +14,12 @@ const API = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8800";
 
 async function fetchProductByCode(code: string) {
   try {
-    const res = await fetch(`${API}/api/products/code/${encodeURIComponent(code)}`, {
-      cache: "no-store",
-    });
+    const res = await fetch(
+      `${API}/api/products/code/${encodeURIComponent(code)}`,
+      {
+        cache: "no-store",
+      },
+    );
     if (!res.ok) return null;
     return await res.json();
   } catch (err) {
@@ -43,29 +46,29 @@ export async function generateMetadata({
     };
   }
 
-  const cleanDescription = product.descripcion
-    ?.replace(/\n/g, " ")
-    .trim()
+  const cleanDescription = product.descripcion?.replace(/\n/g, " ").trim();
 
   const description = cleanDescription
     ? cleanDescription.length > 140
       ? `${cleanDescription.slice(0, 140)}…`
       : cleanDescription
-    : "Descubre este producto artesanal en Flowjuyu"
+    : "Descubre este producto artesanal en Flowjuyu";
 
-  const title = `${product.nombre} | Flowjuyu`
+  const title = `${product.nombre} | Flowjuyu`;
 
   const imageUrl: string | null =
     product.imagen_principal ||
     (Array.isArray(product.imagenes) && product.imagenes.length > 0
-      ? (typeof product.imagenes[0] === "string" ? product.imagenes[0] : product.imagenes[0]?.url)
-      : null)
+      ? typeof product.imagenes[0] === "string"
+        ? product.imagenes[0]
+        : product.imagenes[0]?.url
+      : null);
 
   const images = imageUrl
     ? [{ url: imageUrl, width: 1200, height: 630, alt: product.nombre }]
-    : []
+    : [];
 
-  const pageUrl = `${SITE_URL}/p/${params.code}`
+  const pageUrl = `${SITE_URL}/p/${params.code}`;
 
   return {
     title,
@@ -98,19 +101,19 @@ export default async function ProductByCodePage({
 
   if (!data?.product) {
     return (
-      <div className="w-full flex flex-col items-center justify-center py-32 gap-4 text-center px-4">
-        <p className="font-serif italic text-3xl text-[#0d0d0b]/40">
+      <div className="flex w-full flex-col items-center justify-center gap-4 px-4 py-32 text-center">
+        <p className="font-serif text-3xl text-[#0d0d0b]/40 italic">
           No encontramos este producto
         </p>
-        <p className="text-sm text-[#0d0d0b]/30 max-w-xs leading-relaxed">
+        <p className="max-w-xs text-sm leading-relaxed text-[#0d0d0b]/30">
           Verifica el código o intenta nuevamente.
         </p>
-        <p className="text-xs text-[#0d0d0b]/20 tracking-wide">
+        <p className="text-xs tracking-wide text-[#0d0d0b]/20">
           Ejemplo: FJ-XXXX
         </p>
         <a
           href="/"
-          className="mt-2 text-xs uppercase tracking-[0.18em] text-[#0d2d20]/50 hover:text-[#0d2d20]/80 transition-colors underline underline-offset-4"
+          className="mt-2 text-xs tracking-[0.18em] text-[#0d2d20]/50 uppercase underline underline-offset-4 transition-colors hover:text-[#0d2d20]/80"
         >
           Volver al inicio
         </a>
@@ -119,7 +122,9 @@ export default async function ProductByCodePage({
   }
 
   const product = data.product;
-  const relacionados: typeof product[] = Array.isArray(data.related) ? data.related : [];
+  const relacionados: (typeof product)[] = Array.isArray(data.related)
+    ? data.related
+    : [];
   const vendedor = product.vendedor ?? {};
 
   const imagenes: string[] = (() => {
@@ -143,11 +148,9 @@ export default async function ProductByCodePage({
     .join(", ");
 
   return (
-    <div className="bg-[#f6f2ea] min-h-screen">
-      <div className="max-w-7xl mx-auto px-4 md:px-8 pt-8 pb-20">
-
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-10 md:gap-14 items-start">
-
+    <div className="min-h-screen bg-[#f6f2ea]">
+      <div className="mx-auto max-w-7xl px-4 pt-8 pb-20 md:px-8">
+        <div className="grid grid-cols-1 items-start gap-10 md:grid-cols-2 md:gap-14">
           <div className="md:sticky md:top-24">
             <ProductGallery imagenes={imagenes} titulo={product.nombre} />
           </div>
@@ -155,7 +158,13 @@ export default async function ProductByCodePage({
           <div className="space-y-0">
             <ProductInfo
               nombre={product.nombre}
+              nombre_kiche={product.nombre_kiche}
+              nombre_kaqchikel={product.nombre_kaqchikel}
+              nombre_qeqchi={product.nombre_qeqchi}
               descripcion={product.descripcion}
+              descripcion_kiche={product.descripcion_kiche}
+              descripcion_kaqchikel={product.descripcion_kaqchikel}
+              descripcion_qeqchi={product.descripcion_qeqchi}
               precio={product.precio}
               productId={product.id}
               imagen_principal={imagenes[0] ?? "/images/placeholder.png"}
@@ -169,6 +178,9 @@ export default async function ProductByCodePage({
               sellerLogo={vendedor.logo}
               ubicacion={ubicacion || undefined}
               categoria={product.categoria?.nombre ?? product.categoria_custom}
+              categoria_kiche={product.categoria?.nombre_kiche}
+              categoria_kaqchikel={product.categoria?.nombre_kaqchikel}
+              categoria_qeqchi={product.categoria?.nombre_qeqchi}
               internal_code={product.internal_code}
             />
 
@@ -186,7 +198,6 @@ export default async function ProductByCodePage({
               />
             </div>
           </div>
-
         </div>
 
         <div className="mt-20 border-t border-[#0d2d20]/10 pt-16">
@@ -215,7 +226,6 @@ export default async function ProductByCodePage({
             />
           </div>
         )}
-
       </div>
     </div>
   );

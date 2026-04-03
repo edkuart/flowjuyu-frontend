@@ -2,30 +2,23 @@
 // Cierra el journey del comprador con confianza.
 // Usa proposiciones de valor verificables — no métricas infladas para demo.
 
-const pillars = [
-  {
-    icon: "✦",
-    title: "Hecho a mano",
-    description: "Cada pieza es producida por artesanos guatemaltecos",
-  },
-  {
-    icon: "✦",
-    title: "Compra directa",
-    description: "Sin intermediarios — el precio llega íntegro al artesano",
-  },
-  {
-    icon: "✦",
-    title: "Artesanos verificados",
-    description: "Revisamos la identidad y origen de cada vendedor",
-  },
-  {
-    icon: "✦",
-    title: "Trazabilidad real",
-    description: "Conoces quién hizo tu pieza y de dónde viene",
-  },
-];
+"use client";
+
+import { useLanguage } from "@/i18n/context/useLanguage";
+import { createT } from "@/i18n/utils/t";
+import esDictionary from "@/i18n/dictionaries/es";
 
 export default function SocialProofStrip() {
+  const { dictionary } = useLanguage();
+  const tr = createT(dictionary ?? esDictionary);
+
+  const pillars = [
+    { icon: "✦", title: tr("home.socialPillar1Title"), description: tr("home.socialPillar1Desc") },
+    { icon: "✦", title: tr("home.socialPillar2Title"), description: tr("home.socialPillar2Desc") },
+    { icon: "✦", title: tr("home.socialPillar3Title"), description: tr("home.socialPillar3Desc") },
+    { icon: "✦", title: tr("home.socialPillar4Title"), description: tr("home.socialPillar4Desc") },
+  ];
+
   return (
     <section className="bg-[#0d2d20] py-12 md:py-16">
       <div className="max-w-7xl mx-auto px-4 md:px-12">

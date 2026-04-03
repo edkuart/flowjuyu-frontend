@@ -6,7 +6,11 @@ import WhatsAppModal from "@/components/product/WhatsAppModal";
 import { useLanguage } from "@/i18n/context/useLanguage";
 import esDictionary from "@/i18n/dictionaries/es";
 import { createT } from "@/i18n/utils/t";
-import { buildWhatsAppHref, extractWhatsAppPhone } from "@/lib/whatsapp";
+import {
+  buildProductWhatsAppMessage,
+  buildWhatsAppHref,
+  extractWhatsAppPhone,
+} from "@/lib/whatsapp";
 
 const API_BASE = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8800";
 const SITE_URL = process.env.NEXT_PUBLIC_SITE_URL || "https://flowjuyu.com";
@@ -35,13 +39,6 @@ const WA_ICON = (
   </svg>
 );
 
-function fillTemplate(template: string, values: Record<string, string>) {
-  return Object.entries(values).reduce(
-    (result, [key, value]) => result.replaceAll(`{${key}}`, value),
-    template,
-  );
-}
-
 export function ProductContactCTA({
   productId,
   productNombre,
@@ -53,7 +50,7 @@ export function ProductContactCTA({
   sellerNombre,
   compact = false,
 }: ProductContactCTAProps) {
-  const { dictionary } = useLanguage();
+  const { dictionary, language } = useLanguage();
   const tr = createT(dictionary ?? esDictionary);
   const [modalOpen, setModalOpen] = useState(false);
 
@@ -67,18 +64,14 @@ export function ProductContactCTA({
     : undefined;
 
   const message = useMemo(() => {
-    const base = fillTemplate(tr("pdp.whatsappMessageTemplate"), {
-      namePart: sellerNombre ? ` ${sellerNombre}` : "",
-      product: productNombre,
+    return buildProductWhatsAppMessage({
+      language,
+      sellerName: sellerNombre,
+      productName: productNombre,
+      productCode: internalCode,
+      productUrl: canonicalUrl,
     });
-
-    const extras = [
-      internalCode ? `${tr("pdp.code")}: ${internalCode}` : "",
-      canonicalUrl ? `${tr("pdp.linkLabel")}: ${canonicalUrl}` : "",
-    ].filter(Boolean);
-
-    return extras.length > 0 ? `${base}\n\n${extras.join("\n")}` : base;
-  }, [canonicalUrl, internalCode, productNombre, sellerNombre, tr]);
+  }, [canonicalUrl, internalCode, language, productNombre, sellerNombre]);
 
   const buttonLabel = compact ? tr("pdp.stickyCta") : tr("pdp.askAboutPiece");
 
@@ -187,7 +180,7 @@ export function ProductContactCTA({
           copy={{
             ariaLabel: tr("pdp.whatsappModalAriaLabel"),
             title: tr("pdp.whatsappModalTitle"),
-            subtitle: tr("pdp.whatsappModalSubtitle"),
+            subtitle: language !== "es" ? tr("pdp.whatsappModalSubtitleBilingual") : tr("pdp.whatsappModalSubtitle"),
             messageLabel: tr("pdp.whatsappModalMessageLabel"),
             hint: tr("pdp.whatsappModalHint"),
             confirm: tr("pdp.whatsappModalConfirm"),

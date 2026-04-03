@@ -9,18 +9,28 @@ const API = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8800";
 
 // ─── Domain Types ──────────────────────────────────────────────────────────────
 
-export type Categoria         = { id: number; nombre: string };
-export type Clase             = { id: number; nombre: string };
-export type Tela              = { id: number; nombre: string };
-export type Accesorio         = { id: number; nombre: string };
-export type AccesorioTipo     = { id: number; nombre: string };
+export type Categoria = {
+  id: number;
+  nombre: string;
+  nombre_kiche?: string | null;
+  nombre_kaqchikel?: string | null;
+  nombre_qeqchi?: string | null;
+};
+export type Clase = { id: number; nombre: string };
+export type Tela = { id: number; nombre: string };
+export type Accesorio = { id: number; nombre: string };
+export type AccesorioTipo = { id: number; nombre: string };
 export type AccesorioMaterial = { id: number; nombre: string };
 
 export type Producto = {
   id: string;
   nombre: string;
+  nombre_kiche?: string | null;
+  nombre_kaqchikel?: string | null;
+  nombre_qeqchi?: string | null;
   precio: number | string;
   categoria?: string | null;
+  categoria_obj?: Categoria | null;
   imagen_url?: string | null;
   imagenes?: { url: string }[];
   departamento?: string | null;
@@ -60,16 +70,18 @@ async function fetchProducts(
 ): Promise<{ data: Producto[]; related: Producto[] }> {
   const p = new URLSearchParams();
 
-  if (filters.query.trim())        p.set("search",                filters.query.trim());
-  if (filters.categoriaId)         p.set("categoria_id",          String(filters.categoriaId));
-  if (filters.claseId)             p.set("clase_id",              String(filters.claseId));
-  if (filters.telaId)              p.set("tela_id",               String(filters.telaId));
-  if (filters.accesorioId)         p.set("accesorio_id",          String(filters.accesorioId));
-  if (filters.accesorioTipoId)     p.set("accesorio_tipo_id",     String(filters.accesorioTipoId));
-  if (filters.accesorioMaterialId) p.set("accesorio_material_id", String(filters.accesorioMaterialId));
-  if (filters.departamento)        p.set("departamento",          filters.departamento);
-  if (filters.municipio)           p.set("municipio",             filters.municipio);
-  if (filters.sort)                p.set("sort",                  filters.sort);
+  if (filters.query.trim()) p.set("search", filters.query.trim());
+  if (filters.categoriaId) p.set("categoria_id", String(filters.categoriaId));
+  if (filters.claseId) p.set("clase_id", String(filters.claseId));
+  if (filters.telaId) p.set("tela_id", String(filters.telaId));
+  if (filters.accesorioId) p.set("accesorio_id", String(filters.accesorioId));
+  if (filters.accesorioTipoId)
+    p.set("accesorio_tipo_id", String(filters.accesorioTipoId));
+  if (filters.accesorioMaterialId)
+    p.set("accesorio_material_id", String(filters.accesorioMaterialId));
+  if (filters.departamento) p.set("departamento", filters.departamento);
+  if (filters.municipio) p.set("municipio", filters.municipio);
+  if (filters.sort) p.set("sort", filters.sort);
   // Always send price bounds so the backend can apply range filtering
   p.set("precioMin", String(filters.precioMin));
   p.set("precioMax", String(filters.precioMax));
@@ -128,18 +140,30 @@ export function useSearchProducts() {
   // ── URL → filters (URL is the single source of truth for all filter state) ──
   const filters = useMemo<SearchFilters>(
     () => ({
-      query:               searchParams.get("search") || searchParams.get("q") || "",
-      categoriaId:         searchParams.get("categoria_id")          ? Number(searchParams.get("categoria_id"))          : null,
-      claseId:             searchParams.get("clase_id")              ? Number(searchParams.get("clase_id"))              : null,
-      telaId:              searchParams.get("tela_id")               ? Number(searchParams.get("tela_id"))               : null,
-      accesorioId:         searchParams.get("accesorio_id")          ? Number(searchParams.get("accesorio_id"))          : null,
-      accesorioTipoId:     searchParams.get("accesorio_tipo_id")     ? Number(searchParams.get("accesorio_tipo_id"))     : null,
-      accesorioMaterialId: searchParams.get("accesorio_material_id") ? Number(searchParams.get("accesorio_material_id")) : null,
-      departamento:        searchParams.get("departamento") || "",
-      municipio:           searchParams.get("municipio")    || "",
-      precioMin:           Number(searchParams.get("precioMin") ?? 0),
-      precioMax:           Number(searchParams.get("precioMax") ?? 2000),
-      sort:                searchParams.get("sort") || "",
+      query: searchParams.get("search") || searchParams.get("q") || "",
+      categoriaId: searchParams.get("categoria_id")
+        ? Number(searchParams.get("categoria_id"))
+        : null,
+      claseId: searchParams.get("clase_id")
+        ? Number(searchParams.get("clase_id"))
+        : null,
+      telaId: searchParams.get("tela_id")
+        ? Number(searchParams.get("tela_id"))
+        : null,
+      accesorioId: searchParams.get("accesorio_id")
+        ? Number(searchParams.get("accesorio_id"))
+        : null,
+      accesorioTipoId: searchParams.get("accesorio_tipo_id")
+        ? Number(searchParams.get("accesorio_tipo_id"))
+        : null,
+      accesorioMaterialId: searchParams.get("accesorio_material_id")
+        ? Number(searchParams.get("accesorio_material_id"))
+        : null,
+      departamento: searchParams.get("departamento") || "",
+      municipio: searchParams.get("municipio") || "",
+      precioMin: Number(searchParams.get("precioMin") ?? 0),
+      precioMax: Number(searchParams.get("precioMax") ?? 2000),
+      sort: searchParams.get("sort") || "",
     }),
     [searchParams],
   );
@@ -165,11 +189,11 @@ export function useSearchProducts() {
   const setCategoriaId = useCallback(
     (id: number | null) =>
       updateParams({
-        categoria_id:         id ? String(id) : null,
-        clase_id:             null,
-        tela_id:              null,
-        accesorio_id:         null,
-        accesorio_tipo_id:    null,
+        categoria_id: id ? String(id) : null,
+        clase_id: null,
+        tela_id: null,
+        accesorio_id: null,
+        accesorio_tipo_id: null,
         accesorio_material_id: null,
       }),
     [updateParams],
@@ -191,20 +215,22 @@ export function useSearchProducts() {
   const setAccesorioId = useCallback(
     (id: number | null) =>
       updateParams({
-        accesorio_id:         id ? String(id) : null,
-        accesorio_tipo_id:    null,
+        accesorio_id: id ? String(id) : null,
+        accesorio_tipo_id: null,
         accesorio_material_id: null,
       }),
     [updateParams],
   );
 
   const setAccesorioTipoId = useCallback(
-    (id: number | null) => updateParams({ accesorio_tipo_id: id ? String(id) : null }),
+    (id: number | null) =>
+      updateParams({ accesorio_tipo_id: id ? String(id) : null }),
     [updateParams],
   );
 
   const setAccesorioMaterialId = useCallback(
-    (id: number | null) => updateParams({ accesorio_material_id: id ? String(id) : null }),
+    (id: number | null) =>
+      updateParams({ accesorio_material_id: id ? String(id) : null }),
     [updateParams],
   );
 
@@ -246,13 +272,13 @@ export function useSearchProducts() {
 
   const { data: categorias = [] } = useQuery<Categoria[]>({
     queryKey: ["catalog", "categorias"],
-    queryFn:  () => fetchCatalog<Categoria>("/api/categorias"),
+    queryFn: () => fetchCatalog<Categoria>("/api/categorias"),
     staleTime: 5 * 60_000,
   });
 
   const { data: clases = [] } = useQuery<Clase[]>({
     queryKey: ["catalog", "clases"],
-    queryFn:  () => fetchCatalog<Clase>("/api/clases"),
+    queryFn: () => fetchCatalog<Clase>("/api/clases"),
     staleTime: 5 * 60_000,
   });
 
@@ -264,41 +290,52 @@ export function useSearchProducts() {
   }, [categorias, filters.categoriaId]);
 
   // Booleans are cheap — no useMemo needed; they gate `enabled` on queries below.
-  const esTextil    = categoriaNombre.includes("huipil") || categoriaNombre.includes("hupil") || categoriaNombre.includes("corte");
-  const esCalzado   = categoriaNombre.includes("calzado");
+  const esTextil =
+    categoriaNombre.includes("huipil") ||
+    categoriaNombre.includes("hupil") ||
+    categoriaNombre.includes("corte");
+  const esCalzado = categoriaNombre.includes("calzado");
   const esAccesorios = categoriaNombre.includes("accesorio");
-  const accesorioTipo = categoriaNombre.includes("típic") || categoriaNombre.includes("tipic")
-    ? "tipico"
-    : "normal";
+  const accesorioTipo =
+    categoriaNombre.includes("típic") || categoriaNombre.includes("tipic")
+      ? "tipico"
+      : "normal";
 
   // ── Dynamic catalog queries (enabled only when their context is active) ────
 
   const { data: telas = [] } = useQuery<Tela[]>({
     queryKey: ["catalog", "telas", filters.claseId],
-    queryFn:  () => fetchCatalog<Tela>(`/api/telas?clase_id=${filters.claseId}`),
+    queryFn: () => fetchCatalog<Tela>(`/api/telas?clase_id=${filters.claseId}`),
     // Only fetch telas when: it's a textile category, not calzado, AND clase is selected.
-    enabled:   esTextil && !esCalzado && filters.claseId !== null,
+    enabled: esTextil && !esCalzado && filters.claseId !== null,
     staleTime: 5 * 60_000,
   });
 
   const { data: accesorios = [] } = useQuery<Accesorio[]>({
     queryKey: ["catalog", "accesorios", accesorioTipo],
-    queryFn:  () => fetchCatalog<Accesorio>(`/api/accesorios?tipo=${accesorioTipo}`),
-    enabled:   esAccesorios,
+    queryFn: () =>
+      fetchCatalog<Accesorio>(`/api/accesorios?tipo=${accesorioTipo}`),
+    enabled: esAccesorios,
     staleTime: 5 * 60_000,
   });
 
   const { data: accesorioTipos = [] } = useQuery<AccesorioTipo[]>({
     queryKey: ["catalog", "accesorio-tipos", filters.accesorioId],
-    queryFn:  () => fetchCatalog<AccesorioTipo>(`/api/accesorio-tipos?accesorio_id=${filters.accesorioId}`),
-    enabled:   filters.accesorioId !== null,
+    queryFn: () =>
+      fetchCatalog<AccesorioTipo>(
+        `/api/accesorio-tipos?accesorio_id=${filters.accesorioId}`,
+      ),
+    enabled: filters.accesorioId !== null,
     staleTime: 5 * 60_000,
   });
 
   const { data: accesorioMateriales = [] } = useQuery<AccesorioMaterial[]>({
     queryKey: ["catalog", "accesorio-materiales", filters.accesorioId],
-    queryFn:  () => fetchCatalog<AccesorioMaterial>(`/api/accesorio-materiales?accesorio_id=${filters.accesorioId}`),
-    enabled:   filters.accesorioId !== null,
+    queryFn: () =>
+      fetchCatalog<AccesorioMaterial>(
+        `/api/accesorio-materiales?accesorio_id=${filters.accesorioId}`,
+      ),
+    enabled: filters.accesorioId !== null,
     staleTime: 5 * 60_000,
   });
 
@@ -308,16 +345,16 @@ export function useSearchProducts() {
   // refetching, preventing the grid from flickering empty on filter changes.
   const {
     data: productsData,
-    isLoading,   // true only on first fetch (no data yet)
-    isFetching,  // true on every in-flight request including refetches
+    isLoading, // true only on first fetch (no data yet)
+    isFetching, // true on every in-flight request including refetches
   } = useQuery({
     queryKey: ["products", filters],
-    queryFn:  () => fetchProducts(filters),
+    queryFn: () => fetchProducts(filters),
     staleTime: 30_000,
     placeholderData: keepPreviousData,
   });
 
-  const productos    = productsData?.data    ?? [];
+  const productos = productsData?.data ?? [];
   const relacionados = productsData?.related ?? [];
 
   // ── Active filter pills ────────────────────────────────────────────────────
@@ -329,8 +366,8 @@ export function useSearchProducts() {
     if (cat) pills.push(cat.nombre);
 
     if (filters.departamento) pills.push(filters.departamento);
-    if (filters.municipio)    pills.push(filters.municipio);
-    if (filters.precioMin > 0)    pills.push(`Min Q${filters.precioMin}`);
+    if (filters.municipio) pills.push(filters.municipio);
+    if (filters.precioMin > 0) pills.push(`Min Q${filters.precioMin}`);
     if (filters.precioMax < 2000) pills.push(`Max Q${filters.precioMax}`);
 
     const clase = clases.find((x) => x.id === filters.claseId);
@@ -342,14 +379,26 @@ export function useSearchProducts() {
     const acc = accesorios.find((x) => x.id === filters.accesorioId);
     if (acc) pills.push(acc.nombre);
 
-    const accTipo = accesorioTipos.find((x) => x.id === filters.accesorioTipoId);
+    const accTipo = accesorioTipos.find(
+      (x) => x.id === filters.accesorioTipoId,
+    );
     if (accTipo) pills.push(accTipo.nombre);
 
-    const accMat = accesorioMateriales.find((x) => x.id === filters.accesorioMaterialId);
+    const accMat = accesorioMateriales.find(
+      (x) => x.id === filters.accesorioMaterialId,
+    );
     if (accMat) pills.push(accMat.nombre);
 
     return pills;
-  }, [filters, categorias, clases, telas, accesorios, accesorioTipos, accesorioMateriales]);
+  }, [
+    filters,
+    categorias,
+    clases,
+    telas,
+    accesorios,
+    accesorioTipos,
+    accesorioMateriales,
+  ]);
 
   return {
     // Controlled input (local state, debounced before URL write)
@@ -382,8 +431,8 @@ export function useSearchProducts() {
     // Catalogs (gated: returns [] when category context doesn't apply)
     categorias,
     clases,
-    telas:               esTextil && !esCalzado ? telas      : [],
-    accesorios:          esAccesorios           ? accesorios : [],
+    telas: esTextil && !esCalzado ? telas : [],
+    accesorios: esAccesorios ? accesorios : [],
     accesorioTipos,
     accesorioMateriales,
 

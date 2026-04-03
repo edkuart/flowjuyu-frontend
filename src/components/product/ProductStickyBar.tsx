@@ -7,6 +7,7 @@ import {
 import { useLanguage } from "@/i18n/context/useLanguage";
 import esDictionary from "@/i18n/dictionaries/es";
 import { createT } from "@/i18n/utils/t";
+import { getLocalizedField } from "@/lib/getLocalizedField";
 
 const formatPrice = (n: number) =>
   new Intl.NumberFormat("es-GT", {
@@ -15,13 +16,36 @@ const formatPrice = (n: number) =>
     minimumFractionDigits: 0,
   }).format(n);
 
-type Props = Omit<ProductContactCTAProps, "compact"> & {
+type Props = Omit<ProductContactCTAProps, "compact" | "productNombre"> & {
   precio: number;
+  productNombre: string;
+  productNombre_kiche?: string | null;
+  productNombre_kaqchikel?: string | null;
+  productNombre_qeqchi?: string | null;
 };
 
-export function ProductStickyBar({ precio, ...ctaProps }: Props) {
-  const { dictionary } = useLanguage();
+export function ProductStickyBar({
+  precio,
+  productNombre,
+  productNombre_kiche,
+  productNombre_kaqchikel,
+  productNombre_qeqchi,
+  ...ctaProps
+}: Props) {
+  const { dictionary, language } = useLanguage();
   const tr = createT(dictionary ?? esDictionary);
+
+  const localizedProductNombre =
+    getLocalizedField(
+      {
+        nombre: productNombre,
+        nombre_kiche: productNombre_kiche,
+        nombre_kaqchikel: productNombre_kaqchikel,
+        nombre_qeqchi: productNombre_qeqchi,
+      },
+      "nombre",
+      language,
+    ) ?? productNombre;
 
   return (
     <div
@@ -38,7 +62,11 @@ export function ProductStickyBar({ precio, ...ctaProps }: Props) {
       </div>
 
       <div className="w-[180px] flex-shrink-0">
-        <ProductContactCTA {...ctaProps} compact />
+        <ProductContactCTA
+          {...ctaProps}
+          productNombre={localizedProductNombre}
+          compact
+        />
       </div>
     </div>
   );

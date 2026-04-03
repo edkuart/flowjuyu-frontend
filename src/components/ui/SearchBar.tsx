@@ -1,11 +1,6 @@
 "use client";
 
-import {
-  useState,
-  useEffect,
-  useRef,
-  type KeyboardEvent,
-} from "react";
+import { useState, useEffect, useRef, type KeyboardEvent } from "react";
 import { getProductImage } from "@/lib/getProductImage";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
@@ -13,6 +8,9 @@ import { Search } from "lucide-react";
 import { useCategorias } from "@/hooks/useCategorias";
 import { useClases } from "@/hooks/useClases";
 import { useAccesorios } from "@/hooks/useAccesorios";
+import { useLanguage } from "@/i18n/context/useLanguage";
+import esDictionary from "@/i18n/dictionaries/es";
+import { createT } from "@/i18n/utils/t";
 
 const API = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8800";
 
@@ -25,8 +23,6 @@ type Producto = {
   categoria?: string | null;
 };
 
-
-// Convertir nombre a slug
 function slugify(nombre: string) {
   return nombre
     .toLowerCase()
@@ -39,25 +35,18 @@ function slugify(nombre: string) {
 export default function SearchBar() {
   const router = useRouter();
   const boxRef = useRef<HTMLDivElement>(null);
+  const { dictionary } = useLanguage();
+  const tr = createT(dictionary ?? esDictionary);
 
   const [query, setQuery] = useState("");
   const [showBox, setShowBox] = useState(false);
-
-  // Catálogos — from shared hooks (no fetch here)
   const { data: categorias } = useCategorias();
-  const { data: clases }     = useClases();
+  const { data: clases } = useClases();
   const { data: accesorios } = useAccesorios();
-
-  // Productos sugeridos
   const [productos, setProductos] = useState<Producto[]>([]);
   const [loading, setLoading] = useState(false);
-
-  // Historial
   const [history, setHistory] = useState<string[]>([]);
 
-  // ============================
-  // Cargar historial
-  // ============================
   useEffect(() => {
     const saved = localStorage.getItem("flowjuyu_history");
     if (saved) {
@@ -74,15 +63,12 @@ export default function SearchBar() {
     if (!clean) return;
 
     let next = [clean, ...history.filter((h) => h !== clean)];
-    next = next.slice(0, 7); // máximo 7
+    next = next.slice(0, 7);
 
     setHistory(next);
     localStorage.setItem("flowjuyu_history", JSON.stringify(next));
   };
 
-  // ====================================================
-  // Autosuggest productos (debounce)
-  // ====================================================
   useEffect(() => {
     if (!query.trim()) {
       setProductos([]);
@@ -92,14 +78,9 @@ export default function SearchBar() {
     const delay = setTimeout(async () => {
       try {
         setLoading(true);
-
-        const url = `${API}/api/products?search=${encodeURIComponent(
-          query.trim(),
-        )}&limit=5`;
-
+        const url = `${API}/api/products?search=${encodeURIComponent(query.trim())}&limit=5`;
         const res = await fetch(url);
         const data = await res.json();
-
         setProductos(data.data || []);
       } catch (err) {
         console.error("Error autosuggest productos:", err);
@@ -112,9 +93,6 @@ export default function SearchBar() {
     return () => clearTimeout(delay);
   }, [query]);
 
-  // ============================
-  // Cerrar caja al hacer click fuera
-  // ============================
   useEffect(() => {
     const handler = (e: MouseEvent) => {
       if (boxRef.current && !boxRef.current.contains(e.target as Node)) {
@@ -126,9 +104,6 @@ export default function SearchBar() {
     return () => document.removeEventListener("mousedown", handler);
   }, []);
 
-  // ============================
-  // Buscar (ENTER / icono)
-  // ============================
   const goToSearch = () => {
     const q = query.trim();
     if (!q) return;
@@ -141,69 +116,52 @@ export default function SearchBar() {
     if (e.key === "Enter") goToSearch();
   };
 
-  // ============================
-  // Coincidencias en catálogos
-  // ============================
   const qLower = query.trim().toLowerCase();
-
   const categoriasMatch =
     qLower.length === 0
       ? []
-      : categorias.filter((c) =>
-          c.nombre.toLowerCase().includes(qLower),
-        );
-
+      : categorias.filter((c) => c.nombre.toLowerCase().includes(qLower));
   const clasesMatch =
     qLower.length === 0
       ? []
-      : clases.filter((c) =>
-          c.nombre.toLowerCase().includes(qLower),
-        );
-
+      : clases.filter((c) => c.nombre.toLowerCase().includes(qLower));
   const accesoriosMatch =
     qLower.length === 0
       ? []
-      : accesorios.filter((a) =>
-          a.nombre.toLowerCase().includes(qLower),
-        );
-
+      : accesorios.filter((a) => a.nombre.toLowerCase().includes(qLower));
   const mostrarVacio = !query.trim();
 
   return (
     <div className="relative w-full max-w-2xl" ref={boxRef}>
-      {/* INPUT PRINCIPAL */}
       <div className="relative">
         <input
-          placeholder="Buscar productos, categorías o estilos..."
+          placeholder={tr("search.placeholder")}
           value={query}
           onFocus={() => setShowBox(true)}
           onChange={(e) => setQuery(e.target.value)}
           onKeyDown={handleKeyDown}
-          className="w-full h-10 rounded-full border pl-10 pr-4 text-sm outline-none focus:ring-2 focus:ring-zinc-200"
+          className="h-10 w-full rounded-full border pr-4 pl-10 text-sm outline-none focus:ring-2 focus:ring-zinc-200"
         />
 
         <Search
-          className="absolute left-3 top-3 h-4 w-4 text-neutral-400 cursor-pointer"
+          className="absolute top-3 left-3 h-4 w-4 cursor-pointer text-neutral-400"
           onClick={goToSearch}
         />
       </div>
 
-      {/* CAJA DE RESULTADOS */}
       {showBox && (
-        <div className="absolute z-50 w-full mt-2 bg-white border shadow-2xl rounded-xl p-3 max-h-[440px] overflow-y-auto transition-opacity animate-fade-in">
-          
-          {/* ================= HISTORIAL ================= */}
+        <div className="animate-fade-in absolute z-50 mt-2 max-h-[440px] w-full overflow-y-auto rounded-xl border bg-white p-3 shadow-2xl transition-opacity">
           {mostrarVacio && history.length > 0 && (
             <div className="mb-4">
-              <p className="text-xs font-semibold text-neutral-500 mb-1">
-                Búsquedas recientes
+              <p className="mb-1 text-xs font-semibold text-neutral-500">
+                {tr("search.recentSearches")}
               </p>
 
               <div className="flex flex-wrap gap-2">
                 {history.map((h) => (
                   <button
                     key={h}
-                    className="px-2 py-1 text-xs rounded-full bg-neutral-100 hover:bg-neutral-200 transition"
+                    className="rounded-full bg-neutral-100 px-2 py-1 text-xs transition hover:bg-neutral-200"
                     onClick={() => {
                       setQuery(h);
                       saveHistory(h);
@@ -218,11 +176,10 @@ export default function SearchBar() {
             </div>
           )}
 
-          {/* ================= CATEGORÍAS SUGERIDAS ================= */}
           {mostrarVacio && (
             <div className="mb-3">
-              <p className="text-xs font-semibold text-neutral-500 mb-1">
-                Explorar categorías
+              <p className="mb-1 text-xs font-semibold text-neutral-500">
+                {tr("search.exploreCategories")}
               </p>
               <div className="flex flex-wrap gap-2">
                 {categorias.slice(0, 8).map((c) => (
@@ -230,7 +187,7 @@ export default function SearchBar() {
                     key={c.id}
                     href={`/categorias/${slugify(c.nombre)}`}
                     onClick={() => setShowBox(false)}
-                    className="px-3 py-1 text-xs rounded-full bg-neutral-100 hover:bg-neutral-200 transition"
+                    className="rounded-full bg-neutral-100 px-3 py-1 text-xs transition hover:bg-neutral-200"
                   >
                     {c.nombre}
                   </Link>
@@ -239,25 +196,26 @@ export default function SearchBar() {
             </div>
           )}
 
-          {/* ================= COINCIDENCIAS EN CATÁLOGOS ================= */}
           {!mostrarVacio && (
             <>
               {(categoriasMatch.length > 0 ||
                 clasesMatch.length > 0 ||
                 accesoriosMatch.length > 0) && (
                 <div className="mb-3">
-                  <p className="text-xs font-semibold text-neutral-500 mb-1">
-                    Coincidencias en categorías y estilos
+                  <p className="mb-1 text-xs font-semibold text-neutral-500">
+                    {tr("search.categoryAndStyleMatches")}
                   </p>
 
                   <div className="flex flex-wrap gap-2">
                     {categoriasMatch.map((c) => (
                       <button
                         key={c.id}
-                        className="px-2 py-1 text-xs rounded-full border border-neutral-200 hover:bg-neutral-100"
+                        className="rounded-full border border-neutral-200 px-2 py-1 text-xs hover:bg-neutral-100"
                         onClick={() => {
                           saveHistory(c.nombre);
-                          router.push(`/search?query=${encodeURIComponent(c.nombre)}`);
+                          router.push(
+                            `/search?query=${encodeURIComponent(c.nombre)}`,
+                          );
                           setShowBox(false);
                         }}
                       >
@@ -268,10 +226,12 @@ export default function SearchBar() {
                     {clasesMatch.map((cl) => (
                       <button
                         key={cl.id}
-                        className="px-2 py-1 text-xs rounded-full border border-amber-200 bg-amber-50 hover:bg-amber-100"
+                        className="rounded-full border border-amber-200 bg-amber-50 px-2 py-1 text-xs hover:bg-amber-100"
                         onClick={() => {
                           saveHistory(cl.nombre);
-                          router.push(`/search?query=${encodeURIComponent(cl.nombre)}`);
+                          router.push(
+                            `/search?query=${encodeURIComponent(cl.nombre)}`,
+                          );
                           setShowBox(false);
                         }}
                       >
@@ -282,10 +242,12 @@ export default function SearchBar() {
                     {accesoriosMatch.map((a) => (
                       <button
                         key={a.id}
-                        className="px-2 py-1 text-xs rounded-full border border-fuchsia-200 bg-fuchsia-50 hover:bg-fuchsia-100"
+                        className="rounded-full border border-fuchsia-200 bg-fuchsia-50 px-2 py-1 text-xs hover:bg-fuchsia-100"
                         onClick={() => {
                           saveHistory(a.nombre);
-                          router.push(`/search?query=${encodeURIComponent(a.nombre)}`);
+                          router.push(
+                            `/search?query=${encodeURIComponent(a.nombre)}`,
+                          );
                           setShowBox(false);
                         }}
                       >
@@ -296,21 +258,20 @@ export default function SearchBar() {
                 </div>
               )}
 
-              {/* ================= RESULTADOS DE PRODUCTOS ================= */}
               <div>
-                <p className="text-xs font-semibold text-neutral-500 mb-1">
-                  Productos
+                <p className="mb-1 text-xs font-semibold text-neutral-500">
+                  {tr("search.productsLabel")}
                 </p>
 
                 {loading && (
-                  <p className="text-xs text-neutral-400 px-1 py-1">
-                    Buscando productos...
+                  <p className="px-1 py-1 text-xs text-neutral-400">
+                    {tr("search.searchingProducts")}
                   </p>
                 )}
 
                 {!loading && productos.length === 0 && (
-                  <p className="text-xs text-neutral-400 px-1 py-1">
-                    No se encontraron productos para "{query}"
+                  <p className="px-1 py-1 text-xs text-neutral-400">
+                    {tr("search.noProductsForQuery").replace("{query}", query)}
                   </p>
                 )}
 
@@ -319,7 +280,7 @@ export default function SearchBar() {
                     <Link
                       key={p.id}
                       href={`/product/${p.id}`}
-                      className="flex items-center gap-3 px-2 py-2 rounded hover:bg-neutral-100 transition"
+                      className="flex items-center gap-3 rounded px-2 py-2 transition hover:bg-neutral-100"
                       onClick={() => {
                         saveHistory(p.nombre);
                         setShowBox(false);
@@ -328,10 +289,10 @@ export default function SearchBar() {
                       <img
                         src={getProductImage(p)}
                         alt={p.nombre}
-                        className="w-10 h-10 rounded object-cover border border-neutral-200"
+                        className="h-10 w-10 rounded border border-neutral-200 object-cover"
                       />
                       <div className="flex flex-col">
-                        <span className="text-sm font-medium line-clamp-1">
+                        <span className="line-clamp-1 text-sm font-medium">
                           {p.nombre}
                         </span>
                         <span className="text-xs text-neutral-500">

@@ -274,10 +274,39 @@ interface HowToUseProps {
   categoria?: string | null;
 }
 
+const TITLE_KEY_MAP: Partial<Record<string, Parameters<ReturnType<typeof createT>>[0]>> = {
+  "Cuidado del corte":           "pdp.howToUseTitleCorte",
+  "Cuidado del huipil":          "pdp.howToUseTitleHuipil",
+  "Cuidado de la tela artesanal":"pdp.howToUseTitleTela",
+  "Cuidado del camino de mesa":  "pdp.howToUseTitleCamino",
+  "Cuidado de las servilletas":  "pdp.howToUseTitleServilleta",
+  "Cuidado de la mochila":       "pdp.howToUseTitleMochila",
+  "Cuidado del accesorio":       "pdp.howToUseTitleAccesorio",
+  "Cuidado de tu pieza artesanal":"pdp.howToUseTitleGeneric",
+};
+
+const LABEL_KEY_MAP: Partial<Record<string, Parameters<ReturnType<typeof createT>>[0]>> = {
+  "Lavado":                "pdp.howToUseWashing",
+  "Secado y planchado":    "pdp.howToUseDryingIroning",
+  "Cómo usar":             "pdp.howToUseWearing",
+  "Secado y conservación": "pdp.howToUseDryingStorage",
+  "Planchado y almacenaje":"pdp.howToUseIroningStorage",
+  "Presentación":          "pdp.howToUsePresentation",
+  "Limpieza":              "pdp.howToUseCleaning",
+  "Limpieza general":      "pdp.howToUseGeneralCleaning",
+  "Uso y almacenaje":      "pdp.howToUseUseStorage",
+  "Conservación":          "pdp.howToUseConservation",
+};
+
 export default function HowToUse({ categoria }: HowToUseProps) {
-  const { dictionary } = useLanguage();
+  const { dictionary, language } = useLanguage();
   const tr = createT(dictionary ?? esDictionary);
   const guide = matchGuide(categoria);
+
+  const localizedTitle = (() => {
+    const key = TITLE_KEY_MAP[guide.titulo];
+    return key ? tr(key) : guide.titulo;
+  })();
 
   return (
     <section className="bg-white rounded-sm border border-[#0d2d20]/8 p-6 md:p-8 space-y-6">
@@ -288,20 +317,33 @@ export default function HowToUse({ categoria }: HowToUseProps) {
           {tr("pdp.howToUseEyebrow")}
         </p>
         <h2 className="font-serif italic text-[20px] text-[#0d0d0b]">
-          {guide.titulo}
+          {localizedTitle}
         </h2>
         <p className="text-[13px] text-[#0d0d0b]/55 leading-relaxed">
           {guide.intro}
         </p>
       </div>
 
+      {language !== "es" && (
+        <p className="text-[11px] text-[#0d0d0b]/35 leading-relaxed">
+          {tr("pdp.howToUseSpanishNote")}
+        </p>
+      )}
+
       <div className="h-px bg-[#0d2d20]/8" />
 
       {/* Sections — 2-col en desktop cuando hay 3+ secciones */}
       <div className={`grid gap-6 ${guide.sections.length >= 3 ? "md:grid-cols-2" : ""}`}>
-        {guide.sections.map((section) => (
-          <GuideSection key={section.label} {...section} />
-        ))}
+        {guide.sections.map((section) => {
+          const labelKey = LABEL_KEY_MAP[section.label];
+          return (
+            <GuideSection
+              key={section.label}
+              label={labelKey ? tr(labelKey) : section.label}
+              items={section.items}
+            />
+          );
+        })}
       </div>
 
     </section>

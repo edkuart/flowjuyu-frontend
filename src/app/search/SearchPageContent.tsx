@@ -1,24 +1,20 @@
 "use client";
 
-// NOTE: `dynamic = "force-dynamic"` belongs in page.tsx (Server Component), not here.
-
-import type { KeyboardEvent } from "react";
 import Image from "next/image";
 import Link from "next/link";
 import { getProductImage } from "@/lib/getProductImage";
-
-import { Input } from "@/components/ui/input";
-import { Card, CardContent } from "@/components/ui/card";
-import { Search } from "lucide-react";
-
 import ProductDiscoveryLayout from "@/components/product/discovery/ProductDiscoveryLayout";
 import { useSearchProducts, type Producto } from "@/hooks/useSearchProducts";
 import { FavoriteButton } from "@/components/ui/FavoriteButton";
+import { useLanguage } from "@/i18n/context/useLanguage";
+import esDictionary from "@/i18n/dictionaries/es";
+import { createT } from "@/i18n/utils/t";
+import { getLocalizedField } from "@/lib/getLocalizedField";
 
 export default function SearchPageContent() {
+  const { dictionary } = useLanguage();
+  const tr = createT(dictionary ?? esDictionary);
   const {
-    inputValue,
-    setInputValue,
     filters,
     setCategoriaId,
     setClaseId,
@@ -42,21 +38,23 @@ export default function SearchPageContent() {
     accesorios,
     accesorioTipos,
     accesorioMateriales,
-    filtrosActivos,
   } = useSearchProducts();
 
+  const query = filters.query.trim();
   const mostrarRelacionados =
-    productos.length === 0 && relacionados.length > 0 && filters.query.trim() !== "";
+    productos.length === 0 && relacionados.length > 0 && query !== "";
 
-  // On Enter, commit immediately by blurring (lets the debounce flush on next tick)
-  function onEnter(e: KeyboardEvent<HTMLInputElement>) {
-    if (e.key === "Enter") e.currentTarget.blur();
-  }
+  const title = mostrarRelacionados
+    ? tr("search.relatedTitle")
+    : tr("search.pageTitle");
+  const subtitle = query
+    ? tr("search.resultsFor").replace("{query}", query)
+    : undefined;
 
   return (
     <ProductDiscoveryLayout
-      title={mostrarRelacionados ? "Productos relacionados" : "Resultados de búsqueda"}
-      subtitle={filters.query.trim() ? `Resultados para "${filters.query}"` : undefined}
+      title={title}
+      subtitle={subtitle}
       total={productos.length}
       categorias={categorias}
       categoriaId={filters.categoriaId}
@@ -89,16 +87,10 @@ export default function SearchPageContent() {
       onReset={resetFilters}
     >
       <div className="space-y-6">
-
-        {/* Results
-            isLoading  — first fetch (no data yet)          → skeleton
-            isFetching — refetch with placeholderData shown → dim grid
-            Neither    — settled state                      → full render
-        */}
         <div
           className={
             isFetching && !isLoading
-              ? "opacity-60 pointer-events-none transition-opacity duration-150"
+              ? "pointer-events-none opacity-60 transition-opacity duration-150"
               : ""
           }
         >
@@ -108,38 +100,35 @@ export default function SearchPageContent() {
             <ProductGrid products={productos} />
           ) : mostrarRelacionados ? (
             <>
-              <div className="bg-amber-50 border border-amber-200 rounded-2xl p-4 text-amber-800">
-                No encontramos coincidencias exactas para <strong>"{filters.query}"</strong>.
-                Aquí tienes alternativas:
+              <div className="rounded-2xl border border-amber-200 bg-amber-50 p-4 text-amber-800">
+                {tr("search.noExactMatches")} <strong>"{query}"</strong>.{" "}
+                {tr("search.alternatives")}
               </div>
               <ProductGrid products={relacionados} />
             </>
           ) : (
-            <div className="text-center text-neutral-500 py-16">
-              No se encontraron productos.
+            <div className="py-16 text-center text-neutral-500">
+              {tr("search.noProducts")}
             </div>
           )}
         </div>
-
       </div>
     </ProductDiscoveryLayout>
   );
 }
 
-// ─── Sub-components ───────────────────────────────────────────────────────────
-
 function SkeletonGrid() {
   return (
-    <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-6">
+    <div className="grid grid-cols-2 gap-6 sm:grid-cols-3 lg:grid-cols-4">
       {Array.from({ length: 8 }).map((_, i) => (
         <div
           key={i}
-          className="animate-pulse bg-white border border-neutral-200 rounded-2xl p-4 shadow-sm"
+          className="animate-pulse rounded-2xl border border-neutral-200 bg-white p-4 shadow-sm"
         >
-          <div className="w-full aspect-square bg-neutral-200 rounded-xl mb-4" />
-          <div className="h-4 bg-neutral-200 rounded w-3/4 mb-2" />
-          <div className="h-4 bg-neutral-200 rounded w-1/2 mb-4" />
-          <div className="h-5 bg-neutral-200 rounded w-1/3" />
+          <div className="mb-4 aspect-square w-full rounded-xl bg-neutral-200" />
+          <div className="mb-2 h-4 w-3/4 rounded bg-neutral-200" />
+          <div className="mb-4 h-4 w-1/2 rounded bg-neutral-200" />
+          <div className="h-5 w-1/3 rounded bg-neutral-200" />
         </div>
       ))}
     </div>
@@ -147,39 +136,48 @@ function SkeletonGrid() {
 }
 
 function ProductGrid({ products }: { products: Producto[] }) {
+  const { language } = useLanguage();
+
   return (
-    <div className="grid gap-8 grid-cols-2 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
-      {products.map((p) => (
-        <Link key={p.id} href={`/product/${p.id}`} className="block">
-          <Card className="rounded-3xl border border-neutral-200 shadow-sm hover:shadow-xl transition-all duration-300 hover:-translate-y-1">
-            <CardContent className="p-5">
-              <div className="relative w-full aspect-square mb-4 rounded-2xl overflow-hidden bg-neutral-100">
-                <Image
-                  src={getProductImage(p)}
-                  alt={p.nombre}
-                  fill
-                  className="object-cover hover:scale-105 transition-transform duration-500"
-                />
-                <div className="absolute top-2 right-2 z-10">
-                  <FavoriteButton productId={p.id} size="sm" />
+    <div className="grid grid-cols-2 gap-8 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
+      {products.map((p) => {
+        const localizedNombre =
+          getLocalizedField(p, "nombre", language) ?? p.nombre;
+
+        return (
+          <Link key={p.id} href={`/product/${p.id}`} className="block">
+            <div className="rounded-3xl border border-neutral-200 bg-white shadow-sm transition-all duration-300 hover:-translate-y-1 hover:shadow-xl">
+              <div className="p-5">
+                <div className="relative mb-4 aspect-square w-full overflow-hidden rounded-2xl bg-neutral-100">
+                  <Image
+                    src={getProductImage(p)}
+                    alt={localizedNombre}
+                    fill
+                    className="object-cover transition-transform duration-500 hover:scale-105"
+                  />
+                  <div className="absolute top-2 right-2 z-10">
+                    <FavoriteButton productId={p.id} size="sm" />
+                  </div>
                 </div>
-              </div>
 
-              <h3 className="font-medium text-neutral-900 line-clamp-2">{p.nombre}</h3>
+                <h3 className="line-clamp-2 font-medium text-neutral-900">
+                  {localizedNombre}
+                </h3>
 
-              {(p.municipio || p.departamento) && (
-                <p className="text-xs text-neutral-500 mt-2">
-                  {[p.municipio, p.departamento].filter(Boolean).join(", ")}
+                {(p.municipio || p.departamento) && (
+                  <p className="mt-2 text-xs text-neutral-500">
+                    {[p.municipio, p.departamento].filter(Boolean).join(", ")}
+                  </p>
+                )}
+
+                <p className="mt-3 text-lg font-semibold tracking-tight text-emerald-700">
+                  Q{Number(p.precio).toFixed(2)}
                 </p>
-              )}
-
-              <p className="text-lg font-semibold mt-3 tracking-tight text-emerald-700">
-                Q{Number(p.precio).toFixed(2)}
-              </p>
-            </CardContent>
-          </Card>
-        </Link>
-      ))}
+              </div>
+            </div>
+          </Link>
+        );
+      })}
     </div>
   );
 }
