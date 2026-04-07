@@ -10,18 +10,31 @@ import { createT } from "@/i18n/utils/t";
 import esDictionary from "@/i18n/dictionaries/es";
 
 interface Review {
-  id: number;
+  id: string;
   rating: number;
   comentario: string | null;
   created_at: string;
   buyer_nombre: string;
+  verified_purchase: boolean;
+  order_date: string | null;
+  helpful_count?: number;
+  review_signal?: {
+    quality_score: number;
+    trust_score: number;
+  } | null;
+  seller_response?: {
+    respuesta: string;
+  } | null;
 }
 
 interface ReviewsData {
   reviews: Review[];
   rating_avg: number;
   rating_count: number;
+  breakdown?: Record<string, number>;
 }
+
+type ReviewSort = "newest" | "highest_rating" | "lowest_rating" | "most_helpful";
 
 function StarDisplay({ rating, size = "sm" }: { rating: number; size?: "sm" | "md" | "lg" }) {
   const cls = size === "lg" ? "text-2xl" : size === "md" ? "text-lg" : "text-sm";
@@ -34,12 +47,17 @@ function StarDisplay({ rating, size = "sm" }: { rating: number; size?: "sm" | "m
   );
 }
 
-function RatingDistribution({ reviews }: { reviews: Review[] }) {
-  const total = reviews.length;
+function RatingDistribution({
+  total,
+  breakdown,
+}: {
+  total: number;
+  breakdown?: Record<string, number>;
+}) {
   return (
     <div className="space-y-2">
       {[5, 4, 3, 2, 1].map((stars) => {
-        const count = reviews.filter((r) => r.rating === stars).length;
+        const count = breakdown?.[String(stars)] ?? 0;
         const pct = total > 0 ? (count / total) * 100 : 0;
         return (
           <div key={stars} className="flex items-center gap-2 text-sm">
@@ -100,8 +118,16 @@ function StarSelector({
   );
 }
 
-function ReviewCard({ review, verifiedLabel }: { review: Review; verifiedLabel: string }) {
-  const formattedDate = new Date(review.created_at).toLocaleDateString("es-GT", {
+function ReviewCard({
+  review,
+  verifiedLabel,
+  onVote,
+}: {
+  review: Review;
+  verifiedLabel: string;
+  onVote: (reviewId: string) => void;
+}) {
+  const formattedDate = new Date(review.order_date || review.created_at).toLocaleDateString("es-GT", {
     year: "numeric",
     month: "long",
     day: "numeric",
@@ -119,7 +145,14 @@ function ReviewCard({ review, verifiedLabel }: { review: Review; verifiedLabel: 
             <p className="font-semibold text-neutral-800 text-sm leading-none">
               {review.buyer_nombre || verifiedLabel}
             </p>
-            <p className="text-xs text-neutral-400 mt-0.5">{formattedDate}</p>
+            <div className="mt-1 flex flex-wrap items-center gap-2">
+              {review.verified_purchase && (
+                <span className="inline-flex items-center rounded-full border border-emerald-200 bg-emerald-50 px-2 py-0.5 text-[11px] font-semibold text-emerald-700">
+                  {verifiedLabel}
+                </span>
+              )}
+              <p className="text-xs text-neutral-400">{formattedDate}</p>
+            </div>
           </div>
         </div>
         <StarDisplay rating={review.rating} size="sm" />
@@ -129,8 +162,38 @@ function ReviewCard({ review, verifiedLabel }: { review: Review; verifiedLabel: 
           {review.comentario}
         </p>
       )}
+      {review.seller_response?.respuesta && (
+        <div className="rounded-2xl border border-sky-100 bg-sky-50 px-4 py-3">
+          <p className="text-[11px] font-semibold uppercase tracking-wide text-sky-700">
+            Respuesta del vendedor
+          </p>
+          <p className="mt-1 text-sm leading-relaxed text-sky-950">
+            {review.seller_response.respuesta}
+          </p>
+        </div>
+      )}
+      <div className="flex items-center justify-between border-t border-neutral-100 pt-3">
+        <button
+          type="button"
+          onClick={() => onVote(review.id)}
+          className="text-sm font-medium text-neutral-600 transition-colors hover:text-orange-600"
+        >
+          ¿Te fue útil esta reseña?
+        </button>
+        <span className="text-xs text-neutral-400">
+          {review.helpful_count ?? 0} voto{(review.helpful_count ?? 0) === 1 ? "" : "s"} útiles
+        </span>
+      </div>
     </div>
   );
+}
+
+type EligibilityReason = "no_purchase" | "already_reviewed" | "not_authenticated" | "error";
+
+interface EligibilityState {
+  loading:  boolean;
+  eligible: boolean;
+  reason?:  EligibilityReason;
 }
 
 export default function ProductReviews({ productId }: { productId: string }) {
@@ -143,6 +206,8 @@ export default function ProductReviews({ productId }: { productId: string }) {
 
   const [data, setData] = useState<ReviewsData | null>(null);
   const [loading, setLoading] = useState(true);
+  const [eligibility, setEligibility] = useState<EligibilityState>({ loading: false, eligible: false });
+  const [sort, setSort] = useState<ReviewSort>("newest");
   const [rating, setRating] = useState(0);
   const [comentario, setComentario] = useState("");
   const [submitting, setSubmitting] = useState(false);
@@ -151,25 +216,49 @@ export default function ProductReviews({ productId }: { productId: string }) {
 
   const fetchReviews = useCallback(async () => {
     try {
-      const res = await apiFetch(`/api/products/${productId}/reviews`);
+      const res = await apiFetch(`/api/products/${productId}/reviews?sort=${sort}`);
       if (!res.ok) {
         setData({ reviews: [], rating_avg: 0, rating_count: 0 });
         return;
       }
       const json = await res.json();
       setData({
-        reviews: json.reviews ?? [],
-        rating_avg: json.rating_avg ?? 0,
+        reviews:      json.reviews ?? [],
+        rating_avg:   json.rating_avg ?? 0,
         rating_count: json.rating_count ?? 0,
+        breakdown:    json.breakdown ?? undefined,
       });
     } catch {
       setData({ reviews: [], rating_avg: 0, rating_count: 0 });
     } finally {
       setLoading(false);
     }
-  }, [productId]);
+  }, [productId, sort]);
+
+  // Check eligibility whenever the authenticated user changes.
+  // Only buyers need this — sellers and guests skip the call.
+  const checkEligibility = useCallback(async () => {
+    if (!user || (user as any).role !== "buyer") {
+      setEligibility({ loading: false, eligible: false });
+      return;
+    }
+
+    setEligibility({ loading: true, eligible: false });
+    try {
+      const res = await apiFetch(`/api/products/${productId}/reviews/eligibility`);
+      if (!res.ok) {
+        setEligibility({ loading: false, eligible: false, reason: "error" });
+        return;
+      }
+      const json = await res.json();
+      setEligibility({ loading: false, eligible: json.eligible ?? false, reason: json.reason });
+    } catch {
+      setEligibility({ loading: false, eligible: false, reason: "error" });
+    }
+  }, [productId, user]);
 
   useEffect(() => { fetchReviews(); }, [fetchReviews]);
+  useEffect(() => { checkEligibility(); }, [checkEligibility]);
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
@@ -190,7 +279,8 @@ export default function ProductReviews({ productId }: { productId: string }) {
 
       if (res.status === 401) { setFormError(tr("pdp.reviewsSession401")); return; }
       if (res.status === 403) { setFormError(tr("pdp.reviewsRole403")); return; }
-      if (res.status === 400 || !res.ok) {
+      if (res.status === 409) { setFormError("Ya dejaste una reseña para este producto"); return; }
+      if (!res.ok) {
         const json = await res.json().catch(() => ({}));
         setFormError(json.message || tr("pdp.reviewsErrorGeneric"));
         return;
@@ -199,11 +289,40 @@ export default function ProductReviews({ productId }: { productId: string }) {
       setRating(0);
       setComentario("");
       setFormSuccess(true);
+      // Re-check eligibility so the form hides (already_reviewed state)
+      checkEligibility();
       await fetchReviews();
     } catch {
       setFormError(tr("pdp.reviewsErrorNetwork"));
     } finally {
       setSubmitting(false);
+    }
+  }
+
+  async function handleVote(reviewId: string) {
+    const previous = data;
+    if (previous) {
+      setData({
+        ...previous,
+        reviews: previous.reviews.map((review) =>
+          review.id === reviewId
+            ? { ...review, helpful_count: (review.helpful_count ?? 0) + 1 }
+            : review
+        ),
+      });
+    }
+
+    try {
+      const res = await apiFetch(`/api/reviews/${reviewId}/vote`, { method: "POST" });
+      if (res.status === 409) {
+        const undo = await apiFetch(`/api/reviews/${reviewId}/vote`, { method: "DELETE" });
+        if (!undo.ok) throw new Error("No se pudo actualizar el voto");
+      } else if (!res.ok) {
+        throw new Error("No se pudo registrar el voto");
+      }
+      await fetchReviews();
+    } catch {
+      setData(previous);
     }
   }
 
@@ -214,6 +333,16 @@ export default function ProductReviews({ productId }: { productId: string }) {
         <h2 className="text-2xl font-bold text-neutral-900">
           {tr("pdp.reviewsSectionTitle")}
         </h2>
+        <select
+          value={sort}
+          onChange={(e) => setSort(e.target.value as ReviewSort)}
+          className="rounded-full border border-neutral-200 bg-white px-3 py-1.5 text-xs font-medium text-neutral-600"
+        >
+          <option value="newest">Más recientes</option>
+          <option value="most_helpful">Más útiles</option>
+          <option value="highest_rating">Mejor calificadas</option>
+          <option value="lowest_rating">Peor calificadas</option>
+        </select>
         {!loading && data && data.rating_count > 0 && (
           <span className="text-sm text-neutral-400 font-normal">
             ({data.rating_count}{" "}
@@ -236,7 +365,7 @@ export default function ProductReviews({ productId }: { productId: string }) {
           </div>
           <div className="hidden sm:block w-px h-20 bg-amber-200" />
           <div className="flex-1 w-full">
-            <RatingDistribution reviews={data.reviews} />
+            <RatingDistribution total={data.rating_count} breakdown={data.breakdown} />
           </div>
         </div>
       )}
@@ -263,14 +392,54 @@ export default function ProductReviews({ productId }: { productId: string }) {
                 key={review.id}
                 review={review}
                 verifiedLabel={tr("pdp.reviewsVerifiedBuyer")}
+                onVote={handleVote}
               />
             ))
           )}
         </div>
 
-        {/* Review form — auth-gated */}
+        {/* Review form — auth + purchase gated */}
         <div className="lg:col-span-1">
-          {user ? (
+          {!user ? (
+            /* ── Guest ──────────────────────────────────────────────── */
+            <div className="border border-yellow-200 rounded-2xl p-6 bg-yellow-50 space-y-5 sticky top-6">
+              <div className="text-center space-y-2">
+                <p className="text-3xl">✨</p>
+                <h3 className="font-bold text-neutral-800 text-lg leading-snug">
+                  {tr("pdp.reviewsGuestTitle")}
+                </h3>
+                <p className="text-sm text-neutral-500 leading-relaxed">
+                  {tr("pdp.reviewsGuestSub")}
+                </p>
+              </div>
+              <div className="space-y-2.5">
+                <Button
+                  className="w-full h-11 bg-orange-600 hover:bg-orange-700 text-white font-bold"
+                  onClick={() => router.push("/login")}
+                >
+                  {tr("pdp.reviewsGuestLogin")}
+                </Button>
+                <Button
+                  variant="outline"
+                  className="w-full h-10 font-semibold border-neutral-300 text-neutral-700"
+                  onClick={() => router.push("/register")}
+                >
+                  {tr("pdp.reviewsGuestRegister")}
+                </Button>
+              </div>
+              <p className="text-xs text-neutral-400 text-center leading-relaxed">
+                {tr("pdp.reviewsGuestFooter")}
+              </p>
+            </div>
+
+          ) : eligibility.loading ? (
+            /* ── Checking eligibility ──────────────────────────────── */
+            <div className="border border-neutral-100 rounded-2xl p-6 bg-white shadow-md shadow-neutral-100 sticky top-6">
+              <div className="h-32 animate-pulse bg-gray-100 rounded-xl" />
+            </div>
+
+          ) : eligibility.eligible ? (
+            /* ── Eligible buyer — show form ────────────────────────── */
             <div className="border border-neutral-100 rounded-2xl p-6 bg-white shadow-md shadow-neutral-100 space-y-5 sticky top-6">
               <div>
                 <h3 className="font-bold text-neutral-800 text-lg">
@@ -335,36 +504,28 @@ export default function ProductReviews({ productId }: { productId: string }) {
                 </Button>
               </form>
             </div>
+
+          ) : eligibility.reason === "already_reviewed" ? (
+            /* ── Already reviewed ──────────────────────────────────── */
+            <div className="border border-green-200 rounded-2xl p-6 bg-green-50 space-y-3 sticky top-6 text-center">
+              <p className="text-3xl">✅</p>
+              <p className="font-semibold text-neutral-800 text-sm">
+                Ya dejaste tu opinión sobre este producto.
+              </p>
+              <p className="text-xs text-neutral-400">
+                Gracias por ayudar a la comunidad Flowjuyu.
+              </p>
+            </div>
+
           ) : (
-            <div className="border border-yellow-200 rounded-2xl p-6 bg-yellow-50 space-y-5 sticky top-6">
-              <div className="text-center space-y-2">
-                <p className="text-3xl">✨</p>
-                <h3 className="font-bold text-neutral-800 text-lg leading-snug">
-                  {tr("pdp.reviewsGuestTitle")}
-                </h3>
-                <p className="text-sm text-neutral-500 leading-relaxed">
-                  {tr("pdp.reviewsGuestSub")}
-                </p>
-              </div>
-
-              <div className="space-y-2.5">
-                <Button
-                  className="w-full h-11 bg-orange-600 hover:bg-orange-700 text-white font-bold"
-                  onClick={() => router.push("/login")}
-                >
-                  {tr("pdp.reviewsGuestLogin")}
-                </Button>
-                <Button
-                  variant="outline"
-                  className="w-full h-10 font-semibold border-neutral-300 text-neutral-700"
-                  onClick={() => router.push("/register")}
-                >
-                  {tr("pdp.reviewsGuestRegister")}
-                </Button>
-              </div>
-
-              <p className="text-xs text-neutral-400 text-center leading-relaxed">
-                {tr("pdp.reviewsGuestFooter")}
+            /* ── Not eligible (no purchase) ────────────────────────── */
+            <div className="border border-neutral-100 rounded-2xl p-6 bg-gray-50 space-y-3 sticky top-6 text-center">
+              <p className="text-3xl">🛒</p>
+              <p className="font-semibold text-neutral-700 text-sm">
+                Solo puedes reseñar productos que hayas comprado.
+              </p>
+              <p className="text-xs text-neutral-400">
+                Después de recibir tu pedido, podrás compartir tu experiencia.
               </p>
             </div>
           )}

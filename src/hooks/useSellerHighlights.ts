@@ -6,8 +6,11 @@ export type Tienda = {
   nombre?: string | null;
   nombre_comercio?: string | null;
   logo_url?: string | null;
+  banner_url?: string | null;
   departamento?: string | null;
   municipio?: string | null;
+  rating_avg?: number | null;
+  total_reviews?: number | null;
 };
 
 export function useSellerHighlights() {

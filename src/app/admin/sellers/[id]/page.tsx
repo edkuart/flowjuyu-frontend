@@ -137,6 +137,7 @@ function deriveKycRiesgo(score: number): "bajo" | "medio" | "alto" {
 // ── Seller Value Score ─────────────────────────────────────────────────────────
 
 function computeSellerScore(s: SellerDetail): number {
+  if (s.estado_admin === "eliminado") return 0
   if (s.value_score !== undefined) return s.value_score
   const { score: kycScore } = deriveKycScore(s)
   const kycRiesgo = deriveKycRiesgo(kycScore)
@@ -162,6 +163,14 @@ function scoreBand(score: number): "critical" | "review" | "healthy" {
 type ClassificationResult = { label: string; description: string; badge: string }
 
 function getClassification(s: SellerDetail): ClassificationResult {
+  if (s.estado_admin === "eliminado") {
+    return {
+      label: "Eliminated",
+      description: "This seller account has been permanently eliminated from the marketplace.",
+      badge: "bg-gray-700 text-gray-100 border-0",
+    }
+  }
+
   const flags  = s.risk?.flags ?? s.risk_flags ?? []
   const vScore = computeSellerScore(s)
   const active = s.metrics?.products_active ?? s.productos_activos ?? 0
@@ -208,6 +217,9 @@ function getClassification(s: SellerDetail): ClassificationResult {
 type Recommendation = { icon: string; priority: "high" | "medium" | "low"; text: string }
 
 function getRecommendations(s: SellerDetail): Recommendation[] {
+  if (s.estado_admin === "eliminado") {
+    return [{ icon: "🗑️", priority: "high", text: "This seller has been permanently eliminated. No further actions are available." }]
+  }
   const recs: Recommendation[] = []
   const flags    = s.risk?.flags ?? s.risk_flags ?? []
   const views    = s.metrics?.total_views  ?? s.total_views  ?? 0
@@ -278,6 +290,7 @@ function adminBadgeClass(s: string) {
   switch (s) {
     case "activo":     return "bg-green-100 text-green-700 dark:bg-green-900 dark:text-green-300 border-0"
     case "suspendido": return "bg-red-100 text-red-700 dark:bg-red-900 dark:text-red-300 border-0"
+    case "eliminado":  return "bg-gray-700 text-gray-100 border-0"
     default:           return "bg-gray-100 text-gray-600 border-0"
   }
 }
@@ -312,6 +325,7 @@ const AUDIT_LABELS: Record<string, { label: string; color: string }> = {
   SELLER_SUSPENDED:         { label: "Seller suspended",       color: "border-red-500" },
   SELLER_REACTIVATED:       { label: "Seller reactivated",     color: "border-green-500" },
   SELLER_FLAGGED_MANUALLY:  { label: "Flagged for review",     color: "border-orange-500" },
+  SELLER_ELIMINATED:        { label: "Seller eliminated",      color: "border-gray-500" },
 }
 
 const RISK_FLAG_LABELS: Record<string, { label: string; description: string }> = {
@@ -680,7 +694,7 @@ export default function AdminSellerDetailPage() {
   const [loading,    setLoading]    = useState(true)
   const [processing, setProcessing] = useState<string | null>(null)
   const [comment,    setComment]    = useState("")
-  const [action,     setAction]     = useState<"reject" | "suspend" | "request-info" | "flag" | null>(null)
+  const [action,     setAction]     = useState<"reject" | "suspend" | "request-info" | "flag" | "eliminate" | null>(null)
 
   async function fetchDetail() {
     try {
@@ -716,6 +730,7 @@ export default function AdminSellerDetailPage() {
         reactivate:         "Seller reactivated",
         "request-documents": "Document request sent",
         flag:               "Seller flagged for review",
+        eliminate:          "Seller eliminated",
       }
       toast.success(labels[endpoint] ?? "Action executed")
       setComment("")
@@ -799,6 +814,17 @@ export default function AdminSellerDetailPage() {
           )}
         </div>
       </div>
+
+      {/* ── ELIMINATION BANNER ──────────────────────────────────────────────── */}
+      {seller.estado_admin === "eliminado" && (
+        <div className="flex items-center gap-3 rounded-xl border border-gray-400 bg-gray-100 dark:border-gray-600 dark:bg-gray-900/60 p-4">
+          <span className="w-2.5 h-2.5 rounded-full bg-gray-500 shrink-0" />
+          <div>
+            <p className="text-sm font-semibold text-gray-800 dark:text-gray-200">This seller has been permanently eliminated.</p>
+            <p className="text-xs text-gray-600 dark:text-gray-400 mt-0.5">All products deactivated. Login blocked. No further governance actions are available.</p>
+          </div>
+        </div>
+      )}
 
       {/* ── SUSPENSION BANNER ───────────────────────────────────────────────── */}
       {seller.estado_admin === "suspendido" && (
@@ -971,71 +997,93 @@ export default function AdminSellerDetailPage() {
           <p className="text-xs text-muted-foreground">Actions that affect this seller's validation and marketplace access.</p>
         </div>
         <div className="p-4 space-y-4">
-          <div className="flex gap-3 flex-wrap">
-            {seller.estado_validacion !== "rechazado" && (
-              <>
-                {["pendiente", "en_revision"].includes(seller.estado_validacion) && (
+
+          {seller.estado_admin === "eliminado" ? (
+            <p className="text-sm text-muted-foreground italic">No governance actions available — this seller has been eliminated.</p>
+          ) : (
+            <>
+              <div className="flex gap-3 flex-wrap">
+                {seller.estado_validacion !== "rechazado" && (
                   <>
-                    <Button
-                      className="bg-green-600 hover:bg-green-700 text-white"
-                      disabled={processing === "approve"}
-                      onClick={() => {
-                        const kycScore = deriveKycScore(seller).score
-                        if (kycScore < 80) { toast.error(`Cannot approve — KYC score is ${kycScore}% (minimum 80%)`); return }
-                        if (flags.length > 0) { toast.error("Cannot approve — active risk flags must be resolved first"); return }
-                        if (!confirm("Approve this seller?")) return
-                        handleAction("approve")
-                      }}
-                    >
-                      {processing === "approve" ? <Loader2 className="w-4 h-4 animate-spin" /> : "Approve"}
-                    </Button>
-                    <Button
-                      variant="destructive"
-                      disabled={processing === "reject"}
-                      onClick={() => setAction("reject")}
-                    >
-                      Reject
-                    </Button>
+                    {["pendiente", "en_revision"].includes(seller.estado_validacion) && (
+                      <>
+                        <Button
+                          className="bg-green-600 hover:bg-green-700 text-white"
+                          disabled={processing === "approve"}
+                          onClick={() => {
+                            const kycScore = deriveKycScore(seller).score
+                            if (kycScore < 80) { toast.error(`Cannot approve — KYC score is ${kycScore}% (minimum 80%)`); return }
+                            if (flags.length > 0) { toast.error("Cannot approve — active risk flags must be resolved first"); return }
+                            if (!confirm("Approve this seller?")) return
+                            handleAction("approve")
+                          }}
+                        >
+                          {processing === "approve" ? <Loader2 className="w-4 h-4 animate-spin" /> : "Approve"}
+                        </Button>
+                        <Button
+                          variant="destructive"
+                          disabled={processing === "reject"}
+                          onClick={() => setAction("reject")}
+                        >
+                          Reject
+                        </Button>
+                      </>
+                    )}
+                    {seller.estado_admin === "activo" && (
+                      <Button
+                        variant="destructive"
+                        disabled={processing === "suspend"}
+                        onClick={() => setAction("suspend")}
+                      >
+                        {processing === "suspend" ? <Loader2 className="w-4 h-4 animate-spin" /> : "Suspend"}
+                      </Button>
+                    )}
+                    {seller.estado_admin === "suspendido" && (
+                      <Button
+                        className="bg-green-600 hover:bg-green-700 text-white"
+                        disabled={processing === "reactivate"}
+                        onClick={() => { if (!confirm("Reactivate this seller?")) return; handleAction("reactivate") }}
+                      >
+                        {processing === "reactivate" ? <Loader2 className="w-4 h-4 animate-spin" /> : "Reactivate"}
+                      </Button>
+                    )}
                   </>
                 )}
-                {seller.estado_admin === "activo" && (
-                  <Button
-                    variant="destructive"
-                    disabled={processing === "suspend"}
-                    onClick={() => setAction("suspend")}
-                  >
-                    {processing === "suspend" ? <Loader2 className="w-4 h-4 animate-spin" /> : "Suspend"}
-                  </Button>
-                )}
-                {seller.estado_admin === "suspendido" && (
-                  <Button
-                    className="bg-green-600 hover:bg-green-700 text-white"
-                    disabled={processing === "reactivate"}
-                    onClick={() => { if (!confirm("Reactivate this seller?")) return; handleAction("reactivate") }}
-                  >
-                    {processing === "reactivate" ? <Loader2 className="w-4 h-4 animate-spin" /> : "Reactivate"}
-                  </Button>
-                )}
-              </>
-            )}
 
-            {/* Always available */}
-            <Button
-              variant="outline"
-              disabled={processing === "request-documents"}
-              onClick={() => setAction("request-info")}
-            >
-              {processing === "request-documents" ? <Loader2 className="w-4 h-4 animate-spin" /> : "Request More Info"}
-            </Button>
-            <Button
-              variant="outline"
-              className="border-orange-300 text-orange-700 hover:bg-orange-50 dark:text-orange-400 dark:border-orange-700 dark:hover:bg-orange-950/20"
-              disabled={processing === "flag"}
-              onClick={() => setAction("flag")}
-            >
-              {processing === "flag" ? <Loader2 className="w-4 h-4 animate-spin" /> : "Flag for Review"}
-            </Button>
-          </div>
+                <Button
+                  variant="outline"
+                  disabled={processing === "request-documents"}
+                  onClick={() => setAction("request-info")}
+                >
+                  {processing === "request-documents" ? <Loader2 className="w-4 h-4 animate-spin" /> : "Request More Info"}
+                </Button>
+                <Button
+                  variant="outline"
+                  className="border-orange-300 text-orange-700 hover:bg-orange-50 dark:text-orange-400 dark:border-orange-700 dark:hover:bg-orange-950/20"
+                  disabled={processing === "flag"}
+                  onClick={() => setAction("flag")}
+                >
+                  {processing === "flag" ? <Loader2 className="w-4 h-4 animate-spin" /> : "Flag for Review"}
+                </Button>
+              </div>
+
+              {/* Danger Zone */}
+              <div className="border border-gray-300 dark:border-gray-700 rounded-lg p-4 space-y-3 bg-gray-50 dark:bg-gray-900/30">
+                <div>
+                  <p className="text-xs font-semibold text-gray-700 dark:text-gray-300 uppercase tracking-wide">Danger Zone</p>
+                  <p className="text-xs text-muted-foreground mt-0.5">Permanent, irreversible action. Cannot be undone.</p>
+                </div>
+                <Button
+                  variant="outline"
+                  className="border-gray-500 text-gray-700 hover:bg-gray-200 dark:text-gray-300 dark:border-gray-500 dark:hover:bg-gray-800"
+                  disabled={processing === "eliminate" || action === "eliminate"}
+                  onClick={() => setAction("eliminate")}
+                >
+                  Eliminate Seller
+                </Button>
+              </div>
+            </>
+          )}
 
           {action !== null && (
             <div className="space-y-3 pt-3 border-t">
@@ -1043,8 +1091,14 @@ export default function AdminSellerDetailPage() {
                 {action === "reject"       ? "Rejection reason (required)" :
                  action === "suspend"      ? "Suspension reason (required)" :
                  action === "request-info" ? "Describe what documents or info is needed" :
+                 action === "eliminate"    ? "Elimination reason (required — permanent, irreversible)" :
                                             "Flag reason (required)"}
               </p>
+              {action === "eliminate" && (
+                <p className="text-xs text-gray-600 dark:text-gray-400 bg-gray-100 dark:bg-gray-900/40 border border-gray-300 dark:border-gray-700 rounded-lg p-3">
+                  ⚠️ This will permanently eliminate the seller account. All products will be deactivated and login will be blocked. This action cannot be undone.
+                </p>
+              )}
               <textarea
                 placeholder="Enter a mandatory comment…"
                 value={comment}
@@ -1055,13 +1109,14 @@ export default function AdminSellerDetailPage() {
               <div className="flex gap-3">
                 <Button
                   variant={action === "flag" || action === "request-info" ? "outline" : "destructive"}
-                  disabled={!comment.trim() || processing === action}
+                  disabled={!comment.trim() || !!processing}
                   onClick={() => {
                     if (!confirm("Confirm this action?")) return
                     if (action === "reject")       handleAction("reject",            { comment })
                     if (action === "suspend")      handleAction("suspend",           { comment })
                     if (action === "request-info") handleAction("request-documents", { comment })
                     if (action === "flag")         handleAction("flag",              { reason: comment, comment })
+                    if (action === "eliminate")    handleAction("eliminate",         { reason: comment })
                   }}
                 >
                   {processing ? <Loader2 className="w-4 h-4 animate-spin" /> : "Confirm action"}

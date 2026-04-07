@@ -41,11 +41,13 @@ type SmartFilter =
   | "high_risk"
   | "inactive"
   | "suspended"
+  | "eliminated"
   | "healthy"
 
 // ── Score system ───────────────────────────────────────────────────────────────
 
 function computeSellerScore(s: Seller): number {
+  if (s.estado_admin === "eliminado") return 0
   let score = 100
   if (s.estado_validacion === "rechazado") score -= 40
   else if (s.estado_validacion === "pendiente") score -= 25
@@ -66,6 +68,7 @@ type Insight = { icon: string; label: string }
 
 function getInsights(s: Seller): Insight[] {
   const tags: Insight[] = []
+  if (s.estado_admin === "eliminado")                          { tags.push({ icon: "🗑️", label: "Eliminated" }); return tags }
   if (s.estado_validacion === "rechazado")                     tags.push({ icon: "🚨", label: "KYC rejected" })
   if (s.estado_admin === "suspendido")                         tags.push({ icon: "⛔", label: "Suspended" })
   if (s.estado_validacion === "pendiente")                     tags.push({ icon: "⚠️", label: "KYC pending" })
@@ -78,13 +81,17 @@ function getInsights(s: Seller): Insight[] {
 // ── Smart filter logic ─────────────────────────────────────────────────────────
 
 function applySmartFilter(sellers: Seller[], filter: SmartFilter): Seller[] {
+  // "eliminated" is the only filter that shows eliminated sellers.
+  // All other filters — including "all" — exclude them.
+  if (filter === "eliminated") return sellers.filter(s => s.estado_admin === "eliminado")
+  const active = sellers.filter(s => s.estado_admin !== "eliminado")
   switch (filter) {
-    case "pending_kyc": return sellers.filter(s => s.estado_validacion === "pendiente")
-    case "high_risk":   return sellers.filter(s => s.estado_validacion === "rechazado")
-    case "inactive":    return sellers.filter(s => s.estado_admin === "inactivo")
-    case "suspended":   return sellers.filter(s => s.estado_admin === "suspendido")
-    case "healthy":     return sellers.filter(s => computeSellerScore(s) >= 80)
-    default:            return sellers
+    case "pending_kyc": return active.filter(s => s.estado_validacion === "pendiente")
+    case "high_risk":   return active.filter(s => s.estado_validacion === "rechazado")
+    case "inactive":    return active.filter(s => s.estado_admin === "inactivo")
+    case "suspended":   return active.filter(s => s.estado_admin === "suspendido")
+    case "healthy":     return active.filter(s => computeSellerScore(s) >= 80)
+    default:            return active
   }
 }
 
@@ -95,6 +102,7 @@ const FILTER_LABELS: Record<SmartFilter, string> = {
   inactive:    "💤 Inactive",
   suspended:   "⛔ Suspended",
   healthy:     "✅ Healthy",
+  eliminated:  "🗑️ Eliminated",
 }
 
 // ── Score bar ──────────────────────────────────────────────────────────────────
@@ -255,11 +263,12 @@ export default function AdminSellersContent() {
   useEffect(() => { fetchSellers() }, [])
 
   const filterCounts = useMemo<Partial<Record<SmartFilter, number>>>(() => ({
-    pending_kyc: sellers.filter((s: Seller) => s.estado_validacion === "pendiente").length,
-    high_risk:   sellers.filter((s: Seller) => s.estado_validacion === "rechazado").length,
+    pending_kyc: sellers.filter((s: Seller) => s.estado_admin !== "eliminado" && s.estado_validacion === "pendiente").length,
+    high_risk:   sellers.filter((s: Seller) => s.estado_admin !== "eliminado" && s.estado_validacion === "rechazado").length,
     inactive:    sellers.filter((s: Seller) => s.estado_admin === "inactivo").length,
     suspended:   sellers.filter((s: Seller) => s.estado_admin === "suspendido").length,
-    healthy:     sellers.filter((s: Seller) => computeSellerScore(s) >= 80).length,
+    healthy:     sellers.filter((s: Seller) => s.estado_admin !== "eliminado" && computeSellerScore(s) >= 80).length,
+    eliminated:  sellers.filter((s: Seller) => s.estado_admin === "eliminado").length,
   }), [sellers])
 
   const displayed = useMemo(

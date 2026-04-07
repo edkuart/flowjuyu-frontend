@@ -27,6 +27,7 @@ import {
 
 import { Card, CardContent } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
+import { apiFetch } from "@/lib/api"
 
 import { fetchSellerDashboard } from "@/services/sellerDashboard"
 import { fetchSellerAnalytics } from "@/services/sellerAnalytics"
@@ -71,6 +72,24 @@ type Analytics = {
 }
 
 type DashboardView = "general" | "ventas" | "contactos" | "reputacion"
+
+type ReviewInsights = {
+  rating_avg: number
+  rating_distribution: Record<string, number>
+  total_reviews: number
+  recent_reviews_count: number
+  low_rating_count: number
+  top_products_by_reviews: {
+    product_id: string
+    producto_nombre: string
+    review_count: number
+    rating_avg: number
+  }[]
+  frequent_terms: {
+    term: string
+    count: number
+  }[]
+}
 
 const VIEWS: { id: DashboardView; label: string }[] = [
   { id: "general",    label: "Resumen"    },
@@ -154,6 +173,15 @@ export default function SellerDashboardPage() {
   })
 
   const [isMobile, setIsMobile] = useState(false)
+  const [reviewInsights, setReviewInsights] = useState<ReviewInsights>({
+    rating_avg: 0,
+    rating_distribution: { "1": 0, "2": 0, "3": 0, "4": 0, "5": 0 },
+    total_reviews: 0,
+    recent_reviews_count: 0,
+    low_rating_count: 0,
+    top_products_by_reviews: [],
+    frequent_terms: [],
+  })
 
   useEffect(() => {
     const handleResize = () => {
@@ -191,6 +219,20 @@ export default function SellerDashboardPage() {
           totalReviews:         analyticsData.totalReviews         ?? 0,
           avgRating:            analyticsData.avgRating            ?? null,
         })
+
+        const reviewRes = await apiFetch("/api/seller/reviews/insights")
+        if (reviewRes.ok) {
+          const reviewJson = await reviewRes.json()
+          setReviewInsights({
+            rating_avg: reviewJson.rating_avg ?? 0,
+            rating_distribution: reviewJson.rating_distribution ?? { "1": 0, "2": 0, "3": 0, "4": 0, "5": 0 },
+            total_reviews: reviewJson.total_reviews ?? 0,
+            recent_reviews_count: reviewJson.recent_reviews_count ?? 0,
+            low_rating_count: reviewJson.low_rating_count ?? 0,
+            top_products_by_reviews: reviewJson.top_products_by_reviews ?? [],
+            frequent_terms: reviewJson.frequent_terms ?? [],
+          })
+        }
       } catch (e) {
         console.error("Error cargando dashboard:", e)
       } finally {
@@ -805,18 +847,98 @@ export default function SellerDashboardPage() {
             <div className="grid gap-6 sm:grid-cols-2">
               <Stat
                 label="Reseñas recibidas"
-                value={analytics.totalReviews}
+                value={reviewInsights.total_reviews}
                 icon={<Star className="w-4 h-4 text-amber-500" />}
                 emptyText="Aún sin reseñas — construye confianza"
               />
               <Stat
                 label="Calificación promedio"
-                value={analytics.avgRating ?? 0}
-                subtitle={analytics.avgRating ? `${analytics.avgRating.toFixed(1)} / 5.0` : undefined}
+                value={reviewInsights.rating_avg ?? 0}
+                subtitle={reviewInsights.rating_avg ? `${reviewInsights.rating_avg.toFixed(1)} / 5.0` : undefined}
                 icon={<Star className="w-4 h-4 text-amber-400" />}
                 emptyText="Sin calificaciones todavía"
               />
             </div>
+
+            <Card className="bg-white border shadow-sm">
+              <CardContent className="p-6 space-y-5">
+                <div className="grid gap-4 sm:grid-cols-3">
+                  <div>
+                    <p className="text-xs uppercase tracking-wide text-neutral-400">Últimos 30 días</p>
+                    <p className="mt-1 text-2xl font-bold text-neutral-900">{reviewInsights.recent_reviews_count}</p>
+                  </div>
+                  <div>
+                    <p className="text-xs uppercase tracking-wide text-neutral-400">Reseñas negativas</p>
+                    <p className={`mt-1 text-2xl font-bold ${reviewInsights.low_rating_count > 0 ? "text-red-500" : "text-neutral-900"}`}>
+                      {reviewInsights.low_rating_count}
+                    </p>
+                  </div>
+                  <div>
+                    <p className="text-xs uppercase tracking-wide text-neutral-400">Alerta</p>
+                    <p className="mt-1 text-sm text-neutral-600">
+                      {reviewInsights.low_rating_count > 0
+                        ? "Subieron reseñas negativas. Revisa feedback reciente."
+                        : reviewInsights.total_reviews > 0
+                        ? "Tu reputación se mantiene estable."
+                        : "Aún estás construyendo tu reputación."}
+                    </p>
+                  </div>
+                </div>
+
+                <div className="grid gap-4 lg:grid-cols-2">
+                  <div className="space-y-3">
+                    <p className="text-sm font-semibold text-neutral-800">Distribución por estrellas</p>
+                    {[5, 4, 3, 2, 1].map((star) => {
+                      const count = reviewInsights.rating_distribution[String(star)] ?? 0
+                      const pct = reviewInsights.total_reviews > 0
+                        ? (count / reviewInsights.total_reviews) * 100
+                        : 0
+                      return (
+                        <div key={star} className="flex items-center gap-3">
+                          <span className="w-4 text-sm text-neutral-500">{star}</span>
+                          <div className="h-2 flex-1 overflow-hidden rounded-full bg-neutral-100">
+                            <div className="h-2 rounded-full bg-amber-400" style={{ width: `${pct}%` }} />
+                          </div>
+                          <span className="w-6 text-xs text-neutral-400">{count}</span>
+                        </div>
+                      )
+                    })}
+                  </div>
+
+                  <div className="space-y-3">
+                    <p className="text-sm font-semibold text-neutral-800">Productos con más feedback</p>
+                    {reviewInsights.top_products_by_reviews.length === 0 ? (
+                      <p className="text-sm text-neutral-400">Todavía no hay productos con feedback.</p>
+                    ) : (
+                      reviewInsights.top_products_by_reviews.slice(0, 4).map((product) => (
+                        <div key={product.product_id} className="rounded-xl bg-neutral-50 px-3 py-2">
+                          <p className="text-sm font-medium text-neutral-900">{product.producto_nombre}</p>
+                          <p className="text-xs text-neutral-500">
+                            {product.review_count} reseñas · {product.rating_avg.toFixed(1)} / 5
+                          </p>
+                        </div>
+                      ))
+                    )}
+                  </div>
+                </div>
+
+                {reviewInsights.frequent_terms.length > 0 && (
+                  <div className="space-y-2">
+                    <p className="text-sm font-semibold text-neutral-800">Palabras frecuentes</p>
+                    <div className="flex flex-wrap gap-2">
+                      {reviewInsights.frequent_terms.slice(0, 8).map((term) => (
+                        <span
+                          key={term.term}
+                          className="rounded-full border border-neutral-200 bg-neutral-50 px-3 py-1 text-xs text-neutral-600"
+                        >
+                          {term.term} · {term.count}
+                        </span>
+                      ))}
+                    </div>
+                  </div>
+                )}
+              </CardContent>
+            </Card>
           </section>
         )
       })()}

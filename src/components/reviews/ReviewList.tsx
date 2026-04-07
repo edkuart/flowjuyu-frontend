@@ -36,18 +36,25 @@ function AvgStars({ rating }: { rating: number }) {
 export interface ReviewListProps {
   reviews: Review[]
   title?: string
+  emptyTitle?: string
+  emptyDescription?: string
 }
 
-export function ReviewList({ reviews, title = "Reseñas de tus clientes" }: ReviewListProps) {
+export function ReviewList({
+  reviews,
+  title = "Reseñas de tus clientes",
+  emptyTitle = "Aún no tienes reseñas",
+  emptyDescription = "Las reseñas de tus clientes aparecerán aquí una vez que recibas tu primera calificación",
+}: ReviewListProps) {
 
   /* ── Empty state ── */
   if (reviews.length === 0) {
     return (
       <div className="bg-white rounded-2xl border border-neutral-100 shadow-sm p-10 text-center space-y-2">
         <p className="text-3xl text-neutral-200 leading-none">★</p>
-        <p className="text-sm font-semibold text-neutral-500">Aún no tienes reseñas</p>
+        <p className="text-sm font-semibold text-neutral-500">{emptyTitle}</p>
         <p className="text-xs text-neutral-400 leading-snug">
-          Las reseñas de tus clientes aparecerán aquí una vez que recibas tu primera calificación
+          {emptyDescription}
         </p>
       </div>
     )

@@ -2,7 +2,6 @@
 
 import { useEffect, useState, useMemo } from 'react'
 import Link from 'next/link'
-import { useRouter } from 'next/navigation'
 import {
   Eye,
   Pencil,
@@ -14,7 +13,6 @@ import {
   Circle,
   ChevronRight,
   ChevronDown,
-  Star,
   Shield,
   Package,
 } from 'lucide-react'
@@ -25,6 +23,7 @@ import { apiGetVendedorPerfil } from '@/services/vendedorPerfil'
 import { SellerLogo } from '@/components/seller/SellerLogo'
 import SellerQrModal from '@/components/seller/SellerQrModal'
 import SocialButtons from '@/components/seller/SocialButtons'
+import { PublicReviewList } from '@/components/reviews/PublicReviewList'
 import { buildHeaderStyle, DEFAULT_HEADER_STYLE } from '@/lib/headerStyle'
 import type { HeaderStyle } from '@/lib/headerStyle'
 import { phoneToWaUrl, hasPhone } from '@/lib/phone'
@@ -56,51 +55,10 @@ type SellerProfile = {
 }
 
 /* =========================================================
-   MOCK REVIEWS — replace with real API fetch when ready
-========================================================= */
-
-const mockReviews = [
-  {
-    id: 1,
-    producto_nombre: 'Huipil tradicional',
-    rating: 5,
-    comentario: 'Excelente calidad y atención al cliente. La pieza llegó perfecta.',
-    created_at: '2025-11-10',
-  },
-  {
-    id: 2,
-    producto_nombre: 'Faja artesanal',
-    rating: 4,
-    comentario: 'Muy bonita artesanía, los colores son exactamente los de la foto.',
-    created_at: '2025-10-22',
-  },
-]
-
-/* =========================================================
-   HELPERS
-========================================================= */
-
-function StarRating({ rating }: { rating: number }) {
-  return (
-    <div className="flex gap-0.5">
-      {Array.from({ length: 5 }).map((_, i) => (
-        <Star
-          key={i}
-          className={`w-3.5 h-3.5 ${
-            i < rating ? 'fill-amber-400 text-amber-400' : 'text-neutral-200'
-          }`}
-        />
-      ))}
-    </div>
-  )
-}
-
-/* =========================================================
    PAGE
 ========================================================= */
 
 export default function MyBusinessPage() {
-  const router = useRouter()
   const [loading, setLoading]     = useState(true)
   const [perfil, setPerfil]       = useState<SellerProfile | null>(null)
   const [qrOpen, setQrOpen]       = useState(false)
@@ -221,6 +179,25 @@ export default function MyBusinessPage() {
     <>
     <main className="min-h-screen bg-neutral-50">
       <div className="max-w-6xl mx-auto px-4 py-8 space-y-8">
+
+        <section className="rounded-[28px] border border-[#0F3D3A]/10 bg-gradient-to-r from-[#0F3D3A] to-[#14544f] px-6 py-5 text-white shadow-sm">
+          <div className="flex items-start gap-3">
+            <div className="mt-0.5 flex h-10 w-10 items-center justify-center rounded-2xl bg-white/12">
+              <Eye className="h-5 w-5" />
+            </div>
+            <div className="space-y-1">
+              <p className="text-xs font-bold uppercase tracking-[0.22em] text-white/65">
+                Vista comprador
+              </p>
+              <h2 className="text-xl font-bold tracking-tight">
+                Vista previa de tu tienda
+              </h2>
+              <p className="max-w-2xl text-sm leading-relaxed text-white/80">
+                Así ven tu perfil, tus productos y tus reseñas los compradores.
+              </p>
+            </div>
+          </div>
+        </section>
 
         {/* ══════════════════════════════════════════════════
             1. HERO — BRAND IDENTITY (no KPIs)
@@ -507,13 +484,16 @@ export default function MyBusinessPage() {
         {/* ══════════════════════════════════════════════════
             4. REPUTATION — Reviews & Trust
         ══════════════════════════════════════════════════ */}
-        <section className="bg-white rounded-2xl border border-neutral-100 shadow-sm overflow-hidden">
-          <div className="px-6 py-5 border-b border-neutral-100 flex items-center justify-between gap-4">
+        <section className="space-y-4">
+          <div className="px-1 flex items-center justify-between gap-4">
             <div>
               <p className="text-[10px] font-bold uppercase tracking-widest text-neutral-400 mb-0.5">
-                Reputación
+                Vista pública
               </p>
               <h2 className="text-base font-bold text-neutral-900">Reseñas de tus clientes</h2>
+              <p className="text-sm text-neutral-500">
+                Esta sección reutiliza las reseñas reales publicadas de tu storefront.
+              </p>
             </div>
             {perfil.estado_validacion === 'aprobado' && (
               <div className="flex items-center gap-1.5 shrink-0 bg-blue-50 border border-blue-100 px-3 py-1.5 rounded-full">
@@ -522,32 +502,7 @@ export default function MyBusinessPage() {
               </div>
             )}
           </div>
-
-          <div className="divide-y divide-neutral-50">
-            {mockReviews.map((review) => (
-              <div key={review.id} className="px-6 py-5 space-y-2">
-                <div className="flex items-start justify-between gap-3">
-                  <div className="space-y-1">
-                    <StarRating rating={review.rating} />
-                    <p className="text-xs text-neutral-400 font-medium">{review.producto_nombre}</p>
-                  </div>
-                  <span className="text-[10px] text-neutral-300 shrink-0 mt-0.5">
-                    {new Date(review.created_at).toLocaleDateString('es-GT', {
-                      month: 'short',
-                      day: 'numeric',
-                    })}
-                  </span>
-                </div>
-                <p className="text-sm text-neutral-700 leading-relaxed">{review.comentario}</p>
-              </div>
-            ))}
-          </div>
-
-          <div className="px-6 py-4 bg-neutral-50/60 border-t border-neutral-100">
-            <p className="text-xs text-neutral-400 text-center">
-              Las reseñas reales aparecerán aquí cuando los compradores valoren tus productos.
-            </p>
-          </div>
+          <PublicReviewList sellerId={perfil.id} />
         </section>
 
         {/* ══════════════════════════════════════════════════
