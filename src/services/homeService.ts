@@ -28,6 +28,15 @@ export type Producto = {
   nombre: string;
   precio: number;
   imagen_url?: string | null;
+  rating_avg?: number;
+  rating_count?: number;
+  categoria?: {
+    id: number | null;
+    nombre: string | null;
+  };
+  departamento?: string | null;
+  municipio?: string | null;
+  created_at?: string | null;
 };
 
 export type Tienda = {
@@ -37,6 +46,24 @@ export type Tienda = {
   logo_url?: string | null;
   departamento?: string | null;
   municipio?: string | null;
+};
+
+export type HomeCatalogSection = {
+  key: "featured" | "new_arrivals" | "trending";
+  title: string;
+  items: Producto[];
+};
+
+export type HomeCatalogData = {
+  seed: string;
+  seed_window: string;
+  overlap_used: number;
+  max_overlap: number;
+  sections: {
+    featured: HomeCatalogSection;
+    new_arrivals: HomeCatalogSection;
+    trending: HomeCatalogSection;
+  };
 };
 
 /* ================================
@@ -93,6 +120,39 @@ export const fetchNuevosProductos = () =>
 
 export const fetchTiendas = () =>
   fetchJSON<Tienda>("/api/seller/sellers/top");
+
+export async function fetchHomeCatalog(): Promise<HomeCatalogData | null> {
+  if (!API) {
+    console.warn("[homeService] API URL not set — skipping /api/home/products");
+    return null;
+  }
+
+  try {
+    const url = `${API}/api/home/products`;
+    console.log(`[homeService] → GET ${url}`);
+
+    const res = await fetch(url, { cache: "no-store" });
+
+    console.log(`[homeService] ← /api/home/products status=${res.status} ok=${res.ok}`);
+
+    if (!res.ok) return null;
+
+    const json = await res.json();
+    const data = json?.data ?? null;
+
+    console.log("HOME DATA:", data);
+
+    if (!data?.sections) {
+      console.warn("[homeService] /api/home/products missing sections", json);
+      return null;
+    }
+
+    return data as HomeCatalogData;
+  } catch (error) {
+    console.error("[homeService] FETCH ERROR /api/home/products:", error);
+    return null;
+  }
+}
 
 /* ================================
    Home Data Aggregator (kept for

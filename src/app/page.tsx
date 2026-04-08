@@ -2,7 +2,7 @@
 
 export const dynamic = "force-dynamic";
 
-import { fetchTrendingProducts } from "@/services/homeService";
+import { fetchHomeCatalog, fetchTrendingProducts } from "@/services/homeService";
 
 import HeroSection            from "@/components/home/HeroSection";
 import TrendingSection        from "@/components/home/TrendingSection";
@@ -29,17 +29,31 @@ import RecommendedSection     from "@/components/home/RecommendedSection";
 export default async function HomePage(): Promise<React.ReactElement> {
   // Only fetch above-the-fold data server-side.
   // Everything below the fold self-fetches client-side after mount.
-  const trendingProducts = await fetchTrendingProducts();
+  const homeCatalog = await fetchHomeCatalog();
+  const fallbackTrendingProducts = await fetchTrendingProducts();
+  const featuredProducts =
+    homeCatalog?.sections.featured.items?.length
+      ? homeCatalog.sections.featured.items
+      : fallbackTrendingProducts;
+  const trendingProducts =
+    homeCatalog?.sections.trending.items?.length
+      ? homeCatalog.sections.trending.items
+      : fallbackTrendingProducts;
+  const newArrivalProducts = homeCatalog?.sections.new_arrivals.items ?? [];
 
-  console.log(`[HomePage] trendingProducts → ${trendingProducts.length} items`);
+  console.log("[HomePage] home sections", {
+    featured: featuredProducts.map((p) => p.id),
+    newArrivals: newArrivalProducts.map((p) => p.id),
+    trending: trendingProducts.map((p) => p.id),
+  });
 
   return (
     <main>
-      <HeroSection trendingProducts={trendingProducts} />
+      <HeroSection featuredProducts={featuredProducts} />
       <TrendingSection trendingProducts={trendingProducts} />
       <StoryBridgeSection />
       <CategoriesSection />
-      <NewProductsSection />
+      <NewProductsSection initialProducts={newArrivalProducts} />
       <RecommendedSection />
       <SellerHighlightSection />
       <SocialProofStrip />

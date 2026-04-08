@@ -19,11 +19,12 @@ import { useRef, useState } from "react"
 import Image from "next/image"
 import { Upload, Trash2, Star, StarOff, Loader2, AlertCircle, CheckCircle2 } from "lucide-react"
 import { Button } from "@/components/ui/button"
+import { MAX_IMAGE_UPLOAD_MB } from "@/lib/imageCompression"
 import type { ProductEditData, SectionSaveState } from "@/types/product-edit"
 
 const MAX_IMAGES = 5
 const ALLOWED_TYPES = ["image/png", "image/jpeg", "image/jpg", "image/webp", "image/gif", "image/avif"]
-const MAX_SIZE_MB = 3
+const MAX_SIZE_MB = MAX_IMAGE_UPLOAD_MB
 
 interface Props {
   product: ProductEditData

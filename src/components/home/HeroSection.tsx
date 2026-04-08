@@ -18,7 +18,7 @@ type TrendingProducto = {
 };
 
 type Props = {
-  trendingProducts: TrendingProducto[];
+  featuredProducts: TrendingProducto[];
 };
 
 const HERO_BG = `
@@ -27,10 +27,10 @@ const HERO_BG = `
   url("/Femme maya dansant dans le village.png")
 `.trim();
 
-export default function HeroSection({ trendingProducts }: Props) {
+export default function HeroSection({ featuredProducts }: Props) {
   const { dictionary } = useLanguage();
   const tr = createT(dictionary ?? esDictionary);
-  const gridProducts = trendingProducts.slice(0, 3);
+  const gridProducts = featuredProducts.slice(0, 3);
 
   return (
     <section className="h-[100svh] max-h-[960px] min-h-[600px] w-full overflow-hidden">

@@ -120,15 +120,20 @@ function NewProductCard({ product }: { product: Producto }) {
   );
 }
 
-export default function NewProductsSection() {
+export default function NewProductsSection({
+  initialProducts = [],
+}: {
+  initialProducts?: Producto[];
+}) {
   const { data: nuevosProductos, loading } = useNewProducts();
   const { dictionary } = useLanguage();
   const tr = createT(dictionary ?? esDictionary);
+  const products = initialProducts.length ? initialProducts : nuevosProductos;
 
-  if (loading) return <NewProductsSkeleton />;
-  if (!nuevosProductos.length) return <NewProductsSkeleton />;
+  if (loading && !initialProducts.length) return <NewProductsSkeleton />;
+  if (!products.length) return <NewProductsSkeleton />;
 
-  const items = nuevosProductos.slice(0, 3);
+  const items = products.slice(0, 3);
 
   return (
     <section className="bg-[#0f2e22] py-16 text-white md:py-20">

@@ -25,6 +25,7 @@
 
 import { useReducer, useRef, useCallback, useEffect } from "react"
 import { apiFetch, invalidateCache } from "@/lib/api"
+import { compressImages } from "@/lib/imageCompression"
 import type {
   ProductEditData,
   SectionSaveState,
@@ -434,7 +435,8 @@ export function useProductEdit(productId: string): UseProductEditReturn {
       dispatch({ type: "SAVE_START", section: "imagenes" })
 
       try {
-        const form = buildFormData(product, files)
+        const compressedFiles = await compressImages(files)
+        const form = buildFormData(product, compressedFiles)
 
         const res = await apiFetch(`/api/productos/${product.id}`, {
           method: "PUT",

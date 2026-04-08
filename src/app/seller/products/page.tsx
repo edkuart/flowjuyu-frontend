@@ -35,9 +35,10 @@ import { apiGetVendedorPerfil } from "@/services/vendedorPerfil"
 import type { SellerPerfil } from "@/lib/sellerProgress"
 import QrModal from "@/components/seller/QrModal"
 import { PageHeader } from "@/components/layout/PageHeader"
-import { DashboardCard } from "@/components/ui/DashboardCard"
 import { EmptyState } from "@/components/ui/EmptyState"
 import { apiFetch } from "@/lib/api"
+import { BaseCard } from "@/components/ui/BaseCard"
+import { BaseListItemCard } from "@/components/seller/ui/BaseListItemCard"
 
 type Producto = {
   id: string
@@ -496,15 +497,15 @@ export default function SellerProductsPage() {
       {/* ── CONTENT ── */}
       {loading ? (
 
-        <DashboardCard>
+        <BaseCard>
           <div className="text-center py-12 text-muted-foreground animate-pulse">
             Cargando productos…
           </div>
-        </DashboardCard>
+        </BaseCard>
 
       ) : productos.length === 0 ? (
 
-        <DashboardCard>
+        <BaseCard>
           <EmptyState
             icon={PackagePlus}
             title="Tu tienda está lista"
@@ -521,11 +522,11 @@ export default function SellerProductsPage() {
           <p className="text-center text-xs text-muted-foreground pb-4">
             Gratis · Solo toma unos minutos
           </p>
-        </DashboardCard>
+        </BaseCard>
 
       ) : filteredProducts.length === 0 ? (
 
-        <DashboardCard>
+        <BaseCard>
           <EmptyState
             icon={Search}
             title={search.trim() ? "Sin resultados" : "Sin resultados para este filtro"}
@@ -543,77 +544,64 @@ export default function SellerProductsPage() {
               </button>
             }
           />
-        </DashboardCard>
+        </BaseCard>
 
       ) : (
 
-        <DashboardCard
-          title={`${filteredProducts.length} producto${filteredProducts.length !== 1 ? "s" : ""}`}
-          description={filter !== "todos" ? label(filter) : undefined}
-          contentClassName="p-0"
-        >
+        <BaseCard padding="none">
+          <div className="border-b border-neutral-200 px-4 py-4 sm:px-5">
+            <p className="text-sm font-semibold leading-tight text-neutral-900">
+              {filteredProducts.length} producto{filteredProducts.length !== 1 ? "s" : ""}
+            </p>
+            {filter !== "todos" && (
+              <p className="mt-0.5 text-xs text-neutral-500">
+                {label(filter)}
+              </p>
+            )}
+          </div>
 
-          {/* ── DESKTOP LIST ── */}
-          <div className="hidden md:flex flex-col divide-y divide-border">
+          <div className="flex flex-col gap-3 p-4 md:gap-0 md:p-0 md:divide-y md:divide-border">
             {currentProducts.map((p) => {
               const isExpanded = expandedId === p.id
               return (
-                <div key={p.id}>
-
-                  {/* SUMMARY ROW — click to expand/collapse */}
-                  <div
-                    onClick={() => setExpandedId(prev => prev === p.id ? null : p.id)}
-                    className={`flex justify-between items-center px-5 py-4 cursor-pointer transition-colors ${
-                      isExpanded ? "bg-muted/40" : "hover:bg-muted/30"
-                    }`}
-                  >
-                    {/* LEFT */}
-                    <div className="flex items-center gap-4">
-
-                      {/* Thumbnail — stops propagation so image modal doesn't collapse row */}
-                      <div
-                        onClick={(e) => {
-                          e.stopPropagation()
-                          setSelectedImage({
-                            url: getProductImage(p),
-                            nombre: p.nombre,
-                            id: p.id,
-                          })
-                        }}
-                        className="relative w-16 h-16 rounded-xl overflow-hidden border border-border cursor-pointer group transition flex-shrink-0"
-                      >
-                        <Image
-                          src={getProductImage(p)}
-                          alt={p.nombre}
-                          fill
-                          className="object-cover group-hover:scale-110 transition duration-300"
-                        />
-                        <div className="absolute inset-0 bg-black/0 group-hover:bg-black/10 transition" />
-                      </div>
-
-                      {/* Info */}
-                      <div>
-                        <h3 className="font-semibold text-base leading-tight text-foreground">
-                          {p.nombre}
-                        </h3>
-                        <p className="text-sm text-muted-foreground mt-0.5">
-                          Q {Number(p.precio).toLocaleString("es-GT", { minimumFractionDigits: 2 })}
-                        </p>
-                        <p className="flex items-center gap-1.5 text-xs mt-1">
-                          <span className={`w-1.5 h-1.5 rounded-full shrink-0 ${
-                            p.stock > 5 ? "bg-green-500" : p.stock > 0 ? "bg-amber-400" : "bg-red-500"
-                          }`} />
-                          <span className={
-                            p.stock > 5 ? "text-muted-foreground" : p.stock > 0 ? "text-amber-600" : "text-red-600"
-                          }>
-                            {p.stock > 5 ? "Disponible" : p.stock > 0 ? "Pocas unidades" : "Sin stock"}
-                          </span>
-                        </p>
-                      </div>
+                <BaseListItemCard
+                  key={p.id}
+                  expanded={isExpanded}
+                  onToggle={() => setExpandedId(prev => prev === p.id ? null : p.id)}
+                  className="md:rounded-none md:border-0 md:shadow-none"
+                  media={
+                    <div
+                      onClick={(e) => {
+                        e.stopPropagation()
+                        setSelectedImage({
+                          url: getProductImage(p),
+                          nombre: p.nombre,
+                          id: p.id,
+                        })
+                      }}
+                      className="relative h-40 w-full overflow-hidden rounded-xl border border-border cursor-pointer group transition sm:h-48 md:h-16 md:w-16 md:flex-shrink-0"
+                    >
+                      <Image
+                        src={getProductImage(p)}
+                        alt={p.nombre}
+                        fill
+                        className="object-cover group-hover:scale-110 transition duration-300"
+                      />
+                      <div className="absolute inset-0 bg-black/0 group-hover:bg-black/10 transition" />
                     </div>
-
-                    {/* RIGHT — status + chevron */}
-                    <div className="flex items-center gap-3 flex-shrink-0">
+                  }
+                  title={
+                    <h3 className="line-clamp-2 font-semibold text-base leading-tight text-foreground">
+                      {p.nombre}
+                    </h3>
+                  }
+                  subtitle={
+                    <p className="text-sm text-muted-foreground">
+                      Q {Number(p.precio).toLocaleString("es-GT", { minimumFractionDigits: 2 })}
+                    </p>
+                  }
+                  badges={
+                    <div className="flex flex-wrap items-center gap-2">
                       <span className={`px-3 py-1 text-xs rounded-full border ${
                         p.activo
                           ? "bg-green-50 text-green-700 border-green-200"
@@ -621,19 +609,29 @@ export default function SellerProductsPage() {
                       }`}>
                         {p.activo ? "Publicado" : "Borrador"}
                       </span>
-                      <ChevronDown className={`w-4 h-4 text-muted-foreground transition-transform duration-200 ${
-                        isExpanded ? "rotate-180" : ""
-                      }`} />
-                    </div>
-                  </div>
 
-                  {/* EXPANDED PANEL */}
-                  {isExpanded && (
-                    <div
-                      className="px-5 py-4 bg-muted/30 border-t border-border space-y-4"
-                      onClick={(e) => e.stopPropagation()}
-                    >
-                      {/* Codes */}
+                      <span className={`inline-flex items-center gap-1.5 px-3 py-1 text-xs rounded-full border ${
+                        p.stock > 5
+                          ? "bg-emerald-50 text-emerald-700 border-emerald-200"
+                          : p.stock > 0
+                          ? "bg-amber-50 text-amber-700 border-amber-200"
+                          : "bg-red-50 text-red-700 border-red-200"
+                      }`}>
+                        <span className={`w-1.5 h-1.5 rounded-full shrink-0 ${
+                          p.stock > 5 ? "bg-green-500" : p.stock > 0 ? "bg-amber-400" : "bg-red-500"
+                        }`} />
+                        <span>{p.stock > 5 ? "Disponible" : p.stock > 0 ? "Pocas unidades" : "Sin stock"}</span>
+                      </span>
+                    </div>
+                  }
+                  trailing={
+                    <ChevronDown className={`w-4 h-4 text-muted-foreground transition-transform duration-200 ${
+                      isExpanded ? "rotate-180" : ""
+                    }`} />
+                  }
+                  bodyClassName="space-y-4"
+                >
+                  <div onClick={(e) => e.stopPropagation()}>
                       <div>
                         <ProductCodes internal_code={p.internal_code} seller_sku={p.seller_sku} />
                         {!p.internal_code && (
@@ -641,13 +639,9 @@ export default function SellerProductsPage() {
                         )}
                       </div>
 
-                      {/* Actions */}
                       <div className="border-t border-border pt-3 space-y-2">
-
-                        {/* Primary share buttons */}
                         {p.internal_code && (
                           <div className="space-y-1.5">
-                            {/* WhatsApp — top priority */}
                             <Button
                               className="w-full bg-[#25D366] hover:bg-[#1ebe5d] text-white rounded-lg gap-2 font-semibold"
                               onClick={() => handleWhatsApp(p)}
@@ -659,7 +653,6 @@ export default function SellerProductsPage() {
                               Compartir por WhatsApp
                             </Button>
 
-                            {/* Copy message */}
                             <Button
                               className="w-full bg-primary hover:bg-primary/90 text-primary-foreground rounded-lg gap-2"
                               onClick={() => handleCopyLink(p)}
@@ -675,9 +668,8 @@ export default function SellerProductsPage() {
                           </div>
                         )}
 
-                        {/* Secondary grid */}
-                        <div className="grid grid-cols-2 gap-2">
-                          <Button asChild variant="outline" className="rounded-lg gap-1.5">
+                        <div className="grid grid-cols-1 gap-2 sm:grid-cols-2">
+                          <Button asChild variant="outline" className="w-full rounded-lg gap-1.5">
                             <Link href={`/seller/productos/${p.id}/editar`}>
                               <Pencil className="w-3.5 h-3.5" />
                               Editar producto
@@ -687,7 +679,7 @@ export default function SellerProductsPage() {
                           {p.internal_code && (
                             <Button
                               variant="outline"
-                              className="rounded-lg gap-1.5"
+                              className="w-full rounded-lg gap-1.5"
                               onClick={() => setQrProduct({ nombre: p.nombre, internal_code: p.internal_code! })}
                             >
                               <QrCode className="w-3.5 h-3.5" />
@@ -699,7 +691,7 @@ export default function SellerProductsPage() {
                             variant="outline"
                             disabled={processingId === p.id}
                             onClick={() => handleToggleActivo(p.id, p.activo)}
-                            className="rounded-lg gap-1.5"
+                            className="w-full rounded-lg gap-1.5"
                           >
                             <Power className="w-3.5 h-3.5" />
                             {p.activo ? "Desactivar" : "Activar"}
@@ -707,7 +699,7 @@ export default function SellerProductsPage() {
 
                           <Button
                             variant="outline"
-                            className="rounded-lg gap-1.5 text-destructive hover:bg-destructive/10 hover:text-destructive border-destructive/30"
+                            className="w-full rounded-lg gap-1.5 text-destructive hover:bg-destructive/10 hover:text-destructive border-destructive/30"
                             onClick={() => handleDelete(p.id)}
                           >
                             <Trash2 className="w-3.5 h-3.5" />
@@ -715,158 +707,8 @@ export default function SellerProductsPage() {
                           </Button>
                         </div>
                       </div>
-                    </div>
-                  )}
-                </div>
-              )
-            })}
-          </div>
-
-          {/* ── MOBILE LIST ── */}
-          <div className="md:hidden flex flex-col gap-3 p-4">
-            {currentProducts.map((p) => {
-              const isExpanded = expandedId === p.id
-              return (
-                <div
-                  key={p.id}
-                  className={`rounded-xl border bg-card shadow-[0_2px_8px_rgba(0,0,0,0.04)] overflow-hidden transition-colors ${
-                    isExpanded ? "border-primary/20" : "border-border"
-                  }`}
-                >
-                  {/* SUMMARY — tap to expand */}
-                  <div
-                    onClick={() => setExpandedId(prev => prev === p.id ? null : p.id)}
-                    className={`flex items-center gap-3 p-3 cursor-pointer transition-colors ${
-                      isExpanded ? "bg-muted/40" : "hover:bg-muted/20"
-                    }`}
-                  >
-                    {/* Thumbnail */}
-                    <div className="relative w-16 h-16 rounded-lg overflow-hidden flex-shrink-0">
-                      <Image
-                        src={getProductImage(p)}
-                        alt={p.nombre}
-                        fill
-                        className="object-cover"
-                      />
-                    </div>
-
-                    {/* Info */}
-                    <div className="flex-1 min-w-0">
-                      <h3 className="font-semibold text-sm leading-tight text-foreground truncate">
-                        {p.nombre}
-                      </h3>
-                      <p className="text-sm text-muted-foreground mt-0.5">
-                        Q {Number(p.precio).toLocaleString("es-GT", { minimumFractionDigits: 2 })}
-                      </p>
-                      <div className="flex items-center gap-2 mt-1">
-                        <p className="flex items-center gap-1 text-xs">
-                          <span className={`w-1.5 h-1.5 rounded-full shrink-0 ${
-                            p.stock > 5 ? "bg-green-500" : p.stock > 0 ? "bg-amber-400" : "bg-red-500"
-                          }`} />
-                          <span className={
-                            p.stock > 5 ? "text-muted-foreground" : p.stock > 0 ? "text-amber-600" : "text-red-600"
-                          }>
-                            {p.stock > 5 ? "Disponible" : p.stock > 0 ? "Pocas unidades" : "Sin stock"}
-                          </span>
-                        </p>
-                        <span className={`px-2 py-0.5 rounded-full text-[10px] border ${
-                          p.activo
-                            ? "bg-green-50 text-green-700 border-green-200"
-                            : "bg-neutral-50 text-neutral-500 border-neutral-200"
-                        }`}>
-                          {p.activo ? "Publicado" : "Borrador"}
-                        </span>
-                      </div>
-                    </div>
-
-                    {/* Chevron */}
-                    <ChevronDown className={`w-4 h-4 text-muted-foreground flex-shrink-0 transition-transform duration-200 ${
-                      isExpanded ? "rotate-180" : ""
-                    }`} />
                   </div>
-
-                  {/* EXPANDED PANEL */}
-                  {isExpanded && (
-                    <div className="px-4 py-4 bg-muted/30 border-t border-border space-y-4">
-                      {/* Codes */}
-                      <ProductCodes internal_code={p.internal_code} seller_sku={p.seller_sku} />
-
-                      {/* Actions */}
-                      <div className="border-t border-border pt-3 space-y-2">
-
-                        {/* Primary share buttons */}
-                        {p.internal_code && (
-                          <div className="space-y-1.5">
-                            {/* WhatsApp — top priority */}
-                            <Button
-                              className="w-full bg-[#25D366] hover:bg-[#1ebe5d] text-white rounded-lg gap-2 font-semibold"
-                              onClick={() => handleWhatsApp(p)}
-                            >
-                              <svg viewBox="0 0 24 24" className="w-4 h-4 fill-current" aria-hidden>
-                                <path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347z"/>
-                                <path d="M12 0C5.373 0 0 5.373 0 12c0 2.127.558 4.122 1.532 5.852L.057 23.885a.5.5 0 0 0 .608.608l6.085-1.464A11.945 11.945 0 0 0 12 24c6.627 0 12-5.373 12-12S18.627 0 12 0zm0 21.818a9.818 9.818 0 0 1-4.988-1.362l-.358-.212-3.718.895.912-3.645-.233-.374A9.818 9.818 0 0 1 2.182 12C2.182 6.57 6.57 2.182 12 2.182S21.818 6.57 21.818 12 17.43 21.818 12 21.818z"/>
-                              </svg>
-                              Compartir por WhatsApp
-                            </Button>
-
-                            {/* Copy message */}
-                            <Button
-                              className="w-full bg-primary hover:bg-primary/90 text-primary-foreground rounded-lg gap-2"
-                              onClick={() => handleCopyLink(p)}
-                            >
-                              {linkCopiedId === p.id
-                                ? <><Check className="w-4 h-4" /> Mensaje copiado</>
-                                : <><Link2 className="w-4 h-4" /> Copiar mensaje</>}
-                            </Button>
-
-                            <p className="text-center text-xs text-muted-foreground pt-0.5">
-                              Comparte este producto fácilmente por WhatsApp o enlace
-                            </p>
-                          </div>
-                        )}
-
-                        {/* Secondary grid */}
-                        <div className="grid grid-cols-2 gap-2">
-                          <Button asChild variant="outline" className="w-full gap-1.5">
-                            <Link href={`/seller/productos/${p.id}/editar`}>
-                              <Pencil className="w-3.5 h-3.5" />
-                              Editar producto
-                            </Link>
-                          </Button>
-
-                          {p.internal_code && (
-                            <Button
-                              variant="outline"
-                              className="w-full gap-1.5"
-                              onClick={() => setQrProduct({ nombre: p.nombre, internal_code: p.internal_code! })}
-                            >
-                              <QrCode className="w-3.5 h-3.5" />
-                              Ver código QR
-                            </Button>
-                          )}
-
-                          <Button
-                            variant="outline"
-                            onClick={() => handleToggleActivo(p.id, p.activo)}
-                            className="w-full gap-1.5"
-                          >
-                            <Power className="w-3.5 h-3.5" />
-                            {p.activo ? "Desactivar" : "Activar"}
-                          </Button>
-
-                          <Button
-                            variant="outline"
-                            className="w-full gap-1.5 text-destructive hover:bg-destructive/10 hover:text-destructive border-destructive/30"
-                            onClick={() => handleDelete(p.id)}
-                          >
-                            <Trash2 className="w-3.5 h-3.5" />
-                            Eliminar producto
-                          </Button>
-                        </div>
-                      </div>
-                    </div>
-                  )}
-                </div>
+                </BaseListItemCard>
               )
             })}
           </div>
@@ -902,7 +744,7 @@ export default function SellerProductsPage() {
             </div>
           )}
 
-        </DashboardCard>
+        </BaseCard>
       )}
 
       {/* ── QR MODAL ── */}

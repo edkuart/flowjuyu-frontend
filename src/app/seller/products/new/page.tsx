@@ -28,7 +28,11 @@ import { OrigenSelect } from "@/components/product/form/OrigenSelect"
 import { apiGetVendedorPerfil } from "@/services/vendedorPerfil"
 import { ProductConversionCard } from "@/components/product/ProductConversionCard"
 import { getProductConversionInsights } from "@/lib/productConversion"
-import { compressImages } from "@/lib/imageCompression"
+import {
+  compressImages,
+  MAX_IMAGE_UPLOAD_BYTES,
+  MAX_IMAGE_UPLOAD_MB,
+} from "@/lib/imageCompression"
 import { getTaxonomyRule } from "@/config/taxonomyRules"
 import { sortClases, formatClaseLabel } from "@/lib/formatClase"
 
@@ -1289,6 +1293,12 @@ export default function AddProductPage() {
                         const picked = Array.from(files).slice(0, slots)
                         // Reset input early so the same file can be re-selected if needed
                         if (fileRef.current) fileRef.current.value = ""
+
+                        const tooLarge = picked.find(file => file.size > MAX_IMAGE_UPLOAD_BYTES)
+                        if (tooLarge) {
+                          alert(`"${tooLarge.name}" supera el tamaño máximo de ${MAX_IMAGE_UPLOAD_MB}MB.`)
+                          return
+                        }
 
                         setCompressing(true)
                         try {

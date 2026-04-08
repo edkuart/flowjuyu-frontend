@@ -2,6 +2,11 @@
 
 import { useState } from "react"
 import { apiEliminarArchivoAnterior } from "@/services/archivos"
+import {
+  compressImage,
+  MAX_IMAGE_UPLOAD_BYTES,
+  MAX_IMAGE_UPLOAD_MB,
+} from "@/lib/imageCompression"
 
 export function useFileUpload() {
   const [previews, setPreviews] = useState<Record<string, string | null>>({})
@@ -22,10 +27,12 @@ export function useFileUpload() {
       alert("Solo se permiten imágenes .jpeg, .png, .gif o .webp.")
       return
     }
-    if (file.size > 2 * 1024 * 1024) {
-      alert("El archivo supera el tamaño máximo de 2MB.")
+    if (file.size > MAX_IMAGE_UPLOAD_BYTES) {
+      alert(`El archivo supera el tamaño máximo de ${MAX_IMAGE_UPLOAD_MB}MB.`)
       return
     }
+
+    const processedFile = await compressImage(file)
 
     try {
       await apiEliminarArchivoAnterior(campo, idUsuario)
@@ -37,9 +44,9 @@ export function useFileUpload() {
     reader.onload = () => {
       setPreviews((prev) => ({ ...prev, [campo]: reader.result as string }))
     }
-    reader.readAsDataURL(file)
+    reader.readAsDataURL(processedFile)
 
-    setFiles((prev) => ({ ...prev, [campo]: file }))
+    setFiles((prev) => ({ ...prev, [campo]: processedFile }))
     setArchivoAnteriorId((prev) => ({ ...prev, [campo]: `${idUsuario}-${campo}` }))
   }
 

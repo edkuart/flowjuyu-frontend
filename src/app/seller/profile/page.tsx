@@ -33,6 +33,11 @@ import SellerQrModal from "@/components/seller/SellerQrModal"
 import { StoreHeaderPreview } from "@/components/seller/StoreHeaderPreview"
 import { PhoneInput } from "@/components/ui/PhoneInput"
 import { formatPhone, phoneToWaUrl } from "@/lib/phone"
+import {
+  compressImage,
+  MAX_IMAGE_UPLOAD_BYTES,
+  MAX_IMAGE_UPLOAD_MB,
+} from "@/lib/imageCompression"
 import { apiFetch } from "@/services/apiClient"
 import type { PhoneNumber } from "@/lib/phone"
 
@@ -196,14 +201,22 @@ export default function SellerPublicProfilePage() {
     const file = e.target.files?.[0]
     if (!file) return
 
+    if (file.size > MAX_IMAGE_UPLOAD_BYTES) {
+      alert(`El archivo supera el tamaño máximo de ${MAX_IMAGE_UPLOAD_MB}MB.`)
+      if (bannerInputRef.current) bannerInputRef.current.value = ""
+      return
+    }
+
+    const processedFile = await compressImage(file)
+
     // Immediate local preview — no waiting for the upload
-    setBannerPreview(URL.createObjectURL(file))
+    setBannerPreview(URL.createObjectURL(processedFile))
     setBannerUploading(true)
 
     try {
       const token = localStorage.getItem("token")
       const fd = new FormData()
-      fd.append("banner", file)
+      fd.append("banner", processedFile)
       const res = await fetch(`${API}/api/seller/banner`, {
         method: "PUT",
         headers: { Authorization: `Bearer ${token}` },

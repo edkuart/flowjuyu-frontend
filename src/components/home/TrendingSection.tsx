@@ -5,8 +5,17 @@ import ArtisanCard from "@/components/product/ArtisanCard";
 import { useLanguage } from "@/i18n/context/useLanguage";
 import esDictionary from "@/i18n/dictionaries/es";
 import { createT } from "@/i18n/utils/t";
-import { TrendingProducto } from "@/types/home";
 import type { ArtisanProduct } from "@/types/artisan";
+
+type TrendingProducto = {
+  id: string;
+  nombre: string;
+  precio: number;
+  imagen_url?: string | null;
+  rating_avg?: number;
+  total_reviews?: number;
+  trending_score?: number;
+};
 
 type Props = {
   trendingProducts: TrendingProducto[];
@@ -18,9 +27,9 @@ function toArtisanProduct(p: TrendingProducto): ArtisanProduct {
     nombre: p.nombre,
     precio: p.precio,
     imagen_url: p.imagen_url,
-    rating_avg: p.rating_avg,
-    total_reviews: p.total_reviews,
-    trending_score: p.trending_score,
+    rating_avg: p.rating_avg ?? 0,
+    total_reviews: p.total_reviews ?? 0,
+    trending_score: p.trending_score ?? 0,
   };
 }
 

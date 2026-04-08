@@ -2,14 +2,19 @@
  * src/lib/imageCompression.ts
  *
  * Client-side image compression before upload.
- * Reduces file size to stay under the 5 MB backend limit.
+ * Reduces file size before upload while staying aligned with the 8 MB backend limit.
  */
 
 import imageCompression from "browser-image-compression";
 
+export const MAX_IMAGE_UPLOAD_MB = 8;
+export const MAX_IMAGE_UPLOAD_BYTES = MAX_IMAGE_UPLOAD_MB * 1024 * 1024;
+export const COMPRESSION_THRESHOLD_BYTES = 300 * 1024;
+
 const OPTIONS = {
-  maxSizeMB: 1,
-  maxWidthOrHeight: 1600,
+  maxSizeMB: 1.5,
+  maxWidthOrHeight: 1800,
+  initialQuality: 0.78,
   useWebWorker: true,
 };
 
@@ -21,8 +26,8 @@ export async function compressImage(file: File): Promise<File> {
   // Skip non-image files (shouldn't happen, but guard anyway)
   if (!file.type.startsWith("image/")) return file;
 
-  // Skip tiny files that are already within budget
-  if (file.size <= OPTIONS.maxSizeMB * 1024 * 1024) return file;
+  // Skip small files that are already lightweight enough
+  if (file.size <= COMPRESSION_THRESHOLD_BYTES) return file;
 
   try {
     const compressed = await imageCompression(file, OPTIONS);
