@@ -14,6 +14,7 @@ import {
 
 import AuthGuard from "@/components/auth/AuthGuard";
 import SellerTopbar from "@/components/seller/SellerTopbar";
+import { WhatsAppFloatingButton } from "@/components/seller/whatsapp/WhatsAppFloatingButton";
 import { PageShell } from "@/components/layout/PageShell";
 import { SidebarNavItem } from "@/components/layout/SidebarNavItem";
 import { useAuth } from "@/context/AuthContext";
@@ -140,6 +141,8 @@ export default function SellerLayout({ children }: { children: ReactNode }) {
           <PageShell>
             {children}
           </PageShell>
+
+          <WhatsAppFloatingButton />
 
         </div>
       </div>

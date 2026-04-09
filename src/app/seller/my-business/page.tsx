@@ -23,6 +23,7 @@ import { apiGetVendedorPerfil } from '@/services/vendedorPerfil'
 import { SellerLogo } from '@/components/seller/SellerLogo'
 import SellerQrModal from '@/components/seller/SellerQrModal'
 import SocialButtons from '@/components/seller/SocialButtons'
+import { WhatsAppLinkSection } from '@/components/seller/whatsapp/WhatsAppLinkSection'
 import { PublicReviewList } from '@/components/reviews/PublicReviewList'
 import { buildHeaderStyle, DEFAULT_HEADER_STYLE } from '@/lib/headerStyle'
 import type { HeaderStyle } from '@/lib/headerStyle'
@@ -480,6 +481,8 @@ export default function MyBusinessPage() {
             </div>
           </section>
         </div>
+
+        <WhatsAppLinkSection />
 
         {/* ══════════════════════════════════════════════════
             4. REPUTATION — Reviews & Trust
