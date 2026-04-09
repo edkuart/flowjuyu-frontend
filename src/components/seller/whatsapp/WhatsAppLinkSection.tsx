@@ -35,6 +35,13 @@ type ApiStatusResponse = {
   }
 }
 
+type WhatsAppUiState =
+  | 'loading'
+  | 'connected'
+  | 'not_connected'
+  | 'auth_error'
+  | 'error'
+
 type ApiTokenResponse = {
   ok: boolean
   data?: {
@@ -64,6 +71,12 @@ function mapStatus(payload?: ApiStatusResponse['data']): WhatsAppLinkStatus {
   }
 }
 
+function createApiError(status: number, message: string) {
+  const error = new Error(message) as Error & { status?: number }
+  error.status = status
+  return error
+}
+
 function buildWhatsAppLinkMessage(code: string) {
   const text = `Hola Flowjuyu, quiero vincular mi número con este código: ${code}`
   return `https://wa.me/?text=${encodeURIComponent(text)}`
@@ -74,7 +87,10 @@ async function fetchWhatsAppLinkStatus(): Promise<WhatsAppLinkStatus> {
   const json = (await res.json().catch(() => ({}))) as ApiStatusResponse
 
   if (!res.ok || !json.ok) {
-    throw new Error('No pudimos cargar el estado de vinculación.')
+    throw createApiError(
+      res.status,
+      (json as any)?.message || 'No pudimos cargar el estado de vinculación.'
+    )
   }
 
   return mapStatus(json.data)
@@ -85,7 +101,10 @@ async function createLinkCode(): Promise<{ code: string; expiresAt: string }> {
   const json = (await res.json().catch(() => ({}))) as ApiTokenResponse
 
   if (!res.ok || !json.ok || !json.data?.code) {
-    throw new Error(json.message || 'No pudimos generar el código.')
+    throw createApiError(
+      res.status,
+      json.message || 'No pudimos generar el código.'
+    )
   }
 
   return {
@@ -99,7 +118,10 @@ async function revokeLink(): Promise<void> {
   const json = (await res.json().catch(() => ({}))) as { ok?: boolean; message?: string }
 
   if (!res.ok || !json.ok) {
-    throw new Error(json.message || 'No pudimos revocar el vínculo.')
+    throw createApiError(
+      res.status,
+      json.message || 'No pudimos revocar el vínculo.'
+    )
   }
 }
 
@@ -125,8 +147,9 @@ function StatusSkeleton() {
 }
 
 export function WhatsAppLinkSection() {
-  const [loading, setLoading] = useState(true)
+  const [viewState, setViewState] = useState<WhatsAppUiState>('loading')
   const [status, setStatus] = useState<WhatsAppLinkStatus | null>(null)
+  const [errorMessage, setErrorMessage] = useState<string | null>(null)
   const [generatedCode, setGeneratedCode] = useState<string | null>(null)
   const [generatedExpiresAt, setGeneratedExpiresAt] = useState<string | null>(null)
   const [generating, setGenerating] = useState(false)
@@ -134,9 +157,11 @@ export function WhatsAppLinkSection() {
 
   async function loadStatus() {
     try {
-      setLoading(true)
+      setViewState('loading')
+      setErrorMessage(null)
       const next = await fetchWhatsAppLinkStatus()
       setStatus(next)
+      setViewState(next.isLinked ? 'connected' : 'not_connected')
       if (next.activeToken?.tokenHint && !generatedCode) {
         setGeneratedExpiresAt(next.activeToken.expiresAt)
       }
@@ -148,9 +173,11 @@ export function WhatsAppLinkSection() {
         }
       }
     } catch (error: any) {
+      const nextState: WhatsAppUiState = error?.status === 401 ? 'auth_error' : 'error'
+      setViewState(nextState)
+      setErrorMessage(error?.message || 'No pudimos cargar el estado de WhatsApp.')
       toast.error(error?.message || 'No pudimos cargar el estado de WhatsApp.')
     } finally {
-      setLoading(false)
     }
   }
 
@@ -183,8 +210,12 @@ export function WhatsAppLinkSection() {
           expiresAt: result.expiresAt,
         },
       }))
+      setViewState('not_connected')
       toast.success('Código generado. Envíalo por WhatsApp desde tu número.')
     } catch (error: any) {
+      if (error?.status === 401) {
+        setViewState('auth_error')
+      }
       toast.error(error?.message || 'No pudimos generar el código.')
     } finally {
       setGenerating(false)
@@ -204,8 +235,12 @@ export function WhatsAppLinkSection() {
         isLinked: false,
         activeToken: null,
       })
+      setViewState('not_connected')
       toast.success('Vínculo revocado correctamente.')
     } catch (error: any) {
+      if (error?.status === 401) {
+        setViewState('auth_error')
+      }
       toast.error(error?.message || 'No pudimos revocar el vínculo.')
     } finally {
       setRevoking(false)
@@ -233,11 +268,66 @@ export function WhatsAppLinkSection() {
     window.open(buildWhatsAppLinkMessage(generatedCode), '_blank', 'noopener,noreferrer')
   }
 
-  if (loading || !status) {
+  if (viewState === 'loading') {
     return <StatusSkeleton />
   }
 
-  const isLinked = status.isLinked
+  if (viewState === 'auth_error') {
+    return (
+      <Card className="rounded-2xl border border-amber-200 shadow-sm">
+        <CardContent className="space-y-4 p-6">
+          <div className="flex items-start gap-3">
+            <div className="flex h-11 w-11 items-center justify-center rounded-2xl bg-amber-50 text-amber-600">
+              <ShieldCheck className="h-5 w-5" />
+            </div>
+            <div className="space-y-1">
+              <p className="text-[10px] font-bold uppercase tracking-[0.22em] text-neutral-400">
+                WhatsApp workspace
+              </p>
+              <h3 className="text-base font-bold text-neutral-900">No pudimos validar tu sesión</h3>
+              <p className="text-sm leading-relaxed text-neutral-500">
+                {errorMessage || 'Tu cuenta puede seguir vinculada, pero no pudimos verificar el estado en este momento.'}
+              </p>
+            </div>
+          </div>
+          <div className="flex flex-col gap-3 sm:flex-row">
+            <Button type="button" onClick={loadStatus} className="rounded-full">
+              Reintentar
+            </Button>
+          </div>
+        </CardContent>
+      </Card>
+    )
+  }
+
+  if (viewState === 'error') {
+    return (
+      <Card className="rounded-2xl border border-red-200 shadow-sm">
+        <CardContent className="space-y-4 p-6">
+          <div className="flex items-start gap-3">
+            <div className="flex h-11 w-11 items-center justify-center rounded-2xl bg-red-50 text-red-600">
+              <RefreshCw className="h-5 w-5" />
+            </div>
+            <div className="space-y-1">
+              <p className="text-[10px] font-bold uppercase tracking-[0.22em] text-neutral-400">
+                WhatsApp workspace
+              </p>
+              <h3 className="text-base font-bold text-neutral-900">No pudimos cargar el estado</h3>
+              <p className="text-sm leading-relaxed text-neutral-500">
+                {errorMessage || 'Hubo un problema temporal cargando el estado de WhatsApp.'}
+              </p>
+            </div>
+          </div>
+          <Button type="button" onClick={loadStatus} className="rounded-full">
+            Reintentar
+          </Button>
+        </CardContent>
+      </Card>
+    )
+  }
+
+  const safeStatus = status ?? { isLinked: false }
+  const isLinked = safeStatus.isLinked
   const hasPendingCode = !isLinked && Boolean(generatedCode)
 
   return (
@@ -273,8 +363,8 @@ export function WhatsAppLinkSection() {
               <div className="space-y-2 text-sm text-emerald-900">
                 <p className="font-semibold">Tu número ya está listo para usar el espacio de vendedor.</p>
                 <div className="space-y-1 text-emerald-800/90">
-                  <p>• Número vinculado: <span className="font-medium">{status.phone || 'No disponible'}</span></p>
-                  <p>• Vinculado el: <span className="font-medium">{formatDate(status.linkedAt)}</span></p>
+                  <p>• Número vinculado: <span className="font-medium">{safeStatus.phone || 'No disponible'}</span></p>
+                  <p>• Vinculado el: <span className="font-medium">{formatDate(safeStatus.linkedAt)}</span></p>
                 </div>
                 <p className="text-emerald-800/80">
                   Desde WhatsApp podrás usar comandos como <span className="font-medium">menu</span>, <span className="font-medium">mis productos</span> o <span className="font-medium">nuevo</span>.

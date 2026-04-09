@@ -4,14 +4,11 @@
  * Universal authenticated fetch wrapper.
  * Safe for both Server Components and Client Components.
  *
- * On 401 TOKEN_EXPIRED in the browser:
- *   1. Calls refreshSession() — collapses concurrent failures into one request.
- *   2. If refresh succeeds → retries the original request once with the new token.
- *   3. If refresh fails    → redirects to /login. The retry uses a raw fetch()
- *      (not apiFetch) to prevent any possibility of infinite recursion.
- *
  * credentials: "include" is set on every request so the browser sends and
  * receives the HttpOnly refresh-token cookie (fj_rt) transparently.
+ *
+ * On any browser-side 401 (except /api/refresh), we attempt a single
+ * refresh-token renewal and then retry the original request once.
  */
 
 import { getApiUrl }      from "@/lib/config";
@@ -35,6 +32,7 @@ const SKIP_CACHE_PATHS: string[] = [
   "/api/products/recommended",
   "/api/seller/profile",
   "/api/seller/products",
+  "/api/seller/whatsapp-link",
 ];
 
 type CacheEntry = { json: unknown; ts: number };
@@ -136,55 +134,31 @@ export async function apiFetch(
   }
 
   // ── 401 handling — browser only ─────────────────────────────────────────
-  // Server-side calls have no refresh cookie, so we only attempt renewal
-  // in the browser where the HttpOnly cookie is available.
-  if (res.status === 401 && typeof window !== "undefined") {
-    const data = await res.clone().json().catch(() => null);
+  // Any protected API 401 is treated as an auth desync candidate:
+  // try to refresh once, then retry the original request once.
+  if (
+    res.status === 401 &&
+    typeof window !== "undefined" &&
+    !url.includes("/api/refresh")
+  ) {
+    const refreshedToken = await refreshSession();
 
-    const isExpired =
-      data?.code    === "TOKEN_EXPIRED" ||
-      data?.message === "Token expirado"  ||
-      // "Token no proporcionado" means no token was sent at all.
-      // This happens when localStorage was cleared while the fj_rt cookie
-      // survived (e.g. cross-tab clear, browser restart). We treat it as
-      // an expired-token event: refresh silently, then retry.
-      data?.message === "Token no proporcionado";
-
-    if (isExpired) {
-      const refreshed = await refreshSession();
-
-      if (refreshed) {
-        // ── Retry once with the fresh token ────────────────────────────────
-        // Using plain fetch() — NOT apiFetch() — to guarantee no recursion.
-        const newToken = localStorage.getItem("token");
-        const _tr = performance.now();
-        const retryRes = await fetch(url, {
-          ...init,
-          credentials: "include",
-          headers: {
-            ...(isFormData ? {} : { "Content-Type": "application/json" }),
-            ...(init.headers ?? {}),
-            ...(newToken ? { Authorization: `Bearer ${newToken}` } : {}),
-          },
-        });
-        trackApiCall(method, url, performance.now() - _tr);
-        return retryRes;
-      } else {
-        // ── Refresh failed — determine if this is real or transient ─────────
-        // refreshSession() clears localStorage on real auth failure (401/403)
-        // but leaves it intact on transient failures (429, network error).
-        // If the user is still in localStorage, the session may still be
-        // valid — don't force logout. The next user action will retry.
-        if (localStorage.getItem("user")) {
-          // Transient failure (e.g. 429 on /api/refresh). Keep the session.
-          throw new Error("REFRESH_FAILED_TRANSIENT");
-        }
-        // Real failure — localStorage was cleared by refreshSession().
-        // AuthContext will clear React state on the next auth:changed event.
-        window.location.replace("/login");
-        throw new Error("SESSION_EXPIRED");
-      }
+    if (refreshedToken) {
+      const _tr = performance.now();
+      const retryRes = await fetch(url, {
+        ...init,
+        credentials: "include",
+        headers: {
+          ...(isFormData ? {} : { "Content-Type": "application/json" }),
+          ...(init.headers ?? {}),
+          ...(refreshedToken ? { Authorization: `Bearer ${refreshedToken}` } : {}),
+        },
+      });
+      trackApiCall(method, url, performance.now() - _tr);
+      return retryRes;
     }
+
+    return res;
   }
 
   if (typeof performance !== "undefined")

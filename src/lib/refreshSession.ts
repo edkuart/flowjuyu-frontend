@@ -22,7 +22,7 @@ import { getApiUrl } from "@/lib/config";
 
 // ─── Singleton promise lock ──────────────────────────────────────────────────
 
-let inflightRefresh: Promise<boolean> | null = null;
+let inflightRefresh: Promise<string | null> | null = null;
 
 // ─── Public API ──────────────────────────────────────────────────────────────
 
@@ -32,9 +32,9 @@ let inflightRefresh: Promise<boolean> | null = null;
  * Concurrent calls all receive the same Promise — only one network request is
  * ever in-flight at a time. The lock resets after the request settles.
  *
- * @returns `true` if a new token was obtained and stored, `false` otherwise.
+ * @returns the new access token if refresh succeeds, otherwise `null`.
  */
-export function refreshSession(): Promise<boolean> {
+export function refreshSession(): Promise<string | null> {
   if (inflightRefresh) return inflightRefresh;
 
   inflightRefresh = _doRefresh().finally(() => {
@@ -46,7 +46,7 @@ export function refreshSession(): Promise<boolean> {
 
 // ─── Internal ────────────────────────────────────────────────────────────────
 
-async function _doRefresh(): Promise<boolean> {
+async function _doRefresh(): Promise<string | null> {
   try {
     const res = await fetch(`${getApiUrl()}/api/refresh`, {
       method:      "POST",
@@ -54,34 +54,28 @@ async function _doRefresh(): Promise<boolean> {
     });
 
     if (!res.ok) {
-      // 429 = rate limited. This is NOT a session invalidation — the cookie
-      // may still be valid. Preserve stored auth and just signal "not refreshed".
-      if (res.status === 429) return false;
-
-      _clearStoredAuth();
-      _notifyAuthChanged();
-      return false;
+      if (res.status === 401 || res.status === 403) {
+        _clearStoredAuth();
+        _notifyAuthChanged();
+      }
+      return null;
     }
 
     // Safe parse — a rare 429 slip-through or gateway response may not be JSON.
     const json = await res.json().catch(() => null);
 
     if (!json?.ok || !json?.token) {
-      _clearStoredAuth();
-      _notifyAuthChanged();
-      return false;
+      return null;
     }
 
     localStorage.setItem("token", json.token);
     if (json.user) localStorage.setItem("user", JSON.stringify(json.user));
 
     _notifyAuthChanged();
-    return true;
+    return json.token as string;
   } catch {
-    // Network error — treat as refresh failure
-    _clearStoredAuth();
-    _notifyAuthChanged();
-    return false;
+    // Network error — do not destroy auth state on transient connectivity loss.
+    return null;
   }
 }
 

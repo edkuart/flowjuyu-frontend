@@ -17,8 +17,9 @@
 
 import { useRef, useState } from "react"
 import Image from "next/image"
-import { Upload, Trash2, Star, StarOff, Loader2, AlertCircle, CheckCircle2 } from "lucide-react"
+import { Upload, Trash2, Star, StarOff, Loader2, AlertCircle, CheckCircle2, ChevronDown } from "lucide-react"
 import { Button } from "@/components/ui/button"
+import { cn } from "@/lib/utils"
 import { MAX_IMAGE_UPLOAD_MB } from "@/lib/imageCompression"
 import type { ProductEditData, SectionSaveState } from "@/types/product-edit"
 
@@ -33,6 +34,8 @@ interface Props {
   onUpload: (files: File[]) => Promise<void>
   onDelete: (imageId: number) => Promise<void>
   onSetPrincipal: (imageUrl: string) => Promise<void>
+  defaultExpanded?: boolean
+  priority?: "high" | "low"
 }
 
 export function SectionImagenes({
@@ -42,8 +45,11 @@ export function SectionImagenes({
   onUpload,
   onDelete,
   onSetPrincipal,
+  defaultExpanded = false,
+  priority = "high",
 }: Props) {
   const fileInputRef = useRef<HTMLInputElement>(null)
+  const [expanded, setExpanded] = useState(defaultExpanded)
   const [deletingId, setDeletingId] = useState<number | null>(null)
   const [settingPrincipalUrl, setSettingPrincipalUrl] = useState<string | null>(null)
   const [localError, setLocalError] = useState<string | null>(null)
@@ -116,22 +122,80 @@ export function SectionImagenes({
   const gallery = product.imagenes ?? []
   const principalUrl = product.imagen_principal
 
-  return (
-    <section className="bg-white border border-gray-200 rounded-xl overflow-hidden shadow-sm transition-shadow duration-200 hover:shadow-md">
-      {/* Header */}
-      <div className="px-5 py-4 border-b border-gray-100 bg-gray-50/60 flex items-start justify-between">
-        <div>
-          <h2 className="font-semibold text-sm text-gray-800 tracking-tight">Imágenes</h2>
-          <p className="text-xs text-gray-400 mt-0.5 leading-relaxed">
-            La imagen marcada como principal es la portada del producto.
-          </p>
-        </div>
-        <span className="text-[11px] text-gray-400 flex-shrink-0 mt-0.5 tabular-nums font-mono">
-          {gallery.length}/{MAX_IMAGES}
-        </span>
-      </div>
+  const isLow = priority === "low"
 
-      <div className="px-5 py-5 space-y-4">
+  return (
+    <section
+      className={cn(
+        "bg-white rounded-xl overflow-hidden transition-shadow duration-300",
+        isLow
+          ? "border border-gray-100 shadow-[0_1px_4px_-2px_rgba(0,0,0,0.05)]"
+          : "border border-gray-100 shadow-[0_2px_12px_-4px_rgba(0,0,0,0.08)] hover:shadow-[0_4px_20px_-4px_rgba(0,0,0,0.10)]"
+      )}
+    >
+      {/* High-priority accent stripe */}
+      {!isLow && (
+        <div className="h-[2px] bg-gradient-to-r from-[#0f2e22]/70 via-[#0f2e22]/20 to-transparent" />
+      )}
+
+      {/* Collapsible header */}
+      <button
+        type="button"
+        onClick={() => setExpanded((v) => !v)}
+        aria-expanded={expanded}
+        className={cn(
+          "w-full text-left px-4 py-3 flex items-center justify-between gap-3 border-b transition-colors duration-150",
+          "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-[#0f2e22]/30",
+          isLow
+            ? "border-gray-100/60 bg-gray-50/30 hover:bg-gray-50/60"
+            : "border-gray-100 bg-transparent hover:bg-gray-50/40"
+        )}
+      >
+        <div className="min-w-0 flex-1">
+          <h2 className={cn(
+            "font-semibold leading-none tracking-tight",
+            isLow ? "text-xs text-gray-400" : "text-[13px] text-gray-900"
+          )}>
+            Imágenes
+          </h2>
+          {expanded && (
+            <p className="text-xs text-gray-400 mt-1 leading-relaxed">
+              La primera marcada como principal es la portada del producto.
+            </p>
+          )}
+        </div>
+        <div className="flex items-center gap-1.5 flex-shrink-0">
+          <span className="text-[11px] text-gray-300 tabular-nums font-mono">
+            {gallery.length}/{MAX_IMAGES}
+          </span>
+          {!expanded && sectionState.status === "success" && (
+            <span className="inline-flex items-center gap-1 text-[10px] font-semibold text-emerald-700 bg-emerald-50 border border-emerald-100 rounded-full px-2 py-0.5 leading-none">
+              <CheckCircle2 className="w-2.5 h-2.5" />
+              Guardado
+            </span>
+          )}
+          {!expanded && !sectionState.status && (
+            <span className="text-[10px] text-gray-300 font-medium">Pendiente</span>
+          )}
+          <ChevronDown
+            className={cn(
+              "w-3.5 h-3.5 transition-transform duration-300 ease-out",
+              isLow ? "text-gray-300" : "text-gray-400",
+              expanded && "rotate-180"
+            )}
+          />
+        </div>
+      </button>
+
+      {/* Collapsible body */}
+      <div
+        className={cn(
+          "grid transition-[grid-template-rows] duration-300 ease-out",
+          expanded ? "grid-rows-[1fr]" : "grid-rows-[0fr]"
+        )}
+      >
+      <div className="overflow-hidden">
+      <div className="px-4 py-4 space-y-3">
         {/* Upload button */}
         <div>
           <input
@@ -267,6 +331,8 @@ export function SectionImagenes({
           La imagen marcada con <Star className="w-3 h-3 inline" /> aparece en
           los resultados de búsqueda y en la vista de catálogo.
         </p>
+      </div>
+      </div>
       </div>
     </section>
   )

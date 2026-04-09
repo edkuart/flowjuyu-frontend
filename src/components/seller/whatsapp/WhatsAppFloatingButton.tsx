@@ -20,6 +20,7 @@ type ApiStatusResponse = {
 }
 
 type LinkState = {
+  state: 'connected' | 'not_connected' | 'auth_error' | 'error'
   isLinked: boolean
 }
 
@@ -49,10 +50,13 @@ async function fetchWhatsAppLinkState(): Promise<LinkState> {
   const json = (await res.json().catch(() => ({}))) as ApiStatusResponse
 
   if (!res.ok || !json.ok) {
-    throw new Error('No pudimos cargar el estado de WhatsApp.')
+    const error = new Error('No pudimos cargar el estado de WhatsApp.') as Error & { status?: number }
+    error.status = res.status
+    throw error
   }
 
   return {
+    state: Boolean(json.data?.linkedPhone) ? 'connected' : 'not_connected',
     isLinked: Boolean(json.data?.linkedPhone),
   }
 }
@@ -60,6 +64,11 @@ async function fetchWhatsAppLinkState(): Promise<LinkState> {
 export function WhatsAppFloatingButton({ isLinked: isLinkedProp, code }: Props) {
   const [resolvedLinked, setResolvedLinked] = useState(Boolean(isLinkedProp))
   const [resolvedCode, setResolvedCode] = useState<string | null>(code ?? null)
+  const [linkState, setLinkState] = useState<'loading' | 'connected' | 'not_connected' | 'auth_error' | 'error'>(
+    typeof isLinkedProp === 'boolean'
+      ? (isLinkedProp ? 'connected' : 'not_connected')
+      : 'loading'
+  )
 
   useEffect(() => {
     console.log('WhatsApp Bot Phone:', BOT_PHONE)
@@ -81,6 +90,7 @@ export function WhatsAppFloatingButton({ isLinked: isLinkedProp, code }: Props) 
   useEffect(() => {
     if (typeof isLinkedProp === 'boolean') {
       setResolvedLinked(isLinkedProp)
+      setLinkState(isLinkedProp ? 'connected' : 'not_connected')
       return
     }
 
@@ -90,13 +100,17 @@ export function WhatsAppFloatingButton({ isLinked: isLinkedProp, code }: Props) 
       .then((next) => {
         if (!active) return
         setResolvedLinked(next.isLinked)
+        setLinkState(next.state)
 
         if (next.isLinked && typeof window !== 'undefined') {
           window.sessionStorage.removeItem(SESSION_CODE_KEY)
           setResolvedCode(null)
         }
       })
-      .catch(() => {})
+      .catch((error: any) => {
+        if (!active) return
+        setLinkState(error?.status === 401 ? 'auth_error' : 'error')
+      })
 
     return () => {
       active = false
@@ -115,7 +129,9 @@ export function WhatsAppFloatingButton({ isLinked: isLinkedProp, code }: Props) 
 
   const label = resolvedCode
     ? 'Enviar código por WhatsApp'
-    : resolvedLinked
+    : linkState === 'auth_error'
+      ? 'Revisa tu sesión'
+      : resolvedLinked
       ? 'Abrir workspace de WhatsApp'
       : 'Vincular cuenta por WhatsApp'
 
@@ -137,10 +153,9 @@ export function WhatsAppFloatingButton({ isLinked: isLinkedProp, code }: Props) 
       <div className="pointer-events-auto flex items-center justify-end">
         <a
           href={href}
-          target="_blank"
-          rel="noopener noreferrer"
           onClick={handleClick}
           aria-label={label}
+          aria-disabled={!BOT_PHONE}
           className={`group inline-flex items-center gap-3 rounded-full border px-4 py-3 text-white shadow-[0_18px_40px_-18px_rgba(16,185,129,0.95)] transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-emerald-300 focus:ring-offset-2 ${
             BOT_PHONE
               ? 'border-emerald-400/20 bg-emerald-500 hover:-translate-y-0.5 hover:bg-emerald-600 hover:shadow-[0_22px_45px_-18px_rgba(5,150,105,0.95)]'
@@ -163,6 +178,12 @@ export function WhatsAppFloatingButton({ isLinked: isLinkedProp, code }: Props) 
           {(resolvedCode || resolvedLinked) && (
             <span className="hidden rounded-full bg-white/16 px-2 py-1 text-[11px] font-semibold text-white/90 lg:inline-flex">
               {resolvedCode ? 'Código listo' : 'Activo'}
+            </span>
+          )}
+
+          {linkState === 'auth_error' && !resolvedCode && (
+            <span className="hidden rounded-full bg-white/16 px-2 py-1 text-[11px] font-semibold text-white/90 lg:inline-flex">
+              Sesión
             </span>
           )}
 

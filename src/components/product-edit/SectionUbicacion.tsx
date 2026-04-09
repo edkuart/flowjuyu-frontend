@@ -20,6 +20,8 @@ export function SectionUbicacion({
   onSave,
   sectionState,
   isSaving,
+  defaultExpanded,
+  priority,
 }: CommonSectionProps) {
   // Derive municipios list from selected departamento
   const municipios = useMemo(() => {
@@ -46,11 +48,13 @@ export function SectionUbicacion({
   return (
     <SectionCard
       title="Ubicación de origen"
-      description="Indica el origen del producto (opcional). Ayuda a los compradores a encontrar artesanías de su región."
+      description="Origen del producto — opcional. Ayuda a compradores a encontrar artesanías de su región."
       onSave={onSave}
       sectionState={sectionState}
       isSaving={isSaving}
-      saveLabel="Guardar ubicación"
+      saveLabel="Guardar"
+      defaultExpanded={defaultExpanded}
+      priority={priority}
     >
 
       {/* Departamento */}
@@ -58,7 +62,7 @@ export function SectionUbicacion({
         <Label htmlFor="edit-departamento">Departamento</Label>
         <select
           id="edit-departamento"
-          className="w-full border rounded-md px-3 py-2 text-sm bg-white focus:outline-none focus:ring-2 focus:ring-ring"
+          className="w-full border rounded-md px-3 py-1.5 text-sm bg-white focus:outline-none focus:ring-2 focus:ring-ring h-9"
           value={product.departamento ?? ""}
           onChange={(e) => handleDepartamentoChange(e.target.value)}
         >
@@ -77,7 +81,7 @@ export function SectionUbicacion({
           <Label htmlFor="edit-municipio">Municipio</Label>
           <select
             id="edit-municipio"
-            className="w-full border rounded-md px-3 py-2 text-sm bg-white focus:outline-none focus:ring-2 focus:ring-ring"
+            className="w-full border rounded-md px-3 py-1.5 text-sm bg-white focus:outline-none focus:ring-2 focus:ring-ring h-9"
             value={product.municipio ?? ""}
             onChange={(e) => handleMunicipioChange(e.target.value)}
           >

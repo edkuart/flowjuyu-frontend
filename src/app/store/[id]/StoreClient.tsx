@@ -19,7 +19,7 @@ import {
   Share2,
 } from "lucide-react";
 import ProductDiscoveryLayout from "@/components/product/discovery/ProductDiscoveryLayout";
-import { FavoriteButton } from "@/components/ui/FavoriteButton";
+import ProductCardV2 from "@/components/product/ProductCardV2";
 import SellerQrModal from "@/components/seller/SellerQrModal";
 import SocialButtons from "@/components/seller/SocialButtons";
 import { SellerLogo } from "@/components/seller/SellerLogo";
@@ -119,54 +119,6 @@ function Stars({
   );
 }
 
-/* =====================================================
-   PRODUCT CARD (with favorites)
-===================================================== */
-
-function ProductCard({ p }: { p: Producto }) {
-  const { dictionary } = useLanguage();
-  const tr = createT(dictionary ?? esDictionary);
-  const precio = Number(p.precio);
-
-  return (
-    <Link href={p.internal_code ? `/p/${p.internal_code}` : `/product/${p.id}`}>
-      <div className="group relative overflow-hidden rounded-3xl border border-neutral-200 bg-white p-5 transition-all duration-300 hover:-translate-y-1 hover:shadow-2xl">
-        {/* Favorite button — uses shared useFavorites store */}
-        <div className="absolute top-3 right-3 z-10">
-          <FavoriteButton productId={p.id} size="sm" />
-        </div>
-
-        {/* Image */}
-        <div className="relative mb-4 aspect-square w-full overflow-hidden rounded-2xl bg-neutral-50">
-          <Image
-            src={getProductImage(p)}
-            alt={p.nombre}
-            fill
-            className="object-contain p-2 transition-transform duration-500 group-hover:scale-105"
-          />
-          <div className="absolute top-2 left-2">
-            <span className="rounded-full border border-amber-200 bg-white/90 px-2 py-0.5 text-[9px] font-bold text-amber-700 shadow-sm backdrop-blur-sm">
-              {tr("seller.artisanalBadge")}
-            </span>
-          </div>
-          <div className="absolute inset-0 flex items-center justify-center bg-black/40 font-semibold text-white opacity-0 transition group-hover:opacity-100">
-            {tr("seller.viewProduct")}
-          </div>
-        </div>
-
-        {/* Info */}
-        <div className="space-y-1">
-          <h3 className="line-clamp-2 text-sm leading-snug font-semibold text-neutral-800 transition-colors group-hover:text-[#0F3D3A]">
-            {p.nombre}
-          </h3>
-          <p className="text-lg font-black tracking-tight text-[#0F3D3A]">
-            Q{precio.toFixed(2)}
-          </p>
-        </div>
-      </div>
-    </Link>
-  );
-}
 
 /* =====================================================
    REVIEW FORM
@@ -953,9 +905,19 @@ export default function StoreClient({
             )}
           </div>
 
-          <div className="grid grid-cols-2 gap-5 md:grid-cols-3 xl:grid-cols-4">
+          <div className="grid grid-cols-2 gap-4 md:grid-cols-3 lg:grid-cols-5 xl:grid-cols-6">
             {productos.map((p) => (
-              <ProductCard key={p.id} p={p} />
+              <ProductCardV2
+                key={p.id}
+                product={{
+                  ...p,
+                  id: String(p.id),
+                  precio: Number(p.precio),
+                }}
+                variant="default"
+                href={p.internal_code ? `/p/${p.internal_code}` : undefined}
+                imageSizes="(max-width: 640px) 50vw, (max-width: 1024px) 33vw, 20vw"
+              />
             ))}
             {productos.length === 0 && (
               <div className="col-span-full space-y-3 py-20 text-center">

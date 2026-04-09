@@ -23,6 +23,8 @@ export function SectionPrecioInventario({
   onSave,
   sectionState,
   isSaving,
+  defaultExpanded,
+  priority,
 }: CommonSectionProps) {
   // ── Local price input state ──────────────────────────────────────────────
   //
@@ -85,12 +87,14 @@ export function SectionPrecioInventario({
       onSave={onSave}
       sectionState={sectionState}
       isSaving={isSaving}
-      saveLabel="Guardar precio"
+      saveLabel="Guardar"
+      defaultExpanded={defaultExpanded}
+      priority={priority}
     >
-      <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+      <div className="grid grid-cols-2 gap-3">
         {/* Precio */}
-        <div className="space-y-1">
-          <Label htmlFor="edit-precio">
+        <div className="space-y-1.5">
+          <Label htmlFor="edit-precio" className="text-xs font-medium text-gray-600">
             Precio (Q) <span className="text-destructive">*</span>
           </Label>
           <Input
@@ -102,12 +106,13 @@ export function SectionPrecioInventario({
             onChange={(e) => handlePrecioChange(e.target.value)}
             onBlur={handlePrecioBlur}
             placeholder="0.00"
+            className="h-9 text-sm border-gray-200 focus-visible:ring-1 focus-visible:ring-[#0f2e22]/40 focus-visible:border-[#0f2e22]/50"
           />
         </div>
 
         {/* Stock */}
-        <div className="space-y-1">
-          <Label htmlFor="edit-stock">
+        <div className="space-y-1.5">
+          <Label htmlFor="edit-stock" className="text-xs font-medium text-gray-600">
             Stock <span className="text-destructive">*</span>
           </Label>
           <Input
@@ -118,6 +123,7 @@ export function SectionPrecioInventario({
             value={product.stock}
             onChange={(e) => handleStockChange(e.target.value)}
             placeholder="0"
+            className="h-9 text-sm border-gray-200 focus-visible:ring-1 focus-visible:ring-[#0f2e22]/40 focus-visible:border-[#0f2e22]/50"
           />
         </div>
       </div>

@@ -17,19 +17,23 @@ export function SectionInformacion({
   onSave,
   sectionState,
   isSaving,
+  defaultExpanded,
+  priority,
 }: CommonSectionProps) {
   return (
     <SectionCard
-      title="Información básica"
+      title="Información"
       description="Nombre y descripción — lo primero que verán los compradores."
       onSave={onSave}
       sectionState={sectionState}
       isSaving={isSaving}
-      saveLabel="Guardar información"
+      saveLabel="Guardar"
+      defaultExpanded={defaultExpanded}
+      priority={priority}
     >
-      <div className="space-y-1">
-        <Label htmlFor="edit-nombre">
-          Nombre del producto <span className="text-destructive">*</span>
+      <div className="space-y-1.5">
+        <Label htmlFor="edit-nombre" className="text-xs font-medium text-gray-600">
+          Nombre <span className="text-destructive">*</span>
         </Label>
         <Input
           id="edit-nombre"
@@ -37,26 +41,27 @@ export function SectionInformacion({
           onChange={(e) => updateFields({ nombre: e.target.value })}
           placeholder="Nombre del producto"
           maxLength={200}
+          className="h-9 text-sm border-gray-200 focus-visible:ring-1 focus-visible:ring-[#0f2e22]/40 focus-visible:border-[#0f2e22]/50"
         />
       </div>
 
-      <div className="space-y-1">
-        <Label htmlFor="edit-descripcion">Descripción</Label>
+      <div className="space-y-1.5">
+        <Label htmlFor="edit-descripcion" className="text-xs font-medium text-gray-600">
+          Descripción
+        </Label>
         <Textarea
           id="edit-descripcion"
           value={product.descripcion ?? ""}
           onChange={(e) =>
-            // Only null on truly empty — don't trim while typing, which
-            // would cause cursor jumps when the user types spaces.
             updateFields({ descripcion: e.target.value === "" ? null : e.target.value })
           }
-          placeholder="Describe el producto, técnica, materiales, dimensiones…"
-          rows={4}
-          className="resize-none"
+          placeholder="Técnica, materiales, dimensiones, historia del artesano…"
+          rows={3}
+          className="resize-none text-sm border-gray-200 focus-visible:ring-1 focus-visible:ring-[#0f2e22]/40 focus-visible:border-[#0f2e22]/50"
           maxLength={2000}
         />
-        <p className="text-xs text-muted-foreground text-right">
-          {(product.descripcion ?? "").length}/2000
+        <p className="text-[11px] text-gray-300 text-right">
+          {(product.descripcion ?? "").length} / 2000
         </p>
       </div>
     </SectionCard>

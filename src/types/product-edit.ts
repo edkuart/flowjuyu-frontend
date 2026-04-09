@@ -104,4 +104,6 @@ export interface CommonSectionProps {
   onSave: () => void
   sectionState: SectionSaveState
   isSaving: boolean
+  defaultExpanded?: boolean
+  priority?: "high" | "low"
 }

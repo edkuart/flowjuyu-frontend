@@ -25,8 +25,10 @@ export function buildWhatsAppHref(phone: string, message?: string): string {
   const normalized = extractWhatsAppPhone(phone);
   if (!normalized) return "";
 
-  const base = `https://wa.me/${normalized}`;
-  return message ? `${base}?text=${encodeURIComponent(message)}` : base;
+  const encodedMessage = message ? encodeURIComponent(message) : "";
+  return encodedMessage
+    ? `https://wa.me/${normalized}?text=${encodedMessage}`
+    : `https://wa.me/${normalized}`;
 }
 
 type ProductWhatsAppMessageParams = {

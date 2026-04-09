@@ -1,11 +1,8 @@
 // src/components/product-edit/ProductEditPreview.tsx
 //
-// Sticky right-panel preview for the product edit page.
-// Shows a live snapshot of how the product looks to buyers,
-// plus the conversion score card (reused from the create flow).
-//
-// READ-ONLY — never calls any API.
-// All data comes from the in-memory product state via useProductEdit.
+// Hero preview panel — the "main object" of the edit experience.
+// Styled to feel like a real product listing, not a widget.
+// READ-ONLY. Updates in real time as the seller edits.
 
 "use client"
 
@@ -39,80 +36,98 @@ export function ProductEditPreview({ product }: Props) {
       : "—"
 
   return (
-    <div className="space-y-3.5">
-      {/* Label */}
-      <p className="text-[11px] font-semibold text-gray-400 uppercase tracking-widest px-1">
-        Vista previa
-      </p>
+    <div className="space-y-3">
+      {/* Live label */}
+      <div className="flex items-center gap-2 px-0.5">
+        <span className="relative flex h-1.5 w-1.5">
+          <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75" />
+          <span className="relative inline-flex rounded-full h-1.5 w-1.5 bg-emerald-500" />
+        </span>
+        <p className="text-[10px] font-bold text-gray-400 uppercase tracking-[0.14em]">
+          Vista previa en tiempo real
+        </p>
+      </div>
 
-      {/* Product card preview */}
-      <div className="bg-white border border-gray-200 rounded-xl overflow-hidden shadow-sm transition-shadow duration-200 hover:shadow-md">
-        {/* Image — zoom on hover */}
-        <div className="aspect-square bg-[#f5f4f2] relative overflow-hidden group">
+      {/* ── Hero card ─────────────────────────────────────────────────────────── */}
+      <div className="group bg-white border border-gray-100 rounded-2xl overflow-hidden shadow-[0_4px_28px_-8px_rgba(0,0,0,0.10)] transition-shadow duration-300 hover:shadow-[0_8px_36px_-8px_rgba(0,0,0,0.14)]">
+
+        {/* Image area */}
+        <div className="aspect-square bg-[#f5f4f2] relative overflow-hidden">
           {product.imagen_principal ? (
             <Image
               src={product.imagen_principal}
               alt={product.nombre || "Producto"}
               fill
-              className="object-cover transition-transform duration-500 ease-out group-hover:scale-[1.04]"
+              className="object-cover transition-transform duration-500 ease-out group-hover:scale-[1.03]"
               sizes="320px"
               unoptimized
             />
           ) : (
             <div className="w-full h-full flex flex-col items-center justify-center gap-2.5">
-              <Package className="w-10 h-10 text-gray-300" />
-              <p className="text-xs text-gray-300 font-medium">Sin imagen principal</p>
+              <Package className="w-9 h-9 text-gray-200" />
+              <p className="text-[11px] text-gray-300 font-medium tracking-wide">Sin imagen</p>
             </div>
           )}
 
-          {/* Status badge — backdrop blur for readability over any image */}
-          <div className="absolute top-2.5 left-2.5">
+          {/* Status badge — backdrop blur */}
+          <div className="absolute top-3 left-3">
             {product.activo ? (
-              <span className="inline-flex items-center px-2.5 py-1 rounded-full text-[11px] font-semibold bg-emerald-500/90 text-white backdrop-blur-sm shadow-sm">
+              <span className="inline-flex items-center px-2 py-0.5 rounded-full text-[11px] font-semibold bg-emerald-500/90 text-white backdrop-blur-sm shadow-sm">
                 Publicado
               </span>
             ) : (
-              <span className="inline-flex items-center px-2.5 py-1 rounded-full text-[11px] font-semibold bg-white/85 text-gray-600 backdrop-blur-sm border border-white/50 shadow-sm">
+              <span className="inline-flex items-center px-2 py-0.5 rounded-full text-[11px] font-semibold bg-white/85 text-gray-500 backdrop-blur-sm border border-white/60 shadow-sm">
                 Borrador
               </span>
             )}
           </div>
+
+          {/* Image count badge — bottom right */}
+          {(product.imagenes?.length ?? 0) > 1 && (
+            <div className="absolute bottom-2.5 right-2.5">
+              <span className="inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-medium bg-black/40 text-white backdrop-blur-sm">
+                {product.imagenes!.length} fotos
+              </span>
+            </div>
+          )}
         </div>
 
-        {/* Info */}
-        <div className="px-4 py-3.5 space-y-1.5">
-          <p className="text-sm font-semibold text-gray-900 line-clamp-2 leading-snug">
+        {/* Info area */}
+        <div className="px-4 pt-4 pb-4 space-y-2">
+          {/* Name */}
+          <p className="text-[13px] font-semibold text-gray-900 line-clamp-2 leading-snug">
             {product.nombre || (
-              <span className="text-gray-300 italic font-normal">Sin nombre</span>
+              <span className="text-gray-200 italic font-normal">Sin nombre aún</span>
             )}
           </p>
 
-          {/* Price — dominant, brand-colored */}
-          <p className="text-xl font-bold text-[#0f2e22] tabular-nums leading-none pt-0.5">
+          {/* Price — dominant */}
+          <p className="text-2xl font-bold text-[#0f2e22] tabular-nums leading-none tracking-tight">
             {precioFormatted}
           </p>
 
+          {/* Location */}
           {location && (
-            <div className="flex items-center gap-1 pt-0.5">
-              <MapPin className="w-3 h-3 flex-shrink-0 text-gray-400" />
+            <div className="flex items-center gap-1">
+              <MapPin className="w-3 h-3 flex-shrink-0 text-gray-300" />
               <span className="text-[11px] text-gray-400 truncate">{location}</span>
             </div>
           )}
 
+          {/* Description excerpt */}
           {product.descripcion && (
-            <p className="text-[11px] text-gray-400 line-clamp-2 pt-1 leading-relaxed">
+            <p className="text-[11px] text-gray-400 line-clamp-2 leading-relaxed pt-1 border-t border-gray-50">
               {product.descripcion}
             </p>
           )}
         </div>
       </div>
 
-      {/* Conversion score */}
+      {/* Conversion score card */}
       <ProductConversionCard insights={insights} />
 
-      {/* Subtle note */}
-      <p className="text-[11px] text-center text-gray-400 px-1">
-        Se actualiza en tiempo real
+      <p className="text-[10px] text-center text-gray-300 tracking-wide">
+        Refleja cambios al instante
       </p>
     </div>
   )

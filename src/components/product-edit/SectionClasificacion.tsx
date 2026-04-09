@@ -60,7 +60,7 @@ function FieldSelect({
       </Label>
       <select
         id={id}
-        className="w-full border rounded-md px-3 py-2 text-sm bg-white focus:outline-none focus:ring-2 focus:ring-ring disabled:opacity-50 disabled:cursor-not-allowed"
+        className="w-full border rounded-md px-3 py-1.5 text-sm bg-white focus:outline-none focus:ring-2 focus:ring-ring disabled:opacity-50 disabled:cursor-not-allowed h-9"
         value={value}
         onChange={(e) => onChange(e.target.value)}
         disabled={disabled}
@@ -86,6 +86,8 @@ export function SectionClasificacion({
   onSave,
   sectionState,
   isSaving,
+  defaultExpanded,
+  priority,
 }: CommonSectionProps) {
   // ── Catalogs (fetched once on mount) ──────────────────────────────────────
   const [categorias, setCategorias] = useState<Opcion[]>([])
@@ -310,7 +312,9 @@ export function SectionClasificacion({
       onSave={onSave}
       sectionState={sectionState}
       isSaving={isSaving}
-      saveLabel="Guardar clasificación"
+      saveLabel="Guardar"
+      defaultExpanded={defaultExpanded}
+      priority={priority}
     >
       {/* ── Categoría ─────────────────────────────────────────────────── */}
       <FieldSelect
@@ -351,7 +355,7 @@ export function SectionClasificacion({
           </Label>
           <select
             id="edit-clase"
-            className="w-full border rounded-md px-3 py-2 text-sm bg-white focus:outline-none focus:ring-2 focus:ring-ring"
+            className="w-full border rounded-md px-3 py-1.5 text-sm bg-white focus:outline-none focus:ring-2 focus:ring-ring h-9"
             value={claseSel}
             onChange={(e) => handleClaseChange(e.target.value)}
           >
