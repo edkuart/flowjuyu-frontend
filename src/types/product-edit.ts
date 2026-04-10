@@ -32,7 +32,7 @@ export interface ProductEditData {
   // ── Textile taxonomy ─────────────────────────────────────────────────────
   // clase_id is NOT NULL in the DB. The backend 400s on create if missing
   // and 500s on update if the SET clause receives NULL.
-  clase_id: number | null   // null only transiently during initial load
+  clase_id: number | null // null only transiently during initial load
   tela_id: number | null
   tela_custom: string | null
 
@@ -63,9 +63,11 @@ export interface ProductEditData {
 
   // ── Backend-managed identifiers (read-only) ───────────────────────────────
   // Set by the backend on product creation. Returned by GET /edit but absent
-  // from the Sequelize model. Displayed as reference codes; not editable here.
+  // from the Sequelize model. internal_code stays read-only; seller_sku can be
+  // seller-managed through the editor and is submitted only in manual mode.
   internal_code?: string | null
   seller_sku?: string | null
+  useCustomSku: boolean
 
   // ── Index signature ───────────────────────────────────────────────────────
   // Preserves any fields the backend adds to GET /edit in the future without

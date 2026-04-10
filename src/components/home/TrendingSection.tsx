@@ -1,11 +1,11 @@
 "use client";
 
 import SectionHeader from "@/components/ui/SectionHeader";
-import ArtisanCard from "@/components/product/ArtisanCard";
+import ProductCardV2 from "@/components/product/ProductCardV2";
+import { PRODUCT_GRID } from "@/components/product/productGrid.config";
 import { useLanguage } from "@/i18n/context/useLanguage";
 import esDictionary from "@/i18n/dictionaries/es";
 import { createT } from "@/i18n/utils/t";
-import type { ArtisanProduct } from "@/types/artisan";
 
 type TrendingProducto = {
   id: string;
@@ -21,18 +21,6 @@ type Props = {
   trendingProducts: TrendingProducto[];
 };
 
-function toArtisanProduct(p: TrendingProducto): ArtisanProduct {
-  return {
-    id: p.id,
-    nombre: p.nombre,
-    precio: p.precio,
-    imagen_url: p.imagen_url,
-    rating_avg: p.rating_avg ?? 0,
-    total_reviews: p.total_reviews ?? 0,
-    trending_score: p.trending_score ?? 0,
-  };
-}
-
 function TrendingSkeleton() {
   return (
     <section className="bg-[#faf7f2] py-16 md:py-20">
@@ -42,9 +30,9 @@ function TrendingSkeleton() {
           <div className="h-7 w-60 rounded bg-[#0d2d20]/8" />
         </div>
         <div className="h-px bg-gradient-to-r from-[#0d2d20]/20 to-transparent" />
-        <div className="grid grid-cols-2 gap-4 md:grid-cols-4 md:gap-6">
+        <div className={PRODUCT_GRID.home}>
           {Array.from({ length: 4 }).map((_, i) => (
-            <div key={i} className="aspect-[3/4] rounded-sm bg-[#0d2d20]/6" />
+            <div key={i} className="aspect-[4/5] rounded-sm bg-[#0d2d20]/6" />
           ))}
         </div>
       </div>
@@ -70,11 +58,11 @@ export default function TrendingSection({ trendingProducts }: Props) {
 
         <div className="h-px bg-gradient-to-r from-[#0d2d20]/20 to-transparent" />
 
-        <div className="grid grid-cols-2 gap-4 md:grid-cols-4 md:gap-6">
+        <div className={PRODUCT_GRID.home}>
           {trendingProducts.slice(0, 4).map((p) => (
-            <ArtisanCard
+            <ProductCardV2
               key={p.id}
-              product={toArtisanProduct(p)}
+              product={p}
               signal="trending"
             />
           ))}

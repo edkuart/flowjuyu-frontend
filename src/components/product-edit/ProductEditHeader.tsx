@@ -7,6 +7,7 @@
 "use client"
 
 import { Badge } from "@/components/ui/badge"
+import { ProductTitle } from "@/components/product/ProductTitle"
 import type { ProductEditData } from "@/types/product-edit"
 
 interface Props {
@@ -25,8 +26,8 @@ export function ProductEditHeader({ product }: Props) {
             <p className="text-[11px] font-semibold text-[#0f2e22] uppercase tracking-widest mb-1.5">
               Editar producto
             </p>
-            <h1 className="font-bold text-lg leading-snug text-gray-900 truncate">
-              {product.nombre || "Sin nombre"}
+            <h1>
+              <ProductTitle value={product.nombre ?? ""} variant="editor" />
             </h1>
             {(product.internal_code || product.seller_sku) && (
               <div className="flex items-center gap-2 mt-2">

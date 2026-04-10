@@ -2,6 +2,7 @@ import type { ReactNode } from "react"
 import { cn } from "@/lib/utils"
 
 type BaseCardProps = {
+  id?: string
   children: ReactNode
   className?: string
   contentClassName?: string
@@ -23,6 +24,7 @@ const TONE: Record<NonNullable<BaseCardProps["tone"]>, string> = {
 }
 
 export function BaseCard({
+  id,
   children,
   className,
   contentClassName,
@@ -34,6 +36,7 @@ export function BaseCard({
 
   return (
     <div
+      id={id}
       className={cn(
         "rounded-3xl border shadow-sm",
         TONE[tone],

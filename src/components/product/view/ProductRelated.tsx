@@ -3,7 +3,8 @@
 "use client";
 
 import Link from "next/link";
-import ArtisanCard from "@/components/product/ArtisanCard";
+import ProductCardV2 from "@/components/product/ProductCardV2";
+import { PRODUCT_GRID } from "@/components/product/productGrid.config";
 import type { ArtisanProduct } from "@/types/artisan";
 import { useLanguage } from "@/i18n/context/useLanguage";
 import { createT } from "@/i18n/utils/t";
@@ -48,9 +49,9 @@ export default function ProductRelated({ productos, sellerName, sellerId }: Prop
         )}
       </div>
 
-      <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
+      <div className={PRODUCT_GRID.related}>
         {visible.map((p) => (
-          <ArtisanCard key={p.id} product={p} signal="related" size="sm" />
+          <ProductCardV2 key={p.id} product={p} variant="minimal" />
         ))}
       </div>
 

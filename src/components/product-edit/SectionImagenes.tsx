@@ -22,35 +22,42 @@ import { Button } from "@/components/ui/button"
 import { cn } from "@/lib/utils"
 import { MAX_IMAGE_UPLOAD_MB } from "@/lib/imageCompression"
 import type { ProductEditData, SectionSaveState } from "@/types/product-edit"
+import type { ProductImageMode, StagedProductImage } from "@/types/product-editor"
 
 const MAX_IMAGES = 5
 const ALLOWED_TYPES = ["image/png", "image/jpeg", "image/jpg", "image/webp", "image/gif", "image/avif"]
 const MAX_SIZE_MB = MAX_IMAGE_UPLOAD_MB
 
 interface Props {
+  mode?: ProductImageMode
   product: ProductEditData
+  stagedImages?: StagedProductImage[]
   isSaving: boolean
   sectionState: SectionSaveState
   onUpload: (files: File[]) => Promise<void>
-  onDelete: (imageId: number) => Promise<void>
-  onSetPrincipal: (imageUrl: string) => Promise<void>
+  onDelete: (imageId: number | string) => Promise<void>
+  onSetPrincipal: (imageUrlOrId: string) => Promise<void>
+  onReorder?: (fromIndex: number, toIndex: number) => void
   defaultExpanded?: boolean
   priority?: "high" | "low"
 }
 
 export function SectionImagenes({
+  mode = "persisted",
   product,
+  stagedImages = [],
   isSaving,
   sectionState,
   onUpload,
   onDelete,
   onSetPrincipal,
+  onReorder,
   defaultExpanded = false,
   priority = "high",
 }: Props) {
   const fileInputRef = useRef<HTMLInputElement>(null)
   const [expanded, setExpanded] = useState(defaultExpanded)
-  const [deletingId, setDeletingId] = useState<number | null>(null)
+  const [deletingId, setDeletingId] = useState<number | string | null>(null)
   const [settingPrincipalUrl, setSettingPrincipalUrl] = useState<string | null>(null)
   const [localError, setLocalError] = useState<string | null>(null)
 
@@ -80,6 +87,12 @@ export function SectionImagenes({
     const files = Array.from(e.target.files ?? [])
     if (files.length === 0) return
 
+    if (gallery.length + files.length > MAX_IMAGES) {
+      setLocalError(`Máximo ${MAX_IMAGES} imágenes por producto.`)
+      if (fileInputRef.current) fileInputRef.current.value = ""
+      return
+    }
+
     const validationErr = validateFiles(files)
     if (validationErr) {
       setLocalError(validationErr)
@@ -93,7 +106,7 @@ export function SectionImagenes({
     if (fileInputRef.current) fileInputRef.current.value = ""
   }
 
-  async function handleDelete(imageId: number) {
+  async function handleDelete(imageId: number | string) {
     setLocalError(null)
     setDeletingId(imageId)
     try {
@@ -105,11 +118,11 @@ export function SectionImagenes({
     }
   }
 
-  async function handleSetPrincipal(imageUrl: string) {
+  async function handleSetPrincipal(imageUrlOrId: string) {
     setLocalError(null)
-    setSettingPrincipalUrl(imageUrl)
+    setSettingPrincipalUrl(imageUrlOrId)
     try {
-      await onSetPrincipal(imageUrl)
+      await onSetPrincipal(imageUrlOrId)
     } catch (err: unknown) {
       setLocalError(err instanceof Error ? err.message : "Error al cambiar imagen principal")
     } finally {
@@ -119,7 +132,20 @@ export function SectionImagenes({
 
   // ── Render ─────────────────────────────────────────────────────────────────
 
-  const gallery = product.imagenes ?? []
+  const gallery =
+    mode === "staged"
+      ? stagedImages.map((image) => ({
+          id: image.localId,
+          url: image.previewUrl,
+          principalKey: image.localId,
+          isPrincipal: image.isPrincipal,
+        }))
+      : (product.imagenes ?? []).map((image) => ({
+          id: image.id,
+          url: image.url,
+          principalKey: image.url,
+          isPrincipal: image.url === product.imagen_principal,
+        }))
   const principalUrl = product.imagen_principal
 
   const isLow = priority === "low"
@@ -174,7 +200,7 @@ export function SectionImagenes({
               Guardado
             </span>
           )}
-          {!expanded && !sectionState.status && (
+          {!expanded && sectionState.status === "idle" && (
             <span className="text-[10px] text-gray-300 font-medium">Pendiente</span>
           )}
           <ChevronDown
@@ -256,9 +282,10 @@ export function SectionImagenes({
         ) : (
           <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
             {gallery.map((img) => {
-              const isPrincipal = img.url === principalUrl
+              const isPrincipal = img.isPrincipal || img.url === principalUrl
               const isDeleting = deletingId === img.id
-              const isSettingThis = settingPrincipalUrl === img.url
+              const isSettingThis = settingPrincipalUrl === img.principalKey
+              const index = gallery.findIndex((item) => item.id === img.id)
 
               return (
                 <div
@@ -269,13 +296,21 @@ export function SectionImagenes({
                 >
                   {/* Image */}
                   <div className="aspect-square relative bg-gray-100">
-                    <Image
-                      src={img.url}
-                      alt="Imagen de producto"
-                      fill
-                      className="object-cover"
-                      sizes="(max-width: 640px) 50vw, 33vw"
-                    />
+                    {mode === "staged" ? (
+                      <img
+                        src={img.url}
+                        alt="Imagen de producto"
+                        className="h-full w-full object-cover"
+                      />
+                    ) : (
+                      <Image
+                        src={img.url}
+                        alt="Imagen de producto"
+                        fill
+                        className="object-cover"
+                        sizes="(max-width: 640px) 50vw, 33vw"
+                      />
+                    )}
 
                     {/* Loading overlay for delete/set-principal operations */}
                     {(isDeleting || isSettingThis) && (
@@ -295,14 +330,38 @@ export function SectionImagenes({
 
                   {/* Action overlay — visible on hover or on touch */}
                   <div className="absolute inset-x-0 bottom-0 bg-gradient-to-t from-black/70 to-transparent p-2 flex gap-1 justify-end opacity-100 md:opacity-0 md:group-hover:opacity-100 focus-within:opacity-100 transition-opacity">
+                    {onReorder && index > 0 && (
+                      <button
+                        type="button"
+                        title="Mover antes"
+                        aria-label="Mover antes"
+                        className="min-h-7 min-w-7 rounded bg-white/20 p-1 text-white transition-colors hover:bg-white/40 disabled:opacity-50"
+                        onClick={() => onReorder(index, index - 1)}
+                        disabled={isAnyImageBusy || isSaving}
+                      >
+                        ←
+                      </button>
+                    )}
+                    {onReorder && index < gallery.length - 1 && (
+                      <button
+                        type="button"
+                        title="Mover después"
+                        aria-label="Mover después"
+                        className="min-h-7 min-w-7 rounded bg-white/20 p-1 text-white transition-colors hover:bg-white/40 disabled:opacity-50"
+                        onClick={() => onReorder(index, index + 1)}
+                        disabled={isAnyImageBusy || isSaving}
+                      >
+                        →
+                      </button>
+                    )}
                     {/* Set as principal */}
                     {!isPrincipal && (
                       <button
                         type="button"
                         title="Usar como imagen principal"
                         aria-label="Usar como imagen principal"
-                        className="bg-white/20 hover:bg-white/40 text-white rounded p-1 transition-colors disabled:opacity-50"
-                        onClick={() => handleSetPrincipal(img.url)}
+                        className="min-h-7 min-w-7 rounded bg-white/20 p-1 text-white transition-colors hover:bg-white/40 disabled:opacity-50"
+                        onClick={() => handleSetPrincipal(img.principalKey)}
                         disabled={isAnyImageBusy || isSaving}
                       >
                         <StarOff className="w-3.5 h-3.5" />
@@ -314,7 +373,7 @@ export function SectionImagenes({
                       type="button"
                       title="Eliminar imagen"
                       aria-label="Eliminar imagen"
-                      className="bg-white/20 hover:bg-red-500/80 text-white rounded p-1 transition-colors disabled:opacity-50"
+                      className="min-h-7 min-w-7 rounded bg-white/20 p-1 text-white transition-colors hover:bg-red-500/80 disabled:opacity-50"
                       onClick={() => handleDelete(img.id)}
                       disabled={isAnyImageBusy || isSaving}
                     >

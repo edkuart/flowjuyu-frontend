@@ -1,6 +1,7 @@
 // src/app/seller/[id]/page.tsx — Server Component
 import Image from "next/image"
-import ProductCard from "@/components/ui/ProductCard"
+import ProductCardV2 from "@/components/product/ProductCardV2";
+import { PRODUCT_GRID } from "@/components/product/productGrid.config";
 import { SellerTrustBar } from "@/components/seller/SellerTrustBar"
 import { ContactCTA } from "@/components/seller/ContactCTA"
 import type { TrustEstado } from "@/lib/sellerTrust"
@@ -162,9 +163,9 @@ export default async function SellerPage({
               </p>
             </div>
           ) : (
-            <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-4">
+            <div className={PRODUCT_GRID.catalog}>
               {products.map((p: any) => (
-                <ProductCard key={p.id} product={p} showRating />
+                <ProductCardV2 key={p.id} product={p} />
               ))}
             </div>
           )}

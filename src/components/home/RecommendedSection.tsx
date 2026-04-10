@@ -3,7 +3,8 @@
 import Link from "next/link";
 import { Sparkles } from "lucide-react";
 
-import ArtisanCard from "@/components/product/ArtisanCard";
+import ProductCardV2 from "@/components/product/ProductCardV2";
+import { PRODUCT_GRID } from "@/components/product/productGrid.config";
 import { useAuth } from "@/context/AuthContext";
 import { useRecommendedProducts } from "@/hooks/useRecommendedProducts";
 import { useLanguage } from "@/i18n/context/useLanguage";
@@ -15,7 +16,7 @@ function SkeletonGrid() {
     <div className="grid grid-cols-2 gap-4 md:grid-cols-4 md:gap-6">
       {Array.from({ length: 8 }).map((_, i) => (
         <div key={i} className="animate-pulse">
-          <div className="aspect-[3/4] rounded-sm bg-[#0d2d20]/8" />
+          <div className="aspect-[4/5] rounded-sm bg-[#0d2d20]/8" />
           <div className="mt-3 space-y-2 px-0.5">
             <div className="h-3 w-3/4 rounded bg-[#0d2d20]/8" />
             <div className="h-3 w-1/2 rounded bg-[#0d2d20]/8" />
@@ -74,9 +75,9 @@ export default function RecommendedSection() {
         {loading ? (
           <SkeletonGrid />
         ) : (
-          <div className="grid grid-cols-2 gap-4 md:grid-cols-4 md:gap-6">
+          <div className={PRODUCT_GRID.home}>
             {products.slice(0, 8).map((p) => (
-              <ArtisanCard key={p.id} product={p} signal="none" />
+              <ProductCardV2 key={p.id} product={p} />
             ))}
           </div>
         )}

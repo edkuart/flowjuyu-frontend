@@ -38,6 +38,7 @@ import { PageHeader } from "@/components/layout/PageHeader"
 import { EmptyState } from "@/components/ui/EmptyState"
 import { apiFetch } from "@/lib/api"
 import { BaseCard } from "@/components/ui/BaseCard"
+import { ProductTitle } from "@/components/product/ProductTitle"
 import { BaseListItemCard } from "@/components/seller/ui/BaseListItemCard"
 
 type Producto = {
@@ -130,6 +131,13 @@ function ProductCodes({
 }
 
 const PUBLIC_BASE = process.env.NEXT_PUBLIC_SITE_URL || "https://flowjuyu.com"
+const PRODUCT_LIST_STATE_KEY = "seller-products-list-state"
+
+type ProductListState = {
+  page: number
+  search: string
+  expandedId: string | null
+}
 
 export default function SellerProductsPage() {
   const [productos, setProductos] = useState<Producto[]>([])
@@ -148,6 +156,7 @@ export default function SellerProductsPage() {
   const [search, setSearch] = useState("")
   const [expandedId, setExpandedId] = useState<string | null>(null)
   const searchRef = useRef<HTMLInputElement>(null)
+  const pendingScrollIdRef = useRef<string | null>(null)
 
   const [page, setPage] = useState(1)
   const [perPage] = useState(10)
@@ -159,6 +168,25 @@ export default function SellerProductsPage() {
   const API = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8800"
   const router = useRouter()
   const searchParams = useSearchParams()
+
+  useEffect(() => {
+    const rawState = sessionStorage.getItem(PRODUCT_LIST_STATE_KEY)
+    if (!rawState) return
+
+    try {
+      const state = JSON.parse(rawState) as Partial<ProductListState>
+      if (typeof state.search === "string") setSearch(state.search)
+      if (typeof state.page === "number" && state.page > 0) setPage(state.page)
+      if (typeof state.expandedId === "string") {
+        setExpandedId(state.expandedId)
+        pendingScrollIdRef.current = state.expandedId
+      }
+    } catch {
+      // Ignore invalid restore state.
+    } finally {
+      sessionStorage.removeItem(PRODUCT_LIST_STATE_KEY)
+    }
+  }, [])
 
   // Show first-product celebration banner when redirected with ?first=1
   useEffect(() => {
@@ -252,9 +280,34 @@ export default function SellerProductsPage() {
     return filteredProducts.slice(start, start + perPage)
   }, [filteredProducts, page, perPage])
 
+  useEffect(() => {
+    if (loading || !pendingScrollIdRef.current) return
+
+    const productId = pendingScrollIdRef.current
+    const isOnCurrentPage = currentProducts.some((p) => p.id === productId)
+    if (!isOnCurrentPage) return
+
+    const timeout = setTimeout(() => {
+      document.getElementById(`product-${productId}`)?.scrollIntoView({
+        behavior: "smooth",
+        block: "center",
+      })
+      pendingScrollIdRef.current = null
+    }, 100)
+
+    return () => clearTimeout(timeout)
+  }, [currentProducts, loading])
+
   /* ==============================
      Acciones
   ============================== */
+  const saveProductListState = () => {
+    sessionStorage.setItem(
+      PRODUCT_LIST_STATE_KEY,
+      JSON.stringify({ page, search, expandedId })
+    )
+  }
+
   const handleDelete = async (id: string) => {
     const confirm = await Swal.fire({
       title: "¿Eliminar producto?",
@@ -566,6 +619,7 @@ export default function SellerProductsPage() {
               return (
                 <BaseListItemCard
                   key={p.id}
+                  id={`product-${p.id}`}
                   expanded={isExpanded}
                   onToggle={() => setExpandedId(prev => prev === p.id ? null : p.id)}
                   className="md:rounded-none md:border-0 md:shadow-none"
@@ -590,11 +644,7 @@ export default function SellerProductsPage() {
                       <div className="absolute inset-0 bg-black/0 group-hover:bg-black/10 transition" />
                     </div>
                   }
-                  title={
-                    <h3 className="line-clamp-2 font-semibold text-base leading-tight text-foreground">
-                      {p.nombre}
-                    </h3>
-                  }
+                  title={<ProductTitle value={p.nombre} variant="list" />}
                   subtitle={
                     <p className="text-sm text-muted-foreground">
                       Q {Number(p.precio).toLocaleString("es-GT", { minimumFractionDigits: 2 })}
@@ -670,7 +720,7 @@ export default function SellerProductsPage() {
 
                         <div className="grid grid-cols-1 gap-2 sm:grid-cols-2">
                           <Button asChild variant="outline" className="w-full rounded-lg gap-1.5">
-                            <Link href={`/seller/productos/${p.id}/editar`}>
+                            <Link href={`/seller/productos/${p.id}/editar`} onClick={saveProductListState}>
                               <Pencil className="w-3.5 h-3.5" />
                               Editar producto
                             </Link>
@@ -785,7 +835,7 @@ export default function SellerProductsPage() {
                 </Button>
 
                 <Button asChild className="bg-primary hover:bg-primary/90 text-primary-foreground">
-                  <Link href={`/seller/productos/${selectedImage.id}/editar`}>
+                  <Link href={`/seller/productos/${selectedImage.id}/editar`} onClick={saveProductListState}>
                     Editar producto
                   </Link>
                 </Button>

@@ -69,7 +69,7 @@ export function SellerActivationChecklist({
 
   const firstProductId = productos[0]?.id
   const editHref = firstProductId
-    ? `/seller/products/new?id=${firstProductId}`
+    ? `/seller/productos/${firstProductId}/editar`
     : "/seller/products/new"
 
   const checks: CheckItem[] = [

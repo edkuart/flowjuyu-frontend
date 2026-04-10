@@ -9,6 +9,7 @@
 import Image from "next/image"
 import { MapPin, Package } from "lucide-react"
 import { ProductConversionCard } from "@/components/product/ProductConversionCard"
+import { ProductTitle } from "@/components/product/ProductTitle"
 import { getProductConversionInsights } from "@/lib/productConversion"
 import type { ProductEditData } from "@/types/product-edit"
 
@@ -95,11 +96,7 @@ export function ProductEditPreview({ product }: Props) {
         {/* Info area */}
         <div className="px-4 pt-4 pb-4 space-y-2">
           {/* Name */}
-          <p className="text-[13px] font-semibold text-gray-900 line-clamp-2 leading-snug">
-            {product.nombre || (
-              <span className="text-gray-200 italic font-normal">Sin nombre aún</span>
-            )}
-          </p>
+          <ProductTitle value={product.nombre ?? ""} variant="preview" />
 
           {/* Price — dominant */}
           <p className="text-2xl font-bold text-[#0f2e22] tabular-nums leading-none tracking-tight">

@@ -14,16 +14,10 @@
 
 import { useParams, useRouter } from "next/navigation"
 import Link from "next/link"
-import { ArrowLeft, AlertCircle, Loader2 } from "lucide-react"
+import { AlertCircle } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { useProductEdit } from "@/hooks/useProductEdit"
-import { ProductEditPreview } from "@/components/product-edit/ProductEditPreview"
-import { MobileSectionNav } from "@/components/product-edit/MobileSectionNav"
-import { SectionInformacion } from "@/components/product-edit/SectionInformacion"
-import { SectionClasificacion } from "@/components/product-edit/SectionClasificacion"
-import { SectionPrecioInventario } from "@/components/product-edit/SectionPrecioInventario"
-import { SectionUbicacion } from "@/components/product-edit/SectionUbicacion"
-import { SectionImagenes } from "@/components/product-edit/SectionImagenes"
+import { ProductEditorShell } from "@/components/product-edit/ProductEditorShell"
 
 // ─── Loading skeleton ─────────────────────────────────────────────────────────
 
@@ -102,14 +96,8 @@ export default function EditProductPage() {
     product,
     loadStatus,
     loadError,
-    isSaving,
-    getSectionState,
-    updateFields,
-    saveSection,
-    uploadImages,
-    deleteImage,
-    setPrincipalImage,
     reload,
+    ...controllerRest
   } = useProductEdit(productId)
 
   if (loadStatus === "idle" || loadStatus === "loading") return <EditSkeleton />
@@ -118,140 +106,9 @@ export default function EditProductPage() {
   }
 
   return (
-    <div className="min-h-screen bg-[#f5f4f2]">
-
-      {/* ── Top bar ───────────────────────────────────────────────────────────── */}
-      <div className="bg-white border-b border-gray-100 sticky top-0 z-10 shadow-[0_1px_0_rgba(0,0,0,0.04)]">
-        <div className="max-w-5xl mx-auto px-3 sm:px-4 py-2.5 flex items-center gap-2.5">
-          <Button
-            variant="ghost"
-            size="icon"
-            onClick={() => router.push("/seller/products")}
-            aria-label="Volver a mis productos"
-            className="h-8 w-8 flex-shrink-0 text-gray-400 hover:text-gray-700 hover:bg-gray-100/80 rounded-lg transition-colors duration-150"
-          >
-            <ArrowLeft className="w-4 h-4" />
-          </Button>
-
-          {/* Two-line title */}
-          <div className="min-w-0 flex-1">
-            <p className="text-[10px] font-bold text-gray-400 uppercase tracking-[0.14em] leading-none">
-              Editar producto
-            </p>
-            <p className="text-[13px] font-semibold text-gray-900 truncate mt-0.5 leading-tight">
-              {product.nombre || "Sin nombre"}
-            </p>
-          </div>
-
-          {/* Right: status badge + saving indicator */}
-          <div className="flex items-center gap-2 flex-shrink-0">
-            {product.activo ? (
-              <span className="text-[10px] font-semibold text-emerald-700 bg-emerald-50 border border-emerald-100 px-2 py-1 rounded-full leading-none hidden sm:inline-flex">
-                Publicado
-              </span>
-            ) : (
-              <span className="text-[10px] font-semibold text-gray-400 bg-gray-50 border border-gray-100 px-2 py-1 rounded-full leading-none hidden sm:inline-flex">
-                Borrador
-              </span>
-            )}
-            {isSaving && (
-              <Loader2 className="w-3.5 h-3.5 text-gray-300 animate-spin" />
-            )}
-          </div>
-        </div>
-      </div>
-
-      {/* ── Mobile section navigator ──────────────────────────────────────────── */}
-      <MobileSectionNav />
-
-      {/* ── Content ───────────────────────────────────────────────────────────── */}
-      <div className="max-w-5xl mx-auto px-3 sm:px-4 py-4 sm:py-6">
-        <div className="lg:grid lg:grid-cols-[1fr_300px] lg:gap-6 lg:items-start">
-
-          {/* ── Left: section list ── */}
-          <div className="space-y-2.5">
-
-            {/* Mobile-only hero preview */}
-            <div className="lg:hidden mb-1">
-              <ProductEditPreview product={product} />
-            </div>
-
-            {/* ── Información (HIGH — open by default) ── */}
-            <div id="section-informacion">
-              <SectionInformacion
-                product={product}
-                updateFields={updateFields}
-                onSave={() => saveSection("informacion")}
-                sectionState={getSectionState("informacion")}
-                isSaving={isSaving}
-                defaultExpanded={true}
-                priority="high"
-              />
-            </div>
-
-            {/* ── Clasificación (LOW) ── */}
-            <div id="section-clasificacion">
-              <SectionClasificacion
-                product={product}
-                updateFields={updateFields}
-                onSave={() => saveSection("clasificacion")}
-                sectionState={getSectionState("clasificacion")}
-                isSaving={isSaving}
-                defaultExpanded={false}
-                priority="low"
-              />
-            </div>
-
-            {/* ── Precio e inventario (HIGH) ── */}
-            <div id="section-precio">
-              <SectionPrecioInventario
-                product={product}
-                updateFields={updateFields}
-                onSave={() => saveSection("precio")}
-                sectionState={getSectionState("precio")}
-                isSaving={isSaving}
-                defaultExpanded={false}
-                priority="high"
-              />
-            </div>
-
-            {/* ── Ubicación (LOW) ── */}
-            <div id="section-ubicacion">
-              <SectionUbicacion
-                product={product}
-                updateFields={updateFields}
-                onSave={() => saveSection("ubicacion")}
-                sectionState={getSectionState("ubicacion")}
-                isSaving={isSaving}
-                defaultExpanded={false}
-                priority="low"
-              />
-            </div>
-
-            {/* ── Imágenes (HIGH) ── */}
-            <div id="section-imagenes">
-              <SectionImagenes
-                product={product}
-                isSaving={isSaving}
-                onUpload={uploadImages}
-                onDelete={deleteImage}
-                onSetPrincipal={setPrincipalImage}
-                sectionState={getSectionState("imagenes")}
-                defaultExpanded={false}
-                priority="high"
-              />
-            </div>
-
-            <div className="h-8" />
-          </div>
-
-          {/* ── Right: sticky hero preview (desktop only) ── */}
-          <div className="hidden lg:block lg:sticky lg:top-[56px]">
-            <ProductEditPreview product={product} />
-          </div>
-
-        </div>
-      </div>
-    </div>
+    <ProductEditorShell
+      controller={{ product, loadStatus, loadError, ...controllerRest }}
+      onBack={() => router.push("/seller/products")}
+    />
   )
 }

@@ -3,6 +3,7 @@ import { cn } from "@/lib/utils";
 import { BaseCard } from "@/components/ui/BaseCard";
 
 type BaseListItemCardProps = {
+  id?: string;
   expanded?: boolean;
   onToggle?: () => void;
   media?: ReactNode;
@@ -17,6 +18,7 @@ type BaseListItemCardProps = {
 };
 
 export function BaseListItemCard({
+  id,
   expanded = false,
   onToggle,
   media,
@@ -33,6 +35,7 @@ export function BaseListItemCard({
 
   return (
     <BaseCard
+      id={id}
       padding="none"
       className={cn(
         "overflow-hidden",

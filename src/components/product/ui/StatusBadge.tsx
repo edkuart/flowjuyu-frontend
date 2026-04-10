@@ -91,6 +91,18 @@ const DISCOVERY_CONFIG: Record<
     bgClass: "bg-[#0d2d20]",
     textClass: "text-white",
   },
+  // Availability signals — parent-driven hints, purely visual.
+  // They do NOT affect card interactivity (that is controlled by isAgotado / stock).
+  low_stock: {
+    label: "Últimas piezas",
+    bgClass: "bg-[#d97706]",
+    textClass: "text-white",
+  },
+  sold_out: {
+    label: "Agotado",
+    bgClass: "bg-[#0d0d0b]/10",
+    textClass: "text-[#0d0d0b]/50",
+  },
 };
 
 /** Calcula el label temporal para productos nuevos */

@@ -85,10 +85,27 @@ export interface ArtisanProduct {
 
 /* ─── Discovery ───────────────────────────────────────────── */
 
+/**
+ * Discovery / merchandising signal passed to ProductCardV2 from parent sections.
+ *
+ * "none"      — no badge (default)
+ * "related"   — no badge, suppresses discovery badge slot
+ * "trending"  — "Más vendido" badge
+ * "new"       — time-aware "Llegó hoy / Llegó ayer / Nuevo" badge
+ * "featured"  — "Destacado" badge
+ * "low_stock" — "Últimas piezas" urgency badge (parent-driven, e.g. from API feed)
+ * "sold_out"  — "Agotado" badge (parent-driven, for feeds without live stock)
+ *
+ * NOTE: "low_stock" and "sold_out" are presentation hints only.
+ * They do NOT affect isAgotado — that is always derived from product.stock
+ * via getProductState() in productCard.behavior.ts.
+ */
 export type DiscoverySignal =
   | "trending"
   | "new"
   | "featured"
+  | "low_stock"
+  | "sold_out"
   | "related"
   | "none";
 
