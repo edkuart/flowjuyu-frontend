@@ -53,6 +53,7 @@ interface LocalizedName {
 
 export interface ArtisanProduct {
   id: string;
+  internal_code?: string | null;
   nombre: string;
   nombre_kiche?: string | null;
   nombre_kaqchikel?: string | null;
