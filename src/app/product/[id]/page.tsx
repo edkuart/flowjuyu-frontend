@@ -113,6 +113,7 @@ export default async function ProductPage({
               categoria_kaqchikel={product.categoria?.nombre_kaqchikel}
               categoria_qeqchi={product.categoria?.nombre_qeqchi}
               internal_code={product.internal_code}
+              atributos={product.atributos}
             />
 
             <ProductSpecs

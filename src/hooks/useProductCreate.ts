@@ -48,6 +48,7 @@ const EMPTY_DRAFT: ProductEditData = {
   internal_code: null,
   seller_sku: null,
   useCustomSku: false,
+  atributos: {},
 }
 
 function getSkuValidationError(product: ProductEditData): string | null {
@@ -121,6 +122,11 @@ function buildCreateFormData(
     "accesorio_material_custom",
     product.accesorio_material_custom,
   )
+
+  // atributos — JSON-stringify so multipart transport preserves the object shape
+  if (product.atributos && Object.keys(product.atributos).length > 0) {
+    form.set("atributos", JSON.stringify(product.atributos))
+  }
 
   files.slice(0, MAX_IMAGES).forEach((file) => form.append("imagenes", file))
 

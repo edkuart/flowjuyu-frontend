@@ -10,6 +10,25 @@ export interface ProductGalleryImage {
   url: string
 }
 
+// ── Optional product attributes stored in JSONB ───────────────────────────────
+// Mirror of the backend ALLOWED_ATRIBUTO_KEYS set.
+
+export interface ProductMedidas {
+  // Stored as positive numbers in the DB (backend parses from form string)
+  largo: number | null
+  ancho: number | null
+  alto: number | null
+  // Unit stays a string (e.g. "cm", "pulg")
+  unidad: string | null
+}
+
+export interface ProductAtributos {
+  medidas?: ProductMedidas
+  material_principal?: string
+  tecnica?: string
+  cuidados?: string
+}
+
 export interface ProductEditData {
   // ── Identity (read-only, not sent in PUT UPDATE SET) ─────────────────────
   id: string
@@ -60,6 +79,12 @@ export interface ProductEditData {
   // Gallery from producto_imagenes table. Never sent in PUT body (skipped in
   // FormData construction). Managed via dedicated DELETE + PATCH endpoints.
   imagenes: ProductGalleryImage[]
+
+  // ── Optional product attributes (JSONB) ──────────────────────────────────
+  // Flexible key-value store for non-taxonomic product details.
+  // Allowed keys: medidas, material_principal, tecnica, cuidados.
+  // Sent in every PUT payload; backend validates and sanitises.
+  atributos: ProductAtributos
 
   // ── Backend-managed identifiers (read-only) ───────────────────────────────
   // Set by the backend on product creation. Returned by GET /edit but absent

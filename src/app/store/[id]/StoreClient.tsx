@@ -20,6 +20,7 @@ import {
 } from "lucide-react";
 import ProductDiscoveryLayout from "@/components/product/discovery/ProductDiscoveryLayout";
 import ProductCardV2 from "@/components/product/ProductCardV2";
+import { ProductDetailsBlock } from "@/components/product/ProductDetailsBlock";
 import SellerQrModal from "@/components/seller/SellerQrModal";
 import SocialButtons from "@/components/seller/SocialButtons";
 import { SellerLogo } from "@/components/seller/SellerLogo";
@@ -28,6 +29,7 @@ import { buildHeaderStyle, DEFAULT_HEADER_STYLE } from "@/lib/headerStyle";
 import type { HeaderStyle } from "@/lib/headerStyle";
 import type { PhoneNumber } from "@/lib/phone";
 import { buildWhatsAppHref, extractWhatsAppPhone } from "@/lib/whatsapp";
+import type { ProductAtributos } from "@/types/product-edit";
 
 const API = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8800";
 
@@ -39,9 +41,11 @@ type Producto = {
   id: string;
   nombre: string;
   precio: number | string;
+  descripcion?: string | null;
   imagen_url?: string | null;
   imagenes?: { url: string }[];
   internal_code?: string | null;
+  atributos?: ProductAtributos | null;
 };
 
 type Seller = {
@@ -805,6 +809,15 @@ export default function StoreClient({
                   <p className="text-2xl font-black text-[#0F3D3A]">
                     Q{Number(featuredProduct.precio).toFixed(2)}
                   </p>
+                  {featuredProduct.descripcion && (
+                    <p className="line-clamp-3 text-sm leading-relaxed text-neutral-500">
+                      {featuredProduct.descripcion}
+                    </p>
+                  )}
+                  <ProductDetailsBlock
+                    atributos={featuredProduct.atributos}
+                    variant="store"
+                  />
                   <span className="inline-flex w-fit items-center gap-2 rounded-full border border-[#0F3D3A]/30 px-4 py-2 text-sm font-semibold text-[#0F3D3A] transition-colors group-hover:bg-[#0F3D3A] group-hover:text-white">
                     {tr("seller.viewProduct")}{" "}
                     <ArrowRight className="h-4 w-4" />
@@ -856,19 +869,30 @@ export default function StoreClient({
                         </span>
                       </div>
                     </div>
-                    <div className="flex items-center justify-between px-5 py-4">
-                      <div className="min-w-0">
-                        <p className="mb-0.5 text-[10px] font-semibold tracking-wide text-neutral-400 uppercase">
-                          {tr("seller.artisanFeaturedLabel")}
-                        </p>
-                        <h3 className="line-clamp-1 text-sm font-bold text-neutral-800 transition-colors group-hover:text-[#0F3D3A]">
-                          {p.nombre}
-                        </h3>
-                      </div>
-                      <div className="ml-4 flex flex-shrink-0 items-center gap-3">
-                        <p className="text-base font-black text-[#0F3D3A]">
+                    <div className="space-y-3 px-5 py-4">
+                      <div className="flex items-start justify-between gap-4">
+                        <div className="min-w-0">
+                          <p className="mb-0.5 text-[10px] font-semibold tracking-wide text-neutral-400 uppercase">
+                            {tr("seller.artisanFeaturedLabel")}
+                          </p>
+                          <h3 className="line-clamp-1 text-sm font-bold text-neutral-800 transition-colors group-hover:text-[#0F3D3A]">
+                            {p.nombre}
+                          </h3>
+                        </div>
+                        <p className="shrink-0 text-base font-black text-[#0F3D3A]">
                           Q{Number(p.precio).toFixed(2)}
                         </p>
+                      </div>
+                      {p.descripcion && (
+                        <p className="line-clamp-2 text-xs leading-relaxed text-neutral-500">
+                          {p.descripcion}
+                        </p>
+                      )}
+                      <ProductDetailsBlock
+                        atributos={p.atributos}
+                        variant="store"
+                      />
+                      <div className="flex justify-end">
                         <span className="hidden items-center gap-1 rounded-full border border-[#0F3D3A]/30 px-3 py-1.5 text-xs font-semibold text-[#0F3D3A] transition-colors group-hover:bg-[#0F3D3A] group-hover:text-white sm:flex">
                           {tr("seller.viewProduct")}{" "}
                           <ArrowRight className="h-3 w-3" />

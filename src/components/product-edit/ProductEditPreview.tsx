@@ -11,10 +11,31 @@ import { MapPin, Package } from "lucide-react"
 import { ProductConversionCard } from "@/components/product/ProductConversionCard"
 import { ProductTitle } from "@/components/product/ProductTitle"
 import { getProductConversionInsights } from "@/lib/productConversion"
-import type { ProductEditData } from "@/types/product-edit"
+import type { ProductEditData, ProductAtributos } from "@/types/product-edit"
 
 interface Props {
   product: ProductEditData
+}
+
+// Build a compact single-line summary of the optional attributes for the preview.
+// Returns null when there's nothing meaningful to show.
+function buildAtributosLine(a: ProductAtributos | undefined): string | null {
+  if (!a) return null
+  const parts: string[] = []
+
+  if (a.medidas) {
+    const { largo, ancho, alto, unidad } = a.medidas
+    const dims = [largo, ancho, alto].filter((n): n is number => n != null && n > 0)
+    if (dims.length > 0) {
+      const u = unidad ? ` ${unidad}` : ""
+      parts.push(dims.join(" × ") + u)
+    }
+  }
+
+  if (a.material_principal) parts.push(a.material_principal)
+  if (a.tecnica) parts.push(a.tecnica)
+
+  return parts.length > 0 ? parts.join(" · ") : null
 }
 
 export function ProductEditPreview({ product }: Props) {
@@ -35,6 +56,8 @@ export function ProductEditPreview({ product }: Props) {
     product.precio > 0
       ? `Q ${product.precio.toLocaleString("es-GT", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`
       : "—"
+
+  const atributosLine = buildAtributosLine(product.atributos)
 
   return (
     <div className="space-y-3">
@@ -115,6 +138,13 @@ export function ProductEditPreview({ product }: Props) {
           {product.descripcion && (
             <p className="text-[11px] text-gray-400 line-clamp-2 leading-relaxed pt-1 border-t border-gray-50">
               {product.descripcion}
+            </p>
+          )}
+
+          {/* Attributes strip — medidas · material · técnica */}
+          {atributosLine && (
+            <p className="text-[10px] text-gray-300 truncate pt-1 border-t border-gray-50 font-medium tracking-wide">
+              {atributosLine}
             </p>
           )}
         </div>

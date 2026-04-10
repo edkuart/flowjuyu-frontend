@@ -81,6 +81,7 @@ export interface ArtisanProduct {
   total_reviews?: number;
   trending_score?: number;
   created_at?: string | null;
+  atributos?: import("@/types/product-edit").ProductAtributos | null;
   vendedor?: ArtisanSeller;
 }
 

@@ -17,11 +17,12 @@ export type SectionNavItem = {
 }
 
 const NAV_ITEMS: SectionNavItem[] = [
-  { id: "section-informacion",  label: "Info",    priority: "high" },
-  { id: "section-clasificacion",label: "Tipo",    priority: "low"  },
-  { id: "section-precio",       label: "Precio",  priority: "high" },
-  { id: "section-ubicacion",    label: "Origen",  priority: "low"  },
-  { id: "section-imagenes",     label: "Fotos",   priority: "high" },
+  { id: "section-informacion",  label: "Info",     priority: "high" },
+  { id: "section-clasificacion",label: "Tipo",     priority: "low"  },
+  { id: "section-precio",       label: "Precio",   priority: "high" },
+  { id: "section-ubicacion",    label: "Origen",   priority: "low"  },
+  { id: "section-detalles",     label: "Detalles", priority: "low"  },
+  { id: "section-imagenes",     label: "Fotos",    priority: "high" },
 ]
 
 // Pixel offset for the sticky header + nav bar itself when scrolling into view

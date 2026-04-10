@@ -13,6 +13,7 @@ import { SectionClasificacion } from "@/components/product-edit/SectionClasifica
 import { SectionPrecioInventario } from "@/components/product-edit/SectionPrecioInventario"
 import { SectionUbicacion } from "@/components/product-edit/SectionUbicacion"
 import { SectionImagenes } from "@/components/product-edit/SectionImagenes"
+import { SectionDetallesOpcionales } from "@/components/product-edit/SectionDetallesOpcionales"
 import type { ProductEditorController } from "@/types/product-editor"
 
 type ProductEditorShellProps = {
@@ -120,6 +121,18 @@ export function ProductEditorShell({
                 updateFields={updateFields}
                 onSave={() => saveSection("ubicacion")}
                 sectionState={getSectionState("ubicacion")}
+                isSaving={isSaving}
+                defaultExpanded={false}
+                priority="low"
+              />
+            </div>
+
+            <div id="section-detalles">
+              <SectionDetallesOpcionales
+                product={product}
+                updateFields={updateFields}
+                onSave={() => saveSection("detalles")}
+                sectionState={getSectionState("detalles")}
                 isSaving={isSaving}
                 defaultExpanded={false}
                 priority="low"

@@ -7,10 +7,12 @@ import Link from "next/link";
 import { MapPin, ChevronDown, ShieldCheck } from "lucide-react";
 import { FavoriteButton } from "@/components/ui/FavoriteButton";
 import { ProductContactCTA } from "@/components/product/ProductContactCTA";
+import { ProductDetailsBlock } from "@/components/product/ProductDetailsBlock";
 import { useLanguage } from "@/i18n/context/useLanguage";
 import { createT } from "@/i18n/utils/t";
 import esDictionary from "@/i18n/dictionaries/es";
 import { getLocalizedField } from "@/lib/getLocalizedField";
+import type { ProductAtributos } from "@/types/product-edit";
 
 type Props = {
   nombre: string;
@@ -39,6 +41,7 @@ type Props = {
   categoria_qeqchi?: string | null;
   stock?: number | null;
   internal_code?: string | null;
+  atributos?: ProductAtributos | null;
 };
 
 const formatPrice = (n: number) =>
@@ -123,6 +126,7 @@ export default function ProductInfo({
   categoria_qeqchi,
   stock,
   internal_code,
+  atributos,
 }: Props) {
   const { dictionary, language } = useLanguage();
   const tr = createT(dictionary ?? esDictionary);
@@ -286,12 +290,17 @@ export default function ProductInfo({
           </p>
         </div>
 
-        <div className="h-px bg-[#0d2d20]/8" />
+        <ProductDetailsBlock atributos={atributos} variant="product" />
 
         {localizedDescripcion && (
-          <p className="text-[14px] leading-relaxed text-[#0d0d0b]/65">
-            {localizedDescripcion}
-          </p>
+          <section className="space-y-2">
+            <p className="text-[10px] tracking-[0.28em] text-[#0d0d0b]/40 uppercase">
+              Descripción
+            </p>
+            <p className="text-[14px] leading-relaxed text-[#0d0d0b]/65">
+              {localizedDescripcion}
+            </p>
+          </section>
         )}
 
         <div className="space-y-4">

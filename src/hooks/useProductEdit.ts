@@ -214,6 +214,11 @@ function normalizeProductEditData(
     accesorio_material_custom: raw.accesorio_material_custom || null,
     seller_sku: raw.seller_sku || null,
     useCustomSku: Boolean(raw.seller_sku),
+    // Ensure atributos is always a plain object, never null/undefined
+    atributos:
+      raw.atributos && typeof raw.atributos === "object" && !Array.isArray(raw.atributos)
+        ? (raw.atributos as ProductEditData["atributos"])
+        : {},
   } as ProductEditData
 }
 
@@ -282,7 +287,12 @@ function buildFormData(product: ProductEditData, files: File[]): FormData {
   for (const [key, value] of Object.entries(product)) {
     if (FORMDATA_SKIP.has(key)) continue
     if (value === null || value === undefined) continue
-    form.append(key, String(value))
+    // Objects (e.g. atributos JSONB) must be JSON-stringified for multipart transport
+    if (typeof value === "object" && !Array.isArray(value)) {
+      form.append(key, JSON.stringify(value))
+    } else {
+      form.append(key, String(value))
+    }
   }
 
   const manualSku = product.useCustomSku
