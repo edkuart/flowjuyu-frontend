@@ -27,7 +27,11 @@
       "Bash(node -e \"const c = require\\('node-cron'\\); console.log\\(Object.keys\\(c\\)\\)\")",
       "Bash(echo \"EXIT:$?\")",
       "Bash(python -c \"import sys,json; d=json.load\\(sys.stdin\\); [print\\(k,v\\) for k,v in {**d.get\\('dependencies',{}\\), **d.get\\('devDependencies',{}\\)}.items\\(\\)]\")",
-      "Bash(xargs grep:*)"
+      "Bash(xargs grep:*)",
+      "Bash(grep -E \"\\\\.\\(ts|tsx\\)$\")"
+    ],
+    "additionalDirectories": [
+      "C:\\Users\\Dell\\Projects\\Flowjuyu-1.0\\flowjuyu-backend\\src\\services"
     ]
   }
 }

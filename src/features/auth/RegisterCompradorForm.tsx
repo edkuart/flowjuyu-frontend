@@ -9,6 +9,7 @@ import {
 } from "@/schemas/register-comprador.schema";
 import { apiRegisterComprador } from "@/services/auth";
 import { Button } from "@/components/ui/button";
+import { Checkbox } from "@/components/ui/checkbox";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { useAuth } from "@/context/AuthContext";
@@ -33,6 +34,8 @@ export function RegisterForm() {
     register,
     handleSubmit,
     setError,
+    setValue,
+    watch,
     formState: { errors, isSubmitting },
   } = useForm<RegisterCompradorValues>({
     resolver: zodResolver(registerCompradorSchema),
@@ -43,6 +46,7 @@ export function RegisterForm() {
       confirmarPassword: "",
       telefono: "",
       direccion: "",
+      acceptedLegalTerms: false,
     },
   });
 
@@ -77,6 +81,13 @@ export function RegisterForm() {
   // ── Google signup ──────────────────────────────────────────────────────────
 
   const handleGoogleSignup = async () => {
+    if (!watch("acceptedLegalTerms")) {
+      setError("acceptedLegalTerms", {
+        message: "Debes aceptar los Términos y la Política de Privacidad",
+      });
+      return;
+    }
+
     setGoogleLoading(true);
     try {
       const provider = new GoogleAuthProvider();
@@ -85,15 +96,15 @@ export function RegisterForm() {
       const result   = await signInWithPopup(auth, provider);
       const id_token = await result.user.getIdToken();
 
-      const response = await fetch(
-        `${process.env.NEXT_PUBLIC_API_URL || "http://localhost:8800"}/api/login/google`,
-        {
-          method:      "POST",
-          credentials: "include",
-          headers:     { "Content-Type": "application/json" },
-          body: JSON.stringify({ id_token }),
-        },
-      );
+      const response = await fetch("/api/auth/register/google", {
+        method: "POST",
+        credentials: "include",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          id_token,
+          accepted_legal_terms: true,
+        }),
+      });
 
       const data = await response.json();
 
@@ -160,6 +171,48 @@ export function RegisterForm() {
           <div className="space-y-1.5">
             <Label htmlFor="direccion" className="text-sm text-neutral-700">Dirección <span className="text-neutral-400">(opcional)</span></Label>
             <Input id="direccion" className={INPUT_CLS} {...register("direccion")} />
+          </div>
+        </div>
+
+        <div className="rounded-2xl border border-neutral-200 bg-neutral-50 px-4 py-3">
+          <div className="flex items-start gap-3">
+            <Checkbox
+              id="acceptedLegalTerms"
+              checked={watch("acceptedLegalTerms")}
+              onCheckedChange={(checked) =>
+                setValue("acceptedLegalTerms", checked === true, {
+                  shouldValidate: true,
+                  shouldDirty: true,
+                })
+              }
+              className="mt-0.5 border-neutral-300 data-[state=checked]:border-[#0F3D3A] data-[state=checked]:bg-[#0F3D3A]"
+            />
+            <div className="space-y-1.5">
+              <Label
+                htmlFor="acceptedLegalTerms"
+                className="text-sm leading-6 text-neutral-700"
+              >
+                Acepto los{" "}
+                <Link
+                  href="/legal/terms"
+                  className="font-medium text-[#0F3D3A] hover:underline"
+                >
+                  Términos
+                </Link>
+                {" "}y la{" "}
+                <Link
+                  href="/legal/privacy"
+                  className="font-medium text-[#0F3D3A] hover:underline"
+                >
+                  Política de Privacidad
+                </Link>
+              </Label>
+              {errors.acceptedLegalTerms && (
+                <p className="text-xs text-red-500">
+                  {errors.acceptedLegalTerms.message}
+                </p>
+              )}
+            </div>
           </div>
         </div>
 

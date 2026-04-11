@@ -5,6 +5,7 @@ import Link from "next/link";
 import { useLanguage } from "@/i18n/context/useLanguage";
 import esDictionary from "@/i18n/dictionaries/es";
 import { createT } from "@/i18n/utils/t";
+import { LEGAL_COOKIE_NOTICE } from "@/lib/legal";
 
 export default function Footer() {
   const { dictionary } = useLanguage();
@@ -74,21 +75,31 @@ export default function Footer() {
               {tr("footer.legalTitle")}
             </p>
             <Link
-              href="/privacidad"
+              href="/legal/privacy"
               className="block text-white/60 transition hover:text-white"
             >
               {tr("footer.privacy")}
             </Link>
             <Link
-              href="/terminos"
+              href="/legal/terms"
               className="block text-white/60 transition hover:text-white"
             >
               {tr("footer.terms")}
             </Link>
+            <Link
+              href="/legal/communications"
+              className="block text-white/60 transition hover:text-white"
+            >
+              Comunicaciones
+            </Link>
           </div>
         </div>
 
-        <div className="mt-12 flex flex-wrap justify-between gap-4 border-t border-white/10 pt-6 text-xs text-white/40">
+        <div className="mt-10 rounded-2xl border border-white/10 bg-white/5 px-4 py-3 text-sm text-white/70">
+          {LEGAL_COOKIE_NOTICE}
+        </div>
+
+        <div className="mt-8 flex flex-wrap justify-between gap-4 border-t border-white/10 pt-6 text-xs text-white/40">
           <span>© {new Date().getFullYear()} Flowjuyu</span>
           <span>{tr("footer.madeInGuatemala")} 🇬🇹</span>
         </div>

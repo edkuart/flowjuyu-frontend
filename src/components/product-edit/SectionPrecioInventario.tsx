@@ -14,6 +14,7 @@
 import { useState, useEffect } from "react"
 import { Label } from "@/components/ui/label"
 import { Input } from "@/components/ui/input"
+import { SellerEducationHint } from "@/components/seller/SellerEducationHint"
 import { SectionCard } from "./SectionCard"
 import type { CommonSectionProps } from "@/types/product-edit"
 
@@ -91,6 +92,10 @@ export function SectionPrecioInventario({
       defaultExpanded={defaultExpanded}
       priority={priority}
     >
+      <SellerEducationHint title="Precio">
+        <p>No pongas "precio por inbox". Se claro para generar confianza.</p>
+      </SellerEducationHint>
+
       <div className="grid grid-cols-2 gap-3">
         {/* Precio */}
         <div className="space-y-1.5">

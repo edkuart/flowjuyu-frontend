@@ -24,6 +24,11 @@ export const registerCompradorSchema = z
       .string()
       .optional()
       .transform((val) => (val?.trim() === "" ? undefined : val?.trim())),
+    acceptedLegalTerms: z
+      .boolean()
+      .refine((value) => value, {
+        message: "Debes aceptar los Términos y la Política de Privacidad",
+      }),
   })
   .refine((data) => data.password === data.confirmarPassword, {
     message: "Las contraseñas no coinciden",

@@ -40,6 +40,7 @@ import { apiFetch } from "@/lib/api"
 import { BaseCard } from "@/components/ui/BaseCard"
 import { ProductTitle } from "@/components/product/ProductTitle"
 import { BaseListItemCard } from "@/components/seller/ui/BaseListItemCard"
+import { markSellerStoreShared } from "@/lib/sellerEducation"
 
 type Producto = {
   id: string
@@ -388,6 +389,7 @@ export default function SellerProductsPage() {
   function handleCopyLink(p: Producto) {
     if (!p.internal_code) return
     const message = buildShareMessage(p)
+    markSellerStoreShared()
     const doCopy = () => {
       const el = document.createElement("textarea")
       el.value = message
@@ -411,6 +413,7 @@ export default function SellerProductsPage() {
 
   function handleWhatsApp(p: Producto) {
     if (!p.internal_code) return
+    markSellerStoreShared()
     const message = buildShareMessage(p)
     const encoded = encodeURIComponent(message)
     try {

@@ -13,6 +13,7 @@ import WhatsAppModal from "@/components/product/WhatsAppModal";
 import { useLanguage } from "@/i18n/context/useLanguage";
 import esDictionary from "@/i18n/dictionaries/es";
 import { createT } from "@/i18n/utils/t";
+import { LEGAL_WHATSAPP_NOTICE } from "@/lib/legal";
 import { buildWhatsAppHref, extractWhatsAppPhone } from "@/lib/whatsapp";
 
 export interface SellerContactCTAProps {
@@ -127,6 +128,7 @@ export function SellerContactCTA({
             ariaLabel: tr("seller.whatsappModalAriaLabel"),
             title: tr("seller.whatsappModalTitle"),
             subtitle: tr("seller.whatsappModalSubtitle"),
+            notice: LEGAL_WHATSAPP_NOTICE,
             messageLabel: tr("seller.whatsappModalMessageLabel"),
             hint: tr("seller.whatsappModalHint"),
             confirm: tr("seller.whatsappModalConfirm"),

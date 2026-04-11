@@ -27,6 +27,7 @@ import { SellerLogo } from "@/components/seller/SellerLogo";
 import WhatsAppModal from "@/components/product/WhatsAppModal";
 import { buildHeaderStyle, DEFAULT_HEADER_STYLE } from "@/lib/headerStyle";
 import type { HeaderStyle } from "@/lib/headerStyle";
+import { LEGAL_WHATSAPP_NOTICE } from "@/lib/legal";
 import type { PhoneNumber } from "@/lib/phone";
 import { buildWhatsAppHref, extractWhatsAppPhone } from "@/lib/whatsapp";
 import type { ProductAtributos } from "@/types/product-edit";
@@ -1110,6 +1111,7 @@ export default function StoreClient({
             ariaLabel: tr("seller.whatsappModalAriaLabel"),
             title: tr("seller.whatsappModalTitle"),
             subtitle: tr("seller.whatsappModalSubtitle"),
+            notice: LEGAL_WHATSAPP_NOTICE,
             messageLabel: tr("seller.whatsappModalMessageLabel"),
             hint: tr("seller.whatsappModalHint"),
             confirm: tr("seller.whatsappModalConfirm"),

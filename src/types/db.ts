@@ -49,6 +49,9 @@ export interface VendedorPerfil {
   estado_validacion?: EstadoVendedor | null;
   estado_admin?:      EstadoAdmin    | null;
   banner_url?:        string | null;
+  email_welcome_sent_at?: string | null;
+  email_activation_sent_at?: string | null;
+  email_week1_sent_at?: string | null;
 
   createdAt?: string;
   updatedAt?: string;

@@ -19,6 +19,7 @@ import { useRef, useState } from "react"
 import Image from "next/image"
 import { Upload, Trash2, Star, StarOff, Loader2, AlertCircle, CheckCircle2, ChevronDown } from "lucide-react"
 import { Button } from "@/components/ui/button"
+import { SellerEducationHint } from "@/components/seller/SellerEducationHint"
 import { cn } from "@/lib/utils"
 import { MAX_IMAGE_UPLOAD_MB } from "@/lib/imageCompression"
 import type { ProductEditData, SectionSaveState } from "@/types/product-edit"
@@ -222,6 +223,10 @@ export function SectionImagenes({
       >
       <div className="overflow-hidden">
       <div className="px-4 py-4 space-y-3">
+        <SellerEducationHint title="Imagen">
+          <p>Usa una foto clara, con buena luz y fondo simple.</p>
+        </SellerEducationHint>
+
         {/* Upload button */}
         <div>
           <input

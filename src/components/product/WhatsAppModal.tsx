@@ -21,6 +21,7 @@ interface WhatsAppModalProps {
     ariaLabel: string;
     title: string;
     subtitle: string;
+    notice: string;
     messageLabel: string;
     hint: string;
     confirm: string;
@@ -166,6 +167,11 @@ export default function WhatsAppModal({
         </div>
 
         <div className="space-y-2 px-6 py-4">
+          <div className="rounded-sm border border-amber-200 bg-amber-50 px-3 py-2">
+            <p className="text-[11px] leading-relaxed text-amber-900/85">
+              {copy.notice}
+            </p>
+          </div>
           <label
             htmlFor="wa-message"
             className="block text-[10px] tracking-[0.25em] text-[#0d0d0b]/40 uppercase"

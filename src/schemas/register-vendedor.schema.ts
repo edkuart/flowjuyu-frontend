@@ -61,6 +61,11 @@ export const registerVendedorSchema = z
     direccion:   z.string().optional(),
     descripcion: z.string().optional(),
     logo:        z.any().optional(),
+    acceptedLegalTerms: z
+      .boolean()
+      .refine((value) => value, {
+        message: "Debes aceptar los Términos y la Política de Privacidad",
+      }),
   })
   .refine((data) => data.password === data.confirmarPassword, {
     message: "Las contraseñas no coinciden",

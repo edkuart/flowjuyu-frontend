@@ -16,6 +16,7 @@ import {
 } from "@/components/ui/dialog"
 import { ProductEditorShell } from "@/components/product-edit/ProductEditorShell"
 import { useProductCreate } from "@/hooks/useProductCreate"
+import { track } from "@/lib/analytics"
 import { apiGetVendedorPerfil } from "@/services/vendedorPerfil"
 
 type EstadoValidacion = "pendiente" | "aprobado" | "rechazado"
@@ -58,10 +59,21 @@ export default function NewProductPage() {
     if (!result) return
 
     if (result.internal_code) {
+      if (publish) {
+        track("seller_first_product_published", {
+          surface: "seller_product_create",
+          internal_code: result.internal_code,
+        })
+      }
       setCreatedCode(result.internal_code)
       return
     }
 
+    if (publish) {
+      track("seller_first_product_published", {
+        surface: "seller_product_create",
+      })
+    }
     router.push("/seller/products?first=1")
     router.refresh()
   }

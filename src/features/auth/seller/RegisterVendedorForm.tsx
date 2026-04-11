@@ -14,6 +14,7 @@ import { departamentosConMunicipios } from "@/data/municipios";
 import { Label } from "@/components/ui/label";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
+import { Checkbox } from "@/components/ui/checkbox";
 import { Eye, EyeOff, Upload, CheckCircle2 } from "lucide-react";
 import { apiRegisterSeller } from "@/services/auth";
 import { useAuth } from "@/context/AuthContext";
@@ -168,6 +169,9 @@ export default function RegisterVendedorForm() {
     watch,
   } = useForm<RegisterVendedorValues>({
     resolver: zodResolver(registerVendedorSchema),
+    defaultValues: {
+      acceptedLegalTerms: false,
+    },
   });
 
   const onSubmit = useCallback(
@@ -199,6 +203,7 @@ export default function RegisterVendedorForm() {
       form.append("dpi",         data.dpi);
       form.append("direccion",   data.direccion   ?? "");
       form.append("descripcion", data.descripcion ?? "");
+      form.append("accepted_legal_terms", String(data.acceptedLegalTerms));
       // KYC documents (backend field names match upload.middleware.ts)
       form.append("foto_dpi_frente",  dpiFrente!);
       form.append("foto_dpi_reverso", dpiReverso!);
@@ -400,6 +405,48 @@ export default function RegisterVendedorForm() {
             {rootError}
           </div>
         )}
+
+        <div className="rounded-2xl border border-neutral-200 bg-neutral-50 px-4 py-3">
+          <div className="flex items-start gap-3">
+            <Checkbox
+              id="acceptedLegalTerms"
+              checked={watch("acceptedLegalTerms")}
+              onCheckedChange={(checked) =>
+                setValue("acceptedLegalTerms", checked === true, {
+                  shouldValidate: true,
+                  shouldDirty: true,
+                })
+              }
+              className="mt-0.5 border-neutral-300 data-[state=checked]:border-[#0F3D3A] data-[state=checked]:bg-[#0F3D3A]"
+            />
+            <div className="space-y-1.5">
+              <Label
+                htmlFor="acceptedLegalTerms"
+                className="text-sm leading-6 text-neutral-700"
+              >
+                Acepto los{" "}
+                <Link
+                  href="/legal/terms"
+                  className="font-medium text-[#0F3D3A] hover:underline"
+                >
+                  Términos
+                </Link>
+                {" "}y la{" "}
+                <Link
+                  href="/legal/privacy"
+                  className="font-medium text-[#0F3D3A] hover:underline"
+                >
+                  Política de Privacidad
+                </Link>
+              </Label>
+              {errors.acceptedLegalTerms && (
+                <p className="text-xs text-red-500">
+                  {errors.acceptedLegalTerms.message}
+                </p>
+              )}
+            </div>
+          </div>
+        </div>
 
         {/* ── Submit ─────────────────────────────────────────────────────── */}
         <Button

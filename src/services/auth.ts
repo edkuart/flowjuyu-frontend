@@ -13,9 +13,10 @@ export async function apiRegisterComprador(data: {
   confirmarPassword?: string
   telefono?: string
   direccion?: string
+  acceptedLegalTerms: boolean
 }) {
   try {
-    const res = await fetch(`${API}/api/register`, {
+    const res = await fetch(`/api/auth/register/buyer`, {
       method:      "POST",
       credentials: "include",
       headers: {
@@ -28,6 +29,7 @@ export async function apiRegisterComprador(data: {
         rol: "buyer",
         telefono: data.telefono?.trim() || null,
         direccion: data.direccion?.trim() || null,
+        accepted_legal_terms: data.acceptedLegalTerms,
       }),
     })
 
@@ -52,7 +54,7 @@ export async function apiRegisterComprador(data: {
 // =====================
 export async function apiRegisterSeller(formData: FormData) {
   try {
-    const res = await fetch(`${API}/api/register/seller`, {
+    const res = await fetch(`/api/auth/register/seller`, {
       method:      "POST",
       credentials: "include",
       body:        formData,

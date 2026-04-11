@@ -11,6 +11,7 @@ import {
   buildWhatsAppHref,
   extractWhatsAppPhone,
 } from "@/lib/whatsapp";
+import { LEGAL_WHATSAPP_NOTICE } from "@/lib/legal";
 
 const API_BASE = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8800";
 const SITE_URL = process.env.NEXT_PUBLIC_SITE_URL || "https://flowjuyu.com";
@@ -181,6 +182,7 @@ export function ProductContactCTA({
             ariaLabel: tr("pdp.whatsappModalAriaLabel"),
             title: tr("pdp.whatsappModalTitle"),
             subtitle: language !== "es" ? tr("pdp.whatsappModalSubtitleBilingual") : tr("pdp.whatsappModalSubtitle"),
+            notice: LEGAL_WHATSAPP_NOTICE,
             messageLabel: tr("pdp.whatsappModalMessageLabel"),
             hint: tr("pdp.whatsappModalHint"),
             confirm: tr("pdp.whatsappModalConfirm"),

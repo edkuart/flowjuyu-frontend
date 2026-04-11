@@ -10,6 +10,7 @@ import { Label } from "@/components/ui/label"
 import { Input } from "@/components/ui/input"
 import { Textarea } from "@/components/ui/textarea"
 import { Switch } from "@/components/ui/switch"
+import { SellerEducationHint } from "@/components/seller/SellerEducationHint"
 import { SectionCard } from "./SectionCard"
 import type { CommonSectionProps } from "@/types/product-edit"
 
@@ -72,6 +73,10 @@ export function SectionInformacion({
       defaultExpanded={defaultExpanded}
       priority={priority}
     >
+      <SellerEducationHint title="Nombre">
+        <p>Ejemplo: Corte tradicional tejido a mano.</p>
+      </SellerEducationHint>
+
       <div className="space-y-1.5">
         <Label
           htmlFor="edit-nombre"
@@ -109,6 +114,15 @@ export function SectionInformacion({
           className="resize-none border-gray-200 text-sm focus-visible:border-[#0f2e22]/50 focus-visible:ring-1 focus-visible:ring-[#0f2e22]/40"
           maxLength={2000}
         />
+        <SellerEducationHint title="Descripcion clara">
+          <div className="space-y-1">
+            <p>Usa esta plantilla breve:</p>
+            <p>Material:</p>
+            <p>Tamano:</p>
+            <p>Colores:</p>
+            <p>Uso:</p>
+          </div>
+        </SellerEducationHint>
         <p className="text-right text-[11px] text-gray-300">
           {(product.descripcion ?? "").length} / 2000
         </p>

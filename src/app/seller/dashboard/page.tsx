@@ -3,6 +3,7 @@
 "use client"
 
 import { useEffect, useState, useMemo } from "react"
+import { useRouter } from "next/navigation"
 import Link from "next/link"
 import {
   Eye,
@@ -29,6 +30,7 @@ import {
 
 import { Button } from "@/components/ui/button"
 import { apiFetch } from "@/lib/api"
+import { apiGetVendedorPerfil } from "@/services/vendedorPerfil"
 
 import { fetchSellerDashboard } from "@/services/sellerDashboard"
 import { fetchSellerAnalytics } from "@/services/sellerAnalytics"
@@ -47,6 +49,8 @@ import { BaseCard } from "@/components/ui/BaseCard"
 import { BaseSection } from "@/components/ui/BaseSection"
 import { BaseSectionHeading } from "@/components/ui/BaseSectionHeading"
 import { BaseExpandableCard } from "@/components/ui/BaseExpandableCard"
+import { SellerProgressCard } from "@/components/seller/SellerProgressCard"
+import type { SellerPerfil } from "@/lib/sellerProgress"
 
 type Analytics = {
   totalProductViews: number
@@ -94,7 +98,20 @@ type ReviewInsights = {
 }
 
 export default function SellerDashboardPage() {
+  const router = useRouter()
   const [loading, setLoading] = useState(true)
+  const [sellerProducts, setSellerProducts] = useState<
+    Array<{
+      activo?: boolean
+      descripcion?: string
+      imagenes?: Array<{ url?: string | null }>
+      imagen_url?: string | null
+    }>
+  >([])
+  const [sellerProfile, setSellerProfile] = useState<SellerPerfil | null>(null)
+  const [sellerValidation, setSellerValidation] = useState<
+    "pendiente" | "en_revision" | "aprobado" | "rechazado" | null
+  >(null)
 
   const [catalogo, setCatalogo] = useState({
     total: 0,
@@ -144,8 +161,45 @@ export default function SellerDashboardPage() {
   useEffect(() => {
     async function load() {
       try {
+        // ── Onboarding guard ───────────────────────────────────────────────────
+        // Sellers who haven't completed onboarding are redirected before we try
+        // to load dashboard data (which would fail with 403 for inactive sellers).
+        const onboardingRes = await apiFetch("/api/seller/onboarding/status")
+        if (onboardingRes.ok) {
+          const onboardingData = await onboardingRes.json()
+          const completedStates = ["FIRST_PRODUCT_PUBLISHED", "ACTIVATED"]
+          if (!completedStates.includes(onboardingData.onboarding_state)) {
+            router.replace("/seller/onboarding")
+            return
+          }
+        }
+        // ── End onboarding guard ───────────────────────────────────────────────
+
         const dash = await fetchSellerDashboard()
         const analyticsData = await fetchSellerAnalytics()
+        const [profileRes, productsRes] = await Promise.all([
+          apiGetVendedorPerfil().catch(() => null),
+          apiFetch("/api/seller/products")
+            .then(async (res) => {
+              if (!res.ok) return []
+              const data = await res.json().catch(() => [])
+              return Array.isArray(data) ? data : data.data || []
+            })
+            .catch(() => []),
+        ])
+
+        if (profileRes?.ok && profileRes.perfil) {
+          setSellerProfile(profileRes.perfil)
+          setSellerValidation(
+            (profileRes.perfil.estado_validacion as
+              | "pendiente"
+              | "en_revision"
+              | "aprobado"
+              | "rechazado"
+              | null) ?? null,
+          )
+        }
+        setSellerProducts(productsRes)
 
         setCatalogo({
           total: dash.productoStats?.total ?? 0,
@@ -456,6 +510,13 @@ export default function SellerDashboardPage() {
               title="Tu dashboard de seller"
               description="Una lectura rápida de tus métricas, prioridades y oportunidades de crecimiento."
             />
+            <div className="space-y-4">
+              <SellerProgressCard
+                estadoValidacion={sellerValidation}
+                productos={sellerProducts}
+                perfil={sellerProfile}
+              />
+            </div>
             <PriorityInsightBanner insight={priorityInsight} />
           </BaseSection>
 

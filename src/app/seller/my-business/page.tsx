@@ -29,6 +29,7 @@ import { buildHeaderStyle, DEFAULT_HEADER_STYLE } from '@/lib/headerStyle'
 import type { HeaderStyle } from '@/lib/headerStyle'
 import { phoneToWaUrl, hasPhone } from '@/lib/phone'
 import type { PhoneNumber } from '@/lib/phone'
+import { markSellerStoreShared } from '@/lib/sellerEducation'
 
 /* =========================================================
    TYPES
@@ -321,7 +322,10 @@ export default function MyBusinessPage() {
 
                 <Button
                   variant="secondary"
-                  onClick={() => setQrOpen(true)}
+                  onClick={() => {
+                    markSellerStoreShared()
+                    setQrOpen(true)
+                  }}
                   className="w-full bg-white/15 hover:bg-white/25 text-white border-white/20 border backdrop-blur gap-1.5"
                 >
                   <QrCode className="w-3.5 h-3.5" />

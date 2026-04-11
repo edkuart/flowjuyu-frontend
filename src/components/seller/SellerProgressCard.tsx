@@ -1,13 +1,15 @@
 "use client"
 
+import { useEffect, useState } from "react"
 import Link from "next/link"
 import {
   CheckCircle2,
   Circle,
-  UserCheck,
-  ShieldCheck,
   Package,
-  Sparkles,
+  Camera,
+  FileText,
+  Share2,
+  UserCheck,
   ArrowRight,
   ChevronRight,
   AlertCircle,
@@ -19,6 +21,7 @@ import {
   type SellerPerfil,
   type SellerProgressStep,
 } from "@/lib/sellerProgress"
+import { hasSellerStoreBeenShared } from "@/lib/sellerEducation"
 
 /* ──────────────────────────────────────────
    TYPES
@@ -28,7 +31,12 @@ export type { EstadoValidacion } // re-export for consumers
 
 export interface SellerProgressCardProps {
   estadoValidacion: EstadoValidacion
-  productos: { activo?: boolean }[]
+  productos: {
+    activo?: boolean
+    descripcion?: string | null
+    imagenes?: Array<{ url?: string | null }>
+    imagen_url?: string | null
+  }[]
   perfil: SellerPerfil | null
 }
 
@@ -37,10 +45,11 @@ export interface SellerProgressCardProps {
 ────────────────────────────────────────── */
 
 const STEP_ICONS: Record<string, React.ReactNode> = {
-  account: <Sparkles  className="w-4 h-4" />,
   profile: <UserCheck className="w-4 h-4" />,
   product: <Package   className="w-4 h-4" />,
-  kyc:     <ShieldCheck className="w-4 h-4" />,
+  photos: <Camera className="w-4 h-4" />,
+  description: <FileText className="w-4 h-4" />,
+  share: <Share2 className="w-4 h-4" />,
 }
 
 /* ──────────────────────────────────────────
@@ -154,10 +163,17 @@ export function SellerProgressCard({
   productos,
   perfil,
 }: SellerProgressCardProps) {
+  const [storeShared, setStoreShared] = useState(false)
+
+  useEffect(() => {
+    setStoreShared(hasSellerStoreBeenShared())
+  }, [])
+
   const { steps, percentage, nextAction, nextHref } = getSellerProgress({
     estadoValidacion,
     productos,
     perfil,
+    storeShared,
   })
 
   const completedCount = steps.filter(s => s.done).length
@@ -183,10 +199,10 @@ export function SellerProgressCard({
           <div className="flex items-center justify-between">
             <div>
               <h2 className="text-base font-bold text-neutral-800 leading-tight">
-                Activa tu tienda
+                Checklist del seller
               </h2>
               <p className="text-xs text-neutral-400 mt-0.5">
-                {completedCount} de {steps.length} pasos completados
+                {completedCount} de {steps.length} acciones completadas
               </p>
             </div>
             <span

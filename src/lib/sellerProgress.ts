@@ -58,10 +58,17 @@ export function getSellerProgress({
   estadoValidacion,
   productos,
   perfil,
+  storeShared = false,
 }: {
   estadoValidacion: EstadoValidacion
-  productos: { activo?: boolean }[]
+  productos: {
+    activo?: boolean
+    descripcion?: string | null
+    imagenes?: Array<{ url?: string | null }>
+    imagen_url?: string | null
+  }[]
   perfil: SellerPerfil | null
+  storeShared?: boolean
 }): SellerProgressResult {
   const perfilCompleto = Boolean(
     perfil?.nombre_comercio?.trim() &&
@@ -69,37 +76,53 @@ export function getSellerProgress({
     (perfil?.logo || perfil?.imagen_url)
   )
 
-  const hasActiveProduct = productos.some(p => p.activo === true)
+  const hasProduct = productos.length > 0
+  const hasStrongImages = productos.some((product) => {
+    const imageCount = product.imagenes?.filter((image) => image?.url)?.length ?? 0
+    return imageCount >= 2 || Boolean(product.imagen_url)
+  })
+  const hasClearDescription = productos.some(
+    (product) => (product.descripcion?.trim().length ?? 0) >= 60,
+  )
+  const hasActiveProduct = productos.some((product) => product.activo === true)
   const isVerified = estadoValidacion === "aprobado"
+  const profileDone = perfilCompleto || isVerified
 
   const steps: SellerProgressStep[] = [
     {
-      key: "account",
-      label: "Cuenta creada",
-      description: "Tu cuenta de vendedor está activa.",
-      done: true,
-      href: "#",
-    },
-    {
       key: "profile",
-      label: "Perfil completado",
-      description: "Agrega nombre, descripción y logo de tu negocio.",
-      done: perfilCompleto,
+      label: "Completar perfil",
+      description: "Agrega nombre, descripción y logo para inspirar confianza.",
+      done: profileDone,
       href: "/seller/profile",
     },
     {
       key: "product",
-      label: "Primer producto publicado",
-      description: "Publica al menos un producto para aparecer en el catálogo.",
-      done: hasActiveProduct,
+      label: "Subir producto",
+      description: "Publica al menos un producto para empezar a vender.",
+      done: hasProduct,
       href: "/seller/products/new",
     },
     {
-      key: "kyc",
-      label: "Verificación aprobada",
-      description: "Sube tu DPI y documentos de identidad para activar tu tienda.",
-      done: isVerified,
-      href: "/seller/account",
+      key: "photos",
+      label: "Mejorar fotos",
+      description: "Usa fotos claras y suficientes para que el producto se entienda.",
+      done: hasStrongImages,
+      href: hasProduct ? "/seller/products" : "/seller/products/new",
+    },
+    {
+      key: "description",
+      label: "Agregar descripcion clara",
+      description: "Explica material, tamano, colores o uso para generar confianza.",
+      done: hasClearDescription,
+      href: hasProduct ? "/seller/products" : "/seller/products/new",
+    },
+    {
+      key: "share",
+      label: "Compartir tienda",
+      description: "Comparte tu tienda para conseguir primeras visitas.",
+      done: storeShared,
+      href: "/seller/my-business",
     },
   ]
 
@@ -111,18 +134,26 @@ export function getSellerProgress({
   let nextAction: string | null = null
   let nextHref: string | null = null
 
-  if (!perfilCompleto) {
+  if (!profileDone) {
     nextStep = "Completa tu perfil"
     nextAction = "Completa tu perfil de vendedor"
     nextHref = "/seller/profile"
-  } else if (!hasActiveProduct) {
-    nextStep = "Crea tu primer producto"
-    nextAction = "Crea y publica tu primer producto"
+  } else if (!hasProduct) {
+    nextStep = "Sube tu primer producto"
+    nextAction = "Sube tu primer producto"
     nextHref = "/seller/products/new"
-  } else if (!isVerified) {
-    nextStep = "Verificación pendiente"
-    nextAction = "Sube tus documentos de verificación"
-    nextHref = "/seller/account"
+  } else if (!hasStrongImages) {
+    nextStep = "Mejora tus fotos"
+    nextAction = "Agrega fotos mas claras a tu producto"
+    nextHref = "/seller/products"
+  } else if (!hasClearDescription) {
+    nextStep = "Aclara tu descripcion"
+    nextAction = "Completa una descripcion que genere confianza"
+    nextHref = "/seller/products"
+  } else if (!storeShared) {
+    nextStep = "Comparte tu tienda"
+    nextAction = "Comparte tu tienda para atraer visitas"
+    nextHref = "/seller/my-business"
   }
 
   return { steps, percentage, nextStep, nextAction, nextHref }
