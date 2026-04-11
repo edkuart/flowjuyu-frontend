@@ -13,26 +13,26 @@
  *   KYC pending/review  → /seller/status
  *   KYC rejected        → /seller/kyc-retry
  *   admin inactive      → /seller/status
- *   fully active        → /seller/my-business
+ *   fully active        → /seller/dashboard
  */
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
 export type EstadoValidacion = "pendiente" | "aprobado" | "rechazado";
-export type EstadoAdmin      = "activo"   | "inactivo" | "suspendido";
+export type EstadoAdmin = "activo" | "inactivo" | "suspendido";
 
 /**
  * Minimal profile shape needed to compute the entry point.
  * Returned by GET /api/seller/entry-point.
  */
 export interface SellerEntryPerfil {
-  nombre_comercio?:   string | null;
-  descripcion?:       string | null;
-  banner_url?:        string | null;
-  telefono?:          string | null;
+  nombre_comercio?: string | null;
+  descripcion?: string | null;
+  banner_url?: string | null;
+  telefono?: string | null;
   telefono_comercio?: string | null;
   estado_validacion?: EstadoValidacion | null;
-  estado_admin?:      EstadoAdmin      | null;
+  estado_admin?: EstadoAdmin | null;
 }
 
 // ─── Completeness check ───────────────────────────────────────────────────────
@@ -76,7 +76,7 @@ export function getSellerEntryPoint(perfil: SellerEntryPerfil | null): string {
   // 3. KYC pending or under review — documents submitted, waiting for approval.
   if (
     perfil.estado_validacion === "pendiente" ||
-    perfil.estado_validacion == null           // treat unknown / null as pending
+    perfil.estado_validacion == null // treat unknown / null as pending
   ) {
     return "/seller/status";
   }
@@ -93,5 +93,5 @@ export function getSellerEntryPoint(perfil: SellerEntryPerfil | null): string {
   }
 
   // 6. Fully active seller.
-  return "/seller/my-business";
+  return "/seller/dashboard";
 }

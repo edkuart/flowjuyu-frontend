@@ -15,34 +15,36 @@
 import { useEffect, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import { apiFetch } from "@/lib/api";
-
-// ── Types ────────────────────────────────────────────────────────────────────
-
-type OnboardingState =
-  | "NEW_USER"
-  | "SELLER_REGISTERED"
-  | "PROFILE_STARTED"
-  | "FIRST_PRODUCT_STARTED"
-  | "FIRST_PRODUCT_PUBLISHED"
-  | "ACTIVATED";
-
-interface OnboardingStatus {
-  onboarding_state: OnboardingState;
-  checklist: {
-    profile_completed: boolean;
-    first_product_submitted: boolean;
-    profile_photo_uploaded: boolean;
-    whatsapp_linked: boolean;
-  };
-}
+import {
+  getSellerOnboardingStep,
+  type SellerOnboardingState,
+  type SellerOnboardingStatus,
+} from "@/lib/sellerOnboarding";
 
 // ── Constants ─────────────────────────────────────────────────────────────────
 
 const DEPARTAMENTOS = [
-  "Ciudad de Guatemala", "Sacatepéquez", "Chimaltenango", "Escuintla",
-  "Santa Rosa", "Sololá", "Totonicapán", "Quetzaltenango", "Suchitepéquez",
-  "Retalhuleu", "San Marcos", "Huehuetenango", "Quiché", "Baja Verapaz",
-  "Alta Verapaz", "Petén", "Izabal", "Zacapa", "Chiquimula", "Jalapa", "Jutiapa",
+  "Ciudad de Guatemala",
+  "Sacatepéquez",
+  "Chimaltenango",
+  "Escuintla",
+  "Santa Rosa",
+  "Sololá",
+  "Totonicapán",
+  "Quetzaltenango",
+  "Suchitepéquez",
+  "Retalhuleu",
+  "San Marcos",
+  "Huehuetenango",
+  "Quiché",
+  "Baja Verapaz",
+  "Alta Verapaz",
+  "Petén",
+  "Izabal",
+  "Zacapa",
+  "Chiquimula",
+  "Jalapa",
+  "Jutiapa",
 ];
 
 // ── Stepper ──────────────────────────────────────────────────────────────────
@@ -50,24 +52,28 @@ const DEPARTAMENTOS = [
 function Stepper({ current }: { current: 0 | 1 | 2 }) {
   const steps = ["Tu tienda", "Primer producto", "¡Listo!"];
   return (
-    <div className="flex items-center justify-center mb-8 gap-0">
+    <div className="mb-8 flex items-center justify-center gap-0">
       {steps.map((label, i) => (
         <div key={i} className="flex items-center">
           <div className="flex flex-col items-center">
             <div
               className={[
-                "w-8 h-8 rounded-full flex items-center justify-center text-sm font-bold transition-colors",
-                i < current  ? "bg-emerald-500 text-white" : "",
-                i === current ? "bg-indigo-600 text-white ring-4 ring-indigo-100" : "",
-                i > current  ? "bg-gray-100 text-gray-400" : "",
+                "flex h-8 w-8 items-center justify-center rounded-full text-sm font-bold transition-colors",
+                i < current ? "bg-emerald-500 text-white" : "",
+                i === current
+                  ? "bg-indigo-600 text-white ring-4 ring-indigo-100"
+                  : "",
+                i > current ? "bg-gray-100 text-gray-400" : "",
               ].join(" ")}
             >
               {i < current ? "✓" : i + 1}
             </div>
             <span
               className={[
-                "text-xs mt-1 whitespace-nowrap",
-                i === current ? "text-indigo-600 font-semibold" : "text-gray-400",
+                "mt-1 text-xs whitespace-nowrap",
+                i === current
+                  ? "font-semibold text-indigo-600"
+                  : "text-gray-400",
               ].join(" ")}
             >
               {label}
@@ -76,7 +82,7 @@ function Stepper({ current }: { current: 0 | 1 | 2 }) {
           {i < steps.length - 1 && (
             <div
               className={[
-                "h-0.5 w-12 sm:w-16 mx-2 mb-4 transition-colors",
+                "mx-2 mb-4 h-0.5 w-12 transition-colors sm:w-16",
                 i < current ? "bg-emerald-500" : "bg-gray-200",
               ].join(" ")}
             />
@@ -127,7 +133,7 @@ function StepProfile({ onDone }: { onDone: () => void }) {
           <h2 className="text-xl font-bold text-gray-900">
             ¿Cómo se llama tu negocio?
           </h2>
-          <p className="text-sm text-gray-500 mt-1">
+          <p className="mt-1 text-sm text-gray-500">
             Este nombre aparecerá en tu tienda para los compradores.
           </p>
         </div>
@@ -137,14 +143,12 @@ function StepProfile({ onDone }: { onDone: () => void }) {
           value={nombreComercio}
           onChange={(e) => setNombreComercio(e.target.value)}
           placeholder="Ej: Tejidos María de Comalapa"
-          className="w-full border border-gray-300 rounded-xl px-4 py-3 text-base focus:outline-none focus:ring-2 focus:ring-indigo-500"
+          className="w-full rounded-xl border border-gray-300 px-4 py-3 text-base focus:ring-2 focus:ring-indigo-500 focus:outline-none"
           maxLength={100}
           autoFocus
         />
 
-        {error && (
-          <p className="text-red-500 text-sm">{error}</p>
-        )}
+        {error && <p className="text-sm text-red-500">{error}</p>}
 
         <button
           onClick={() => {
@@ -155,7 +159,7 @@ function StepProfile({ onDone }: { onDone: () => void }) {
             setError("");
             setSubStep(1);
           }}
-          className="w-full bg-indigo-600 text-white py-3 rounded-xl font-semibold text-base hover:bg-indigo-700 active:scale-[0.98] transition"
+          className="w-full rounded-xl bg-indigo-600 py-3 text-base font-semibold text-white transition hover:bg-indigo-700 active:scale-[0.98]"
         >
           Continuar →
         </button>
@@ -168,27 +172,27 @@ function StepProfile({ onDone }: { onDone: () => void }) {
       <div>
         <button
           onClick={() => setSubStep(0)}
-          className="text-indigo-600 text-sm mb-3 flex items-center gap-1"
+          className="mb-3 flex items-center gap-1 text-sm text-indigo-600"
         >
           ← Volver
         </button>
         <h2 className="text-xl font-bold text-gray-900">
           ¿En qué departamento estás?
         </h2>
-        <p className="text-sm text-gray-500 mt-1">
+        <p className="mt-1 text-sm text-gray-500">
           Ayuda a los compradores a encontrarte.
         </p>
       </div>
 
-      <div className="grid grid-cols-2 gap-2 max-h-60 overflow-y-auto pr-1">
+      <div className="grid max-h-60 grid-cols-2 gap-2 overflow-y-auto pr-1">
         {DEPARTAMENTOS.map((dep) => (
           <button
             key={dep}
             onClick={() => setDepartamento(dep)}
             className={[
-              "px-3 py-2 rounded-lg border text-sm text-left transition",
+              "rounded-lg border px-3 py-2 text-left text-sm transition",
               departamento === dep
-                ? "border-indigo-600 bg-indigo-50 text-indigo-700 font-semibold"
+                ? "border-indigo-600 bg-indigo-50 font-semibold text-indigo-700"
                 : "border-gray-200 text-gray-700 hover:border-gray-400",
             ].join(" ")}
           >
@@ -197,12 +201,12 @@ function StepProfile({ onDone }: { onDone: () => void }) {
         ))}
       </div>
 
-      {error && <p className="text-red-500 text-sm">{error}</p>}
+      {error && <p className="text-sm text-red-500">{error}</p>}
 
       <button
         onClick={handleSave}
         disabled={!departamento || saving}
-        className="w-full bg-indigo-600 text-white py-3 rounded-xl font-semibold text-base disabled:opacity-50 hover:bg-indigo-700 active:scale-[0.98] transition"
+        className="w-full rounded-xl bg-indigo-600 py-3 text-base font-semibold text-white transition hover:bg-indigo-700 active:scale-[0.98] disabled:opacity-50"
       >
         {saving ? "Guardando…" : "Continuar →"}
       </button>
@@ -261,8 +265,13 @@ function StepProduct({ onDone }: { onDone: () => void }) {
       if (!res.ok) {
         const data = await res.json().catch(() => ({}));
         // 409 = already submitted — move forward anyway
-        if (res.status === 409) { onDone(); return; }
-        throw new Error((data as any).message ?? "Error al guardar el producto");
+        if (res.status === 409) {
+          onDone();
+          return;
+        }
+        throw new Error(
+          (data as any).message ?? "Error al guardar el producto",
+        );
       }
 
       onDone();
@@ -279,28 +288,31 @@ function StepProduct({ onDone }: { onDone: () => void }) {
         <h2 className="text-xl font-bold text-gray-900">
           Publica tu primer producto
         </h2>
-        <p className="text-sm text-gray-500 mt-1">
+        <p className="mt-1 text-sm text-gray-500">
           Solo 3 datos para empezar. Puedes editar todo después.
         </p>
       </div>
 
       {/* Foto */}
       <div>
-        <p className="text-sm font-medium text-gray-700 mb-2">
+        <p className="mb-2 text-sm font-medium text-gray-700">
           Foto del producto{" "}
-          <span className="text-gray-400 font-normal">(opcional)</span>
+          <span className="font-normal text-gray-400">(opcional)</span>
         </p>
         {imagePreview ? (
-          <div className="relative rounded-xl overflow-hidden">
+          <div className="relative overflow-hidden rounded-xl">
             {/* eslint-disable-next-line @next/next/no-img-element */}
             <img
               src={imagePreview}
               alt="Vista previa"
-              className="w-full h-48 object-cover"
+              className="h-48 w-full object-cover"
             />
             <button
-              onClick={() => { setImageFile(null); setImagePreview(null); }}
-              className="absolute top-2 right-2 bg-white rounded-full px-2 py-1 text-xs text-gray-700 shadow hover:bg-gray-100 transition"
+              onClick={() => {
+                setImageFile(null);
+                setImagePreview(null);
+              }}
+              className="absolute top-2 right-2 rounded-full bg-white px-2 py-1 text-xs text-gray-700 shadow transition hover:bg-gray-100"
             >
               Cambiar
             </button>
@@ -308,9 +320,9 @@ function StepProduct({ onDone }: { onDone: () => void }) {
         ) : (
           <button
             onClick={() => fileRef.current?.click()}
-            className="w-full h-40 border-2 border-dashed border-gray-300 rounded-xl flex flex-col items-center justify-center text-gray-400 hover:border-indigo-400 hover:text-indigo-400 transition"
+            className="flex h-40 w-full flex-col items-center justify-center rounded-xl border-2 border-dashed border-gray-300 text-gray-400 transition hover:border-indigo-400 hover:text-indigo-400"
           >
-            <span className="text-3xl mb-2">📷</span>
+            <span className="mb-2 text-3xl">📷</span>
             <span className="text-sm">Toca para agregar una foto</span>
           </button>
         )}
@@ -325,7 +337,7 @@ function StepProduct({ onDone }: { onDone: () => void }) {
 
       {/* Nombre */}
       <div>
-        <label className="text-sm font-medium text-gray-700 block mb-2">
+        <label className="mb-2 block text-sm font-medium text-gray-700">
           Nombre del producto
         </label>
         <input
@@ -333,18 +345,18 @@ function StepProduct({ onDone }: { onDone: () => void }) {
           value={nombre}
           onChange={(e) => setNombre(e.target.value)}
           placeholder="Ej: Corte típico de Chichicastenango"
-          className="w-full border border-gray-300 rounded-xl px-4 py-3 text-base focus:outline-none focus:ring-2 focus:ring-indigo-500"
+          className="w-full rounded-xl border border-gray-300 px-4 py-3 text-base focus:ring-2 focus:ring-indigo-500 focus:outline-none"
           maxLength={255}
         />
       </div>
 
       {/* Precio */}
       <div>
-        <label className="text-sm font-medium text-gray-700 block mb-2">
+        <label className="mb-2 block text-sm font-medium text-gray-700">
           Precio en quetzales
         </label>
         <div className="relative">
-          <span className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-500 font-semibold select-none">
+          <span className="absolute top-1/2 left-4 -translate-y-1/2 font-semibold text-gray-500 select-none">
             Q
           </span>
           <input
@@ -354,13 +366,13 @@ function StepProduct({ onDone }: { onDone: () => void }) {
             placeholder="0.00"
             min="1"
             step="0.01"
-            className="w-full border border-gray-300 rounded-xl pl-8 pr-4 py-3 text-base focus:outline-none focus:ring-2 focus:ring-indigo-500"
+            className="w-full rounded-xl border border-gray-300 py-3 pr-4 pl-8 text-base focus:ring-2 focus:ring-indigo-500 focus:outline-none"
           />
         </div>
       </div>
 
       {error && (
-        <div className="bg-red-50 border border-red-200 rounded-lg px-4 py-3 text-red-700 text-sm">
+        <div className="rounded-lg border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">
           {error}
         </div>
       )}
@@ -368,7 +380,7 @@ function StepProduct({ onDone }: { onDone: () => void }) {
       <button
         onClick={handleSubmit}
         disabled={submitting}
-        className="w-full bg-indigo-600 text-white py-3 rounded-xl font-semibold text-base disabled:opacity-50 hover:bg-indigo-700 active:scale-[0.98] transition"
+        className="w-full rounded-xl bg-indigo-600 py-3 text-base font-semibold text-white transition hover:bg-indigo-700 active:scale-[0.98] disabled:opacity-50"
       >
         {submitting ? "Publicando…" : "Publicar mi producto →"}
       </button>
@@ -382,36 +394,37 @@ function StepSuccess() {
   const router = useRouter();
 
   return (
-    <div className="text-center space-y-6">
+    <div className="space-y-6 text-center">
       <div className="text-6xl">🎉</div>
 
       <div>
         <h2 className="text-2xl font-bold text-gray-900">
           ¡Tu producto está en Flowjuyu!
         </h2>
-        <p className="text-gray-500 mt-2 text-sm leading-relaxed">
+        <p className="mt-2 text-sm leading-relaxed text-gray-500">
           Estamos revisando tu perfil. Cuando esté aprobado, tu producto
           aparecerá publicado y los compradores podrán encontrarlo.
         </p>
       </div>
 
-      <div className="bg-amber-50 border border-amber-200 rounded-xl px-4 py-3 text-amber-800 text-sm text-left">
+      <div className="rounded-xl border border-amber-200 bg-amber-50 px-4 py-3 text-left text-sm text-amber-800">
         <strong>¿Qué sigue?</strong> Completa tu perfil y agrega más productos
-        mientras revisamos tu cuenta. Te avisamos por WhatsApp cuando esté lista.
+        mientras revisamos tu cuenta. Te avisamos por WhatsApp cuando esté
+        lista.
       </div>
 
       <div className="space-y-3">
         <button
-          onClick={() => router.push("/seller/my-business")}
-          className="w-full bg-indigo-600 text-white py-3 rounded-xl font-semibold text-base hover:bg-indigo-700 active:scale-[0.98] transition"
+          onClick={() => router.push("/seller/dashboard")}
+          className="w-full rounded-xl bg-indigo-600 py-3 text-base font-semibold text-white transition hover:bg-indigo-700 active:scale-[0.98]"
         >
-          Ir a mi tienda
+          Ir a mi dashboard
         </button>
         <button
-          onClick={() => router.push("/seller/dashboard")}
-          className="w-full bg-white border border-gray-300 text-gray-700 py-3 rounded-xl font-semibold text-base hover:bg-gray-50 active:scale-[0.98] transition"
+          onClick={() => router.push("/seller/metrics")}
+          className="w-full rounded-xl border border-gray-300 bg-white py-3 text-base font-semibold text-gray-700 transition hover:bg-gray-50 active:scale-[0.98]"
         >
-          Ver mi panel
+          Ver métricas
         </button>
       </div>
     </div>
@@ -421,76 +434,84 @@ function StepSuccess() {
 // ── Main page ─────────────────────────────────────────────────────────────────
 
 export default function SellerOnboardingPage() {
-  const router = useRouter();
   const [loading, setLoading] = useState(true);
   const [step, setStep] = useState<0 | 1 | 2>(0);
-
-  // Map onboarding_state → step
-  function stateToStep(state: OnboardingState): 0 | 1 | 2 {
-    switch (state) {
-      case "FIRST_PRODUCT_PUBLISHED":
-      case "ACTIVATED":
-        return 2;
-      case "PROFILE_STARTED":
-      case "FIRST_PRODUCT_STARTED":
-        return 1;
-      default:
-        return 0;
-    }
-  }
+  const [onboardingState, setOnboardingState] =
+    useState<SellerOnboardingState | null>(null);
 
   useEffect(() => {
     apiFetch("/api/seller/onboarding/status")
       .then((r) => {
         if (!r.ok) return null;
-        return r.json() as Promise<OnboardingStatus>;
+        return r.json() as Promise<SellerOnboardingStatus>;
       })
       .then((data) => {
         if (!data) return;
-        const mapped = stateToStep(data.onboarding_state);
+        setOnboardingState(data.onboarding_state);
+        const mapped = getSellerOnboardingStep(data.onboarding_state);
         setStep(mapped);
       })
       .catch(() => {
         // If status fetch fails, start from step 0
       })
       .finally(() => setLoading(false));
-  // eslint-disable-next-line react-hooks/exhaustive-deps
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   if (loading) {
     return (
-      <div className="min-h-screen flex items-center justify-center">
-        <div className="w-8 h-8 border-4 border-indigo-600 border-t-transparent rounded-full animate-spin" />
+      <div className="flex min-h-screen items-center justify-center">
+        <div className="h-8 w-8 animate-spin rounded-full border-4 border-indigo-600 border-t-transparent" />
       </div>
     );
   }
 
   return (
-    <div className="min-h-screen flex items-center justify-center px-4 py-12 bg-gray-50">
-      <div className="w-full max-w-md bg-white rounded-2xl shadow-sm border border-gray-100 p-6 sm:p-8">
-
-        {/* Flowjuyu wordmark */}
-        <div className="text-center mb-6">
-          <span className="text-lg font-bold text-indigo-600 tracking-tight">
-            Flowjuyu
-          </span>
-          <p className="text-xs text-gray-400 mt-0.5">
-            Panel del vendedor — Configuración inicial
-          </p>
+    <div className="min-h-screen bg-[radial-gradient(circle_at_top,_rgba(79,70,229,0.12),_transparent_35%),linear-gradient(180deg,#f8fafc_0%,#eef2ff_100%)] px-4 py-10">
+      <div className="mx-auto w-full max-w-5xl">
+        <div className="mb-6 rounded-[28px] border border-indigo-100 bg-white/90 px-6 py-5 shadow-sm backdrop-blur">
+          <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
+            <div className="space-y-2">
+              <p className="text-[11px] font-semibold tracking-[0.16em] text-indigo-500 uppercase">
+                Seller onboarding
+              </p>
+              <h1 className="text-2xl font-semibold text-slate-900">
+                Activa tu tienda sin invadir el resto del dashboard
+              </h1>
+              <p className="max-w-2xl text-sm leading-relaxed text-slate-600">
+                Este flujo vive en su propia ruta. Si entras a métricas o al
+                dashboard general, ya no te vamos a redirigir aquí
+                silenciosamente.
+              </p>
+            </div>
+            <div className="rounded-2xl border border-indigo-100 bg-indigo-50 px-4 py-3 text-sm text-indigo-700">
+              Estado actual:{" "}
+              <span className="font-semibold">
+                {onboardingState ?? "NEW_USER"}
+              </span>
+            </div>
+          </div>
         </div>
 
-        <Stepper current={step} />
+        <div className="mx-auto w-full max-w-md rounded-2xl border border-gray-100 bg-white p-6 shadow-sm sm:p-8">
+          {/* Flowjuyu wordmark */}
+          <div className="mb-6 text-center">
+            <span className="text-lg font-bold tracking-tight text-indigo-600">
+              Flowjuyu
+            </span>
+            <p className="mt-0.5 text-xs text-gray-400">
+              Panel del vendedor — Configuración inicial
+            </p>
+          </div>
 
-        {step === 0 && (
-          <StepProfile onDone={() => setStep(1)} />
-        )}
+          <Stepper current={step} />
 
-        {step === 1 && (
-          <StepProduct onDone={() => setStep(2)} />
-        )}
+          {step === 0 && <StepProfile onDone={() => setStep(1)} />}
 
-        {step === 2 && <StepSuccess />}
+          {step === 1 && <StepProduct onDone={() => setStep(2)} />}
 
+          {step === 2 && <StepSuccess />}
+        </div>
       </div>
     </div>
   );

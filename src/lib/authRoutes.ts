@@ -27,11 +27,14 @@ export type Role = "buyer" | "seller" | "admin" | "support";
 //
 // Evaluated in order — first matching prefix wins.
 
-export const ROUTE_ACCESS: ReadonlyArray<{ readonly prefix: string; readonly roles: ReadonlyArray<Role> }> = [
-  { prefix: "/buyer",   roles: ["buyer",   "seller", "admin"] },
-  { prefix: "/seller",  roles: ["seller",  "admin"]           },
-  { prefix: "/admin",   roles: ["admin"]                      },
-  { prefix: "/support", roles: ["support", "admin"]           },
+export const ROUTE_ACCESS: ReadonlyArray<{
+  readonly prefix: string;
+  readonly roles: ReadonlyArray<Role>;
+}> = [
+  { prefix: "/buyer", roles: ["buyer", "seller", "admin"] },
+  { prefix: "/seller", roles: ["seller", "admin"] },
+  { prefix: "/admin", roles: ["admin"] },
+  { prefix: "/support", roles: ["support", "admin"] },
 ] as const;
 
 // ─── Auth-page prefixes ───────────────────────────────────────────────────────
@@ -53,10 +56,14 @@ export const AUTH_PREFIXES = [
  */
 export function getDefaultDestination(role: Role): string {
   switch (role) {
-    case "buyer":   return "/";
-    case "seller":  return "/seller/my-business";
-    case "admin":   return "/admin/dashboard";
-    case "support": return "/support/dashboard";
+    case "buyer":
+      return "/";
+    case "seller":
+      return "/seller/dashboard";
+    case "admin":
+      return "/admin/dashboard";
+    case "support":
+      return "/support/dashboard";
   }
 }
 

@@ -3,6 +3,7 @@
 import { ReactNode, useState, useEffect } from "react";
 import { usePathname } from "next/navigation";
 import {
+  LayoutDashboard,
   Home,
   Package,
   ShoppingCart,
@@ -18,18 +19,15 @@ import { WhatsAppFloatingButton } from "@/components/seller/whatsapp/WhatsAppFlo
 import { PageShell } from "@/components/layout/PageShell";
 import { SidebarNavItem } from "@/components/layout/SidebarNavItem";
 import { useAuth } from "@/context/AuthContext";
-import {
-  Sheet,
-  SheetContent,
-  SheetTrigger,
-} from "@/components/ui/sheet";
+import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet";
 
 const navItems = [
-  { label: "Mi tienda",          icon: Home,         href: "/seller/my-business" },
-  { label: "Productos",          icon: Package,      href: "/seller/products" },
-  { label: "Pedidos",            icon: ShoppingCart, href: "/seller/orders" },
-  { label: "Métricas",           icon: BarChart3,    href: "/seller/dashboard" },
-  { label: "Cuenta y seguridad", icon: Shield,       href: "/seller/account" },
+  { label: "Resumen", icon: LayoutDashboard, href: "/seller/dashboard" },
+  { label: "Mi tienda", icon: Home, href: "/seller/my-business" },
+  { label: "Productos", icon: Package, href: "/seller/products" },
+  { label: "Pedidos", icon: ShoppingCart, href: "/seller/orders" },
+  { label: "Métricas", icon: BarChart3, href: "/seller/metrics" },
+  { label: "Cuenta y seguridad", icon: Shield, href: "/seller/account" },
 ];
 
 export default function SellerLayout({ children }: { children: ReactNode }) {
@@ -44,23 +42,21 @@ export default function SellerLayout({ children }: { children: ReactNode }) {
 
   return (
     <AuthGuard allowedRoles={["seller", "admin"]}>
-      <div className="min-h-screen flex bg-background">
-
+      <div className="bg-background flex min-h-screen">
         {/* ================= DESKTOP SIDEBAR ================= */}
-        <aside className="w-64 bg-white border-r border-border hidden md:flex flex-col h-screen sticky top-0">
-
+        <aside className="border-border sticky top-0 hidden h-screen w-64 flex-col border-r bg-white md:flex">
           {/* Sidebar header */}
-          <div className="px-6 py-5 border-b border-border">
-            <h2 className="text-lg font-semibold text-foreground tracking-tight">
+          <div className="border-border border-b px-6 py-5">
+            <h2 className="text-foreground text-lg font-semibold tracking-tight">
               Flowjuyu
             </h2>
-            <p className="text-xs text-muted-foreground mt-1">
+            <p className="text-muted-foreground mt-1 text-xs">
               Panel del vendedor
             </p>
           </div>
 
           {/* Navegación */}
-          <nav className="flex-1 px-3 py-4 space-y-0.5">
+          <nav className="flex-1 space-y-0.5 px-3 py-4">
             {navItems.map(({ label, icon, href }) => (
               <SidebarNavItem
                 key={href}
@@ -73,34 +69,33 @@ export default function SellerLayout({ children }: { children: ReactNode }) {
           </nav>
 
           {/* Footer + Logout */}
-          <div className="border-t border-border p-4 space-y-3">
+          <div className="border-border space-y-3 border-t p-4">
             <button
               onClick={logout}
-              className="w-full flex items-center gap-3 text-sm font-medium px-3 py-2 rounded-lg text-muted-foreground hover:bg-muted hover:text-foreground transition"
+              className="text-muted-foreground hover:bg-muted hover:text-foreground flex w-full items-center gap-3 rounded-lg px-3 py-2 text-sm font-medium transition"
             >
-              <LogOut className="w-4 h-4" />
+              <LogOut className="h-4 w-4" />
               Cerrar sesión
             </button>
 
-            <div className="text-xs text-muted-foreground px-3">
+            <div className="text-muted-foreground px-3 text-xs">
               Flowjuyu © {new Date().getFullYear()}
             </div>
           </div>
         </aside>
 
         {/* ================= CONTENIDO ================= */}
-        <div className="flex-1 flex flex-col min-h-screen">
-
+        <div className="flex min-h-screen flex-1 flex-col">
           {/* ================= MOBILE HEADER ================= */}
-          <div className="md:hidden bg-white border-b border-border px-4 py-4 flex items-center justify-between">
-            <h2 className="text-base font-semibold text-foreground">
+          <div className="border-border flex items-center justify-between border-b bg-white px-4 py-4 md:hidden">
+            <h2 className="text-foreground text-base font-semibold">
               Panel vendedor
             </h2>
 
             <Sheet open={open} onOpenChange={setOpen}>
               <SheetTrigger asChild>
-                <button className="p-2 rounded-lg hover:bg-muted transition">
-                  <Menu className="w-5 h-5" />
+                <button className="hover:bg-muted rounded-lg p-2 transition">
+                  <Menu className="h-5 w-5" />
                 </button>
               </SheetTrigger>
 
@@ -119,12 +114,15 @@ export default function SellerLayout({ children }: { children: ReactNode }) {
                 </nav>
 
                 {/* Logout en móvil */}
-                <div className="mt-4 pt-4 border-t border-border">
+                <div className="border-border mt-4 border-t pt-4">
                   <button
-                    onClick={() => { setOpen(false); logout(); }}
-                    className="w-full flex items-center gap-3 text-sm font-medium px-3 py-2 rounded-lg text-muted-foreground hover:bg-muted hover:text-foreground transition"
+                    onClick={() => {
+                      setOpen(false);
+                      logout();
+                    }}
+                    className="text-muted-foreground hover:bg-muted hover:text-foreground flex w-full items-center gap-3 rounded-lg px-3 py-2 text-sm font-medium transition"
                   >
-                    <LogOut className="w-4 h-4" />
+                    <LogOut className="h-4 w-4" />
                     Cerrar sesión
                   </button>
                 </div>
@@ -138,12 +136,9 @@ export default function SellerLayout({ children }: { children: ReactNode }) {
           </div>
 
           {/* ================= MAIN ================= */}
-          <PageShell>
-            {children}
-          </PageShell>
+          <PageShell>{children}</PageShell>
 
           <WhatsAppFloatingButton />
-
         </div>
       </div>
     </AuthGuard>

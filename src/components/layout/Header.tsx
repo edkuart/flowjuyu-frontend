@@ -737,7 +737,7 @@ export default function Header() {
                           {tr("nav.activity")}
                         </p>
                         <Link
-                          href="/seller/dashboard"
+                          href="/seller/metrics"
                           onClick={() => setOpenAccount(false)}
                           className="flex items-center gap-2.5 px-4 py-2 transition-colors hover:bg-neutral-50"
                         >

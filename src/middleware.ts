@@ -31,8 +31,7 @@ import {
 const REFRESH_COOKIE = "fj_rt";
 const SESSION_TIMEOUT_MS = 3_000;
 
-const API_URL =
-  process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:8800";
+const API_URL = process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:8800";
 
 // ─── Session resolution ───────────────────────────────────────────────────────
 
@@ -53,10 +52,7 @@ async function resolveSession(req: NextRequest): Promise<SessionResult> {
 
   try {
     const controller = new AbortController();
-    const timer = setTimeout(
-      () => controller.abort(),
-      SESSION_TIMEOUT_MS,
-    );
+    const timer = setTimeout(() => controller.abort(), SESSION_TIMEOUT_MS);
 
     let res: Response;
     try {
@@ -92,16 +88,17 @@ async function resolveSession(req: NextRequest): Promise<SessionResult> {
 
 // ─── Redirect helpers ─────────────────────────────────────────────────────────
 
-function buildLoginRedirect(req: NextRequest, destination: string): NextResponse {
+function buildLoginRedirect(
+  req: NextRequest,
+  destination: string,
+): NextResponse {
   const loginUrl = new URL("/login", req.url);
   loginUrl.searchParams.set("redirectTo", destination);
   return NextResponse.redirect(loginUrl);
 }
 
 function buildRoleRedirect(req: NextRequest, role: Role): NextResponse {
-  return NextResponse.redirect(
-    new URL(getDefaultDestination(role), req.url),
-  );
+  return NextResponse.redirect(new URL(getDefaultDestination(role), req.url));
 }
 
 // ─── Middleware ───────────────────────────────────────────────────────────────
@@ -149,11 +146,6 @@ export async function middleware(req: NextRequest): Promise<NextResponse> {
         return NextResponse.next();
 
       case "valid":
-        // Sellers landing on the bare /seller index are sent to their dashboard.
-        // All other seller subroutes (and buyer routes) pass through normally.
-        if (session.role === "seller" && pathname === "/seller") {
-          return NextResponse.redirect(new URL("/seller/my-business", req.url));
-        }
         if (!canRoleAccessPath(session.role, pathname)) {
           // Authenticated but wrong role → send to their own dashboard.
           return buildRoleRedirect(req, session.role);
@@ -172,7 +164,7 @@ export const config = {
   matcher: [
     // Protected route groups
     "/buyer/:path*",
-    "/seller/:path*",   // isProtectedRoute() carves out /seller/:numericId
+    "/seller/:path*", // isProtectedRoute() carves out /seller/:numericId
     "/admin/:path*",
     "/support/:path*",
 
