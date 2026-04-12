@@ -14,6 +14,7 @@ import {
 import { apiFetch } from "@/lib/api";
 import { apiGetVendedorPerfil } from "@/services/vendedorPerfil";
 import { SellerProgressCard } from "@/components/seller/SellerProgressCard";
+import { MarketingOptInNudge } from "@/components/consent/MarketingOptInNudge";
 import { BaseCard } from "@/components/ui/BaseCard";
 import { BaseSection } from "@/components/ui/BaseSection";
 import { BaseSectionHeading } from "@/components/ui/BaseSectionHeading";
@@ -198,6 +199,23 @@ export default function SellerDashboardHomePage() {
                 </Link>
               </div>
             </BaseCard>
+          </BaseSection>
+
+          <BaseSection>
+            <MarketingOptInNudge
+              promptKey="seller_marketing_email_dashboard"
+              eligible={sellerProducts.length > 0}
+              eyebrow="Crecimiento opcional"
+              title="Recibe ideas y oportunidades para mover mejor tu tienda"
+              description="Activa correos promocionales solo si te aportan valor: lanzamientos, campañas destacadas y consejos concretos para mejorar conversión."
+              bullets={[
+                "Novedades relevantes del marketplace para sellers activos.",
+                "Consejos prácticos cuando Flowjuyu detecta oportunidades de visibilidad.",
+                "Promociones o iniciativas que pueden ayudarte a vender más.",
+              ]}
+              settingsHref="/seller/account"
+              surface="seller_dashboard"
+            />
           </BaseSection>
 
           <BaseSection>

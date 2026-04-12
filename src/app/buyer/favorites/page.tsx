@@ -4,6 +4,7 @@ import Image from "next/image";
 import Link from "next/link";
 import { Heart, ShoppingBag, Sparkles } from "lucide-react";
 import { useFavorites, type FavoriteItem } from "@/hooks/useFavorites";
+import { MarketingOptInNudge } from "@/components/consent/MarketingOptInNudge";
 import { FavoriteButton } from "@/components/ui/FavoriteButton";
 
 // ─── Page ─────────────────────────────────────────────────────────────────────
@@ -34,6 +35,23 @@ export default function BuyerFavoritesPage() {
             : "Las piezas que guardes aparecerán aquí."}
         </p>
       </div>
+
+      {!loading && favorites.length > 0 && (
+        <MarketingOptInNudge
+          promptKey="buyer_marketing_email_favorites"
+          eligible={favorites.length > 0}
+          eyebrow="Descubrimientos opcionales"
+          title="Recibe avisos cuando aparezcan piezas, colecciones o promos que sí te interesen"
+          description="Si ya guardaste favoritos, podemos avisarte por email sobre novedades y oportunidades promocionales relacionadas con tu exploración en Flowjuyu."
+          bullets={[
+            "Nuevas piezas y lanzamientos que se parecen a lo que ya guardaste.",
+            "Promociones o temporadas especiales dentro del marketplace.",
+            "Selecciones editoriales para descubrir más artesanos y estilos.",
+          ]}
+          settingsHref="/buyer/notifications/settings"
+          surface="buyer_favorites"
+        />
+      )}
 
       {/* ── Skeleton ── */}
       {loading && <SkeletonGrid />}

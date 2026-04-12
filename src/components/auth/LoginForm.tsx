@@ -14,7 +14,9 @@ import { Label } from "@/components/ui/label";
 import { useAuth } from "@/context/AuthContext";
 import type { User } from "@/context/AuthContext";
 import { auth } from "@/lib/firebase";
-import { safeRedirectForRole } from "@/lib/safeRedirect";
+import { parseConsentHints } from "@/lib/consent";
+import { buildConsentReviewPath } from "@/lib/consentNavigation";
+import { safeAppRedirectForRole } from "@/lib/safeRedirect";
 import { getDefaultDestination } from "@/lib/authRoutes";
 import { useLanguage } from "@/i18n/context/useLanguage";
 import esDictionary from "@/i18n/dictionaries/es";
@@ -28,7 +30,14 @@ interface LoginFormProps {
 }
 
 export function LoginForm({ redirectTo }: LoginFormProps) {
-  const { login, isAuthenticated, user, ready } = useAuth();
+  const {
+    login,
+    isAuthenticated,
+    user,
+    ready,
+    consentReady,
+    needsConsent,
+  } = useAuth();
   const { dictionary } = useLanguage();
   const tr = createT(dictionary ?? esDictionary);
 
@@ -45,17 +54,19 @@ export function LoginForm({ redirectTo }: LoginFormProps) {
   const hasRedirected = useRef(false);
 
   useEffect(() => {
-    if (!ready || !isAuthenticated || !user) return;
+    if (!ready || !consentReady || !isAuthenticated || !user) return;
     if (hasRedirected.current) return;
 
     hasRedirected.current = true;
 
     const destination =
-      safeRedirectForRole(redirectTo, user.role) ??
+      safeAppRedirectForRole(redirectTo, user.role) ??
       getDefaultDestination(user.role);
 
-    window.location.replace(destination);
-  }, [ready, isAuthenticated, user, redirectTo]);
+    window.location.replace(
+      needsConsent ? buildConsentReviewPath(destination) : destination,
+    );
+  }, [ready, consentReady, isAuthenticated, user, redirectTo, needsConsent]);
 
   const onSubmit = async (data: LoginValues) => {
     setLoginError(null);
@@ -86,12 +97,17 @@ export function LoginForm({ redirectTo }: LoginFormProps) {
       }
 
       const nextUser = json.user as User;
-      login(nextUser, json.token as string);
+      const consentHints = parseConsentHints(json);
+      login(nextUser, json.token as string, json);
 
       const destination =
-        safeRedirectForRole(redirectTo, nextUser.role) ??
+        safeAppRedirectForRole(redirectTo, nextUser.role) ??
         getDefaultDestination(nextUser.role);
-      window.location.replace(destination);
+      window.location.replace(
+        consentHints?.needsConsent
+          ? buildConsentReviewPath(destination)
+          : destination,
+      );
     } catch {
       setLoginError(tr("auth.loginConnectionError"));
     }
@@ -130,7 +146,8 @@ export function LoginForm({ redirectTo }: LoginFormProps) {
       }
 
       const nextUser = json.user as User;
-      login(nextUser, json.token as string);
+      const consentHints = parseConsentHints(json);
+      login(nextUser, json.token as string, json);
 
       if (json.is_new_user) {
         window.location.replace("/welcome");
@@ -138,9 +155,13 @@ export function LoginForm({ redirectTo }: LoginFormProps) {
       }
 
       const destination =
-        safeRedirectForRole(redirectTo, nextUser.role) ??
+        safeAppRedirectForRole(redirectTo, nextUser.role) ??
         getDefaultDestination(nextUser.role);
-      window.location.replace(destination);
+      window.location.replace(
+        consentHints?.needsConsent
+          ? buildConsentReviewPath(destination)
+          : destination,
+      );
     } catch (err: any) {
       if (
         err?.code === "auth/popup-closed-by-user" ||

@@ -47,6 +47,8 @@ export const AUTH_PREFIXES = [
   "/restablecer-password",
 ] as const;
 
+export const CONSENT_PREFIXES = ["/consent/review"] as const;
+
 // ─── Default destination by role ──────────────────────────────────────────────
 
 /**
@@ -95,6 +97,12 @@ export function isProtectedRoute(pathname: string): boolean {
  */
 export function isAuthRoute(pathname: string): boolean {
   return AUTH_PREFIXES.some(
+    (prefix) => pathname === prefix || pathname.startsWith(prefix + "/"),
+  );
+}
+
+export function isConsentRoute(pathname: string): boolean {
+  return CONSENT_PREFIXES.some(
     (prefix) => pathname === prefix || pathname.startsWith(prefix + "/"),
   );
 }

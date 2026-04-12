@@ -3,6 +3,7 @@
 import { useEffect, useRef } from "react";
 import { useAuth } from "@/context/AuthContext";
 import { getDefaultDestination } from "@/lib/authRoutes";
+import { buildConsentReviewPath } from "@/lib/consentNavigation";
 import type { Role } from "@/context/AuthContext";
 
 /**
@@ -15,22 +16,9 @@ import type { Role } from "@/context/AuthContext";
  * requires specific roles.
  *
  * Redirect behavior mirrors middleware:
- *   - Not authenticated       → /login
- *   - Authenticated, wrong role → role's own dashboard (not /login)
- *
- * WHY window.location.replace instead of router.replace:
- *   router.replace() uses React.startTransition internally and can be silently
- *   cancelled by concurrent re-renders (e.g. from AuthContext state updates
- *   arriving at the same time). window.location.replace() is a synchronous
- *   browser API and cannot be cancelled by React's scheduler.
- *
- * WHY router is NOT imported:
- *   Including router in the useEffect dep array caused spurious re-runs because
- *   useRouter() returns a new object reference during hydration and prefetches.
- *
- * WHY redirect only when ready === true:
- *   Redirecting while ready=false would fire before /api/session settles,
- *   incorrectly booting authenticated users who just haven't been confirmed yet.
+ *   - Not authenticated          → /login
+ *   - Needs consent              → /consent/review
+ *   - Authenticated, wrong role  → role's own dashboard
  */
 export default function AuthGuard({
   children,
@@ -39,29 +27,44 @@ export default function AuthGuard({
   children: React.ReactNode;
   allowedRoles: Role[];
 }) {
-  const { user, ready } = useAuth();
+  const { user, ready, consentReady, needsConsent } = useAuth();
   const didRedirect = useRef(false);
 
   const isAuthorized =
-    ready && !!user && allowedRoles.includes(user.role);
+    ready &&
+    consentReady &&
+    !!user &&
+    allowedRoles.includes(user.role) &&
+    !needsConsent;
 
   useEffect(() => {
-    // Wait for session to settle. Redirecting during loading would boot
-    // authenticated users who haven't been confirmed by /api/session yet.
-    if (!ready || isAuthorized || didRedirect.current) return;
+    if (!ready || !consentReady || isAuthorized || didRedirect.current) return;
 
     didRedirect.current = true;
 
     if (user) {
-      // Authenticated but wrong role — send to their own dashboard.
-      window.location.replace(getDefaultDestination(user.role));
-    } else {
-      // No confirmed session — send to login.
-      window.location.replace("/login");
-    }
-  }, [ready, isAuthorized, user]);
+      if (needsConsent) {
+        window.location.replace(
+          buildConsentReviewPath(
+            window.location.pathname + window.location.search,
+          ),
+        );
+        return;
+      }
 
-  if (!ready || !isAuthorized) return null;
+      window.location.replace(getDefaultDestination(user.role));
+      return;
+    }
+
+    const loginUrl = new URL("/login", window.location.origin);
+    loginUrl.searchParams.set(
+      "redirectTo",
+      window.location.pathname + window.location.search,
+    );
+    window.location.replace(loginUrl.toString());
+  }, [ready, consentReady, isAuthorized, user, needsConsent]);
+
+  if (!ready || !consentReady || !isAuthorized) return null;
 
   return <>{children}</>;
 }

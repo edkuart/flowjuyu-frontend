@@ -19,7 +19,12 @@
  * Callers should fall back to a role-based default when null is returned.
  */
 
-import { canRoleAccessPath, type Role } from "@/lib/authRoutes";
+import {
+  canRoleAccessPath,
+  isAuthRoute,
+  isConsentRoute,
+  type Role,
+} from "@/lib/authRoutes";
 
 // Only paths under these prefixes are accepted as redirectTo targets.
 // This list matches the protected route prefixes in middleware.ts.
@@ -77,5 +82,21 @@ export function safeRedirectForRole(
 ): string | null {
   const path = safeRedirectPath(raw);
   if (!path) return null;
+  return canRoleAccessPath(role, path) ? path : null;
+}
+
+export function safeInternalPath(raw: string | null | undefined): string | null {
+  if (!raw || typeof raw !== "string") return null;
+  if (!raw.startsWith("/") || raw.startsWith("//")) return null;
+  if (/^\/[a-zA-Z][a-zA-Z0-9+\-.]*:/.test(raw)) return null;
+  return raw;
+}
+
+export function safeAppRedirectForRole(
+  raw: string | null | undefined,
+  role: Role,
+): string | null {
+  const path = safeInternalPath(raw);
+  if (!path || isAuthRoute(path) || isConsentRoute(path)) return null;
   return canRoleAccessPath(role, path) ? path : null;
 }

@@ -6,9 +6,16 @@ import {
   useEffect,
   useRef,
   useState,
+  useCallback,
   ReactNode,
 } from "react";
 import { getApiUrl } from "@/lib/config";
+import {
+  fallbackConsentStatus,
+  parseConsentHints,
+  parseConsentStatus,
+  type ConsentStatus,
+} from "@/lib/consent";
 
 // ─────────────────────────────────────────────────────────────
 // Canonical role type — matches backend ENUM exactly.
@@ -37,10 +44,15 @@ export interface User {
 interface AuthContextProps {
   user:            User | null;
   token:           string | null;
+  consent:         ConsentStatus | null;
+  consentReady:    boolean;
+  needsConsent:    boolean;
   ready:           boolean;
   isAuthenticated: boolean;
-  login:           (user: User, token: string) => void;
+  login:           (user: User, token: string, payload?: unknown) => void;
   logout:          () => void;
+  refreshAuth:     () => Promise<void>;
+  refreshConsent:  () => Promise<ConsentStatus | null>;
 }
 
 const AuthContext = createContext<AuthContextProps | undefined>(undefined);
@@ -77,7 +89,137 @@ function clearLocalStorage() {
 export function AuthProvider({ children }: { children: ReactNode }) {
   const [user,  setUser]  = useState<User | null>(null);
   const [token, setToken] = useState<string | null>(null);
+  const [consent, setConsent] = useState<ConsentStatus | null>(null);
+  const [consentReady, setConsentReady] = useState(false);
   const [ready, setReady] = useState(false);
+  const isMounted = useRef(true);
+  const sessionSynced = useRef(false);
+
+  const clearAuthState = useCallback(() => {
+    clearLocalStorage();
+    setUser(null);
+    setToken(null);
+    setConsent(null);
+    setConsentReady(true);
+  }, []);
+
+  const refreshConsent = useCallback(async (): Promise<ConsentStatus | null> => {
+    setConsentReady(false);
+
+    try {
+      const authToken =
+        typeof window !== "undefined"
+          ? localStorage.getItem("token")
+          : null;
+
+      const res = await fetch(`${getApiUrl()}/api/consent/status`, {
+        method: "GET",
+        credentials: "include",
+        cache: "no-store",
+        headers: authToken ? { Authorization: `Bearer ${authToken}` } : undefined,
+      });
+
+      if (res.status === 401 || res.status === 403) {
+        if (isMounted.current) clearAuthState();
+        return null;
+      }
+
+      if (!res.ok) {
+        if (isMounted.current) setConsentReady(true);
+        return null;
+      }
+
+      const json = await res.json().catch(() => null);
+      const nextConsent = parseConsentStatus(json);
+
+      if (isMounted.current) {
+        setConsent(nextConsent);
+        setConsentReady(true);
+      }
+
+      return nextConsent;
+    } catch {
+      if (isMounted.current) setConsentReady(true);
+      return null;
+    }
+  }, [clearAuthState]);
+
+  const applyConsentState = useCallback(
+    (payload?: unknown) => {
+      const parsedConsent = parseConsentStatus(payload);
+      if (parsedConsent) {
+        setConsent(parsedConsent);
+        setConsentReady(true);
+        return;
+      }
+
+      const hints = parseConsentHints(payload);
+      if (hints) {
+        setConsent(fallbackConsentStatus(hints));
+        setConsentReady(true);
+        return;
+      }
+
+      setConsent(null);
+      void refreshConsent();
+    },
+    [refreshConsent],
+  );
+
+  const refreshAuth = useCallback(async () => {
+    try {
+      const res = await fetch(`${getApiUrl()}/api/session`, {
+        method:      "GET",
+        credentials: "include",
+        cache:       "no-store",
+      });
+
+      if (res.ok) {
+        const data = await res.json();
+
+        if (data.ok && isValidUser(data.user)) {
+          if (!isMounted.current) return;
+
+          setUser(data.user);
+          setToken(localStorage.getItem("token"));
+          localStorage.setItem("user", JSON.stringify(data.user));
+          applyConsentState(data);
+          return;
+        }
+
+        if (isMounted.current) clearAuthState();
+        return;
+      }
+
+      if (res.status === 401 || res.status === 403) {
+        if (isMounted.current) clearAuthState();
+        return;
+      }
+    } catch {
+      if (typeof window === "undefined") return;
+
+      try {
+        const storedUser = localStorage.getItem("user");
+        const storedToken = localStorage.getItem("token");
+
+        if (storedUser && storedToken) {
+          const parsed: unknown = JSON.parse(storedUser);
+          if (isValidUser(parsed) && isMounted.current) {
+            setUser(parsed);
+            setToken(storedToken);
+            applyConsentState();
+            return;
+          }
+        }
+      } catch {
+        // Ignore and fall through to ready state below.
+      }
+    }
+
+    if (isMounted.current) {
+      setConsentReady(true);
+    }
+  }, [applyConsentState, clearAuthState]);
 
   // ── Session sync on mount ─────────────────────────────────────────────────
   // Uses GET /api/session (validates the HttpOnly fj_rt cookie) as the single
@@ -91,7 +233,11 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   //   fire two concurrent /api/session requests. The second can race or hit
   //   rate limits. The ref ensures exactly one network call regardless of
   //   how many times the effect body runs.
-  const sessionSynced = useRef(false);
+  useEffect(() => {
+    return () => {
+      isMounted.current = false;
+    };
+  }, []);
 
   useEffect(() => {
     if (sessionSynced.current) return;
@@ -99,88 +245,16 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
     async function syncSession() {
       try {
-        const res = await fetch(`${getApiUrl()}/api/session`, {
-          method:      "GET",
-          credentials: "include",
-          cache:       "no-store",
-        });
-
-        if (res.ok) {
-          const data = await res.json();
-
-          if (data.ok && isValidUser(data.user)) {
-            // Cookie is the source of truth for identity. The user IS
-            // authenticated as soon as /api/session confirms it.
-            //
-            // The access token is a secondary API credential — we read
-            // whatever is in localStorage and set it (even if null).
-            // If it is missing or expired, api.ts will silently refresh it
-            // on the first protected API call via the 401 → refreshSession()
-            // → retry cycle. We do NOT call refreshSession() here because a
-            // failure there would dispatch auth:changed → handleAuthChanged
-            // → setUser(null), destroying the session we just validated.
-            setUser(data.user);
-            setToken(localStorage.getItem("token")); // null is fine
-            // Keep localStorage user in sync with the server-side session.
-            localStorage.setItem("user", JSON.stringify(data.user));
-            console.log("[auth:sync] session restored →", data.user.role, data.user.email);
-          } else {
-            // Session returned unexpected shape — treat as invalid.
-            console.log("[auth:sync] session payload invalid — clearing state");
-            clearLocalStorage();
-            setUser(null);
-            setToken(null);
-          }
-        } else if (res.status === 401 || res.status === 403) {
-          // Cookie is absent, expired, or revoked — real session invalidation.
-          console.log("[auth:sync] /api/session returned", res.status, "— clearing session");
-          clearLocalStorage();
-          setUser(null);
-          setToken(null);
-        } else {
-          // 429, 500, 503 — transient backend error.
-          //
-          // DO NOT fallback to localStorage here. Reading localStorage and
-          // calling setUser() makes isAuthenticated=true even though the
-          // session is unverified. This creates the redirect loop:
-          //   /login (localStorage → isAuthenticated=true → redirect-away)
-          //   → /seller/* (AuthGuard → redirect back to /login)
-          //   → repeat
-          //
-          // DO NOT clear session either — that logs out users on temporary
-          // backend overload.
-          //
-          // Leave ALL auth state exactly as-is. user stays null (initial state).
-          // ready will be set to true by the finally block, unblocking the UI.
-          // AuthGuard will redirect to /login once, where the user can retry.
-          console.warn("[auth:sync] /api/session returned", res.status, "— auth state unchanged");
-        }
+        await refreshAuth();
       } catch {
-        // Backend unreachable — fall back to localStorage so local dev
-        // survives a momentary backend restart.
-        try {
-          const storedUser  = localStorage.getItem("user");
-          const storedToken = localStorage.getItem("token");
-
-          if (storedUser && storedToken) {
-            const parsed: unknown = JSON.parse(storedUser);
-            if (isValidUser(parsed)) {
-              setUser(parsed);
-              setToken(storedToken);
-            } else {
-              clearLocalStorage();
-            }
-          }
-        } catch {
-          clearLocalStorage();
-        }
+        // refreshAuth already handles fallbacks.
       } finally {
-        setReady(true);
+        if (isMounted.current) setReady(true);
       }
     }
 
     syncSession();
-  }, []);
+  }, [refreshAuth]);
 
   // ── Refresh sync ───────────────────────────────────────────────────────────
   // refreshSession() (src/lib/refreshSession.ts) updates localStorage and then
@@ -198,6 +272,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
           if (isValidUser(parsed)) {
             setToken(storedToken);
             setUser(parsed);
+            applyConsentState();
             return;
           }
         } catch {
@@ -212,6 +287,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       if (!storedToken && !storedUserRaw) {
         setToken(null);
         setUser(null);
+        setConsent(null);
+        setConsentReady(true);
       } else {
         // Partial state (e.g. user present but no token after a 429 refresh).
         // Keep current React state — api.ts will renew the token on next call.
@@ -221,15 +298,16 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
     window.addEventListener("auth:changed", handleAuthChanged);
     return () => window.removeEventListener("auth:changed", handleAuthChanged);
-  }, []);
+  }, [applyConsentState]);
 
   // ── login ──────────────────────────────────────────────────────────────────
 
-  const login = (user: User, token: string) => {
+  const login = (user: User, token: string, payload?: unknown) => {
     setUser(user);
     setToken(token);
     localStorage.setItem("user",  JSON.stringify(user));
     localStorage.setItem("token", token);
+    applyConsentState(payload);
   };
 
   // ── logout ─────────────────────────────────────────────────────────────────
@@ -244,6 +322,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const logout = async () => {
     setUser(null);
     setToken(null);
+    setConsent(null);
+    setConsentReady(true);
     clearLocalStorage();
 
     try {
@@ -263,6 +343,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       value={{
         user,
         token,
+        consent,
+        consentReady,
+        needsConsent: consent?.needsConsent ?? false,
         ready,
         // Authentication = confirmed user identity from /api/session.
         // Token is an API credential — its absence does not mean "logged out".
@@ -270,6 +353,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         isAuthenticated: !!user,
         login,
         logout,
+        refreshAuth,
+        refreshConsent,
       }}
     >
       {children}

@@ -26,6 +26,7 @@ import { Input } from "@/components/ui/input"
 import { Textarea } from "@/components/ui/textarea"
 import { Label } from "@/components/ui/label"
 import { SellerProgressCard } from "@/components/seller/SellerProgressCard"
+import { CommunicationPreferencesPanel } from "@/components/settings/CommunicationPreferencesPanel"
 import { apiGetVendedorPerfil } from "@/services/vendedorPerfil"
 import type { SellerPerfil } from "@/lib/sellerProgress"
 
@@ -906,7 +907,20 @@ export default function SellerAccountPage() {
         <SecuritySection />
       </Section>
 
-      {/* 8. SUPPORT */}
+      {/* 8. COMMUNICATION PREFERENCES */}
+      <Section>
+        <SectionHeader
+          icon={<AlertCircle className="w-5 h-5 text-neutral-600" />}
+          title="Preferencias de comunicación"
+        />
+        <CommunicationPreferencesPanel
+          compact
+          title="Marketing y comunicaciones opcionales"
+          description="Tus mensajes operativos y de seguridad siguen activos. Aquí controlas únicamente emails y WhatsApp promocionales de Flowjuyu."
+        />
+      </Section>
+
+      {/* 9. SUPPORT */}
       <Section>
         <SectionHeader
           icon={<HelpCircle className="w-5 h-5 text-neutral-600" />}

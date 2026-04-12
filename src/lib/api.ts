@@ -29,6 +29,9 @@ const CACHE_TTL_MS = 60_000; // 60 s — balances freshness vs redundant request
 
 // Personalised or auth-gated paths that must never be served from cache.
 const SKIP_CACHE_PATHS: string[] = [
+  "/api/consent/preferences",
+  "/api/consent/prompts",
+  "/api/consent/status",
   "/api/products/recommended",
   "/api/seller/profile",
   "/api/seller/products",
