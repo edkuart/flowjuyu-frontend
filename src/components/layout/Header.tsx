@@ -205,6 +205,14 @@ function BuyerDropdown({
         {tr("nav.activity")}
       </p>
       <Link
+        href="/buyer/dashboard"
+        onClick={onClose}
+        className="flex items-center gap-2.5 px-4 py-2 transition-colors hover:bg-neutral-50"
+      >
+        <LayoutDashboard className="h-3.5 w-3.5 shrink-0 text-zinc-500" />
+        <span className="flex-1">Dashboard</span>
+      </Link>
+      <Link
         href="/buyer/orders"
         onClick={onClose}
         className="flex items-center gap-2.5 px-4 py-2 transition-colors hover:bg-neutral-50"
@@ -509,7 +517,7 @@ function AdminDropdown({
 // ── Main Header ─────────────────────────────────────────────────────────────
 
 export default function Header() {
-  const { user, logout } = useAuth();
+  const { user, logout, ready } = useAuth();
   const { count } = useCart();
   const pathname = usePathname();
   const { dictionary } = useLanguage();
@@ -530,10 +538,12 @@ export default function Header() {
 
   const isSellerPanel = pathname.startsWith("/seller");
   const normalizedRole = user?.role ?? null;
+  const loginHref = "/login";
 
   const isBuyer = normalizedRole === "buyer";
   const isSeller = normalizedRole === "seller";
   const isAdmin = normalizedRole === "admin";
+  const isAuthPending = !ready && !user;
 
   useEffect(() => {
     const onDocClick = (e: MouseEvent) => {
@@ -641,7 +651,67 @@ export default function Header() {
             </div>
 
             {/* Account */}
-            {user ? (
+            {isAuthPending ? (
+              <div
+                aria-hidden="true"
+                className="flex items-center gap-2 md:gap-2"
+              >
+                <div className="hidden h-10 w-28 rounded-xl border border-white/10 bg-white/5 sm:block" />
+                <div className="relative sm:hidden" ref={createRef}>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setHelpOpen(false);
+                      setOpenAccount(false);
+                      setMobileSearchOpen(false);
+                      setOpenCreate((v) => !v);
+                    }}
+                    aria-expanded={openCreate}
+                    aria-haspopup="true"
+                    aria-label={tr("nav.account")}
+                    className="inline-flex h-10 w-10 items-center justify-center rounded-full border border-white/20 bg-white/10 text-white shadow-sm transition-all duration-150 hover:bg-white/15 focus-visible:outline focus-visible:outline-2 focus-visible:outline-amber-400 active:scale-95"
+                  >
+                    <User className="h-5 w-5 shrink-0" />
+                  </button>
+
+                  {openCreate && (
+                    <div className="absolute top-full right-0 z-50 w-56 pt-2">
+                      <div className="rounded-xl border border-neutral-100 bg-white py-1.5 text-sm text-neutral-800 shadow-2xl">
+                        <Link
+                          href={loginHref}
+                          onClick={() => setOpenCreate(false)}
+                          className="flex items-center gap-2.5 px-4 py-2.5 transition-colors hover:bg-neutral-50 sm:hidden"
+                        >
+                          <User className="h-3.5 w-3.5 shrink-0 text-zinc-400" />
+                          {tr("nav.login")}
+                        </Link>
+                        <div className="my-1 border-t border-neutral-100 sm:hidden" />
+
+                        <p className="px-4 pt-2 pb-1.5 text-[10px] font-semibold tracking-widest text-neutral-400 uppercase">
+                          {tr("nav.createAccount")}
+                        </p>
+                        <Link
+                          href="/register/buyer"
+                          onClick={() => setOpenCreate(false)}
+                          className="flex items-center gap-2.5 px-4 py-2.5 transition-colors hover:bg-neutral-50"
+                        >
+                          <ShoppingBag className="h-3.5 w-3.5 shrink-0 text-zinc-400" />
+                          {tr("nav.buyer")}
+                        </Link>
+                        <Link
+                          href="/register/seller"
+                          onClick={() => setOpenCreate(false)}
+                          className="flex items-center gap-2.5 px-4 py-2.5 transition-colors hover:bg-neutral-50"
+                        >
+                          <Store className="h-3.5 w-3.5 shrink-0 text-zinc-400" />
+                          {tr("nav.sellOnRegister")}
+                        </Link>
+                      </div>
+                    </div>
+                  )}
+                </div>
+              </div>
+            ) : user ? (
               <div className="relative" ref={accountRef}>
                 {/* Mobile — icon-only circle */}
                 <button
@@ -737,6 +807,14 @@ export default function Header() {
                           {tr("nav.activity")}
                         </p>
                         <Link
+                          href="/seller/dashboard"
+                          onClick={() => setOpenAccount(false)}
+                          className="flex items-center gap-2.5 px-4 py-2 transition-colors hover:bg-neutral-50"
+                        >
+                          <LayoutDashboard className="h-3.5 w-3.5 shrink-0 text-zinc-500" />
+                          Resumen
+                        </Link>
+                        <Link
                           href="/seller/metrics"
                           onClick={() => setOpenAccount(false)}
                           className="flex items-center gap-2.5 px-4 py-2 transition-colors hover:bg-neutral-50"
@@ -801,7 +879,7 @@ export default function Header() {
             ) : (
               <>
                 <Link
-                  href="/login"
+                  href={loginHref}
                   className="hidden items-center px-2 py-2 text-sm transition-colors hover:text-amber-300 sm:inline-flex"
                 >
                   {tr("nav.login")}
@@ -820,9 +898,9 @@ export default function Header() {
                     aria-expanded={openCreate}
                     aria-haspopup="true"
                     aria-label={tr("nav.account")}
-                    className="inline-flex h-10 w-10 items-center justify-center rounded-full transition-all duration-150 hover:bg-white/10 focus-visible:outline focus-visible:outline-2 focus-visible:outline-amber-400 active:scale-95 sm:hidden"
+                    className="inline-flex h-10 w-10 items-center justify-center rounded-full border border-white/20 bg-white/10 text-white shadow-sm transition-all duration-150 hover:bg-white/15 focus-visible:outline focus-visible:outline-2 focus-visible:outline-amber-400 active:scale-95 sm:hidden"
                   >
-                    <User className="h-5 w-5" />
+                    <User className="h-5 w-5 shrink-0" />
                   </button>
 
                   {/* Desktop trigger */}
@@ -851,14 +929,14 @@ export default function Header() {
                     <div className="absolute top-full right-0 z-50 w-56 pt-2">
                       <div className="rounded-xl border border-neutral-100 bg-white py-1.5 text-sm text-neutral-800 shadow-2xl">
                         <Link
-                          href="/login"
+                          href={loginHref}
                           onClick={() => setOpenCreate(false)}
-                          className="flex items-center gap-2.5 px-4 py-2.5 transition-colors hover:bg-neutral-50 sm:hidden"
+                          className="flex items-center gap-2.5 px-4 py-2.5 transition-colors hover:bg-neutral-50"
                         >
                           <User className="h-3.5 w-3.5 shrink-0 text-zinc-400" />
                           {tr("nav.login")}
                         </Link>
-                        <div className="my-1 border-t border-neutral-100 sm:hidden" />
+                        <div className="my-1 border-t border-neutral-100" />
 
                         <p className="px-4 pt-2 pb-1.5 text-[10px] font-semibold tracking-widest text-neutral-400 uppercase">
                           {tr("nav.createAccount")}

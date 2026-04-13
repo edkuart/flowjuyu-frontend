@@ -7,6 +7,7 @@ import {
   AlertTriangle,
   CheckCircle2,
   FileText,
+  RefreshCw,
   Loader2,
   Shield,
 } from "lucide-react";
@@ -16,11 +17,31 @@ import { Checkbox } from "@/components/ui/checkbox";
 import { useAuth } from "@/context/AuthContext";
 import { apiFetch } from "@/lib/api";
 import { track } from "@/lib/analytics";
-import type { ConsentType } from "@/lib/consent";
+import { fallbackConsentStatus, type ConsentType } from "@/lib/consent";
 import { resolvePostConsentDestination } from "@/lib/consentNavigation";
+import { getApiUrl } from "@/lib/config";
 import { safeInternalPath } from "@/lib/safeRedirect";
 
 type ChecklistState = Record<ConsentType, boolean>;
+
+type SessionUser = {
+  id: number;
+  name: string;
+  email: string;
+  role: "buyer" | "seller" | "admin" | "support";
+};
+
+function isSessionUser(value: unknown): value is SessionUser {
+  if (!value || typeof value !== "object") return false;
+  const user = value as Record<string, unknown>;
+  return (
+    typeof user.id === "number" &&
+    typeof user.name === "string" &&
+    typeof user.email === "string" &&
+    typeof user.role === "string" &&
+    ["buyer", "seller", "admin", "support"].includes(user.role as string)
+  );
+}
 
 const CONSENT_ORDER: ConsentType[] = ["terms", "privacy"];
 
@@ -42,20 +63,172 @@ export default function ConsentReviewClient() {
   });
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [bootstrapDone, setBootstrapDone] = useState(false);
+  const [bootstrapError, setBootstrapError] = useState<string | null>(null);
+  const [bootstrapUser, setBootstrapUser] = useState<SessionUser | null>(null);
+  const [bootstrapConsent, setBootstrapConsent] = useState<ReturnType<typeof fallbackConsentStatus> | null>(null);
   const didRedirect = useRef(false);
   const didTrackView = useRef(false);
+  const didBootstrapConsent = useRef(false);
+  const didRevalidateSession = useRef(false);
 
   const rawNext = searchParams.get("next");
   const safeNext = useMemo(() => safeInternalPath(rawNext), [rawNext]);
-  const destination = user
-    ? resolvePostConsentDestination(safeNext, user.role)
+  const effectiveUser = user ?? bootstrapUser;
+  const effectiveReady = ready || bootstrapDone;
+  const mergedConsent = consent ?? bootstrapConsent;
+  const destination = effectiveUser
+    ? resolvePostConsentDestination(safeNext, effectiveUser.role)
     : safeNext ?? "/";
-  const missingConsents = consent?.missingConsents ?? CONSENT_ORDER;
+  const effectiveConsent =
+    mergedConsent ??
+    (consentReady && effectiveUser
+      ? fallbackConsentStatus({
+          needsConsent: true,
+          currentVersion: null,
+        })
+      : null);
+  const effectiveConsentReady = consentReady || Boolean(bootstrapConsent);
+  const effectiveNeedsConsent = effectiveConsent?.needsConsent ?? needsConsent;
+  const missingConsents = effectiveConsent?.missingConsents ?? CONSENT_ORDER;
+
+  const fetchSessionUser = async (): Promise<SessionUser | null> => {
+    try {
+      const res = await fetch(`${getApiUrl()}/api/session`, {
+        method: "GET",
+        credentials: "include",
+        cache: "no-store",
+      });
+
+      if (!res.ok) return null;
+
+      const json = (await res.json().catch(() => null)) as
+        | { user?: unknown }
+        | null;
+      return isSessionUser(json?.user) ? json.user : null;
+    } catch {
+      return null;
+    }
+  };
 
   useEffect(() => {
-    if (!ready) return;
+    console.log("[consent-review] mount");
+  }, []);
 
-    if (!user && !didRedirect.current) {
+  useEffect(() => {
+    if (didBootstrapConsent.current) return;
+    didBootstrapConsent.current = true;
+
+    console.log("[consent-review] bootstrap-start");
+    void (async () => {
+      try {
+        setBootstrapError(null);
+        setBootstrapDone(false);
+        const sessionUser = await fetchSessionUser();
+        if (sessionUser) {
+          setBootstrapUser(sessionUser);
+        }
+        console.log("[consent-review] bootstrap-before-refreshAuth");
+        await refreshAuth();
+        console.log("[consent-review] bootstrap-before-refreshConsent");
+        const nextConsent = await refreshConsent();
+        if (nextConsent) {
+          setBootstrapConsent(nextConsent);
+        }
+        if (!nextConsent) {
+          setBootstrapError(
+            "No pudimos verificar tu estado de consentimiento. Intenta nuevamente.",
+          );
+        }
+        console.log("[consent-review] bootstrap-done");
+      } finally {
+        setBootstrapDone(true);
+      }
+    })();
+  }, [refreshAuth, refreshConsent]);
+
+  const handleRetryConsent = async () => {
+    setBootstrapError(null);
+    setError(null);
+    setBootstrapDone(false);
+
+    try {
+      const sessionUser = await fetchSessionUser();
+      setBootstrapUser(sessionUser);
+      await refreshAuth();
+      const nextConsent = await refreshConsent();
+      setBootstrapConsent(nextConsent);
+      if (!nextConsent) {
+        setBootstrapError(
+          "No pudimos verificar tu estado de consentimiento. Intenta nuevamente.",
+        );
+      }
+    } finally {
+      setBootstrapDone(true);
+    }
+  };
+
+  useEffect(() => {
+    console.log("[consent-review] state", {
+      ready,
+      effectiveReady,
+      user,
+      effectiveUser,
+      consentReady,
+      effectiveConsentReady,
+      consent,
+      mergedConsent,
+      effectiveConsent,
+      effectiveNeedsConsent,
+      safeNext,
+      destination,
+    });
+  }, [
+    ready,
+    effectiveReady,
+    user,
+    effectiveUser,
+    consentReady,
+    effectiveConsentReady,
+    consent,
+    mergedConsent,
+    effectiveConsent,
+    effectiveNeedsConsent,
+    safeNext,
+    destination,
+  ]);
+
+  useEffect(() => {
+    console.log("[consent-review] revalidate-check", {
+      ready: effectiveReady,
+      hasUser: Boolean(effectiveUser),
+      alreadyRevalidated: didRevalidateSession.current,
+    });
+    if (!effectiveReady || effectiveUser || didRevalidateSession.current) return;
+
+    didRevalidateSession.current = true;
+    console.log("[consent-review] before refreshAuth");
+    void refreshAuth();
+  }, [effectiveReady, effectiveUser, refreshAuth]);
+
+  useEffect(() => {
+    console.log("[consent-review] redirect-check", {
+      ready: effectiveReady,
+      hasUser: Boolean(effectiveUser),
+      consentReady: effectiveConsentReady,
+      effectiveNeedsConsent,
+      alreadyRevalidated: didRevalidateSession.current,
+      alreadyRedirected: didRedirect.current,
+      destination,
+      safeNext,
+    });
+    if (!effectiveReady) return;
+
+    if (!effectiveUser && !didRedirect.current) {
+      if (!didRevalidateSession.current) return;
+      console.log("[consent-review] redirecting-to-login", {
+        safeNext,
+      });
       didRedirect.current = true;
       const loginUrl = new URL("/login", window.location.origin);
       if (safeNext) loginUrl.searchParams.set("redirectTo", safeNext);
@@ -63,22 +236,39 @@ export default function ConsentReviewClient() {
       return;
     }
 
-    if (!consentReady) return;
+    if (!effectiveConsentReady) return;
 
-    if (user && !needsConsent && !didRedirect.current) {
+    if (effectiveUser && !effectiveNeedsConsent && !didRedirect.current) {
+      console.log("[consent-review] redirecting-to-destination", {
+        destination,
+      });
       didRedirect.current = true;
       window.location.replace(destination);
     }
-  }, [ready, user, consentReady, needsConsent, destination, safeNext]);
+  }, [effectiveReady, effectiveUser, effectiveConsentReady, effectiveNeedsConsent, destination, safeNext]);
 
   useEffect(() => {
-    if (!ready || !user) return;
-    if (consentReady && consent) return;
+    console.log("[consent-review] refreshConsent-check", {
+      ready: effectiveReady,
+      hasUser: Boolean(effectiveUser),
+      consentReady: effectiveConsentReady,
+      hasConsent: Boolean(mergedConsent),
+      alreadyBootstrapped: didBootstrapConsent.current,
+    });
+    if (!effectiveReady || !effectiveUser) return;
+    if (effectiveConsentReady && mergedConsent) return;
+    console.log("[consent-review] before refreshConsent");
     void refreshConsent();
-  }, [ready, user, consentReady, consent, refreshConsent]);
+  }, [effectiveReady, effectiveUser, effectiveConsentReady, mergedConsent, refreshConsent]);
 
   useEffect(() => {
-    if (!user || !consentReady || !consent || !needsConsent || didTrackView.current) {
+    if (
+      !effectiveUser ||
+      !effectiveConsentReady ||
+      !effectiveConsent ||
+      !effectiveNeedsConsent ||
+      didTrackView.current
+    ) {
       return;
     }
 
@@ -87,15 +277,15 @@ export default function ConsentReviewClient() {
       surface: "consent_review",
       source: "consent_enforcement",
       next: safeNext ?? null,
-      missingConsents: consent.missingConsents,
-      currentVersion: consent.currentVersion ?? null,
+      missingConsents: effectiveConsent.missingConsents,
+      currentVersion: effectiveConsent.currentVersion ?? null,
     });
-  }, [user, consentReady, consent, needsConsent, safeNext]);
+  }, [user, consentReady, effectiveConsent, effectiveNeedsConsent, safeNext]);
 
   const canSubmit = missingConsents.every((type) => checks[type]);
 
   const handleSubmit = async () => {
-    if (!user || !canSubmit || submitting) return;
+    if (!effectiveUser || !canSubmit || submitting) return;
 
     setSubmitting(true);
     setError(null);
@@ -154,7 +344,58 @@ export default function ConsentReviewClient() {
     }
   };
 
-  if (!ready || !consentReady || !user || !consent) {
+  const shouldShowLoading =
+    !bootstrapDone || !effectiveReady || !effectiveConsentReady || !effectiveUser || !effectiveConsent;
+
+  if (bootstrapDone && bootstrapError && !effectiveConsent) {
+    return (
+      <main className="mx-auto flex min-h-[70vh] w-full max-w-3xl items-center justify-center px-4 py-16">
+        <div className="w-full max-w-lg rounded-[28px] border border-[#d8cdbb] bg-white p-6 shadow-[0_24px_80px_-40px_rgba(15,61,58,0.45)]">
+          <div className="flex items-start gap-3">
+            <div className="mt-0.5 rounded-full bg-amber-50 p-2 text-amber-700">
+              <AlertTriangle className="h-5 w-5" />
+            </div>
+            <div className="space-y-2">
+              <h1 className="text-lg font-semibold text-neutral-900">
+                No pudimos verificar tu consentimiento
+              </h1>
+              <p className="text-sm leading-6 text-neutral-600">
+                Tu sesion sigue activa, pero el servicio de consentimiento no
+                respondió correctamente. Puedes reintentar sin salir de la sesión.
+              </p>
+            </div>
+          </div>
+
+          <div className="mt-5 flex gap-3">
+            <Button onClick={() => void handleRetryConsent()} className="gap-2">
+              <RefreshCw className="h-4 w-4" />
+              Reintentar
+            </Button>
+            <Button
+              variant="outline"
+              onClick={() => {
+                window.location.replace(destination);
+              }}
+            >
+              Volver
+            </Button>
+          </div>
+        </div>
+      </main>
+    );
+  }
+
+  if (shouldShowLoading) {
+    console.log("[consent-review] spinner", {
+      ready,
+      effectiveReady,
+      hasUser: Boolean(effectiveUser),
+      consentReady: effectiveConsentReady,
+      hasConsent: Boolean(mergedConsent),
+      hasEffectiveConsent: Boolean(effectiveConsent),
+      bootstrapDone,
+      bootstrapError,
+    });
     return (
       <main className="mx-auto flex min-h-[70vh] w-full max-w-3xl items-center justify-center px-4 py-16">
         <div className="flex items-center gap-3 rounded-2xl border border-neutral-200 bg-white px-5 py-4 text-sm text-neutral-600 shadow-sm">
@@ -171,8 +412,8 @@ export default function ConsentReviewClient() {
       title: "Términos y Condiciones",
       description:
         "Regulan el uso de la cuenta, la publicación de productos y la operación del marketplace.",
-      href: consent.policies.terms?.url || "/legal/terms",
-      version: consent.policies.terms?.version ?? consent.currentVersion,
+      href: effectiveConsent.policies.terms?.url || "/legal/terms",
+      version: effectiveConsent.policies.terms?.version ?? effectiveConsent.currentVersion,
       icon: FileText,
     },
     {
@@ -180,8 +421,8 @@ export default function ConsentReviewClient() {
       title: "Política de Privacidad",
       description:
         "Explica cómo Flowjuyu recopila, usa y protege tus datos personales dentro de la plataforma.",
-      href: consent.policies.privacy?.url || "/legal/privacy",
-      version: consent.policies.privacy?.version ?? null,
+      href: effectiveConsent.policies.privacy?.url || "/legal/privacy",
+      version: effectiveConsent.policies.privacy?.version ?? null,
       icon: Shield,
     },
   ];
@@ -213,11 +454,11 @@ export default function ConsentReviewClient() {
                   Estado actual
                 </p>
                 <p className="mt-2 text-2xl font-semibold text-[#0F3D3A]">
-                  {consent.missingConsents.length} pendiente
-                  {consent.missingConsents.length === 1 ? "" : "s"}
+                  {effectiveConsent.missingConsents.length} pendiente
+                  {effectiveConsent.missingConsents.length === 1 ? "" : "s"}
                 </p>
                 <p className="mt-1 text-sm text-neutral-600">
-                  Versión de términos: {consent.currentVersion ?? "vigente"}
+                  Versión de términos: {effectiveConsent.currentVersion ?? "vigente"}
                 </p>
                 {safeNext && (
                   <p className="mt-3 text-xs text-neutral-500">

@@ -1030,46 +1030,53 @@ export default function StoreClient({
             {/* Review list */}
             {reviews.length > 0 ? (
               <div className="mb-8 space-y-4">
-                {(showAllReviews ? reviews : reviews.slice(0, 4)).map((r) => (
-                  <div
-                    key={r.id}
-                    className="rounded-2xl border border-neutral-100 bg-white p-5 shadow-sm"
-                  >
-                    <div className="flex items-start justify-between gap-4">
-                      <div className="flex items-center gap-3">
-                        <div className="flex h-9 w-9 items-center justify-center rounded-full bg-gradient-to-br from-emerald-500 to-emerald-700 text-sm font-bold text-white">
-                          {r.buyer_name.charAt(0).toUpperCase()}
+                {(showAllReviews ? reviews : reviews.slice(0, 4)).map((r) => {
+                  const buyerName =
+                    typeof r.buyer_name === "string" && r.buyer_name.trim()
+                      ? r.buyer_name.trim()
+                      : "Comprador";
+
+                  return (
+                    <div
+                      key={r.id}
+                      className="rounded-2xl border border-neutral-100 bg-white p-5 shadow-sm"
+                    >
+                      <div className="flex items-start justify-between gap-4">
+                        <div className="flex items-center gap-3">
+                          <div className="flex h-9 w-9 items-center justify-center rounded-full bg-gradient-to-br from-emerald-500 to-emerald-700 text-sm font-bold text-white">
+                            {buyerName.charAt(0).toUpperCase()}
+                          </div>
+                          <div>
+                            <p className="text-sm font-semibold text-neutral-800">
+                              {buyerName}
+                            </p>
+                            <Stars rating={r.rating} />
+                          </div>
                         </div>
-                        <div>
-                          <p className="text-sm font-semibold text-neutral-800">
-                            {r.buyer_name}
-                          </p>
-                          <Stars rating={r.rating} />
-                        </div>
+                        <p className="flex-shrink-0 text-xs text-neutral-400">
+                          {new Date(r.created_at).toLocaleDateString("es-GT", {
+                            day: "numeric",
+                            month: "short",
+                            year: "numeric",
+                          })}
+                        </p>
                       </div>
-                      <p className="flex-shrink-0 text-xs text-neutral-400">
-                        {new Date(r.created_at).toLocaleDateString("es-GT", {
-                          day: "numeric",
-                          month: "short",
-                          year: "numeric",
-                        })}
-                      </p>
+                      {r.comment && (
+                        <p className="mt-3 text-sm leading-relaxed text-neutral-600">
+                          {r.comment}
+                        </p>
+                      )}
+                      {r.product_nombre && (
+                        <p className="mt-2 text-xs text-neutral-400">
+                          {tr("seller.reviewAbout")}{" "}
+                          <span className="text-neutral-600">
+                            {r.product_nombre}
+                          </span>
+                        </p>
+                      )}
                     </div>
-                    {r.comment && (
-                      <p className="mt-3 text-sm leading-relaxed text-neutral-600">
-                        {r.comment}
-                      </p>
-                    )}
-                    {r.product_nombre && (
-                      <p className="mt-2 text-xs text-neutral-400">
-                        {tr("seller.reviewAbout")}{" "}
-                        <span className="text-neutral-600">
-                          {r.product_nombre}
-                        </span>
-                      </p>
-                    )}
-                  </div>
-                ))}
+                  );
+                })}
 
                 {reviews.length > 4 && (
                   <button

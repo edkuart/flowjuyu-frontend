@@ -16,6 +16,7 @@ import {
   parseConsentStatus,
   type ConsentStatus,
 } from "@/lib/consent";
+import { apiFetch, invalidateCache } from "@/lib/api";
 
 // ─────────────────────────────────────────────────────────────
 // Canonical role type — matches backend ENUM exactly.
@@ -80,6 +81,61 @@ function isValidUser(obj: unknown): obj is User {
 function clearLocalStorage() {
   localStorage.removeItem("user");
   localStorage.removeItem("token");
+  localStorage.removeItem("consent_hint");
+}
+
+type ConsentHint = Pick<ConsentStatus, "needsConsent" | "currentVersion">;
+
+function readStoredConsentHint(): ConsentHint | null {
+  if (typeof window === "undefined") return null;
+
+  try {
+    const raw = localStorage.getItem("consent_hint");
+    if (!raw) return null;
+
+    const parsed = JSON.parse(raw) as Record<string, unknown>;
+    if (typeof parsed.needsConsent !== "boolean") return null;
+
+    return {
+      needsConsent: parsed.needsConsent,
+      currentVersion:
+        typeof parsed.currentVersion === "string" ? parsed.currentVersion : null,
+    };
+  } catch {
+    return null;
+  }
+}
+
+function readStoredAuth(): { user: User; token: string } | null {
+  if (typeof window === "undefined") return null;
+
+  try {
+    const storedUser = localStorage.getItem("user");
+    const storedToken = localStorage.getItem("token");
+
+    if (!storedUser || !storedToken) return null;
+
+    const parsed: unknown = JSON.parse(storedUser);
+    if (!isValidUser(parsed)) return null;
+
+    return {
+      user: parsed,
+      token: storedToken,
+    };
+  } catch {
+    return null;
+  }
+}
+
+function persistConsentHint(hint: ConsentHint | null): void {
+  if (typeof window === "undefined") return;
+
+  if (!hint || !hint.needsConsent) {
+    localStorage.removeItem("consent_hint");
+    return;
+  }
+
+  localStorage.setItem("consent_hint", JSON.stringify(hint));
 }
 
 // ─────────────────────────────────────────────────────────────
@@ -95,6 +151,17 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const isMounted = useRef(true);
   const sessionSynced = useRef(false);
 
+  useEffect(() => {
+    console.log("[auth-context] provider-state", {
+      ready,
+      consentReady,
+      user,
+      tokenPresent: Boolean(token),
+      needsConsent: consent?.needsConsent ?? false,
+      hasConsent: Boolean(consent),
+    });
+  }, [consent, consentReady, ready, token, user]);
+
   const clearAuthState = useCallback(() => {
     clearLocalStorage();
     setUser(null);
@@ -103,63 +170,154 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     setConsentReady(true);
   }, []);
 
-  const refreshConsent = useCallback(async (): Promise<ConsentStatus | null> => {
-    setConsentReady(false);
-
+  const confirmSessionStillValid = useCallback(async (): Promise<boolean> => {
     try {
-      const authToken =
-        typeof window !== "undefined"
-          ? localStorage.getItem("token")
-          : null;
-
-      const res = await fetch(`${getApiUrl()}/api/consent/status`, {
+      const res = await fetch(`${getApiUrl()}/api/session`, {
         method: "GET",
         credentials: "include",
         cache: "no-store",
-        headers: authToken ? { Authorization: `Bearer ${authToken}` } : undefined,
+      });
+
+      return res.ok;
+    } catch {
+      return false;
+    }
+  }, []);
+
+  const refreshConsent = useCallback(async (): Promise<ConsentStatus | null> => {
+    console.log("[auth-context] refreshConsent:start", {
+      hasUser: Boolean(user),
+      ready,
+      consentReady,
+      tokenPresent:
+        typeof window !== "undefined" ? Boolean(localStorage.getItem("token")) : false,
+    });
+    setConsentReady(false);
+
+    try {
+      console.log("[auth-context] refreshConsent:before-apiFetch", {
+        url: `${getApiUrl()}/api/consent/status`,
+      });
+      const res = await apiFetch("/api/consent/status", {
+        method: "GET",
+        cache: "no-store",
+      });
+
+      console.log("[auth-context] refreshConsent:response", {
+        status: res.status,
+        ok: res.ok,
       });
 
       if (res.status === 401 || res.status === 403) {
-        if (isMounted.current) clearAuthState();
+        const sessionStillValid = await confirmSessionStillValid();
+        console.log("[auth-context] refreshConsent:unauthorized", {
+          sessionStillValid,
+        });
+        const storedHint = readStoredConsentHint();
+
+        if (isMounted.current) {
+          if (sessionStillValid) {
+            if (storedHint?.needsConsent) {
+              setConsent(fallbackConsentStatus(storedHint));
+            }
+            setConsentReady(true);
+          } else {
+            clearAuthState();
+          }
+        }
+
         return null;
       }
 
       if (!res.ok) {
-        if (isMounted.current) setConsentReady(true);
+        const storedHint = readStoredConsentHint();
+        if (isMounted.current) {
+          if (storedHint?.needsConsent) {
+            setConsent(fallbackConsentStatus(storedHint));
+          }
+          setConsentReady(true);
+        }
         return null;
       }
 
       const json = await res.json().catch(() => null);
       const nextConsent = parseConsentStatus(json);
+      console.log("[auth-context] refreshConsent:parsed", {
+        json,
+        nextConsent,
+      });
 
       if (isMounted.current) {
         setConsent(nextConsent);
         setConsentReady(true);
       }
 
+      persistConsentHint(
+        nextConsent
+          ? {
+              needsConsent: nextConsent.needsConsent,
+              currentVersion: nextConsent.currentVersion,
+            }
+          : null,
+      );
+
       return nextConsent;
-    } catch {
-      if (isMounted.current) setConsentReady(true);
+    } catch (error) {
+      console.log("[auth-context] refreshConsent:error", {
+        error,
+      });
+      const storedHint = readStoredConsentHint();
+      if (isMounted.current) {
+        if (storedHint?.needsConsent) {
+          setConsent(fallbackConsentStatus(storedHint));
+        }
+        setConsentReady(true);
+      }
       return null;
     }
-  }, [clearAuthState]);
+  }, [clearAuthState, confirmSessionStillValid, consentReady, ready, user]);
 
   const applyConsentState = useCallback(
     (payload?: unknown) => {
+      console.log("[auth-context] applyConsentState", {
+        payload,
+      });
       const parsedConsent = parseConsentStatus(payload);
       if (parsedConsent) {
+        console.log("[auth-context] applyConsentState:parsedConsent", {
+          parsedConsent,
+        });
         setConsent(parsedConsent);
         setConsentReady(true);
+        persistConsentHint({
+          needsConsent: parsedConsent.needsConsent,
+          currentVersion: parsedConsent.currentVersion,
+        });
         return;
       }
 
       const hints = parseConsentHints(payload);
       if (hints) {
+        console.log("[auth-context] applyConsentState:hints", {
+          hints,
+        });
         setConsent(fallbackConsentStatus(hints));
+        setConsentReady(true);
+        persistConsentHint(hints);
+        return;
+      }
+
+      const storedHint = readStoredConsentHint();
+      if (storedHint?.needsConsent) {
+        console.log("[auth-context] applyConsentState:storedHint", {
+          storedHint,
+        });
+        setConsent(fallbackConsentStatus(storedHint));
         setConsentReady(true);
         return;
       }
 
+      console.log("[auth-context] applyConsentState:trigger-refreshConsent");
       setConsent(null);
       void refreshConsent();
     },
@@ -167,6 +325,12 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   );
 
   const refreshAuth = useCallback(async () => {
+    console.log("[auth-context] refreshAuth:start", {
+      tokenPresent:
+        typeof window !== "undefined" ? Boolean(localStorage.getItem("token")) : false,
+      storedUserPresent:
+        typeof window !== "undefined" ? Boolean(localStorage.getItem("user")) : false,
+    });
     try {
       const res = await fetch(`${getApiUrl()}/api/session`, {
         method:      "GET",
@@ -174,12 +338,24 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         cache:       "no-store",
       });
 
+      console.log("[auth-context] refreshAuth:response", {
+        status: res.status,
+        ok: res.ok,
+      });
+
       if (res.ok) {
         const data = await res.json();
+        console.log("[auth-context] refreshAuth:data", {
+          data,
+          isValidUser: isValidUser(data.user),
+        });
 
         if (data.ok && isValidUser(data.user)) {
           if (!isMounted.current) return;
 
+          console.log("[auth-context] refreshAuth:setUser", {
+            user: data.user,
+          });
           setUser(data.user);
           setToken(localStorage.getItem("token"));
           localStorage.setItem("user", JSON.stringify(data.user));
@@ -187,15 +363,20 @@ export function AuthProvider({ children }: { children: ReactNode }) {
           return;
         }
 
+        console.log("[auth-context] refreshAuth:invalid-user-shape");
         if (isMounted.current) clearAuthState();
         return;
       }
 
       if (res.status === 401 || res.status === 403) {
+        console.log("[auth-context] refreshAuth:unauthorized");
         if (isMounted.current) clearAuthState();
         return;
       }
-    } catch {
+    } catch (error) {
+      console.log("[auth-context] refreshAuth:error", {
+        error,
+      });
       if (typeof window === "undefined") return;
 
       try {
@@ -205,6 +386,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         if (storedUser && storedToken) {
           const parsed: unknown = JSON.parse(storedUser);
           if (isValidUser(parsed) && isMounted.current) {
+            console.log("[auth-context] refreshAuth:fallback-localStorage", {
+              user: parsed,
+            });
             setUser(parsed);
             setToken(storedToken);
             applyConsentState();
@@ -217,6 +401,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     }
 
     if (isMounted.current) {
+      console.log("[auth-context] refreshAuth:done-without-user");
       setConsentReady(true);
     }
   }, [applyConsentState, clearAuthState]);
@@ -238,6 +423,20 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       isMounted.current = false;
     };
   }, []);
+
+  useEffect(() => {
+    if (ready) return;
+
+    const storedAuth = readStoredAuth();
+    if (!storedAuth) return;
+
+    console.log("[auth-context] hydrate-from-localStorage", {
+      user: storedAuth.user,
+    });
+    setUser((currentUser) => currentUser ?? storedAuth.user);
+    setToken((currentToken) => currentToken ?? storedAuth.token);
+    applyConsentState();
+  }, [applyConsentState, ready]);
 
   useEffect(() => {
     if (sessionSynced.current) return;
@@ -320,22 +519,53 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   // cookie will be rejected on next use because the session is gone.
 
   const logout = async () => {
+    const currentToken =
+      token ?? (typeof window !== "undefined" ? localStorage.getItem("token") : null);
+
+    try {
+      await fetch(`${getApiUrl()}/api/logout`, {
+        method: "POST",
+        credentials: "include",
+      });
+    } catch {
+      // Continue to verification/fallback below.
+    }
+
+    let sessionStillValid = await confirmSessionStillValid();
+
+    if (sessionStillValid && currentToken) {
+      try {
+        await fetch(`${getApiUrl()}/api/logout-all`, {
+          method: "POST",
+          credentials: "include",
+          headers: {
+            Authorization: `Bearer ${currentToken}`,
+          },
+        });
+      } catch {
+        // Ignore and verify again below.
+      }
+
+      // Force a final session probe so the backend can reject the old
+      // refresh token and clear the fj_rt cookie if token_version changed.
+      sessionStillValid = await confirmSessionStillValid();
+    }
+
     setUser(null);
     setToken(null);
     setConsent(null);
     setConsentReady(true);
     clearLocalStorage();
+    invalidateCache();
 
-    try {
-      await fetch(`${getApiUrl()}/api/logout`, {
-        method:      "POST",
-        credentials: "include",
-      });
-    } catch {
-      // Non-fatal — local state is already cleared.
+    if (!sessionStillValid) {
+      window.location.replace("/login");
+      return;
     }
 
-    window.location.replace("/login");
+    // Last-resort escape hatch: if the session is still alive, hard-navigate
+    // to login with a marker instead of leaving stale local auth visible.
+    window.location.replace("/login?logout=retry");
   };
 
   return (

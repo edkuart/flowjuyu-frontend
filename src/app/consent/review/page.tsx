@@ -1,5 +1,4 @@
-import { Suspense } from "react";
-import ConsentReviewClient from "./ConsentReviewClient";
+import dynamic from "next/dynamic";
 
 function ConsentReviewFallback() {
   return (
@@ -11,10 +10,11 @@ function ConsentReviewFallback() {
   );
 }
 
+const ConsentReviewClient = dynamic(() => import("./ConsentReviewClient"), {
+  ssr: false,
+  loading: () => <ConsentReviewFallback />,
+});
+
 export default function ConsentReviewPage() {
-  return (
-    <Suspense fallback={<ConsentReviewFallback />}>
-      <ConsentReviewClient />
-    </Suspense>
-  );
+  return <ConsentReviewClient />;
 }

@@ -25,9 +25,6 @@ import {
   getDefaultDestination,
   type Role,
 } from "@/lib/authRoutes";
-import { parseConsentStatus } from "@/lib/consent";
-import { buildConsentReviewPath } from "@/lib/consentNavigation";
-import { safeInternalPath } from "@/lib/safeRedirect";
 
 // ─── Constants ────────────────────────────────────────────────────────────────
 
@@ -41,10 +38,6 @@ const API_URL = process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:8800";
 type SessionResult =
   | { status: "valid"; role: Role }
   | { status: "invalid" }
-  | { status: "unavailable" };
-
-type ConsentResult =
-  | { status: "valid"; needsConsent: boolean }
   | { status: "unavailable" };
 
 /**
@@ -93,41 +86,6 @@ async function resolveSession(req: NextRequest): Promise<SessionResult> {
   }
 }
 
-async function resolveConsent(req: NextRequest): Promise<ConsentResult> {
-  const cookieHeader = req.headers.get("cookie") ?? "";
-
-  try {
-    const controller = new AbortController();
-    const timer = setTimeout(() => controller.abort(), SESSION_TIMEOUT_MS);
-
-    let res: Response;
-    try {
-      res = await fetch(`${API_URL}/api/consent/status`, {
-        method: "GET",
-        headers: { cookie: cookieHeader },
-        signal: controller.signal,
-      });
-    } finally {
-      clearTimeout(timer);
-    }
-
-    if (!res.ok) {
-      return { status: "unavailable" };
-    }
-
-    const json = await res.json();
-    const consent = parseConsentStatus(json);
-
-    if (!consent) {
-      return { status: "unavailable" };
-    }
-
-    return { status: "valid", needsConsent: consent.needsConsent };
-  } catch {
-    return { status: "unavailable" };
-  }
-}
-
 // ─── Redirect helpers ─────────────────────────────────────────────────────────
 
 function buildLoginRedirect(
@@ -143,19 +101,11 @@ function buildRoleRedirect(req: NextRequest, role: Role): NextResponse {
   return NextResponse.redirect(new URL(getDefaultDestination(role), req.url));
 }
 
-function buildConsentRedirect(
-  req: NextRequest,
-  destination: string,
-): NextResponse {
-  return NextResponse.redirect(
-    new URL(buildConsentReviewPath(destination), req.url),
-  );
-}
-
 // ─── Middleware ───────────────────────────────────────────────────────────────
 
 export async function middleware(req: NextRequest): Promise<NextResponse> {
   const { pathname } = req.nextUrl;
+  const allowAccountSwitch = req.nextUrl.searchParams.get("switch") === "1";
 
   // ── Fast path: no cookie → no session possible ────────────────────────────
   const hasCookie = !!req.cookies.get(REFRESH_COOKIE)?.value;
@@ -178,16 +128,9 @@ export async function middleware(req: NextRequest): Promise<NextResponse> {
 
   // ── Auth route (login / register / …) ────────────────────────────────────
   if (isAuthRoute(pathname)) {
-    if (session.status === "valid") {
-      const consent = await resolveConsent(req);
-      if (consent.status === "valid" && consent.needsConsent) {
-        const redirectTo =
-          safeInternalPath(req.nextUrl.searchParams.get("redirectTo")) ??
-          getDefaultDestination(session.role);
-        return buildConsentRedirect(req, redirectTo);
-      }
-
-      // Already signed in — send to their dashboard.
+    if (session.status === "valid" && !allowAccountSwitch) {
+      // Consent enforcement stays client-side because the backend route
+      // requires a Bearer token and the Edge runtime only has the refresh cookie.
       return buildRoleRedirect(req, session.role);
     }
     // invalid or unavailable — let them see the auth page.
@@ -209,15 +152,6 @@ export async function middleware(req: NextRequest): Promise<NextResponse> {
           // Authenticated but wrong role → send to their own dashboard.
           return buildRoleRedirect(req, session.role);
         }
-
-        {
-          const consent = await resolveConsent(req);
-          if (consent.status === "valid" && consent.needsConsent) {
-            const destination = pathname + req.nextUrl.search;
-            return buildConsentRedirect(req, destination);
-          }
-        }
-
         return NextResponse.next();
     }
   }

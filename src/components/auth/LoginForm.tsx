@@ -27,9 +27,10 @@ const API_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8800";
 
 interface LoginFormProps {
   redirectTo?: string;
+  allowAuthenticated?: boolean;
 }
 
-export function LoginForm({ redirectTo }: LoginFormProps) {
+export function LoginForm({ redirectTo, allowAuthenticated = false }: LoginFormProps) {
   const {
     login,
     isAuthenticated,
@@ -54,6 +55,7 @@ export function LoginForm({ redirectTo }: LoginFormProps) {
   const hasRedirected = useRef(false);
 
   useEffect(() => {
+    if (allowAuthenticated) return;
     if (!ready || !consentReady || !isAuthenticated || !user) return;
     if (hasRedirected.current) return;
 
@@ -66,7 +68,7 @@ export function LoginForm({ redirectTo }: LoginFormProps) {
     window.location.replace(
       needsConsent ? buildConsentReviewPath(destination) : destination,
     );
-  }, [ready, consentReady, isAuthenticated, user, redirectTo, needsConsent]);
+  }, [allowAuthenticated, ready, consentReady, isAuthenticated, user, redirectTo, needsConsent]);
 
   const onSubmit = async (data: LoginValues) => {
     setLoginError(null);
