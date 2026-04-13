@@ -14,7 +14,7 @@ export default function NotificationSettings() {
         </p>
       </div>
 
-      <CommunicationPreferencesPanel />
+      <CommunicationPreferencesPanel surface="buyer_notifications_settings" />
     </div>
   );
 }

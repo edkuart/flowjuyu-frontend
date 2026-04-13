@@ -15,6 +15,7 @@ import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
 import { useAuth } from "@/context/AuthContext";
 import { apiFetch } from "@/lib/api";
+import { track } from "@/lib/analytics";
 import type { ConsentType } from "@/lib/consent";
 import { resolvePostConsentDestination } from "@/lib/consentNavigation";
 import { safeInternalPath } from "@/lib/safeRedirect";
@@ -42,6 +43,7 @@ export default function ConsentReviewClient() {
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const didRedirect = useRef(false);
+  const didTrackView = useRef(false);
 
   const rawNext = searchParams.get("next");
   const safeNext = useMemo(() => safeInternalPath(rawNext), [rawNext]);
@@ -75,6 +77,21 @@ export default function ConsentReviewClient() {
     void refreshConsent();
   }, [ready, user, consentReady, consent, refreshConsent]);
 
+  useEffect(() => {
+    if (!user || !consentReady || !consent || !needsConsent || didTrackView.current) {
+      return;
+    }
+
+    didTrackView.current = true;
+    track("consent_review_viewed", {
+      surface: "consent_review",
+      source: "consent_enforcement",
+      next: safeNext ?? null,
+      missingConsents: consent.missingConsents,
+      currentVersion: consent.currentVersion ?? null,
+    });
+  }, [user, consentReady, consent, needsConsent, safeNext]);
+
   const canSubmit = missingConsents.every((type) => checks[type]);
 
   const handleSubmit = async () => {
@@ -105,8 +122,25 @@ export default function ConsentReviewClient() {
               "No se pudo registrar tu consentimiento. Inténtalo nuevamente.",
           );
         }
+
+        track(
+          consentType === "terms"
+            ? "consent_terms_accepted"
+            : "consent_privacy_accepted",
+          {
+            surface: "consent_review",
+            source: "consent_review_submit",
+            next: safeNext ?? null,
+          },
+        );
       }
 
+      track("consent_review_completed", {
+        surface: "consent_review",
+        source: "consent_review_submit",
+        next: safeNext ?? null,
+        acceptedConsents: missingConsents,
+      });
       await Promise.all([refreshConsent(), refreshAuth()]);
       window.location.replace(destination);
     } catch (err) {

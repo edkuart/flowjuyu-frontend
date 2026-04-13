@@ -131,9 +131,11 @@ export function MarketingOptInNudge({
           setSnapshot(seenParsed);
         }
 
-        track("marketing_prompt_shown", {
-          prompt_key: promptKey,
+        track("marketing_nudge_viewed", {
+          promptKey,
           surface,
+          channel: "email",
+          source: "marketing_nudge",
         });
       } catch (err) {
         if (!cancelled) {
@@ -194,9 +196,11 @@ export function MarketingOptInNudge({
       setAccepted(true);
       setVisible(false);
 
-      track("marketing_prompt_accepted", {
-        prompt_key: promptKey,
+      track("marketing_nudge_accepted", {
+        promptKey,
         surface,
+        channel: "email",
+        source: "marketing_nudge",
       });
     } catch (err) {
       setError(
@@ -234,9 +238,11 @@ export function MarketingOptInNudge({
       setSnapshot(parsed);
       setVisible(false);
 
-      track("marketing_prompt_snoozed", {
-        prompt_key: promptKey,
+      track("marketing_nudge_snoozed", {
+        promptKey,
         surface,
+        channel: "email",
+        source: "marketing_nudge",
       });
     } catch (err) {
       setError(

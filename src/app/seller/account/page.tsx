@@ -917,6 +917,7 @@ export default function SellerAccountPage() {
           compact
           title="Marketing y comunicaciones opcionales"
           description="Tus mensajes operativos y de seguridad siguen activos. Aquí controlas únicamente emails y WhatsApp promocionales de Flowjuyu."
+          surface="seller_account_preferences"
         />
       </Section>
 

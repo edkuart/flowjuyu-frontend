@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState, type ReactNode } from "react";
+import { useEffect, useRef, useState, type ReactNode } from "react";
 import {
   AlertCircle,
   CheckCircle2,
@@ -15,6 +15,7 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Switch } from "@/components/ui/switch";
 import { apiFetch } from "@/lib/api";
+import { track } from "@/lib/analytics";
 import {
   parseCommunicationPreferences,
   type CommunicationPreferences,
@@ -24,6 +25,7 @@ interface Props {
   title?: string;
   description?: string;
   compact?: boolean;
+  surface?: string;
 }
 
 const DEFAULT_PREFERENCES: CommunicationPreferences = {
@@ -37,6 +39,7 @@ export function CommunicationPreferencesPanel({
   title = "Preferencias de comunicación",
   description = "Controla únicamente mensajes promocionales. Los mensajes operativos de cuenta y seguridad permanecen activos.",
   compact = false,
+  surface = "communication_preferences",
 }: Props) {
   const [preferences, setPreferences] = useState<CommunicationPreferences | null>(
     null,
@@ -46,6 +49,7 @@ export function CommunicationPreferencesPanel({
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [success, setSuccess] = useState<string | null>(null);
+  const didTrackView = useRef(false);
 
   useEffect(() => {
     let cancelled = false;
@@ -70,6 +74,15 @@ export function CommunicationPreferencesPanel({
         if (!cancelled) {
           setPreferences(parsed);
           setDraft(parsed);
+          if (!didTrackView.current) {
+            didTrackView.current = true;
+            track("marketing_preferences_viewed", {
+              surface,
+              source: "preferences_screen",
+              marketingEmailEnabled: parsed.marketingEmail,
+              marketingWhatsappEnabled: parsed.marketingWhatsapp,
+            });
+          }
         }
       } catch (err) {
         if (!cancelled) {
@@ -89,7 +102,7 @@ export function CommunicationPreferencesPanel({
     return () => {
       cancelled = true;
     };
-  }, []);
+  }, [surface]);
 
   const hasChanges =
     !!preferences &&
@@ -120,6 +133,32 @@ export function CommunicationPreferencesPanel({
           isErrorPayload(json) && typeof json.message === "string"
             ? json.message
             : "No se pudieron guardar tus preferencias.",
+        );
+      }
+
+      if (preferences.marketingEmail !== parsed.marketingEmail) {
+        track(
+          parsed.marketingEmail
+            ? "marketing_email_enabled"
+            : "marketing_email_disabled",
+          {
+            surface,
+            source: "preferences_screen",
+            channel: "email",
+          },
+        );
+      }
+
+      if (preferences.marketingWhatsapp !== parsed.marketingWhatsapp) {
+        track(
+          parsed.marketingWhatsapp
+            ? "marketing_whatsapp_enabled"
+            : "marketing_whatsapp_disabled",
+          {
+            surface,
+            source: "preferences_screen",
+            channel: "whatsapp",
+          },
         );
       }
 
