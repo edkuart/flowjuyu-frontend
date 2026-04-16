@@ -29,19 +29,21 @@ function createGoogleProvider(): GoogleAuthProvider {
 
 function setGoogleAuthIntent(intent: GoogleAuthIntent): void {
   if (typeof window === "undefined") return;
-  window.sessionStorage.setItem(GOOGLE_AUTH_INTENT_KEY, intent);
+  // localStorage survives cross-origin redirects (Safari clears sessionStorage
+  // when the tab navigates through firebaseapp.com during signInWithRedirect)
+  window.localStorage.setItem(GOOGLE_AUTH_INTENT_KEY, intent);
 }
 
 export function getGoogleAuthIntent(): GoogleAuthIntent | null {
   if (typeof window === "undefined") return null;
 
-  const value = window.sessionStorage.getItem(GOOGLE_AUTH_INTENT_KEY);
+  const value = window.localStorage.getItem(GOOGLE_AUTH_INTENT_KEY);
   return value === "login" || value === "register" ? value : null;
 }
 
 function clearGoogleAuthIntent(): void {
   if (typeof window === "undefined") return;
-  window.sessionStorage.removeItem(GOOGLE_AUTH_INTENT_KEY);
+  window.localStorage.removeItem(GOOGLE_AUTH_INTENT_KEY);
 }
 
 async function exchangeGoogleIdToken(id_token: string): Promise<SocialAuthResult> {
@@ -92,10 +94,15 @@ export async function consumeGoogleRedirectResult(
     storedIntent: intent,
   });
 
-  if (!intent || intent !== expectedIntent) {
+  // Explicit mismatch: a *different* form's redirect is pending — skip this call
+  if (intent !== null && intent !== expectedIntent) {
+    logGoogleRedirect("Intent mismatch — skipping", { expectedIntent, storedIntent: intent });
     return null;
   }
 
+  // intent === null means localStorage was cleared (Safari cross-origin wipe) or
+  // this is a normal page load. We still call getRedirectResult: Firebase returns
+  // null immediately on normal loads, so this is safe and recovers the Safari case.
   const result = await getRedirectResult(auth);
   const user: User | null = result?.user ?? auth.currentUser;
 
@@ -108,9 +115,14 @@ export async function consumeGoogleRedirectResult(
   });
 
   if (!user) {
-    logGoogleRedirect("Redirect result did not provide a user", {});
     clearGoogleAuthIntent();
-    throw new Error("Google redirect completed without Firebase user.");
+    if (result !== null) {
+      // Firebase returned a credential but no user — unexpected state
+      logGoogleRedirect("Redirect result had no user despite non-null result", {});
+      throw new Error("Google redirect completed without Firebase user.");
+    }
+    // No pending redirect — normal page load, nothing to do
+    return null;
   }
 
   const id_token = await user.getIdToken();
