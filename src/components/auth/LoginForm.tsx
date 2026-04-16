@@ -1,6 +1,8 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
+import { onAuthStateChanged } from "firebase/auth";
+import { auth } from "@/lib/firebase";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useForm } from "react-hook-form";
 import Link from "next/link";
@@ -18,7 +20,8 @@ import { safeAppRedirectForRole } from "@/lib/safeRedirect";
 import { getDefaultDestination } from "@/lib/authRoutes";
 import { getApiUrl } from "@/lib/config";
 import {
-  consumeGoogleRedirectResult,
+  clearGoogleAuthIntent,
+  getGoogleAuthIntent,
   startGoogleRedirect,
 } from "@/lib/socialAuth";
 import { useLanguage } from "@/i18n/context/useLanguage";
@@ -56,7 +59,6 @@ export function LoginForm({ redirectTo, allowAuthenticated = false }: LoginFormP
   const [loginError, setLoginError] = useState<string | null>(null);
   const [googleLoading, setGoogleLoading] = useState(false);
   const hasRedirected = useRef(false);
-  const googleRedirectHandled = useRef(false);
 
   useEffect(() => {
     if (allowAuthenticated) return;
@@ -74,18 +76,41 @@ export function LoginForm({ redirectTo, allowAuthenticated = false }: LoginFormP
     );
   }, [allowAuthenticated, ready, consentReady, isAuthenticated, user, redirectTo, needsConsent]);
 
+  // ── Google redirect result handler ──────────────────────────────────────────
+  // onAuthStateChanged fires only once Firebase has finished restoring its
+  // internal state, eliminating the race condition that caused getRedirectResult
+  // to return null. The intent guard prevents this from running on normal loads.
   useEffect(() => {
-    if (googleRedirectHandled.current) return;
-    googleRedirectHandled.current = true;
+    if (getGoogleAuthIntent() !== "login") return;
 
-    async function handleGoogleRedirect() {
+    let handled = false;
+
+    const unsubscribe = onAuthStateChanged(auth, async (firebaseUser) => {
+      if (!firebaseUser || handled) return;
+      handled = true;
+      unsubscribe();
+
       setGoogleLoading(true);
-
       try {
-        const result = await consumeGoogleRedirectResult("login");
-        if (!result) return;
+        console.log("[google-auth] user detected after redirect", {
+          uid: firebaseUser.uid,
+          providers: firebaseUser.providerData.map((p) => p.providerId),
+        });
 
-        const { res, json } = result;
+        const idToken = await firebaseUser.getIdToken();
+        console.log("[google-auth] idToken obtained", { length: idToken.length });
+
+        const res = await fetch(`${API_URL}/api/auth/social`, {
+          method: "POST",
+          credentials: "include",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ provider: "google", id_token: idToken }),
+        });
+
+        const json = (await res.json().catch(() => ({}))) as Record<string, unknown>;
+        console.log("[google-auth] backend response", { status: res.status, ok: res.ok });
+
+        clearGoogleAuthIntent();
 
         if (!res.ok || !json.ok || !json.token || !json.user) {
           const msg =
@@ -113,16 +138,18 @@ export function LoginForm({ redirectTo, allowAuthenticated = false }: LoginFormP
             ? buildConsentReviewPath(destination)
             : destination,
         );
-      } catch (err: any) {
-        if (err?.code === "auth/no-auth-event") return;
+      } catch (err) {
+        clearGoogleAuthIntent();
+        console.error("[google-auth] flow failed", err);
         setLoginError(tr("auth.loginGoogleError"));
       } finally {
         setGoogleLoading(false);
       }
-    }
+    });
 
-    void handleGoogleRedirect();
-  }, [login, redirectTo, tr]);
+    return () => unsubscribe();
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   const onSubmit = async (data: LoginValues) => {
     setLoginError(null);

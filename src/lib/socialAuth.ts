@@ -41,7 +41,7 @@ export function getGoogleAuthIntent(): GoogleAuthIntent | null {
   return value === "login" || value === "register" ? value : null;
 }
 
-function clearGoogleAuthIntent(): void {
+export function clearGoogleAuthIntent(): void {
   if (typeof window === "undefined") return;
   window.localStorage.removeItem(GOOGLE_AUTH_INTENT_KEY);
 }
