@@ -2,7 +2,6 @@
 
 import { useEffect, useRef, useState } from "react";
 import { zodResolver } from "@hookform/resolvers/zod";
-import { GoogleAuthProvider, signInWithPopup } from "firebase/auth";
 import { useForm } from "react-hook-form";
 import Link from "next/link";
 import { FcGoogle } from "react-icons/fc";
@@ -13,17 +12,21 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { useAuth } from "@/context/AuthContext";
 import type { User } from "@/context/AuthContext";
-import { auth } from "@/lib/firebase";
 import { parseConsentHints } from "@/lib/consent";
 import { buildConsentReviewPath } from "@/lib/consentNavigation";
 import { safeAppRedirectForRole } from "@/lib/safeRedirect";
 import { getDefaultDestination } from "@/lib/authRoutes";
+import { getApiUrl } from "@/lib/config";
+import {
+  consumeGoogleRedirectResult,
+  startGoogleRedirect,
+} from "@/lib/socialAuth";
 import { useLanguage } from "@/i18n/context/useLanguage";
 import esDictionary from "@/i18n/dictionaries/es";
 import { createT } from "@/i18n/utils/t";
 import { loginSchema, LoginValues } from "@/schemas/login-schema";
 
-const API_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8800";
+const API_URL = getApiUrl();
 
 interface LoginFormProps {
   redirectTo?: string;
@@ -53,6 +56,7 @@ export function LoginForm({ redirectTo, allowAuthenticated = false }: LoginFormP
   const [loginError, setLoginError] = useState<string | null>(null);
   const [googleLoading, setGoogleLoading] = useState(false);
   const hasRedirected = useRef(false);
+  const googleRedirectHandled = useRef(false);
 
   useEffect(() => {
     if (allowAuthenticated) return;
@@ -69,6 +73,56 @@ export function LoginForm({ redirectTo, allowAuthenticated = false }: LoginFormP
       needsConsent ? buildConsentReviewPath(destination) : destination,
     );
   }, [allowAuthenticated, ready, consentReady, isAuthenticated, user, redirectTo, needsConsent]);
+
+  useEffect(() => {
+    if (googleRedirectHandled.current) return;
+    googleRedirectHandled.current = true;
+
+    async function handleGoogleRedirect() {
+      setGoogleLoading(true);
+
+      try {
+        const result = await consumeGoogleRedirectResult("login");
+        if (!result) return;
+
+        const { res, json } = result;
+
+        if (!res.ok || !json.ok || !json.token || !json.user) {
+          const msg =
+            res.status === 429
+              ? tr("auth.loginRateLimitError")
+              : (json.message as string) || tr("auth.loginGoogleError");
+          setLoginError(msg);
+          return;
+        }
+
+        const nextUser = json.user as User;
+        const consentHints = parseConsentHints(json);
+        login(nextUser, json.token as string, json);
+
+        if (json.is_new_user) {
+          window.location.replace("/welcome");
+          return;
+        }
+
+        const destination =
+          safeAppRedirectForRole(redirectTo, nextUser.role) ??
+          getDefaultDestination(nextUser.role);
+        window.location.replace(
+          consentHints?.needsConsent
+            ? buildConsentReviewPath(destination)
+            : destination,
+        );
+      } catch (err: any) {
+        if (err?.code === "auth/no-auth-event") return;
+        setLoginError(tr("auth.loginGoogleError"));
+      } finally {
+        setGoogleLoading(false);
+      }
+    }
+
+    void handleGoogleRedirect();
+  }, [login, redirectTo, tr]);
 
   const onSubmit = async (data: LoginValues) => {
     setLoginError(null);
@@ -120,55 +174,9 @@ export function LoginForm({ redirectTo, allowAuthenticated = false }: LoginFormP
     setGoogleLoading(true);
 
     try {
-      const provider = new GoogleAuthProvider();
-      provider.setCustomParameters({ prompt: "select_account" });
-
-      const result = await signInWithPopup(auth, provider);
-      const id_token = await result.user.getIdToken();
-
-      const res = await fetch(`${API_URL}/api/login/google`, {
-        method: "POST",
-        credentials: "include",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ id_token }),
-      });
-
-      const json = (await res.json().catch(() => ({}))) as Record<
-        string,
-        unknown
-      >;
-
-      if (!res.ok || !json.ok || !json.token || !json.user) {
-        const msg =
-          res.status === 429
-            ? tr("auth.loginRateLimitError")
-            : (json.message as string) || tr("auth.loginGoogleError");
-        setLoginError(msg);
-        return;
-      }
-
-      const nextUser = json.user as User;
-      const consentHints = parseConsentHints(json);
-      login(nextUser, json.token as string, json);
-
-      if (json.is_new_user) {
-        window.location.replace("/welcome");
-        return;
-      }
-
-      const destination =
-        safeAppRedirectForRole(redirectTo, nextUser.role) ??
-        getDefaultDestination(nextUser.role);
-      window.location.replace(
-        consentHints?.needsConsent
-          ? buildConsentReviewPath(destination)
-          : destination,
-      );
+      await startGoogleRedirect("login");
     } catch (err: any) {
-      if (
-        err?.code === "auth/popup-closed-by-user" ||
-        err?.code === "auth/cancelled-popup-request"
-      ) {
+      if (err?.message === "Google redirect did not leave the page as expected.") {
         return;
       }
       setLoginError(tr("auth.loginGoogleError"));

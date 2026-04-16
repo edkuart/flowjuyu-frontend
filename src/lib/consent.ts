@@ -24,9 +24,19 @@ function toPolicyInfo(value: unknown): ConsentPolicyInfo | null {
   if (!isRecord(value)) return null;
 
   return {
-    version: typeof value.version === "string" ? value.version : null,
+    version:
+      typeof value.version === "string"
+        ? value.version
+        : typeof value.versionCode === "string"
+          ? value.versionCode
+          : null,
     url: typeof value.url === "string" ? value.url : null,
-    label: typeof value.label === "string" ? value.label : null,
+    label:
+      typeof value.label === "string"
+        ? value.label
+        : typeof value.versionLabel === "string"
+          ? value.versionLabel
+          : null,
   };
 }
 
@@ -40,6 +50,56 @@ function normalizeMissingConsents(value: unknown): ConsentType[] {
 
 export function parseConsentStatus(payload: unknown): ConsentStatus | null {
   if (!isRecord(payload)) return null;
+
+  const access = isRecord(payload.access) ? payload.access : null;
+  const accessConsent = access && isRecord(access.consent) ? access.consent : null;
+
+  if (access && accessConsent) {
+    const gates = isRecord(access.gates) ? access.gates : null;
+    const currentVersion = toPolicyInfo(accessConsent.currentVersion);
+    const missingConsents = normalizeMissingConsents(accessConsent.missing);
+    const needsConsent =
+      typeof accessConsent.needsAcceptance === "boolean"
+        ? accessConsent.needsAcceptance
+        : gates?.consent === "required" || missingConsents.length > 0;
+
+    return {
+      compliant: !needsConsent,
+      needsConsent,
+      termsAccepted: !missingConsents.includes("terms"),
+      privacyAccepted: !missingConsents.includes("privacy"),
+      missingConsents,
+      currentVersion: currentVersion?.version ?? null,
+      policies: {
+        terms: currentVersion,
+        privacy: currentVersion,
+      },
+    };
+  }
+
+  if (isRecord(payload.consent)) {
+    const missingConsents = normalizeMissingConsents(payload.consent.missingPolicies);
+    const policies = isRecord(payload.consent.activeVersions)
+      ? payload.consent.activeVersions
+      : {};
+    const needsConsent =
+      typeof payload.consent.needsConsent === "boolean"
+        ? payload.consent.needsConsent
+        : missingConsents.length > 0;
+
+    return {
+      compliant: !needsConsent,
+      needsConsent,
+      termsAccepted: !missingConsents.includes("terms"),
+      privacyAccepted: !missingConsents.includes("privacy"),
+      missingConsents,
+      currentVersion: toPolicyInfo(policies.terms)?.version ?? null,
+      policies: {
+        terms: toPolicyInfo(policies.terms),
+        privacy: toPolicyInfo(policies.privacy),
+      },
+    };
+  }
 
   const compliance = isRecord(payload.compliance) ? payload.compliance : payload;
   const policies = isRecord(payload.policies) ? payload.policies : {};
@@ -80,7 +140,44 @@ export function parseConsentHints(payload: unknown): Pick<
   ConsentStatus,
   "needsConsent" | "currentVersion"
 > | null {
-  if (!isRecord(payload) || typeof payload.needsConsent !== "boolean") {
+  if (!isRecord(payload)) {
+    return null;
+  }
+
+  const access = isRecord(payload.access) ? payload.access : null;
+  const accessConsent = access && isRecord(access.consent) ? access.consent : null;
+
+  if (access && accessConsent) {
+    const gates = isRecord(access.gates) ? access.gates : null;
+    const currentVersion = toPolicyInfo(accessConsent.currentVersion);
+    const missingConsents = normalizeMissingConsents(accessConsent.missing);
+    const needsConsent =
+      typeof accessConsent.needsAcceptance === "boolean"
+        ? accessConsent.needsAcceptance
+        : gates?.consent === "required" || missingConsents.length > 0;
+
+    return {
+      needsConsent,
+      currentVersion: currentVersion?.version ?? null,
+    };
+  }
+
+  if (isRecord(payload.consent)) {
+    return {
+      needsConsent:
+        typeof payload.consent.needsConsent === "boolean"
+          ? payload.consent.needsConsent
+          : normalizeMissingConsents(payload.consent.missingPolicies).length > 0,
+      currentVersion:
+        toPolicyInfo(
+          isRecord(payload.consent.activeVersions)
+            ? payload.consent.activeVersions.terms
+            : null,
+        )?.version ?? null,
+    };
+  }
+
+  if (typeof payload.needsConsent !== "boolean") {
     return null;
   }
 

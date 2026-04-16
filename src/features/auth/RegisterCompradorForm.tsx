@@ -13,10 +13,13 @@ import { Checkbox } from "@/components/ui/checkbox";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { useAuth } from "@/context/AuthContext";
+import type { User } from "@/context/AuthContext";
 import { getDefaultDestination } from "@/lib/authRoutes";
-import { auth } from "@/lib/firebase";
-import { GoogleAuthProvider, signInWithPopup } from "firebase/auth";
-import { useState } from "react";
+import {
+  consumeGoogleRedirectResult,
+  startGoogleRedirect,
+} from "@/lib/socialAuth";
+import { useEffect, useRef, useState } from "react";
 import Link from "next/link";
 import { FcGoogle } from "react-icons/fc";
 import AuthLayout from "@/components/auth/AuthLayout";
@@ -29,6 +32,7 @@ export function RegisterForm() {
   const router = useRouter();
   const { login } = useAuth();
   const [googleLoading, setGoogleLoading] = useState(false);
+  const googleRedirectHandled = useRef(false);
 
   const {
     register,
@@ -78,6 +82,49 @@ export function RegisterForm() {
     }
   };
 
+  useEffect(() => {
+    if (googleRedirectHandled.current) return;
+    googleRedirectHandled.current = true;
+
+    async function handleGoogleRedirect() {
+      setGoogleLoading(true);
+
+      try {
+        const result = await consumeGoogleRedirectResult("register");
+        if (!result) return;
+
+        const { res: response, json } = result;
+        const data = json as Record<string, unknown>;
+
+        if (!response.ok || !data.ok || !data.user || !data.token) {
+          setError("root", {
+            message:
+              (data.message as string) ||
+              "No se pudo crear/iniciar sesión con Google.",
+          });
+          return;
+        }
+
+        const nextUser = data.user as User;
+        login(nextUser, data.token as string, data);
+        router.push(
+          data.is_new_user
+            ? "/welcome"
+            : getDefaultDestination(nextUser.role),
+        );
+      } catch (error: any) {
+        if (error?.code === "auth/no-auth-event") return;
+        setError("root", {
+          message: "Error al conectar con Google. Inténtalo de nuevo.",
+        });
+      } finally {
+        setGoogleLoading(false);
+      }
+    }
+
+    void handleGoogleRedirect();
+  }, [login, router, setError]);
+
   // ── Google signup ──────────────────────────────────────────────────────────
 
   const handleGoogleSignup = async () => {
@@ -90,37 +137,9 @@ export function RegisterForm() {
 
     setGoogleLoading(true);
     try {
-      const provider = new GoogleAuthProvider();
-      provider.setCustomParameters({ prompt: "select_account" });
-
-      const result   = await signInWithPopup(auth, provider);
-      const id_token = await result.user.getIdToken();
-
-      const response = await fetch("/api/auth/register/google", {
-        method: "POST",
-        credentials: "include",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          id_token,
-          accepted_legal_terms: true,
-        }),
-      });
-
-      const data = await response.json();
-
-      if (data.ok && data.user && data.token) {
-        login(data.user, data.token);
-        router.push(data.is_new_user ? "/welcome" : getDefaultDestination(data.user.role));
-      } else {
-        setError("root", {
-          message: data.message || "No se pudo crear/iniciar sesión con Google.",
-        });
-      }
+      await startGoogleRedirect("register");
     } catch (error: any) {
-      if (
-        error?.code === "auth/popup-closed-by-user" ||
-        error?.code === "auth/cancelled-popup-request"
-      ) {
+      if (error?.message === "Google redirect did not leave the page as expected.") {
         return;
       }
       setError("root", { message: "Error al conectar con Google. Inténtalo de nuevo." });

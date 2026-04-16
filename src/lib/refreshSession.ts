@@ -1,40 +1,16 @@
-/**
- * src/lib/refreshSession.ts
- *
- * Silent session renewal via the HttpOnly refresh-token cookie.
- *
- * Design notes:
- *
- *  - Singleton lock  — `inflightRefresh` collapses concurrent 401 failures into
- *    one network call. All waiters share the same promise and act on its result
- *    together, preventing "refresh storms" when many requests expire at once.
- *
- *  - No React imports — this module is intentionally plain TypeScript. It
- *    communicates state changes to React (AuthContext) by dispatching the custom
- *    "auth:changed" DOM event, which AuthContext listens to. This prevents a
- *    circular dependency between the fetch layer and the context layer.
- *
- *  - localStorage only — access token and user are mirrored in localStorage so
- *    that apiFetch can read the new token before the React tree re-renders.
- */
-
 import { getApiUrl } from "@/lib/config";
 
-// ─── Singleton promise lock ──────────────────────────────────────────────────
+type SessionSnapshot = Record<string, unknown>;
 
-let inflightRefresh: Promise<string | null> | null = null;
+interface AuthChangedDetail {
+  session?: SessionSnapshot | null;
+  token?: string | null;
+  cleared?: boolean;
+}
 
-// ─── Public API ──────────────────────────────────────────────────────────────
+let inflightRefresh: Promise<SessionSnapshot | null> | null = null;
 
-/**
- * Exchanges the HttpOnly `fj_rt` cookie for a fresh access token.
- *
- * Concurrent calls all receive the same Promise — only one network request is
- * ever in-flight at a time. The lock resets after the request settles.
- *
- * @returns the new access token if refresh succeeds, otherwise `null`.
- */
-export function refreshSession(): Promise<string | null> {
+export function refreshSession(): Promise<SessionSnapshot | null> {
   if (inflightRefresh) return inflightRefresh;
 
   inflightRefresh = _doRefresh().finally(() => {
@@ -44,37 +20,71 @@ export function refreshSession(): Promise<string | null> {
   return inflightRefresh;
 }
 
-// ─── Internal ────────────────────────────────────────────────────────────────
-
-async function _doRefresh(): Promise<string | null> {
+async function _doRefresh(): Promise<SessionSnapshot | null> {
   try {
-    const res = await fetch(`${getApiUrl()}/api/refresh`, {
-      method:      "POST",
-      credentials: "include", // sends the fj_rt cookie
+    const refreshRes = await fetch(`${getApiUrl()}/api/refresh`, {
+      method: "POST",
+      credentials: "include",
     });
 
-    if (!res.ok) {
-      if (res.status === 401 || res.status === 403) {
+    if (!refreshRes.ok) {
+      if (refreshRes.status === 401 || refreshRes.status === 403) {
         _clearStoredAuth();
-        _notifyAuthChanged();
+        _notifyAuthChanged({ session: null, cleared: true });
       }
       return null;
     }
 
-    // Safe parse — a rare 429 slip-through or gateway response may not be JSON.
-    const json = await res.json().catch(() => null);
+    const refreshJson = (await refreshRes.json().catch(() => null)) as
+      | { ok?: boolean; token?: string; user?: unknown }
+      | null;
 
-    if (!json?.ok || !json?.token) {
+    if (!refreshJson?.ok || !refreshJson.token) {
       return null;
     }
 
-    localStorage.setItem("token", json.token);
-    if (json.user) localStorage.setItem("user", JSON.stringify(json.user));
+    localStorage.setItem("token", refreshJson.token);
+    if (refreshJson.user) {
+      localStorage.setItem("user", JSON.stringify(refreshJson.user));
+    }
 
-    _notifyAuthChanged();
-    return json.token as string;
+    const sessionRes = await fetch(`${getApiUrl()}/api/session`, {
+      credentials: "include",
+      cache: "no-store",
+    });
+
+    if (!sessionRes.ok) {
+      if (sessionRes.status === 401 || sessionRes.status === 403) {
+        _clearStoredAuth();
+        _notifyAuthChanged({ session: null, cleared: true });
+      }
+      return null;
+    }
+
+    const sessionJson = (await sessionRes.json().catch(() => null)) as
+      | SessionSnapshot
+      | null;
+
+    if (!sessionJson) {
+      return null;
+    }
+
+    const sessionUser =
+      typeof sessionJson.user === "object" && sessionJson.user !== null
+        ? sessionJson.user
+        : refreshJson.user ?? null;
+
+    if (sessionUser) {
+      localStorage.setItem("user", JSON.stringify(sessionUser));
+    }
+
+    _notifyAuthChanged({
+      session: sessionJson,
+      token: refreshJson.token,
+    });
+
+    return sessionJson;
   } catch {
-    // Network error — do not destroy auth state on transient connectivity loss.
     return null;
   }
 }
@@ -84,10 +94,6 @@ function _clearStoredAuth(): void {
   localStorage.removeItem("user");
 }
 
-/**
- * Notifies AuthContext (and any other listeners) that localStorage auth state
- * has changed. AuthContext's useEffect re-reads localStorage on this event.
- */
-function _notifyAuthChanged(): void {
-  window.dispatchEvent(new Event("auth:changed"));
+function _notifyAuthChanged(detail: AuthChangedDetail): void {
+  window.dispatchEvent(new CustomEvent<AuthChangedDetail>("auth:changed", { detail }));
 }
