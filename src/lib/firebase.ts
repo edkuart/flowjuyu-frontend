@@ -3,13 +3,13 @@ import { getAuth } from "firebase/auth";
 // import { getAnalytics } from "firebase/analytics"; // Solo si usas Analytics en el front
 
 const firebaseConfig = {
-  apiKey: "AIzaSyAR7cX6ON1ClGX4CFbjaEZ_BgraxKFHiCw",
-  authDomain: "flowjuyu-70653.firebaseapp.com",
-  projectId: "flowjuyu-70653",
-  storageBucket: "flowjuyu-70653.appspot.com", // <--- corregido
-  messagingSenderId: "44403093681",
-  appId: "1:44403093681:web:5f55af8a0ccdbb2249b290",
-  measurementId: "G-KRD1MR6M3B"
+  apiKey: "AIzaSyCiK_MxxRZUP_cZXJkiaMp9QuGL6uE-WEo",
+  authDomain: "flowjuyu-70653-9d441.firebaseapp.com",
+  projectId: "flowjuyu-70653-9d441",
+  storageBucket: "flowjuyu-70653-9d441.firebasestorage.app",
+  messagingSenderId: "7034898716",
+  appId: "1:7034898716:web:a20b329db3a8410c1592d9",
+  measurementId: "G-XLXGS53F2E"
 };
 
 // Previene reinicialización en hot-reload/desarrollo
