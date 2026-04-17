@@ -9,9 +9,11 @@ import React, {
   useRef,
   useState,
 } from "react";
+import { signOut as firebaseSignOut } from "firebase/auth";
 
 import { invalidateCache } from "@/lib/api";
 import { getApiUrl } from "@/lib/config";
+import { auth as firebaseAuth } from "@/lib/firebase";
 import type {
   ConsentPolicyInfo,
   ConsentStatus,
@@ -353,17 +355,26 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [needsConsent, setNeedsConsent] = useState(false);
   const [ready, setReady] = useState(false);
   const isMounted = useRef(true);
+  // Prevents auth:changed events and applyAuthSnapshot from restoring session
+  // during the brief window between logout() and the hard page reload.
+  const loggingOutRef = useRef(false);
 
   const clearStoredAuth = useCallback(() => {
     if (typeof window === "undefined") return;
 
     localStorage.removeItem("token");
     localStorage.removeItem("user");
+    // Also clear any pending Google auth intent so the LoginForm Firebase
+    // listener does not auto-login after the user explicitly logs out.
+    localStorage.removeItem("google_auth_intent");
   }, []);
 
   const applyAuthSnapshot = useCallback(
     (snapshot: ParsedAuthSnapshot, nextToken?: string | null) => {
       if (!isMounted.current) return;
+      // If logout is in progress, silently drop any positive auth restoration.
+      // This prevents in-flight refreshSession() calls from undoing the logout.
+      if (loggingOutRef.current && snapshot.authenticated) return;
 
       if (!snapshot.authenticated || !snapshot.user) {
         clearStoredAuth();
@@ -463,12 +474,22 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   );
 
   const logout = useCallback(async () => {
+    // Set the flag FIRST — any auth:changed events or applyAuthSnapshot calls
+    // with authenticated:true that arrive during this async sequence are dropped.
+    loggingOutRef.current = true;
+
     try {
-      await fetch(`${getApiUrl()}/api/logout`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        credentials: "include",
-      });
+      // Sign out from Firebase and the backend in parallel.
+      // Firebase signOut clears its session so onAuthStateChanged won't
+      // auto-login the user when LoginForm remounts on /login.
+      await Promise.allSettled([
+        firebaseSignOut(firebaseAuth),
+        fetch(`${getApiUrl()}/api/logout`, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          credentials: "include",
+        }),
+      ]);
     } catch (error) {
       console.error("logout error:", error);
     } finally {
@@ -499,6 +520,10 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
   useEffect(() => {
     function handleAuthChanged(event: Event) {
+      // Ignore all auth events while logout is in progress to prevent
+      // in-flight refreshSession() calls from restoring the session.
+      if (loggingOutRef.current) return;
+
       const customEvent = event as CustomEvent<AuthChangedDetail>;
       const detail = customEvent.detail;
 
