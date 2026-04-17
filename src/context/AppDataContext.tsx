@@ -45,6 +45,21 @@ const DEFAULT: AppData = {
 
 const AppDataContext = createContext<AppData>(DEFAULT);
 
+function normalizeImageUrl(value: unknown): string | null {
+  if (typeof value !== "string") return null;
+
+  const src = value.trim();
+  if (!src) return null;
+  if (src.startsWith("/")) return src;
+
+  try {
+    const { protocol } = new URL(src);
+    return protocol === "http:" || protocol === "https:" ? src : null;
+  } catch {
+    return null;
+  }
+}
+
 // ─── Provider ────────────────────────────────────────────────────────────────
 
 export function AppDataProvider({ children }: { children: React.ReactNode }) {
@@ -73,8 +88,15 @@ export function AppDataProvider({ children }: { children: React.ReactNode }) {
             ? res
             : [];
 
+        const categoriasNormalizadas = normalize(categorias).map((cat: any) => ({
+          ...cat,
+          imagen_url:
+            normalizeImageUrl(cat?.imagen_url) ??
+            "/images/categorias/default.jpg",
+        }));
+
         setState({
-          categorias:       normalize(categorias),
+          categorias:       categoriasNormalizadas,
           clases:           normalize(clases),
           accesoriosNormal: normalize(accesoriosNormal),
           accesoriosTipico: normalize(accesoriosTipico),

@@ -18,11 +18,11 @@
 //              Used in related products, sliders, tight secondary grids.
 "use client";
 
-import { useMemo, useState } from "react";
+import { useMemo } from "react";
 import Link from "next/link";
-import Image from "next/image";
 import { cn } from "@/lib/utils";
 import { FavoriteButton } from "@/components/ui/FavoriteButton";
+import FallbackImg from "@/components/FallbackImg";
 import {
   ProductStatusBadge,
   DiscoveryBadge,
@@ -106,7 +106,6 @@ function ProductBadge({
 interface ProductImageProps {
   src: string;
   alt: string;
-  sizes: string;
   isAgotado: boolean;
   showStatusBadge: boolean;
   showDiscoveryBadge: boolean;
@@ -115,13 +114,11 @@ interface ProductImageProps {
   createdAt: string | null | undefined;
   productId: string;
   showFavorite: boolean;
-  onError: () => void;
 }
 
 function ProductImage({
   src,
   alt,
-  sizes,
   isAgotado,
   showStatusBadge,
   showDiscoveryBadge,
@@ -130,21 +127,19 @@ function ProductImage({
   createdAt,
   productId,
   showFavorite,
-  onError,
 }: ProductImageProps) {
   return (
     <div className={T.image.wrapper}>
-      <Image
+      <FallbackImg
         src={src}
+        fallback={T.image.fallback}
         alt={alt}
-        fill
-        sizes={sizes}
         className={cn(
+          "h-full w-full",
           T.image.base,
           T.image.transition,
           !isAgotado && T.image.hoverScale,
         )}
-        onError={onError}
       />
 
       <ProductBadge
@@ -283,9 +278,7 @@ export default function ProductCardV2({
   signal = "none",
   showSeller = false,
   href,
-  imageSizes,
 }: ProductCardV2Props) {
-  const [imgError, setImgError] = useState(false);
   const { language, dictionary } = useLanguage();
   const tr = createT(dictionary ?? esDictionary);
   const prefetchHandlers = usePrefetch(`/api/products/${product.id}`);
@@ -294,12 +287,11 @@ export default function ProductCardV2({
   const state = getProductState(product);
   const destination = href ?? getProductHref(product);
   const isMinimal = variant === "minimal";
-  const sizes = imageSizes ?? T.image.sizes[variant];
 
   const showDiscoveryBadge =
     !state.showStatusBadge && signal !== "none" && signal !== "related";
 
-  const src = imgError ? T.image.fallback : resolveProductImage(product);
+  const src = resolveProductImage(product);
 
   const localizedNombre = useMemo(
     () => getLocalizedField(product, "nombre", language) ?? product.nombre,
@@ -322,7 +314,6 @@ export default function ProductCardV2({
         <ProductImage
           src={src}
           alt={localizedNombre}
-          sizes={sizes}
           isAgotado={state.isAgotado}
           showStatusBadge={state.showStatusBadge}
           showDiscoveryBadge={showDiscoveryBadge}
@@ -331,7 +322,6 @@ export default function ProductCardV2({
           createdAt={product.created_at}
           productId={product.id}
           showFavorite={!state.isAgotado && !isMinimal}
-          onError={() => setImgError(true)}
         />
 
         <ProductInfo

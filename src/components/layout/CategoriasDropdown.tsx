@@ -1,6 +1,6 @@
 "use client";
 import Link from "next/link";
-import Image from "next/image";
+import FallbackImg from "@/components/FallbackImg";
 import { useCategorias, type Categoria } from "@/hooks/useCategorias";
 
 export default function CategoriasDropdown() {
@@ -34,15 +34,11 @@ export default function CategoriasDropdown() {
               className="flex items-center gap-3 hover:text-primary transition group"
             >
               <div className="relative w-8 h-8 rounded-md overflow-hidden bg-gray-100 group-hover:scale-105 transition-transform">
-                <Image
+                <FallbackImg
                   src={cat.imagen_url || "/images/categorias/default.jpg"}
+                  fallback="/images/categorias/default.jpg"
                   alt={cat.nombre}
-                  fill
-                  className="object-cover"
-                  onError={(e) => {
-                    (e.target as HTMLImageElement).src =
-                      "/images/categorias/default.jpg";
-                  }}
+                  className="h-full w-full object-cover"
                 />
               </div>
               <span className="text-sm font-medium text-gray-800">

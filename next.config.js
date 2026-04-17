@@ -6,6 +6,9 @@ module.exports = withIntl({
   reactStrictMode: true,
 
   images: {
+    // In local development, bypass Next's image optimizer so temporary
+    // DNS/network issues to Supabase don't turn into repeated `/_next/image` 500s.
+    unoptimized: process.env.NODE_ENV === "development",
     remotePatterns: [
       // Supabase Storage — original objects
       {
@@ -33,6 +36,12 @@ module.exports = withIntl({
         hostname: "localhost",
         port: "8800",
         pathname: "/uploads/**",
+      },
+      {
+        protocol: "http",
+        hostname: "localhost",
+        port: "8800",
+        pathname: "/media/**",
       },
     ],
 

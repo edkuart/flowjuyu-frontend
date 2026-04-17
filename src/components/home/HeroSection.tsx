@@ -1,9 +1,9 @@
 "use client";
 
-import Image from "next/image";
 import Link from "next/link";
 
 import CodeSearchInput from "@/components/home/CodeSearchInput";
+import FallbackImg from "@/components/FallbackImg";
 import { useLanguage } from "@/i18n/context/useLanguage";
 import esDictionary from "@/i18n/dictionaries/es";
 import { createT } from "@/i18n/utils/t";
@@ -108,12 +108,11 @@ function ProductGallery({ products, featuredLabel }: ProductGalleryProps) {
   if (!a) {
     return (
       <div className="relative h-full overflow-hidden rounded-2xl ring-1 ring-black/[0.06]">
-        <Image
+        <FallbackImg
           src="/images/hero-cultural.jpg"
           alt={featuredLabel}
-          fill
-          sizes="38vw"
-          className="object-cover object-center"
+          fallback="/images/hero-cultural.jpg"
+          className="h-full w-full object-cover object-center"
         />
       </div>
     );
@@ -125,7 +124,6 @@ function ProductGallery({ products, featuredLabel }: ProductGalleryProps) {
         product={a}
         variant="hero"
         className="min-h-0 flex-[3]"
-        sizes="(max-width: 1280px) 36vw, 38vw"
       />
 
       <div className="flex min-h-0 flex-[2] gap-4">
@@ -133,13 +131,11 @@ function ProductGallery({ products, featuredLabel }: ProductGalleryProps) {
           product={b ?? a}
           variant="small"
           className="min-h-0 flex-1"
-          sizes="(max-width: 1280px) 18vw, 19vw"
         />
         <ProductCard
           product={c ?? a}
           variant="small"
           className="min-h-0 flex-1"
-          sizes="(max-width: 1280px) 18vw, 19vw"
         />
       </div>
     </div>
@@ -150,14 +146,12 @@ type ProductCardProps = {
   product: TrendingProducto;
   variant?: "hero" | "small";
   className?: string;
-  sizes?: string;
 };
 
 function ProductCard({
   product,
   variant = "small",
   className = "",
-  sizes,
 }: ProductCardProps) {
   const src = getProductImage(product, "/images/productos/default.jpg");
   const isHero = variant === "hero";
@@ -168,12 +162,11 @@ function ProductCard({
       className={`group relative block overflow-hidden bg-[#e0d9cf] ring-1 ring-black/[0.06] ${isHero ? "rounded-2xl shadow-[0_4px_24px_rgba(0,0,0,0.13)]" : "rounded-xl shadow-[0_2px_10px_rgba(0,0,0,0.08)]"} ${className} `}
       aria-label={`Ver ${product.nombre}`}
     >
-      <Image
+      <FallbackImg
         src={src}
+        fallback="/images/productos/default.jpg"
         alt={product.nombre}
-        fill
-        sizes={sizes}
-        className="object-cover transition-transform duration-500 group-hover:scale-[1.03]"
+        className="h-full w-full object-cover transition-transform duration-500 group-hover:scale-[1.03]"
       />
 
       <div className="pointer-events-none absolute inset-0 bg-gradient-to-t from-black/60 via-black/15 to-transparent" />
