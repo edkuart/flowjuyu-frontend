@@ -14,6 +14,7 @@ import { signOut as firebaseSignOut } from "firebase/auth";
 import { invalidateCache } from "@/lib/api";
 import { getApiUrl } from "@/lib/config";
 import { auth as firebaseAuth } from "@/lib/firebase";
+import { cancelRefresh } from "@/lib/refreshSession";
 import type {
   ConsentPolicyInfo,
   ConsentStatus,
@@ -477,6 +478,11 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     // Set the flag FIRST — any auth:changed events or applyAuthSnapshot calls
     // with authenticated:true that arrive during this async sequence are dropped.
     loggingOutRef.current = true;
+    // Abort any in-flight POST /api/refresh immediately. Without this, the
+    // browser can receive a new fj_rt Set-Cookie AFTER our logout clears it,
+    // leaving a valid cookie that the Next.js middleware will accept and
+    // redirect the user back to their dashboard.
+    cancelRefresh();
 
     try {
       // Sign out from Firebase and the backend in parallel.

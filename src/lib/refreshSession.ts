@@ -9,22 +9,44 @@ interface AuthChangedDetail {
 }
 
 let inflightRefresh: Promise<SessionSnapshot | null> | null = null;
+// AbortController for the current in-flight refresh. Held here so
+// logout() can cancel the fetch before it sets a new fj_rt cookie.
+let inflightController: AbortController | null = null;
+
+/**
+ * Cancels any in-flight refresh immediately.
+ * Call this from logout() BEFORE awaiting the /api/logout request so
+ * that a concurrent POST /api/refresh cannot set a new cookie that
+ * survives the logout cookie-clear.
+ */
+export function cancelRefresh(): void {
+  if (inflightController) {
+    inflightController.abort();
+    inflightController = null;
+  }
+}
 
 export function refreshSession(): Promise<SessionSnapshot | null> {
   if (inflightRefresh) return inflightRefresh;
 
   inflightRefresh = _doRefresh().finally(() => {
     inflightRefresh = null;
+    inflightController = null;
   });
 
   return inflightRefresh;
 }
 
 async function _doRefresh(): Promise<SessionSnapshot | null> {
+  const controller = new AbortController();
+  inflightController = controller;
+  const { signal } = controller;
+
   try {
     const refreshRes = await fetch(`${getApiUrl()}/api/refresh`, {
       method: "POST",
       credentials: "include",
+      signal,
     });
 
     if (!refreshRes.ok) {
@@ -51,6 +73,7 @@ async function _doRefresh(): Promise<SessionSnapshot | null> {
     const sessionRes = await fetch(`${getApiUrl()}/api/session`, {
       credentials: "include",
       cache: "no-store",
+      signal,
     });
 
     if (!sessionRes.ok) {
@@ -85,6 +108,7 @@ async function _doRefresh(): Promise<SessionSnapshot | null> {
 
     return sessionJson;
   } catch {
+    // AbortError is an intentional cancellation — not an error worth logging.
     return null;
   }
 }
