@@ -29,6 +29,16 @@ module.exports = withIntl({
         hostname: "flowjuyu.com",
         pathname: "/**",
       },
+      {
+        protocol: "https",
+        hostname: "www.flowjuyu.com",
+        pathname: "/**",
+      },
+      {
+        protocol: "https",
+        hostname: "api.flowjuyu.com",
+        pathname: "/media/**",
+      },
 
       // 🔥 Backend local (uploads en desarrollo)
       {
