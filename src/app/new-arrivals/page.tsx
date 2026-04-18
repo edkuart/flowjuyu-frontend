@@ -2,7 +2,7 @@
 
 import { useState, useMemo, useRef, useEffect } from "react";
 import Link from "next/link";
-import { Search, SlidersHorizontal, X } from "lucide-react";
+import { SlidersHorizontal, X } from "lucide-react";
 
 import FallbackImg from "@/components/FallbackImg";
 import { useNewProducts } from "@/hooks/useNewProducts";
@@ -184,7 +184,6 @@ export default function NewArrivalsPage() {
 
   const products = rawProducts as unknown as Producto[];
 
-  const [search,       setSearch]       = useState("");
   const [activecat,    setActiveCat]    = useState<string>("todas");
   const [sort,         setSort]         = useState<SortValue>("newest");
   const [filterOpen,   setFilterOpen]   = useState(false);
@@ -198,7 +197,7 @@ export default function NewArrivalsPage() {
     if (!el) return;
     const observer = new IntersectionObserver(
       ([entry]) => setBarStuck(!entry.isIntersecting),
-      { threshold: 1, rootMargin: "-73px 0px 0px 0px" }
+      { threshold: 1, rootMargin: "-97px 0px 0px 0px" }
     );
     observer.observe(el);
     return () => observer.disconnect();
@@ -207,15 +206,6 @@ export default function NewArrivalsPage() {
   // Filtered + sorted products
   const filtered = useMemo(() => {
     let list = [...products];
-
-    if (search.trim()) {
-      const q = search.toLowerCase();
-      list = list.filter(p =>
-        p.nombre.toLowerCase().includes(q) ||
-        (p.categoria_nombre ?? "").toLowerCase().includes(q) ||
-        (p.departamento ?? "").toLowerCase().includes(q)
-      );
-    }
 
     if (activecat !== "todas") {
       list = list.filter(p => p.categoria_id === activecat);
@@ -230,10 +220,9 @@ export default function NewArrivalsPage() {
     });
 
     return list;
-  }, [products, search, activecat, sort]);
+  }, [products, activecat, sort]);
 
   const clearFilters = () => {
-    setSearch("");
     setActiveCat("todas");
     setSort("newest");
   };
@@ -334,30 +323,13 @@ export default function NewArrivalsPage() {
 
       {/* ── 2. Filter Bar ────────────────────────────────────────────────────── */}
       <div className={[
-        "sticky top-[72px] z-30 bg-[#f8f5ef]/95 backdrop-blur-md transition-shadow duration-200",
+        "sticky top-[var(--header-height)] z-30 bg-[#f8f5ef]/95 backdrop-blur-md transition-shadow duration-200",
         barStuck ? "shadow-[0_4px_20px_rgba(13,45,32,0.07)]" : "",
       ].join(" ")}>
         <div className="mx-auto max-w-7xl px-4 md:px-12">
 
           {/* Main filter row */}
           <div className="flex h-14 items-center gap-4">
-
-            {/* Search */}
-            <div className="flex flex-1 items-center gap-2 max-w-[320px]">
-              <Search className="h-3.5 w-3.5 shrink-0 text-[#0d2d20]/40" aria-hidden />
-              <input
-                type="search"
-                value={search}
-                onChange={e => setSearch(e.target.value)}
-                placeholder="Buscar huipiles, cortes..."
-                className="flex-1 bg-transparent text-[13px] text-[#0d2d20] placeholder:text-[#0d2d20]/35 outline-none border-b border-[#0d2d20]/15 pb-0.5 focus:border-[#0d2d20]/40 transition-colors"
-              />
-              {search && (
-                <button onClick={() => setSearch("")} className="text-[#0d2d20]/40 hover:text-[#0d2d20]">
-                  <X className="h-3 w-3" />
-                </button>
-              )}
-            </div>
 
             {/* Sort — desktop */}
             <div className="hidden md:flex items-center gap-2 ml-auto">

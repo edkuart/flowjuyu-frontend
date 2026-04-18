@@ -143,7 +143,7 @@ export default function FaqPage() {
       </div>
 
       {/* ── Section tabs ── */}
-      <div className="sticky top-[72px] z-10 border-b border-[#0d2d20]/10 bg-[#f8f5ef]/95 backdrop-blur-sm">
+      <div className="sticky top-[var(--header-height)] z-10 border-b border-[#0d2d20]/10 bg-[#f8f5ef]/95 backdrop-blur-sm">
         <div className="mx-auto max-w-3xl overflow-x-auto px-6">
           <div className="flex gap-1 py-3" style={{ scrollbarWidth: "none" }}>
             <button
