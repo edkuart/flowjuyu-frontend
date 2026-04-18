@@ -3,6 +3,7 @@
 import { useEffect, useRef, useState } from "react";
 import { onAuthStateChanged } from "firebase/auth";
 import { auth } from "@/lib/firebase";
+import { toast } from "sonner";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useForm } from "react-hook-form";
 import Link from "next/link";
@@ -62,6 +63,9 @@ export function LoginForm({ redirectTo, allowAuthenticated = false }: LoginFormP
 
   useEffect(() => {
     if (allowAuthenticated) return;
+    // Don't redirect while a Google auth exchange is in progress — the handler
+    // below will redirect once the backend confirms the user.
+    if (getGoogleAuthIntent() === "login") return;
     if (!ready || !consentReady || !isAuthenticated || !user) return;
     if (hasRedirected.current) return;
 
@@ -117,6 +121,7 @@ export function LoginForm({ redirectTo, allowAuthenticated = false }: LoginFormP
             res.status === 429
               ? tr("auth.loginRateLimitError")
               : (json.message as string) || tr("auth.loginGoogleError");
+          toast.error(msg);
           setLoginError(msg);
           return;
         }
@@ -126,6 +131,7 @@ export function LoginForm({ redirectTo, allowAuthenticated = false }: LoginFormP
         login(nextUser, json.token as string, json);
 
         if (json.is_new_user) {
+          toast.success("¡Cuenta creada con Google!");
           window.location.replace("/welcome");
           return;
         }
@@ -141,7 +147,9 @@ export function LoginForm({ redirectTo, allowAuthenticated = false }: LoginFormP
       } catch (err) {
         clearGoogleAuthIntent();
         console.error("[google-auth] flow failed", err);
-        setLoginError(tr("auth.loginGoogleError"));
+        const msg = tr("auth.loginGoogleError");
+        toast.error(msg);
+        setLoginError(msg);
       } finally {
         setGoogleLoading(false);
       }

@@ -24,6 +24,7 @@ import { getApiUrl } from "@/lib/config";
 import { useEffect, useState } from "react";
 import { onAuthStateChanged } from "firebase/auth";
 import { auth } from "@/lib/firebase";
+import { toast } from "sonner";
 import Link from "next/link";
 import { FcGoogle } from "react-icons/fc";
 import AuthLayout from "@/components/auth/AuthLayout";
@@ -121,23 +122,28 @@ export function RegisterForm() {
         clearGoogleAuthIntent();
 
         if (!res.ok || !json.ok || !json.user || !json.token) {
-          setError("root", {
-            message:
-              (json.message as string) ||
-              "No se pudo crear/iniciar sesión con Google.",
-          });
+          const msg =
+            (json.message as string) ||
+            "No se pudo crear/iniciar sesión con Google.";
+          toast.error(msg);
+          setError("root", { message: msg });
           return;
         }
 
         const nextUser = json.user as User;
         login(nextUser, json.token as string, json);
+
+        if (json.is_new_user) {
+          toast.success("¡Cuenta creada con Google!");
+        }
+
         router.push(json.is_new_user ? "/welcome" : getDefaultDestination(nextUser.role));
       } catch (err) {
         clearGoogleAuthIntent();
         console.error("[google-auth] flow failed", err);
-        setError("root", {
-          message: "Error al conectar con Google. Inténtalo de nuevo.",
-        });
+        const msg = "Error al conectar con Google. Inténtalo de nuevo.";
+        toast.error(msg);
+        setError("root", { message: msg });
       } finally {
         setGoogleLoading(false);
       }
