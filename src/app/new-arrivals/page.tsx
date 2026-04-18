@@ -227,7 +227,7 @@ export default function NewArrivalsPage() {
     setSort("newest");
   };
 
-  const hasActiveFilters = search.trim() !== "" || activecat !== "todas" || sort !== "newest";
+  const hasActiveFilters = activecat !== "todas" || sort !== "newest";
 
   return (
     <main className="min-h-screen bg-[#f8f5ef]">
@@ -429,12 +429,6 @@ export default function NewArrivalsPage() {
         {/* Active filter chips */}
         {hasActiveFilters && (
           <div className="mb-8 flex flex-wrap items-center gap-2">
-            {search && (
-              <span className="inline-flex items-center gap-1.5 rounded-full bg-[#0d2d20]/8 px-3 py-1.5 text-[10.5px] uppercase tracking-[0.18em] text-[#0d2d20]/70">
-                "{search}"
-                <button onClick={() => setSearch("")} className="hover:text-[#0d2d20]"><X className="h-3 w-3" /></button>
-              </span>
-            )}
             {activecat !== "todas" && (
               <span className="inline-flex items-center gap-1.5 rounded-full bg-[#0d2d20]/8 px-3 py-1.5 text-[10.5px] uppercase tracking-[0.18em] text-[#0d2d20]/70">
                 {categorias.find(c => String(c.id) === activecat)?.nombre ?? activecat}
