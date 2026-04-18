@@ -1,8 +1,6 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
-import { onAuthStateChanged } from "firebase/auth";
-import { auth } from "@/lib/firebase";
 import { toast } from "sonner";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useForm } from "react-hook-form";
@@ -22,8 +20,8 @@ import { getDefaultDestination } from "@/lib/authRoutes";
 import { getApiUrl } from "@/lib/config";
 import {
   clearGoogleAuthIntent,
-  getGoogleAuthIntent,
-  startGoogleRedirect,
+  signInWithGoogle,
+  GoogleAuthCancelled,
 } from "@/lib/socialAuth";
 import { useLanguage } from "@/i18n/context/useLanguage";
 import esDictionary from "@/i18n/dictionaries/es";
@@ -63,9 +61,6 @@ export function LoginForm({ redirectTo, allowAuthenticated = false }: LoginFormP
 
   useEffect(() => {
     if (allowAuthenticated) return;
-    // Don't redirect while a Google auth exchange is in progress — the handler
-    // below will redirect once the backend confirms the user.
-    if (getGoogleAuthIntent() === "login") return;
     if (!ready || !consentReady || !isAuthenticated || !user) return;
     if (hasRedirected.current) return;
 
@@ -80,83 +75,9 @@ export function LoginForm({ redirectTo, allowAuthenticated = false }: LoginFormP
     );
   }, [allowAuthenticated, ready, consentReady, isAuthenticated, user, redirectTo, needsConsent]);
 
-  // ── Google redirect result handler ──────────────────────────────────────────
-  // onAuthStateChanged fires only once Firebase has finished restoring its
-  // internal state, eliminating the race condition that caused getRedirectResult
-  // to return null. The intent guard prevents this from running on normal loads.
+  // Clear any stale redirect intent left from a previous signInWithRedirect flow
   useEffect(() => {
-    if (getGoogleAuthIntent() !== "login") return;
-
-    let handled = false;
-
-    const unsubscribe = onAuthStateChanged(auth, async (firebaseUser) => {
-      if (!firebaseUser || handled) return;
-      handled = true;
-      unsubscribe();
-
-      setGoogleLoading(true);
-      try {
-        console.log("[google-auth] user detected after redirect", {
-          uid: firebaseUser.uid,
-          providers: firebaseUser.providerData.map((p) => p.providerId),
-        });
-
-        const idToken = await firebaseUser.getIdToken();
-        console.log("[google-auth] idToken obtained", { length: idToken.length });
-
-        const res = await fetch(`${API_URL}/api/auth/social`, {
-          method: "POST",
-          credentials: "include",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ provider: "google", id_token: idToken }),
-        });
-
-        const json = (await res.json().catch(() => ({}))) as Record<string, unknown>;
-        console.log("[google-auth] backend response", { status: res.status, ok: res.ok });
-
-        clearGoogleAuthIntent();
-
-        if (!res.ok || !json.ok || !json.token || !json.user) {
-          const msg =
-            res.status === 429
-              ? tr("auth.loginRateLimitError")
-              : (json.message as string) || tr("auth.loginGoogleError");
-          toast.error(msg);
-          setLoginError(msg);
-          return;
-        }
-
-        const nextUser = json.user as User;
-        const consentHints = parseConsentHints(json);
-        login(nextUser, json.token as string, json);
-
-        if (json.is_new_user) {
-          toast.success("¡Cuenta creada con Google!");
-          window.location.replace("/welcome");
-          return;
-        }
-
-        const destination =
-          safeAppRedirectForRole(redirectTo, nextUser.role) ??
-          getDefaultDestination(nextUser.role);
-        window.location.replace(
-          consentHints?.needsConsent
-            ? buildConsentReviewPath(destination)
-            : destination,
-        );
-      } catch (err) {
-        clearGoogleAuthIntent();
-        console.error("[google-auth] flow failed", err);
-        const msg = tr("auth.loginGoogleError");
-        toast.error(msg);
-        setLoginError(msg);
-      } finally {
-        setGoogleLoading(false);
-      }
-    });
-
-    return () => unsubscribe();
-  // eslint-disable-next-line react-hooks/exhaustive-deps
+    clearGoogleAuthIntent();
   }, []);
 
   const onSubmit = async (data: LoginValues) => {
@@ -209,12 +130,42 @@ export function LoginForm({ redirectTo, allowAuthenticated = false }: LoginFormP
     setGoogleLoading(true);
 
     try {
-      await startGoogleRedirect("login");
-    } catch (err: any) {
-      if (err?.message === "Google redirect did not leave the page as expected.") {
+      const { res, json } = await signInWithGoogle();
+
+      if (!res.ok || !json.ok || !json.token || !json.user) {
+        const msg =
+          res.status === 429
+            ? tr("auth.loginRateLimitError")
+            : (json.message as string) || tr("auth.loginGoogleError");
+        toast.error(msg);
+        setLoginError(msg);
         return;
       }
-      setLoginError(tr("auth.loginGoogleError"));
+
+      const nextUser = json.user as User;
+      const consentHints = parseConsentHints(json);
+      login(nextUser, json.token as string, json);
+
+      if (json.is_new_user) {
+        toast.success("¡Cuenta creada con Google!");
+        window.location.replace("/welcome");
+        return;
+      }
+
+      const destination =
+        safeAppRedirectForRole(redirectTo, nextUser.role) ??
+        getDefaultDestination(nextUser.role);
+      window.location.replace(
+        consentHints?.needsConsent
+          ? buildConsentReviewPath(destination)
+          : destination,
+      );
+    } catch (err) {
+      if (err instanceof GoogleAuthCancelled) return; // user closed popup — no error shown
+      const msg =
+        err instanceof Error ? err.message : tr("auth.loginGoogleError");
+      toast.error(msg);
+      setLoginError(msg);
     } finally {
       setGoogleLoading(false);
     }

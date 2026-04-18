@@ -16,14 +16,10 @@ import { useAuth } from "@/context/AuthContext";
 import type { User } from "@/context/AuthContext";
 import { getDefaultDestination } from "@/lib/authRoutes";
 import {
-  clearGoogleAuthIntent,
-  getGoogleAuthIntent,
-  startGoogleRedirect,
+  signInWithGoogle,
+  GoogleAuthCancelled,
 } from "@/lib/socialAuth";
-import { getApiUrl } from "@/lib/config";
-import { useEffect, useState } from "react";
-import { onAuthStateChanged } from "firebase/auth";
-import { auth } from "@/lib/firebase";
+import { useState } from "react";
 import { toast } from "sonner";
 import Link from "next/link";
 import { FcGoogle } from "react-icons/fc";
@@ -32,8 +28,6 @@ import AuthLayout from "@/components/auth/AuthLayout";
 // ── Shared input class — matches LoginForm exactly ───────────────────────────
 const INPUT_CLS =
   "h-11 rounded-xl border-neutral-200 focus-visible:ring-2 focus-visible:ring-[#0F3D3A] focus-visible:ring-offset-0 transition-all";
-
-const API_URL = getApiUrl();
 
 export function RegisterForm() {
   const router = useRouter();
@@ -88,70 +82,6 @@ export function RegisterForm() {
     }
   };
 
-  // ── Google redirect result handler ──────────────────────────────────────────
-  useEffect(() => {
-    if (getGoogleAuthIntent() !== "register") return;
-
-    let handled = false;
-
-    const unsubscribe = onAuthStateChanged(auth, async (firebaseUser) => {
-      if (!firebaseUser || handled) return;
-      handled = true;
-      unsubscribe();
-
-      setGoogleLoading(true);
-      try {
-        console.log("[google-auth] user detected after redirect", {
-          uid: firebaseUser.uid,
-          providers: firebaseUser.providerData.map((p) => p.providerId),
-        });
-
-        const idToken = await firebaseUser.getIdToken();
-        console.log("[google-auth] idToken obtained", { length: idToken.length });
-
-        const res = await fetch(`${API_URL}/api/auth/social`, {
-          method: "POST",
-          credentials: "include",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ provider: "google", id_token: idToken }),
-        });
-
-        const json = (await res.json().catch(() => ({}))) as Record<string, unknown>;
-        console.log("[google-auth] backend response", { status: res.status, ok: res.ok });
-
-        clearGoogleAuthIntent();
-
-        if (!res.ok || !json.ok || !json.user || !json.token) {
-          const msg =
-            (json.message as string) ||
-            "No se pudo crear/iniciar sesión con Google.";
-          toast.error(msg);
-          setError("root", { message: msg });
-          return;
-        }
-
-        const nextUser = json.user as User;
-        login(nextUser, json.token as string, json);
-
-        if (json.is_new_user) {
-          toast.success("¡Cuenta creada con Google!");
-        }
-
-        router.push(json.is_new_user ? "/welcome" : getDefaultDestination(nextUser.role));
-      } catch (err) {
-        clearGoogleAuthIntent();
-        console.error("[google-auth] flow failed", err);
-        const msg = "Error al conectar con Google. Inténtalo de nuevo.";
-        toast.error(msg);
-        setError("root", { message: msg });
-      } finally {
-        setGoogleLoading(false);
-      }
-    });
-
-    return () => unsubscribe();
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
 
   // ── Google signup ──────────────────────────────────────────────────────────
 
@@ -165,12 +95,33 @@ export function RegisterForm() {
 
     setGoogleLoading(true);
     try {
-      await startGoogleRedirect("register");
-    } catch (error: any) {
-      if (error?.message === "Google redirect did not leave the page as expected.") {
+      const { res, json } = await signInWithGoogle();
+
+      if (!res.ok || !json.ok || !json.user || !json.token) {
+        const msg =
+          (json.message as string) ||
+          "No se pudo crear/iniciar sesión con Google.";
+        toast.error(msg);
+        setError("root", { message: msg });
         return;
       }
-      setError("root", { message: "Error al conectar con Google. Inténtalo de nuevo." });
+
+      const nextUser = json.user as User;
+      login(nextUser, json.token as string, json);
+
+      if (json.is_new_user) {
+        toast.success("¡Cuenta creada con Google!");
+      }
+
+      router.push(json.is_new_user ? "/welcome" : getDefaultDestination(nextUser.role));
+    } catch (err) {
+      if (err instanceof GoogleAuthCancelled) return;
+      const msg =
+        err instanceof Error
+          ? err.message
+          : "Error al conectar con Google. Inténtalo de nuevo.";
+      toast.error(msg);
+      setError("root", { message: msg });
     } finally {
       setGoogleLoading(false);
     }
