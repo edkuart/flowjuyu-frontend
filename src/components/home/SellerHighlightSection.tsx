@@ -25,7 +25,8 @@ export type { Tienda };
 
 function SellerHighlightSkeleton() {
   return (
-    <section className="bg-[#f6f2ea] py-16 md:py-20">
+    <section className="relative bg-[#f6f2ea] py-20 md:py-24">
+      <div className="absolute top-0 inset-x-0 h-px bg-gradient-to-r from-transparent via-[#0d2d20]/12 to-transparent" />
       <div className="mx-auto max-w-7xl space-y-10 px-4 md:px-12">
         <div className="space-y-3">
           <div className="h-3 w-40 animate-pulse rounded bg-[#0d2d20]/8" />
@@ -140,7 +141,8 @@ export default function SellerHighlightSection() {
   const sidebar = tiendas.filter((_, i) => i !== safeIndex).slice(0, 3);
 
   return (
-    <section className="bg-[#f6f2ea] py-16 md:py-20">
+    <section className="relative bg-[#f6f2ea] py-20 md:py-24">
+      <div className="absolute top-0 inset-x-0 h-px bg-gradient-to-r from-transparent via-[#0d2d20]/12 to-transparent" />
       <div className="mx-auto max-w-7xl space-y-10 px-4 md:px-12">
 
         {/* Header */}
@@ -154,7 +156,7 @@ export default function SellerHighlightSection() {
             </h2>
           </div>
           <Link
-            href="/categorias"
+            href="/artesanos"
             className="text-[10px] uppercase tracking-[0.22em] text-[#0d0d0b]/40 transition hover:text-[#0d2d20]"
           >
             {tr("home.artisanViewAll")}

@@ -223,7 +223,7 @@ export default function ProductInfo({
 
   return (
     <>
-      <section className="space-y-4 rounded-sm border border-[#0d2d20]/8 bg-white p-4 md:space-y-6 md:p-8">
+      <section className="space-y-4 rounded-sm border border-[#0d2d20]/8 bg-[#fdfcf9] p-4 md:space-y-6 md:p-8">
         <div className="flex flex-wrap items-center gap-x-3 gap-y-1 text-[10px] tracking-[0.26em] text-[#0d2d20]/55 uppercase">
           {localizedCategoria && <span>{localizedCategoria}</span>}
           {localizedCategoria && ubicacion && <span aria-hidden>·</span>}
@@ -312,7 +312,7 @@ export default function ProductInfo({
           )}
 
           {(sellerNombre || sellerId) && (
-            <div className="flex items-center gap-3 rounded-sm border border-[#0d2d20]/10 bg-[#f6f2ea] px-4 py-3">
+            <div className="flex items-center gap-3 rounded-xl border border-[#0d2d20]/8 bg-[#f6f2ea] px-4 py-3">
               <div className="relative flex h-9 w-9 flex-shrink-0 items-center justify-center overflow-hidden rounded-full border border-[#0d2d20]/10 bg-[#0d2d20]/10">
                 {sellerLogo ? (
                   <Image
@@ -376,8 +376,8 @@ export default function ProductInfo({
               key={text}
               className="flex items-center gap-2 text-[11px] text-[#0d0d0b]/50"
             >
-              <span className="flex-shrink-0 text-[10px] font-bold text-[#0d2d20]">
-                ✔
+              <span className="flex-shrink-0 text-[9px] text-[#d4a853]">
+                ✦
               </span>
               {text}
             </li>

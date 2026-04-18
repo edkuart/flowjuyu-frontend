@@ -146,17 +146,10 @@ export default function ProductGallery({
             }}
           />
 
-          {/* Artesanal badge */}
-          <div className="absolute top-3 left-3 z-10 pointer-events-none">
-            <span className="bg-white/90 backdrop-blur-sm text-amber-700 text-[10px] font-bold px-2.5 py-1 rounded-full border border-amber-200 shadow-sm">
-              🧵 Artesanal
-            </span>
-          </div>
-
           {/* Image counter */}
           {total > 1 && (
             <div className="absolute top-3 right-3 z-10 pointer-events-none">
-              <span className="bg-black/50 backdrop-blur-sm text-white text-xs font-semibold px-2.5 py-1 rounded-full tabular-nums">
+              <span className="bg-[#0d2d20]/60 backdrop-blur-sm text-white text-[10px] tracking-[0.18em] px-2.5 py-1 rounded-full tabular-nums">
                 {active + 1} / {total}
               </span>
             </div>
@@ -164,9 +157,9 @@ export default function ProductGallery({
 
           {/* Zoom hint — desktop only (cursor language irrelevant on touch) */}
           {!zooming && (
-            <div className="absolute bottom-3 right-3 z-10 pointer-events-none opacity-80 hidden md:block">
-              <span className="bg-black/45 backdrop-blur-sm text-white text-[10px] px-2.5 py-1.5 rounded-full">
-                🔍 Pasa el cursor para ampliar
+            <div className="absolute bottom-3 right-3 z-10 pointer-events-none hidden md:block">
+              <span className="bg-[#0d2d20]/50 backdrop-blur-sm text-white/80 text-[9.5px] tracking-[0.18em] uppercase px-2.5 py-1.5 rounded-full">
+                Ampliar
               </span>
             </div>
           )}
@@ -176,17 +169,21 @@ export default function ProductGallery({
             <>
               <button
                 onClick={(e) => { e.stopPropagation(); prev(); }}
-                className="absolute left-2 top-1/2 -translate-y-1/2 z-10 bg-white/85 backdrop-blur rounded-full w-10 h-10 flex items-center justify-center shadow text-lg font-bold text-neutral-700 hover:bg-white transition-colors"
+                className="absolute left-2 top-1/2 -translate-y-1/2 z-10 bg-white/85 backdrop-blur rounded-full w-9 h-9 flex items-center justify-center shadow-sm text-[#0d2d20]/70 hover:bg-white hover:text-[#0d2d20] transition-colors"
                 aria-label="Imagen anterior"
               >
-                ‹
+                <svg width="14" height="14" viewBox="0 0 14 14" fill="none" aria-hidden>
+                  <path d="M9 2L4 7L9 12" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
+                </svg>
               </button>
               <button
                 onClick={(e) => { e.stopPropagation(); next(); }}
-                className="absolute right-2 top-1/2 -translate-y-1/2 z-10 bg-white/85 backdrop-blur rounded-full w-10 h-10 flex items-center justify-center shadow text-lg font-bold text-neutral-700 hover:bg-white transition-colors"
+                className="absolute right-2 top-1/2 -translate-y-1/2 z-10 bg-white/85 backdrop-blur rounded-full w-9 h-9 flex items-center justify-center shadow-sm text-[#0d2d20]/70 hover:bg-white hover:text-[#0d2d20] transition-colors"
                 aria-label="Imagen siguiente"
               >
-                ›
+                <svg width="14" height="14" viewBox="0 0 14 14" fill="none" aria-hidden>
+                  <path d="M5 2L10 7L5 12" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
+                </svg>
               </button>
             </>
           )}
@@ -253,17 +250,21 @@ export default function ProductGallery({
               <>
                 <button
                   onClick={prev}
-                  className="absolute left-2 top-1/2 -translate-y-1/2 bg-black/50 hover:bg-black/70 border border-white/15 text-white rounded-full w-10 h-10 flex items-center justify-center text-2xl font-bold transition-colors select-none"
+                  className="absolute left-2 top-1/2 -translate-y-1/2 bg-black/50 hover:bg-black/70 border border-white/15 text-white rounded-full w-10 h-10 flex items-center justify-center transition-colors select-none"
                   aria-label="Imagen anterior"
                 >
-                  ‹
+                  <svg width="14" height="14" viewBox="0 0 14 14" fill="none" aria-hidden>
+                    <path d="M9 2L4 7L9 12" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
+                  </svg>
                 </button>
                 <button
                   onClick={next}
-                  className="absolute right-2 top-1/2 -translate-y-1/2 bg-black/50 hover:bg-black/70 border border-white/15 text-white rounded-full w-10 h-10 flex items-center justify-center text-2xl font-bold transition-colors select-none"
+                  className="absolute right-2 top-1/2 -translate-y-1/2 bg-black/50 hover:bg-black/70 border border-white/15 text-white rounded-full w-10 h-10 flex items-center justify-center transition-colors select-none"
                   aria-label="Imagen siguiente"
                 >
-                  ›
+                  <svg width="14" height="14" viewBox="0 0 14 14" fill="none" aria-hidden>
+                    <path d="M5 2L10 7L5 12" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
+                  </svg>
                 </button>
               </>
             )}

@@ -19,10 +19,10 @@ import RecommendedSection     from "@/components/home/RecommendedSection";
   1. Hero            — primer impacto emocional + scroll hint         [CRITICAL — server fetch]
   2. Trending        — productos que generan confianza social          [CRITICAL — server fetch]
   3. StoryBridge     — pausa editorial, sin datos
-  4. Categories      — discovery tool                                  [deferred — client fetch]
+  4. SellerHighlight — el rostro humano del marketplace (moved up)    [deferred — client fetch]
   5. New Products    — urgencia de novedad                             [deferred — client fetch]
-  6. Recommended     — personalizado para usuario autenticado          [deferred — client fetch]
-  7. SellerHighlight — el rostro humano del marketplace                [deferred — client fetch]
+  6. Recommended     — más piezas / personalized para auth user        [deferred — client fetch]
+  7. Categories      — discovery tool (moved down)                    [deferred — client fetch]
   8. SocialProof     — cierre de confianza, sin datos
 */
 
@@ -52,10 +52,10 @@ export default async function HomePage(): Promise<React.ReactElement> {
       <HeroSection featuredProducts={featuredProducts} />
       <TrendingSection trendingProducts={trendingProducts} />
       <StoryBridgeSection />
-      <CategoriesSection />
+      <SellerHighlightSection />
       <NewProductsSection initialProducts={newArrivalProducts} />
       <RecommendedSection />
-      <SellerHighlightSection />
+      <CategoriesSection />
       <SocialProofStrip />
     </main>
   );

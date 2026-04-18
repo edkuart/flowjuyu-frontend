@@ -40,12 +40,13 @@ export default function SectionHeader({
       <div className="space-y-4">
 
         {eyebrow && (
-          <p className={`text-xs uppercase tracking-[0.25em] font-semibold ${eyebrowColor}`}>
+          <p className={`text-[10px] font-medium uppercase tracking-[0.28em] ${eyebrowColor}`}>
+            <span className="text-[#d4a853] mr-2" aria-hidden>✦</span>
             {eyebrow}
           </p>
         )}
 
-        <h2 className={`text-3xl md:text-4xl font-semibold tracking-tight leading-tight ${titleColor}`}>
+        <h2 className={`font-serif italic text-[2rem] md:text-[2.75rem] leading-[1.05] tracking-[-0.02em] ${titleColor}`}>
           {title}
         </h2>
 
@@ -59,9 +60,10 @@ export default function SectionHeader({
       {linkHref && linkLabel && (
         <Link
           href={linkHref}
-          className={`text-sm font-semibold tracking-wide transition-colors ${linkColor}`}
+          className={`inline-flex items-center gap-2 text-[11px] uppercase tracking-[0.26em] transition-colors ${linkColor}`}
         >
-          {linkLabel} →
+          {linkLabel}
+          <span className="transition-transform duration-300 group-hover:translate-x-0.5">→</span>
         </Link>
       )}
 

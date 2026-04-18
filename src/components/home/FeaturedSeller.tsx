@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { MapPin, MoveRight } from "lucide-react";
+import { MapPin, MoveRight, Star } from "lucide-react";
 import FallbackImg from "@/components/FallbackImg";
 import type { Tienda } from "@/hooks/useSellerHighlights";
 
@@ -126,6 +126,23 @@ export default function FeaturedSeller({
               </div>
             )}
           </div>
+
+          {/* Rating — shown when available */}
+          {(tienda.rating_avg ?? 0) > 0 && (
+            <div className="flex items-center gap-4 pt-1">
+              <div className="inline-flex items-center gap-1.5">
+                <Star className="h-3.5 w-3.5 fill-[#d4a853] text-[#d4a853]" aria-hidden />
+                <span className="text-[13px] font-medium text-[#0d2d20]">
+                  {Number(tienda.rating_avg).toFixed(1)}
+                </span>
+                {(tienda.total_reviews ?? 0) > 0 && (
+                  <span className="text-[11px] text-[#0d2d20]/45 tracking-wide">
+                    · {tienda.total_reviews} reseñas
+                  </span>
+                )}
+              </div>
+            </div>
+          )}
 
           {/* CTA — real pill button (visually), avoids nested <button> inside <Link>) */}
           <div className="flex items-center justify-between border-t border-[#0d2d20]/8 pt-5">

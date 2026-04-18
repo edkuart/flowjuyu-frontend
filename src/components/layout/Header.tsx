@@ -122,7 +122,7 @@ function LanguageSwitcher({ className }: { className: string }) {
         aria-label={tr("language.label")}
         aria-expanded={open}
         aria-haspopup="listbox"
-        className="inline-flex items-center gap-1.5 rounded-lg border border-white/20 px-2.5 py-1.5 text-sm transition-colors hover:bg-white/10 focus-visible:outline focus-visible:outline-2 focus-visible:outline-amber-400"
+        className="inline-flex items-center gap-1.5 rounded-full border border-white/20 px-2.5 py-1.5 text-[11px] tracking-[0.14em] uppercase transition-colors hover:bg-white/10 focus-visible:outline focus-visible:outline-2 focus-visible:outline-[#d4a853]"
       >
         <Globe className="h-4 w-4" />
         {meta.shortCode}
@@ -607,14 +607,14 @@ export default function Header() {
               priority
               className="object-contain md:hidden"
             />
-            <div className="hidden items-center rounded-lg bg-[#f6f2ea] px-2 py-1 shadow-md ring-1 ring-white/20 md:flex">
+            <div className="hidden items-center rounded-md bg-[#f6f2ea]/95 px-2.5 py-1 md:flex">
               <Image
                 src="/flowjuyu-logo-completo.png"
                 alt=""
-                width={170}
-                height={52}
+                width={160}
+                height={48}
                 priority
-                className="h-10 w-auto object-contain"
+                className="h-9 w-auto object-contain"
               />
             </div>
           </Link>
@@ -669,7 +669,7 @@ export default function Header() {
                     aria-expanded={openCreate}
                     aria-haspopup="true"
                     aria-label={tr("nav.account")}
-                    className="inline-flex h-10 w-10 items-center justify-center rounded-full border border-white/20 bg-white/10 text-white shadow-sm transition-all duration-150 hover:bg-white/15 focus-visible:outline focus-visible:outline-2 focus-visible:outline-amber-400 active:scale-95"
+                    className="inline-flex h-10 w-10 items-center justify-center rounded-full border border-white/20 bg-white/10 text-white shadow-sm transition-all duration-150 hover:bg-white/15 focus-visible:outline focus-visible:outline-2 focus-visible:outline-[#d4a853] active:scale-95"
                   >
                     <User className="h-5 w-5 shrink-0" />
                   </button>
@@ -731,7 +731,7 @@ export default function Header() {
                         ? tr("nav.sellerPanel")
                         : tr("nav.account")
                   }
-                  className="inline-flex h-10 w-10 items-center justify-center rounded-full transition-all duration-150 hover:bg-white/10 focus-visible:outline focus-visible:outline-2 focus-visible:outline-amber-400 active:scale-95 md:hidden"
+                  className="inline-flex h-10 w-10 items-center justify-center rounded-full transition-all duration-150 hover:bg-white/10 focus-visible:outline focus-visible:outline-2 focus-visible:outline-[#d4a853] active:scale-95 md:hidden"
                 >
                   {isAdmin ? (
                     <ShieldCheck className="h-5 w-5" />
@@ -751,7 +751,7 @@ export default function Header() {
                   }}
                   aria-expanded={openAccount}
                   aria-haspopup="true"
-                  className="hidden items-center gap-1.5 rounded-xl border border-white/20 px-3 py-2 text-sm transition-colors hover:bg-white/10 focus-visible:outline focus-visible:outline-2 focus-visible:outline-amber-400 md:inline-flex"
+                  className="hidden items-center gap-1.5 rounded-full border border-white/20 px-3.5 py-1.5 text-[12px] tracking-[0.12em] transition-colors hover:bg-white/10 focus-visible:outline focus-visible:outline-2 focus-visible:outline-[#d4a853] md:inline-flex"
                 >
                   {isAdmin ? (
                     <ShieldCheck className="h-4 w-4 shrink-0" />
@@ -880,7 +880,7 @@ export default function Header() {
               <>
                 <Link
                   href={loginHref}
-                  className="hidden items-center px-2 py-2 text-sm transition-colors hover:text-amber-300 sm:inline-flex"
+                  className="hidden items-center px-2 py-2 text-sm transition-colors hover:text-[#d4a853] sm:inline-flex"
                 >
                   {tr("nav.login")}
                 </Link>
@@ -898,7 +898,7 @@ export default function Header() {
                     aria-expanded={openCreate}
                     aria-haspopup="true"
                     aria-label={tr("nav.account")}
-                    className="inline-flex h-10 w-10 items-center justify-center rounded-full border border-white/20 bg-white/10 text-white shadow-sm transition-all duration-150 hover:bg-white/15 focus-visible:outline focus-visible:outline-2 focus-visible:outline-amber-400 active:scale-95 sm:hidden"
+                    className="inline-flex h-10 w-10 items-center justify-center rounded-full border border-white/20 bg-white/10 text-white shadow-sm transition-all duration-150 hover:bg-white/15 focus-visible:outline focus-visible:outline-2 focus-visible:outline-[#d4a853] active:scale-95 sm:hidden"
                   >
                     <User className="h-5 w-5 shrink-0" />
                   </button>
@@ -914,7 +914,7 @@ export default function Header() {
                     }}
                     aria-expanded={openCreate}
                     aria-haspopup="true"
-                    className="hidden items-center gap-1.5 rounded-xl border border-white/20 px-3 py-2 text-sm transition-colors hover:bg-white/10 focus-visible:outline focus-visible:outline-2 focus-visible:outline-amber-400 sm:inline-flex"
+                    className="hidden items-center gap-1.5 rounded-full border border-white/20 px-3.5 py-1.5 text-[12px] tracking-[0.12em] transition-colors hover:bg-white/10 focus-visible:outline focus-visible:outline-2 focus-visible:outline-[#d4a853] sm:inline-flex"
                   >
                     <User className="h-4 w-4 shrink-0" />
                     {tr("nav.createAccount")}
@@ -983,7 +983,7 @@ export default function Header() {
               {count > 0 && (
                 <span
                   aria-hidden="true"
-                  className="absolute top-0.5 right-0.5 flex h-[18px] min-w-[18px] items-center justify-center rounded-full bg-amber-500 px-1 text-[10px] leading-none font-medium text-white"
+                  className="absolute top-0.5 right-0.5 flex h-[18px] min-w-[18px] items-center justify-center rounded-full bg-[#d4a853] px-1 text-[10px] leading-none font-medium text-[#0d2d20]"
                 >
                   {count > 99 ? "99+" : count}
                 </span>
@@ -1014,7 +1014,7 @@ export default function Header() {
             <li>
               <Link
                 href="/new-arrivals"
-                className="transition-colors hover:text-amber-300"
+                className="transition-colors hover:text-[#d4a853]"
               >
                 {tr("nav.newArrivals")}
               </Link>
@@ -1023,7 +1023,7 @@ export default function Header() {
             <li>
               <Link
                 href="/sell"
-                className="transition-colors hover:text-amber-300"
+                className="transition-colors hover:text-[#d4a853]"
               >
                 {tr("nav.sellOn")}
               </Link>
@@ -1040,7 +1040,7 @@ export default function Header() {
                 }}
                 aria-expanded={helpOpen}
                 aria-haspopup="true"
-                className="inline-flex items-center gap-1 transition-colors hover:text-amber-300"
+                className="inline-flex items-center gap-1 transition-colors hover:text-[#d4a853]"
               >
                 {tr("nav.help")}
                 <ChevronDown

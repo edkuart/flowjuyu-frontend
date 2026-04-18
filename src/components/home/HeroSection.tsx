@@ -86,6 +86,7 @@ export default function HeroSection({ featuredProducts }: Props) {
         <aside
           className="hidden flex-col bg-[#f3f1eb] p-4 lg:flex xl:p-5"
           aria-label={tr("home.featuredLabel")}
+          aria-hidden={false}
         >
           <ProductGallery
             products={gridProducts}
@@ -104,6 +105,7 @@ type ProductGalleryProps = {
 
 function ProductGallery({ products, featuredLabel }: ProductGalleryProps) {
   const [a, b, c] = products;
+  const total = products.length;
 
   if (!a) {
     return (
@@ -120,10 +122,35 @@ function ProductGallery({ products, featuredLabel }: ProductGalleryProps) {
 
   return (
     <div className="flex h-full min-h-0 flex-col gap-4">
+      {/* Header row */}
+      <div className="flex items-center justify-between px-1">
+        <p className="text-[10px] uppercase tracking-[0.28em] text-[#0d2d20]/55">
+          <span className="text-[#d4a853] mr-1.5" aria-hidden>✦</span>
+          {featuredLabel}
+        </p>
+        <div className="flex items-center gap-1">
+          <button
+            aria-label="Anterior"
+            className="flex h-7 w-7 items-center justify-center rounded-full border border-[#0d2d20]/15 text-[#0d2d20]/60 hover:border-[#0d2d20]/30 hover:text-[#0d2d20] transition-colors"
+          >
+            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" aria-hidden><path d="M15 6l-6 6 6 6"/></svg>
+          </button>
+          <button
+            aria-label="Siguiente"
+            className="flex h-7 w-7 items-center justify-center rounded-full border border-[#0d2d20]/15 text-[#0d2d20]/60 hover:border-[#0d2d20]/30 hover:text-[#0d2d20] transition-colors"
+          >
+            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" aria-hidden><path d="M9 6l6 6-6 6"/></svg>
+          </button>
+        </div>
+      </div>
+
       <ProductCard
         product={a}
         variant="hero"
         className="min-h-0 flex-[3]"
+        counter="01"
+        total={total}
+        badge="Edición limitada"
       />
 
       <div className="flex min-h-0 flex-[2] gap-4">
@@ -131,12 +158,24 @@ function ProductGallery({ products, featuredLabel }: ProductGalleryProps) {
           product={b ?? a}
           variant="small"
           className="min-h-0 flex-1"
+          counter="02"
         />
         <ProductCard
           product={c ?? a}
           variant="small"
           className="min-h-0 flex-1"
+          counter="03"
         />
+      </div>
+
+      {/* Mini stats footer */}
+      <div className="flex items-center justify-between px-1 pt-0.5">
+        <span className="text-[9.5px] uppercase tracking-[0.26em] text-[#0d2d20]/40">
+          Tejido a mano
+        </span>
+        <span className="font-mono text-[9.5px] tracking-[0.24em] text-[#0d2d20]/35">
+          FJ · 2026
+        </span>
       </div>
     </div>
   );
@@ -146,12 +185,18 @@ type ProductCardProps = {
   product: TrendingProducto;
   variant?: "hero" | "small";
   className?: string;
+  counter?: string;
+  total?: number;
+  badge?: string;
 };
 
 function ProductCard({
   product,
   variant = "small",
   className = "",
+  counter,
+  total,
+  badge,
 }: ProductCardProps) {
   const src = getProductImage(product, "/images/productos/default.jpg");
   const isHero = variant === "hero";
@@ -159,7 +204,7 @@ function ProductCard({
   return (
     <Link
       href={`/product/${product.id}`}
-      className={`group relative block overflow-hidden bg-[#e0d9cf] ring-1 ring-black/[0.06] ${isHero ? "rounded-2xl shadow-[0_4px_24px_rgba(0,0,0,0.13)]" : "rounded-xl shadow-[0_2px_10px_rgba(0,0,0,0.08)]"} ${className} `}
+      className={`group relative block overflow-hidden bg-[#e0d9cf] ring-1 ring-black/[0.06] ${isHero ? "rounded-2xl shadow-[0_4px_24px_rgba(0,0,0,0.13)]" : "rounded-xl shadow-[0_2px_10px_rgba(0,0,0,0.08)]"} ${className}`}
       aria-label={`Ver ${product.nombre}`}
     >
       <FallbackImg
@@ -171,15 +216,37 @@ function ProductCard({
 
       <div className="pointer-events-none absolute inset-0 bg-gradient-to-t from-black/60 via-black/15 to-transparent" />
 
+      {/* Badge — hero card only */}
+      {badge && isHero && (
+        <div className="absolute top-4 left-4 right-4 flex items-center justify-between">
+          <span className="inline-flex items-center gap-1.5 rounded-full bg-white/90 backdrop-blur-sm px-2.5 py-1 text-[9.5px] font-medium uppercase tracking-[0.22em] text-[#0d2d20]">
+            <span className="h-1.5 w-1.5 rounded-full bg-[#d4a853]" aria-hidden />
+            {badge}
+          </span>
+          {counter && total && (
+            <span className="font-mono text-[10px] text-white/60 tracking-wider">
+              {counter}/{String(total).padStart(2, "0")}
+            </span>
+          )}
+        </div>
+      )}
+
+      {/* Counter — small cards */}
+      {counter && !isHero && (
+        <span className="absolute top-3 left-3 font-mono text-[10px] text-white/55 tracking-wider">
+          {counter}
+        </span>
+      )}
+
       <div
         className={`absolute inset-x-0 bottom-0 z-10 ${isHero ? "p-5 xl:p-6" : "p-4"}`}
       >
         <p
-          className={`font-serif text-white drop-shadow-sm ${isHero ? "text-lg xl:text-[1.35rem]" : "text-[15px]"}`}
+          className={`font-serif italic text-white drop-shadow-sm ${isHero ? "text-lg xl:text-[1.35rem]" : "text-[14px] leading-tight"}`}
         >
           {product.nombre}
         </p>
-        <p className="mt-1 text-[11px] tracking-[0.18em] text-white/75 uppercase">
+        <p className="mt-1 text-[11px] tracking-[0.18em] text-white/70 uppercase">
           Q {Number(product.precio).toFixed(2)}
         </p>
       </div>

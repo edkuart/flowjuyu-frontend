@@ -11,14 +11,24 @@ export default function StoryBridgeSection() {
   const tr = createT(dictionary ?? esDictionary);
 
   return (
-    <section className="relative overflow-hidden bg-[#0d2d20] py-20 md:py-28">
+    <section className="relative overflow-hidden bg-[#0d2d20] py-24 md:py-32">
+      {/* Noise texture */}
       <div
-        className="pointer-events-none absolute inset-0 opacity-[0.03]"
+        className="pointer-events-none absolute inset-0 opacity-[0.04]"
         style={{
           backgroundImage:
             "url(\"data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noise'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noise)'/%3E%3C/svg%3E\")",
         }}
       />
+      {/* Radial amber glow */}
+      <div
+        className="pointer-events-none absolute inset-0 opacity-40"
+        style={{ background: "radial-gradient(60% 50% at 50% 50%, rgba(212,168,83,0.10), transparent 70%)" }}
+        aria-hidden
+      />
+      {/* Woven accent bars */}
+      <div className="absolute top-0 inset-x-0 h-[3px] bg-gradient-to-r from-transparent via-[#d4a853]/55 to-transparent" />
+      <div className="absolute bottom-0 inset-x-0 h-[3px] bg-gradient-to-r from-transparent via-[#d4a853]/35 to-transparent" />
 
       <div className="relative z-10 mx-auto max-w-4xl px-6 text-center md:px-12">
         <div className="mb-10 flex items-center justify-center gap-4">

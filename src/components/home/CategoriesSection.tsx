@@ -78,7 +78,8 @@ export default function CategoriesSection() {
   const items = categorias.slice(0, 20);
 
   return (
-    <section className="overflow-hidden bg-[#f6f2ea] py-16 md:py-20">
+    <section className="relative overflow-hidden bg-[#f6f2ea] py-20 md:py-24">
+      <div className="absolute top-0 inset-x-0 h-px bg-gradient-to-r from-transparent via-[#0d2d20]/12 to-transparent" />
       <div className="mx-auto max-w-7xl space-y-12 px-4 md:px-12">
         <SectionHeader
           eyebrow={tr("home.categoriesEyebrow")}

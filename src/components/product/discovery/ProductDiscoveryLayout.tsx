@@ -109,7 +109,7 @@ export default function ProductDiscoveryLayout({
       : null;
 
   return (
-    <main className="min-h-screen bg-neutral-50 px-3 pt-0 pb-6 sm:px-6 sm:pb-8 lg:px-10">
+    <main className="min-h-screen bg-[#f8f5ef] px-3 pt-0 pb-6 sm:px-6 sm:pb-8 lg:px-10">
       {showMobileFilters && (
         <div className="fixed inset-0 z-[100] lg:hidden">
           <div
@@ -117,9 +117,9 @@ export default function ProductDiscoveryLayout({
             onClick={() => setShowMobileFilters(false)}
           />
 
-          <div className="animate-in slide-in-from-left absolute inset-y-0 left-0 flex w-[85%] max-w-sm flex-col bg-white shadow-xl duration-300">
-            <div className="flex items-center justify-between border-b p-4">
-              <h2 className="text-lg font-bold">{tr("filters.title")}</h2>
+          <div className="animate-in slide-in-from-left absolute inset-y-0 left-0 flex w-[85%] max-w-sm flex-col bg-[#f8f5ef] shadow-xl duration-300">
+            <div className="flex items-center justify-between border-b border-[#0d2d20]/10 p-4">
+              <h2 className="font-serif italic text-lg text-[#0d2d20]">{tr("filters.title")}</h2>
               <button
                 onClick={() => setShowMobileFilters(false)}
                 className="rounded-full p-2 hover:bg-neutral-100"
@@ -166,10 +166,10 @@ export default function ProductDiscoveryLayout({
               />
             </div>
 
-            <div className="border-t p-4">
+            <div className="border-t border-[#0d2d20]/10 p-4">
               <button
                 onClick={() => setShowMobileFilters(false)}
-                className="w-full rounded-xl bg-[#0f2e22] py-3 font-bold text-white"
+                className="w-full rounded-full bg-[#0d2d20] py-3 text-[11px] font-medium uppercase tracking-[0.22em] text-white"
               >
                 {tr("filters.viewResults")}
               </button>
@@ -179,28 +179,30 @@ export default function ProductDiscoveryLayout({
       )}
 
       {!hideHeader && (
-        <header className="mb-6 space-y-3 pt-6 sm:pt-8">
-          <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
-            <div>
-              <h1 className="text-2xl font-bold text-neutral-900 sm:text-3xl">
+        <header className="mb-8 space-y-3 pt-8 sm:pt-12">
+          <div className="flex flex-col gap-5 sm:flex-row sm:items-end sm:justify-between">
+            <div className="space-y-3">
+              <p className="text-[10px] font-medium uppercase tracking-[0.28em] text-[#0d2d20]/50">
+                <span className="text-[#d4a853] mr-2" aria-hidden>✦</span>
+                {subtitle || "Catálogo"}
+              </p>
+              <h1 className="font-serif italic text-[2rem] leading-[1.05] tracking-[-0.02em] text-neutral-900 sm:text-[2.75rem]">
                 {title}
               </h1>
-              {subtitle && (
-                <p className="text-sm text-neutral-500">{subtitle}</p>
-              )}
+              <div className="h-[2px] w-12 rounded-full bg-gradient-to-r from-[#0d2d20] via-[#d97706] to-[#0d2d20]" />
               {totalLabel && (
-                <p className="text-sm font-medium text-[#184c37]">
+                <p className="text-[11px] tracking-[0.16em] text-[#0d2d20]/50 uppercase">
                   {totalLabel}
                 </p>
               )}
             </div>
 
             <button
-              className="flex items-center justify-center gap-2 rounded-xl border border-neutral-200 bg-white px-4 py-2.5 text-sm font-bold shadow-sm transition active:scale-95 lg:hidden"
+              className="flex w-fit items-center gap-2 rounded-full border border-[#0d2d20]/15 bg-white/70 px-5 py-2.5 text-[11px] font-medium uppercase tracking-[0.22em] text-[#0d2d20] shadow-sm transition hover:bg-white active:scale-95 lg:hidden"
               onClick={() => setShowMobileFilters(true)}
             >
               <svg
-                className="h-4 w-4"
+                className="h-3.5 w-3.5"
                 fill="none"
                 stroke="currentColor"
                 viewBox="0 0 24 24"
@@ -215,6 +217,8 @@ export default function ProductDiscoveryLayout({
               {tr("filters.filterAndSort")}
             </button>
           </div>
+
+          <div className="h-px bg-gradient-to-r from-[#0d2d20]/15 to-transparent" />
         </header>
       )}
 

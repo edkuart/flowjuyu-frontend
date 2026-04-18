@@ -23,7 +23,8 @@ type Props = {
 
 function TrendingSkeleton() {
   return (
-    <section className="bg-[#faf7f2] py-16 md:py-20">
+    <section className="relative overflow-hidden bg-[#f3f0e8] py-20 md:py-24">
+      <div className="absolute top-0 inset-x-0 h-px bg-gradient-to-r from-transparent via-[#0d2d20]/12 to-transparent" />
       <div className="mx-auto max-w-7xl space-y-10 px-4 md:px-12">
         <div className="space-y-3">
           <div className="h-3 w-44 rounded bg-[#0d2d20]/8" />
@@ -47,7 +48,8 @@ export default function TrendingSection({ trendingProducts }: Props) {
   if (!trendingProducts?.length) return <TrendingSkeleton />;
 
   return (
-    <section className="bg-[#faf7f2] py-16 md:py-20">
+    <section className="relative overflow-hidden bg-[#f3f0e8] py-20 md:py-24">
+      <div className="absolute top-0 inset-x-0 h-px bg-gradient-to-r from-transparent via-[#0d2d20]/12 to-transparent" />
       <div className="mx-auto max-w-7xl space-y-10 px-4 md:px-12">
         <SectionHeader
           eyebrow={tr("home.trendingEyebrow")}

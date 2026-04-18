@@ -2,12 +2,10 @@
 
 import { useEffect, useMemo, useState } from "react";
 import { useSearchParams, useRouter } from "next/navigation";
-import Image from "next/image";
 import Link from "next/link";
-import FilterSidebar from "@/components/product/FilterSidebar";
 import { getProductImage } from "@/lib/getProductImage";
+import FallbackImg from "@/components/FallbackImg";
 
-import { Card, CardContent } from "@/components/ui/card";
 import ProductDiscoveryLayout from "@/components/product/discovery/ProductDiscoveryLayout";
 import { FavoriteButton } from "@/components/ui/FavoriteButton";
 import { useLanguage } from "@/i18n/context/useLanguage";
@@ -353,68 +351,75 @@ export default function ProductosPage() {
       setAccesorioMaterialId={setAccesorioMaterialId}
       onReset={handleReset}
     >
-      <div className="grid grid-cols-2 gap-4 sm:grid-cols-2 sm:gap-6 lg:grid-cols-3 xl:grid-cols-4">
+      <div className="grid grid-cols-2 gap-3 sm:gap-4 lg:grid-cols-3 xl:grid-cols-4">
         {loading &&
           [...Array(8)].map((_, i) => (
-            <div
-              key={i}
-              className="animate-pulse rounded-lg border bg-white p-3 shadow-sm sm:p-4"
-            >
-              <div className="mb-3 aspect-square w-full rounded-md bg-neutral-200" />
-              <div className="mb-2 h-4 w-3/4 rounded bg-neutral-200" />
-              <div className="h-4 w-1/2 rounded bg-neutral-200" />
+            <div key={i} className="animate-pulse">
+              <div className="aspect-[4/5] rounded-sm bg-[#0d2d20]/8" />
+              <div className="mt-3 space-y-2 px-0.5">
+                <div className="h-3 w-3/4 rounded bg-[#0d2d20]/8" />
+                <div className="h-3 w-1/2 rounded bg-[#0d2d20]/8" />
+              </div>
             </div>
           ))}
 
         {!loading &&
           productos.map((p) => (
             <Link key={p.id} href={`/product/${p.id}`} className="group block">
-              <Card className="h-full border shadow-sm transition duration-300 hover:shadow-md">
-                <CardContent className="flex h-full flex-col p-3 sm:p-4">
-                  <div className="relative mb-3 aspect-square w-full overflow-hidden rounded-md bg-neutral-100">
-                    <Image
-                      src={getProductImage(p)}
-                      alt={getLocalizedField(p, "nombre", language) ?? p.nombre}
-                      fill
-                      className="object-cover transition-transform duration-500 group-hover:scale-105"
-                    />
-                    <div className="absolute top-2 right-2 z-10">
-                      <FavoriteButton productId={String(p.id)} size="sm" />
-                    </div>
-                  </div>
+              {/* Image card */}
+              <div className="relative aspect-[4/5] overflow-hidden rounded-sm bg-[#1a3d2e]">
+                <FallbackImg
+                  src={getProductImage(p)}
+                  fallback="/images/productos/default.jpg"
+                  alt={getLocalizedField(p, "nombre", language) ?? p.nombre}
+                  className="h-full w-full object-cover transition-transform duration-700 group-hover:scale-[1.04]"
+                />
+                {/* Green gradient overlay */}
+                <div className="pointer-events-none absolute inset-0 bg-gradient-to-t from-[#0d2d20]/65 via-[#0d2d20]/10 to-transparent" />
 
-                  <div className="mb-2">
-                    <h3 className="line-clamp-2 text-sm font-medium text-neutral-800 sm:text-base">
-                      {getLocalizedField(p, "nombre", language) ?? p.nombre}
-                    </h3>
-                    {p.categoria && (
-                      <span className="text-xs text-neutral-500">
-                        {getLocalizedField(
-                          p.categoria_obj,
-                          "nombre",
-                          language,
-                        ) ?? p.categoria}
-                      </span>
-                    )}
-                  </div>
+                {/* Favorite button */}
+                <div className="absolute top-2.5 right-2.5 z-10">
+                  <FavoriteButton productId={String(p.id)} size="sm" />
+                </div>
 
-                  <div className="mt-auto border-t border-neutral-100 pt-2">
-                    <p className="text-base font-bold text-neutral-900 sm:text-lg">
-                      Q{Number(p.precio).toFixed(2)}
+                {/* Info overlay */}
+                <div className="absolute inset-x-0 bottom-0 p-3 sm:p-4">
+                  <p className="font-serif italic text-white text-[14px] leading-tight line-clamp-2 sm:text-[15px]">
+                    {getLocalizedField(p, "nombre", language) ?? p.nombre}
+                  </p>
+                  {p.departamento && (
+                    <p className="mt-1 text-[9.5px] tracking-[0.16em] text-white/55 uppercase">
+                      {p.departamento}
                     </p>
-                  </div>
-                </CardContent>
-              </Card>
+                  )}
+                  <p className="mt-1.5 text-[11px] tracking-[0.18em] text-white/80 uppercase">
+                    Q {Number(p.precio).toFixed(2)}
+                  </p>
+                </div>
+              </div>
+
+              {/* Category tag below */}
+              {p.categoria && (
+                <p className="mt-2 px-0.5 text-[10px] tracking-[0.16em] text-[#0d2d20]/45 uppercase">
+                  {getLocalizedField(p.categoria_obj, "nombre", language) ?? p.categoria}
+                </p>
+              )}
             </Link>
           ))}
       </div>
 
       {!loading && productos.length === 0 && (
-        <div className="py-20 text-center text-neutral-500">
-          <p className="text-lg">{tr("empty.noProductsTitle")}</p>
+        <div className="py-24 text-center">
+          <p className="text-[10px] font-medium uppercase tracking-[0.28em] text-[#0d2d20]/40">
+            <span className="text-[#d4a853] mr-2" aria-hidden>✦</span>
+            Búsqueda
+          </p>
+          <p className="mt-4 font-serif italic text-[1.75rem] text-[#0d2d20] leading-tight">
+            {tr("empty.noProductsTitle")}
+          </p>
           <button
             onClick={handleReset}
-            className="mt-4 text-blue-600 hover:underline"
+            className="mt-6 border-b border-[#0d2d20]/20 pb-0.5 text-[11px] uppercase tracking-[0.26em] text-[#0d2d20]/55 transition hover:border-[#0d2d20]/50 hover:text-[#0d2d20]"
           >
             {tr("empty.noProductsAction")}
           </button>
