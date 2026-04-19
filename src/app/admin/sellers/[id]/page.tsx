@@ -96,6 +96,45 @@ interface SellerDetail {
   }
   insights?: Insight[]
   alerts?: Alert[]
+  kyc_summary?: {
+    provider?: string | null
+    provider_status?: string | null
+    decision_reason?: string | null
+    verified_at?: string | null
+    review_reasons?: string[]
+    missing_capabilities?: string[]
+  }
+  identity_verification?: {
+    provider?: string | null
+    provider_status?: string | null
+    decision_reason?: string | null
+    verified_at?: string | null
+    extracted_name_match?: boolean | null
+    extracted_dpi_match?: boolean | null
+    face_match?: boolean | null
+    diagnostics?: string[]
+    review_reasons?: string[]
+    missing_capabilities?: string[]
+    document_assessment?: {
+      frontLooksLikeId?: boolean | null
+      backLooksLikeId?: boolean | null
+      likelyDocumentType?: string | null
+      confidence?: number | null
+      reason?: string | null
+    } | null
+  }
+  kyc_debug?: {
+    diagnostics?: string[]
+    review_reasons?: string[]
+    missing_capabilities?: string[]
+    document_assessment?: {
+      frontLooksLikeId?: boolean | null
+      backLooksLikeId?: boolean | null
+      likelyDocumentType?: string | null
+      confidence?: number | null
+      reason?: string | null
+    } | null
+  }
   tickets?: {
     open_count: number
     last_ticket_date: string | null
@@ -321,6 +360,9 @@ const AUDIT_LABELS: Record<string, { label: string; color: string }> = {
   KYC_REVIEW_UPDATED:       { label: "KYC updated",            color: "border-blue-500" },
   KYC_APPROVED:             { label: "KYC approved",           color: "border-green-500" },
   KYC_REJECTED:             { label: "KYC rejected",           color: "border-red-500" },
+  KYC_AUTO_FLAGGED:         { label: "KYC auto-flagged",       color: "border-orange-500" },
+  KYC_AUTO_REJECTED:        { label: "KYC auto-rejected",      color: "border-red-500" },
+  KYC_AUTOMATION_RERUN:     { label: "KYC automation re-run",  color: "border-sky-500" },
   KYC_DOCUMENTS_REQUESTED:  { label: "Documents requested",    color: "border-yellow-500" },
   SELLER_SUSPENDED:         { label: "Seller suspended",       color: "border-red-500" },
   SELLER_REACTIVATED:       { label: "Seller reactivated",     color: "border-green-500" },
@@ -332,6 +374,8 @@ const RISK_FLAG_LABELS: Record<string, { label: string; description: string }> =
   duplicate_dpi:        { label: "Duplicate DPI",         description: "Another seller is registered with the same DPI number." },
   shared_phone:         { label: "Shared Phone",           description: "Another seller has the same phone number registered." },
   suspicious_documents: { label: "Suspicious Documents",   description: "Document images match another seller's uploaded files." },
+  document_not_dpi:     { label: "Not A DPI",              description: "Automatic verification indicates that the uploaded files likely are not a DPI document." },
+  document_type_unconfirmed: { label: "Document Unconfirmed", description: "Automatic verification could not confirm that the uploaded files are really DPI images." },
 }
 
 const TIMELINE_ICON: Record<string, string> = {
@@ -410,6 +454,99 @@ function AlertsPanel({ alerts }: { alerts: Alert[] }) {
           </li>
         ))}
       </ul>
+    </div>
+  )
+}
+
+function AutomatedVerificationPanel({ seller }: { seller: SellerDetail }) {
+  const verification = seller.identity_verification
+  const debug = seller.kyc_debug
+  const summary = seller.kyc_summary
+
+  if (!verification && !debug && !summary) return null
+
+  const reviewReasons = verification?.review_reasons ?? summary?.review_reasons ?? debug?.review_reasons ?? []
+  const missingCapabilities = verification?.missing_capabilities ?? summary?.missing_capabilities ?? debug?.missing_capabilities ?? []
+  const diagnostics = verification?.diagnostics ?? debug?.diagnostics ?? []
+  const documentAssessment = verification?.document_assessment ?? debug?.document_assessment ?? null
+
+  return (
+    <div className="border rounded-xl overflow-hidden bg-card">
+      <div className="px-4 py-3 border-b bg-muted/30 flex items-center justify-between">
+        <div>
+          <h2 className="font-semibold text-sm">Automated Verification</h2>
+          <p className="text-xs text-muted-foreground">Provider decision, document assessment, and automation diagnostics</p>
+        </div>
+        <Badge className="bg-sky-100 text-sky-700 dark:bg-sky-900 dark:text-sky-300 border-0">
+          {verification?.provider_status ?? summary?.provider_status ?? "unknown"}
+        </Badge>
+      </div>
+      <div className="p-4 grid gap-4 md:grid-cols-2">
+        <div className="space-y-2">
+          {[
+            ["Provider", verification?.provider ?? summary?.provider ?? "—"],
+            ["Decision reason", verification?.decision_reason ?? summary?.decision_reason ?? "—"],
+            ["Verified at", verification?.verified_at ? new Date(verification.verified_at).toLocaleString() : "—"],
+            ["Name match", verification?.extracted_name_match == null ? "—" : verification.extracted_name_match ? "Yes" : "No"],
+            ["DPI match", verification?.extracted_dpi_match == null ? "—" : verification.extracted_dpi_match ? "Yes" : "No"],
+            ["Face match", verification?.face_match == null ? "—" : verification.face_match ? "Yes" : "No"],
+          ].map(([label, value]) => (
+            <div key={String(label)} className="flex justify-between gap-4 text-xs">
+              <span className="text-muted-foreground">{label}</span>
+              <span className="text-right font-medium">{value}</span>
+            </div>
+          ))}
+        </div>
+        <div className="space-y-3">
+          <div>
+            <p className="text-xs text-muted-foreground mb-1.5">Review reasons</p>
+            {reviewReasons.length > 0 ? (
+              <div className="flex flex-wrap gap-1.5">
+                {reviewReasons.map((reason) => (
+                  <span key={reason} className="rounded-full bg-red-50 px-2.5 py-1 text-[11px] font-medium text-red-700 dark:bg-red-950/20 dark:text-red-300">
+                    {reason}
+                  </span>
+                ))}
+              </div>
+            ) : <p className="text-xs">—</p>}
+          </div>
+          <div>
+            <p className="text-xs text-muted-foreground mb-1.5">Missing capabilities</p>
+            {missingCapabilities.length > 0 ? (
+              <div className="flex flex-wrap gap-1.5">
+                {missingCapabilities.map((item) => (
+                  <span key={item} className="rounded-full bg-yellow-50 px-2.5 py-1 text-[11px] font-medium text-yellow-700 dark:bg-yellow-950/20 dark:text-yellow-300">
+                    {item}
+                  </span>
+                ))}
+              </div>
+            ) : <p className="text-xs">None</p>}
+          </div>
+        </div>
+      </div>
+      {(documentAssessment || diagnostics.length > 0) && (
+        <div className="border-t px-4 py-4 space-y-3">
+          {documentAssessment && (
+            <div className="grid gap-2 md:grid-cols-2 text-xs">
+              <div className="flex justify-between gap-4"><span className="text-muted-foreground">Front looks like ID</span><span className="font-medium">{String(documentAssessment.frontLooksLikeId ?? "—")}</span></div>
+              <div className="flex justify-between gap-4"><span className="text-muted-foreground">Back looks like ID</span><span className="font-medium">{String(documentAssessment.backLooksLikeId ?? "—")}</span></div>
+              <div className="flex justify-between gap-4"><span className="text-muted-foreground">Likely document</span><span className="font-medium">{documentAssessment.likelyDocumentType ?? "—"}</span></div>
+              <div className="flex justify-between gap-4"><span className="text-muted-foreground">Confidence</span><span className="font-medium">{documentAssessment.confidence != null ? `${Math.round(documentAssessment.confidence * 100)}%` : "—"}</span></div>
+              <div className="md:col-span-2 flex justify-between gap-4"><span className="text-muted-foreground">Reason</span><span className="text-right font-medium">{documentAssessment.reason ?? "—"}</span></div>
+            </div>
+          )}
+          {diagnostics.length > 0 && (
+            <div>
+              <p className="text-xs text-muted-foreground mb-1.5">Diagnostics</p>
+              <ul className="space-y-1">
+                {diagnostics.map((line) => (
+                  <li key={line} className="font-mono text-xs text-muted-foreground">{line}</li>
+                ))}
+              </ul>
+            </div>
+          )}
+        </div>
+      )}
     </div>
   )
 }
@@ -693,6 +830,7 @@ export default function AdminSellerDetailPage() {
   const [seller,     setSeller]     = useState<SellerDetail | null>(null)
   const [loading,    setLoading]    = useState(true)
   const [processing, setProcessing] = useState<string | null>(null)
+  const [rerunLoading, setRerunLoading] = useState(false)
   const [comment,    setComment]    = useState("")
   const [action,     setAction]     = useState<"reject" | "suspend" | "request-info" | "flag" | "eliminate" | null>(null)
 
@@ -740,6 +878,27 @@ export default function AdminSellerDetailPage() {
       toast.error("Unexpected error")
     } finally {
       setProcessing(null)
+    }
+  }
+
+  async function rerunKycAutomation() {
+    if (!confirm("Re-run automatic KYC verification for this seller?")) return
+    try {
+      setRerunLoading(true)
+      const res = await authFetch(`${API_URL}/api/admin/sellers/${id}/kyc-rerun`, {
+        method: "POST",
+      })
+      if (!res.ok) {
+        const data = await res.json().catch(() => ({}))
+        toast.error(data.message ?? "Could not re-run automation")
+        return
+      }
+      toast.success("Automatic KYC re-run completed")
+      await fetchDetail()
+    } catch {
+      toast.error("Unexpected error")
+    } finally {
+      setRerunLoading(false)
     }
   }
 
@@ -850,6 +1009,8 @@ export default function AdminSellerDetailPage() {
 
       {/* ── INSIGHTS ────────────────────────────────────────────────────────── */}
       {insights.length > 0 && <InsightsPanel insights={insights} />}
+
+      <AutomatedVerificationPanel seller={seller} />
 
       {/* ── AI RECOMMENDATIONS ──────────────────────────────────────────────── */}
       <div className="border rounded-xl overflow-hidden bg-card">
@@ -987,6 +1148,11 @@ export default function AdminSellerDetailPage() {
       <SellerKYCPanel
         sellerId={seller.id}
         initialChecklist={seller.kyc_checklist}
+        automationBlocked={(seller.risk?.flags ?? seller.risk_flags ?? []).includes("document_not_dpi")}
+        automationReason={seller.identity_verification?.decision_reason ?? seller.observaciones}
+        automationReviewReasons={seller.identity_verification?.review_reasons ?? seller.kyc_debug?.review_reasons ?? []}
+        onRerunAutomation={rerunKycAutomation}
+        rerunLoading={rerunLoading}
         onUpdated={fetchDetail}
       />
 

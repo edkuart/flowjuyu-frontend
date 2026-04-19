@@ -3,6 +3,7 @@
 import { useState, useMemo, useEffect } from "react"
 import { authFetch } from "@/lib/authFetch"
 import { toast } from "sonner"
+import { Loader2 } from "lucide-react"
 
 // ── Types ──────────────────────────────────────────────────────────────────────
 
@@ -15,6 +16,11 @@ interface Checklist {
 interface Props {
   sellerId:         number
   initialChecklist?: Partial<Checklist> | null
+  automationBlocked?: boolean
+  automationReason?: string | null
+  automationReviewReasons?: string[]
+  onRerunAutomation?: () => Promise<void> | void
+  rerunLoading?: boolean
   onUpdated?:       () => void
 }
 
@@ -47,7 +53,16 @@ function scoreToRiesgo(score: number): "bajo" | "medio" | "alto" {
 
 // ── Component ──────────────────────────────────────────────────────────────────
 
-export default function SellerKYCPanel({ sellerId, initialChecklist, onUpdated }: Props) {
+export default function SellerKYCPanel({
+  sellerId,
+  initialChecklist,
+  automationBlocked = false,
+  automationReason = null,
+  automationReviewReasons = [],
+  onRerunAutomation,
+  rerunLoading = false,
+  onUpdated,
+}: Props) {
   const [checks,  setChecks]  = useState<Checklist>({ ...EMPTY_CHECKLIST, ...initialChecklist })
   const [loading, setLoading] = useState(false)
 
@@ -158,11 +173,37 @@ export default function SellerKYCPanel({ sellerId, initialChecklist, onUpdated }
         </div>
 
         {/* Auto-approval note */}
-        {score >= 80 && (
+        {score >= 80 && !automationBlocked && (
           <div className="flex items-center gap-2 text-xs text-green-700 dark:text-green-400 bg-green-50 dark:bg-green-950/20 border border-green-200 dark:border-green-800 rounded-lg px-3 py-2">
             <span className="w-1.5 h-1.5 rounded-full bg-green-500 shrink-0" />
             Score meets approval threshold — saving will set this seller as approved.
           </div>
+        )}
+
+        {automationBlocked && (
+          <div className="space-y-2 rounded-lg border border-red-200 bg-red-50 px-3 py-3 text-xs text-red-700 dark:border-red-800 dark:bg-red-950/20 dark:text-red-300">
+            <div className="flex items-center gap-2">
+              <span className="h-1.5 w-1.5 shrink-0 rounded-full bg-red-500" />
+              <span className="font-semibold">Automatic verification has blocked approval</span>
+            </div>
+            <p>{automationReason || "The uploaded KYC images do not appear to be a valid DPI."}</p>
+            {automationReviewReasons.length > 0 && (
+              <p className="text-[11px] opacity-80">
+                Signals: {automationReviewReasons.join(", ")}
+              </p>
+            )}
+          </div>
+        )}
+
+        {onRerunAutomation && (
+          <button
+            onClick={() => void onRerunAutomation()}
+            disabled={rerunLoading}
+            className="w-full py-2.5 rounded-xl text-sm font-semibold border border-border bg-background hover:bg-muted/40 disabled:opacity-50 transition-colors flex items-center justify-center gap-2"
+          >
+            {rerunLoading ? <Loader2 className="h-4 w-4 animate-spin" /> : null}
+            {rerunLoading ? "Re-running automation…" : "Re-run KYC Automation"}
+          </button>
         )}
 
         {/* Save button */}
