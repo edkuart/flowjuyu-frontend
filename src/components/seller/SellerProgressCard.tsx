@@ -64,7 +64,7 @@ function ProgressBar({ pct }: { pct: number }) {
                   "bg-neutral-400"
 
   return (
-    <div className="w-full bg-neutral-100 rounded-full h-2 overflow-hidden">
+    <div className="h-2 w-full overflow-hidden rounded-full bg-neutral-200/80">
       <div
         className={`h-full rounded-full transition-all duration-700 ease-out ${color}`}
         style={{ width: `${pct}%` }}
@@ -84,10 +84,10 @@ function StepRow({ step, isNext }: { step: SellerProgressStep; isNext: boolean }
     <div
       className={`flex items-center gap-3 rounded-xl px-4 py-3 transition-all group ${
         step.done
-          ? "opacity-60"
+          ? "opacity-65"
           : isNext
-          ? "bg-[#0F3D3A]/5 border border-[#0F3D3A]/20 hover:border-[#0F3D3A]/40"
-          : "hover:bg-neutral-50"
+          ? "border border-[#0F3D3A]/15 bg-[linear-gradient(180deg,_rgba(15,61,58,0.08),_rgba(15,61,58,0.03))] hover:border-[#0F3D3A]/30"
+          : "hover:bg-white/80"
       }`}
     >
       {/* Status circle */}
@@ -182,26 +182,26 @@ export function SellerProgressCard({
   if (percentage === 100) return null
 
   return (
-    <div className="bg-white border border-neutral-100 rounded-xl shadow-sm overflow-hidden">
+    <div className="overflow-hidden rounded-[26px] border border-neutral-200 bg-[linear-gradient(180deg,_rgba(255,255,255,0.98),_rgba(248,246,240,0.94))] shadow-[0_18px_40px_-30px_rgba(15,23,42,0.28)]">
 
       {/* ── Top accent: live gradient fill ── */}
       <div
-        className="h-1 transition-all duration-700"
+        className="h-1.5 transition-all duration-700"
         style={{
           background: `linear-gradient(90deg, #0F3D3A ${percentage}%, #e5e7eb ${percentage}%)`,
         }}
       />
 
-      <div className="p-5 space-y-5">
+      <div className="space-y-5 p-5">
 
         {/* ── HEADER ── */}
-        <div className="space-y-2">
+        <div className="space-y-3">
           <div className="flex items-center justify-between">
             <div>
-              <h2 className="text-base font-bold text-neutral-800 leading-tight">
+              <h2 className="text-base font-bold leading-tight text-neutral-800">
                 Checklist del seller
               </h2>
-              <p className="text-xs text-neutral-400 mt-0.5">
+              <p className="mt-1 text-xs text-neutral-400">
                 {completedCount} de {steps.length} acciones completadas
               </p>
             </div>
@@ -221,7 +221,7 @@ export function SellerProgressCard({
 
         {/* ── REJECTED VERIFICATION WARNING ── */}
         {estadoValidacion === "rechazado" && (
-          <div className="flex items-start gap-3 bg-red-50 border border-red-200 rounded-xl px-4 py-3">
+          <div className="flex items-start gap-3 rounded-2xl border border-red-200 bg-[linear-gradient(180deg,_#fff1f1,_#fffbfb)] px-4 py-3">
             <AlertCircle className="w-4 h-4 text-red-500 mt-0.5 flex-shrink-0" />
             <p className="text-sm text-red-700 font-medium leading-snug">
               Tu verificación fue rechazada. Por favor sube tus documentos nuevamente.
@@ -230,7 +230,7 @@ export function SellerProgressCard({
         )}
 
         {/* ── STEP LIST ── */}
-        <div className="space-y-0.5">
+        <div className="space-y-1.5">
           {steps.map((step, i) => {
             const isNext = !step.done && steps.slice(0, i).every(s => s.done)
             return <StepRow key={step.key} step={step} isNext={isNext} />
@@ -240,7 +240,7 @@ export function SellerProgressCard({
         {/* ── NEXT STEP CTA ── */}
         {nextAction && nextHref && (
           <Link href={nextHref}>
-            <div className="flex items-center gap-3 bg-[#0F3D3A] text-white rounded-xl px-4 py-3 hover:bg-[#0C2F2C] transition-colors group cursor-pointer">
+            <div className="group flex cursor-pointer items-center gap-3 rounded-2xl bg-[linear-gradient(135deg,_#0F3D3A,_#164d49)] px-4 py-3 text-white shadow-[0_18px_36px_-24px_rgba(15,61,58,0.6)] transition-all hover:-translate-y-0.5 hover:bg-[#0C2F2C]">
               <ArrowRight className="w-4 h-4 flex-shrink-0 transition-transform group-hover:translate-x-0.5" />
               <div className="flex-1 min-w-0">
                 <p className="text-xs font-semibold leading-none opacity-75">

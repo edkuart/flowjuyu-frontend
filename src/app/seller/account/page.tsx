@@ -25,6 +25,7 @@ import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Textarea } from "@/components/ui/textarea"
 import { Label } from "@/components/ui/label"
+import { SellerSectionHero } from "@/components/seller/SellerSectionHero"
 import { SellerProgressCard } from "@/components/seller/SellerProgressCard"
 import { CommunicationPreferencesPanel } from "@/components/settings/CommunicationPreferencesPanel"
 import { apiGetVendedorPerfil } from "@/services/vendedorPerfil"
@@ -51,7 +52,9 @@ function Section({
   className?: string
 }) {
   return (
-    <Card className={`bg-white border border-neutral-100 shadow-sm ${className}`}>
+    <Card
+      className={`border border-neutral-200 bg-[linear-gradient(180deg,_rgba(255,255,255,0.98),_rgba(249,248,243,0.96))] shadow-[0_16px_40px_-26px_rgba(15,23,42,0.22)] ${className}`}
+    >
       <CardContent className="p-6">{children}</CardContent>
     </Card>
   )
@@ -67,13 +70,74 @@ function SectionHeader({
   badge?: React.ReactNode
 }) {
   return (
-    <div className="flex items-center justify-between mb-5">
-      <div className="flex items-center gap-2.5 font-semibold text-neutral-800">
-        {icon}
-        {title}
+    <div className="mb-5 flex items-center justify-between gap-3 border-b border-neutral-100 pb-4">
+      <div className="flex items-center gap-3 font-semibold text-neutral-800">
+        <div className="flex h-10 w-10 items-center justify-center rounded-2xl bg-[#0F3D3A]/8 text-[#0F3D3A]">
+          {icon}
+        </div>
+        <div>
+          <p className="text-sm font-semibold text-neutral-900">{title}</p>
+        </div>
       </div>
       {badge}
     </div>
+  )
+}
+
+function SectionIntro({
+  eyebrow,
+  title,
+  description,
+}: {
+  eyebrow: string
+  title: string
+  description: string
+}) {
+  return (
+    <div className="space-y-2">
+      <p className="text-[11px] font-semibold uppercase tracking-[0.22em] text-neutral-400">
+        {eyebrow}
+      </p>
+      <h2 className="text-xl font-semibold tracking-tight text-neutral-900">{title}</h2>
+      <p className="max-w-2xl text-sm leading-7 text-neutral-500">{description}</p>
+    </div>
+  )
+}
+
+function ShortcutCard({
+  href,
+  icon,
+  title,
+  description,
+  cta,
+}: {
+  href: string
+  icon: React.ReactNode
+  title: string
+  description: string
+  cta: string
+}) {
+  return (
+    <Link
+      href={href}
+      className="group relative overflow-hidden rounded-[26px] border border-neutral-200 bg-[linear-gradient(180deg,_#ffffff,_#f7f6f1)] p-5 shadow-[0_18px_40px_-28px_rgba(15,23,42,0.3)] transition duration-200 hover:-translate-y-1 hover:border-[#0F3D3A]/20 hover:shadow-[0_24px_55px_-30px_rgba(15,61,58,0.35)]"
+    >
+      <div
+        aria-hidden="true"
+        className="pointer-events-none absolute inset-x-0 top-0 h-24 bg-[radial-gradient(circle_at_top_left,_rgba(15,61,58,0.12),_transparent_55%)]"
+      />
+      <div className="relative mb-4 flex h-12 w-12 items-center justify-center rounded-2xl border border-[#0F3D3A]/10 bg-[#0F3D3A]/8 text-[#0F3D3A] shadow-sm">
+        {icon}
+      </div>
+      <div className="relative space-y-2">
+        <h3 className="text-sm font-semibold text-neutral-900">{title}</h3>
+        <p className="text-sm leading-6 text-neutral-500">{description}</p>
+      </div>
+      <div className="relative mt-4 inline-flex items-center gap-2 text-sm font-medium text-[#0F3D3A]">
+        {cta}
+        <ArrowRight className="h-4 w-4 transition-transform group-hover:translate-x-0.5" />
+      </div>
+    </Link>
   )
 }
 
@@ -149,9 +213,11 @@ function VerificationStatusCard({
   if (!cfg) return null
 
   return (
-    <div className={`rounded-2xl border border-neutral-100 border-l-4 ${cfg.accent} px-5 py-4 space-y-3`}>
+    <div className={`rounded-[24px] border border-neutral-200 border-l-4 ${cfg.accent} px-5 py-4 shadow-[0_12px_28px_-24px_rgba(15,23,42,0.35)] space-y-3`}>
       <div className="flex items-start gap-3">
-        {cfg.icon}
+        <div className="flex h-10 w-10 items-center justify-center rounded-2xl bg-white/80 shadow-sm">
+          {cfg.icon}
+        </div>
         <div className="space-y-1">
           <p className="font-semibold text-sm text-neutral-800">{cfg.title}</p>
           <p className="text-sm text-neutral-600 leading-relaxed">{cfg.body}</p>
@@ -228,12 +294,14 @@ function DocumentsStatusList({
   return (
     <div className="space-y-2.5">
       {docs.map((doc) => (
-        <div key={doc.key} className="flex items-start gap-3">
-          {doc.subido ? (
-            <FileCheck className="w-4 h-4 text-emerald-600 flex-shrink-0 mt-0.5" />
-          ) : (
-            <FileX className="w-4 h-4 text-red-400 flex-shrink-0 mt-0.5" />
-          )}
+        <div key={doc.key} className="flex items-start gap-3 rounded-2xl border border-neutral-200 bg-white/75 px-4 py-3">
+          <div className="mt-0.5 flex h-8 w-8 flex-shrink-0 items-center justify-center rounded-xl bg-neutral-50">
+            {doc.subido ? (
+              <FileCheck className="w-4 h-4 text-emerald-600" />
+            ) : (
+              <FileX className="w-4 h-4 text-red-400" />
+            )}
+          </div>
           <div>
             <p className={`text-sm font-medium ${doc.subido ? "text-neutral-700" : "text-neutral-600"}`}>
               {doc.label}
@@ -473,93 +541,6 @@ function AdminStatusCard({ estadoAdmin }: { estadoAdmin: string | null }) {
               Contactar soporte ahora
             </Button>
           </Link>
-        </div>
-      )}
-    </div>
-  )
-}
-
-/* ──────────────────────────────────────────
-   SECURITY SECTION
-────────────────────────────────────────── */
-
-function SecuritySection() {
-  const [passwordActual, setPasswordActual] = useState("")
-  const [passwordNueva,  setPasswordNueva]  = useState("")
-  const [estado, setEstado] = useState<"idle" | "loading" | "ok" | "error">("idle")
-  const [mensaje, setMensaje] = useState("")
-
-  const isValid = passwordActual.length >= 1 && passwordNueva.length >= 8
-
-  async function handleSubmit() {
-    if (!isValid) return
-    setEstado("loading")
-    setMensaje("")
-    try {
-      const token = typeof window !== "undefined" ? localStorage.getItem("token") : null
-      const res = await fetch(`${API}/api/users/change-password`, {
-        method: "PATCH",
-        headers: {
-          "Content-Type": "application/json",
-          Authorization: token ? `Bearer ${token}` : "",
-        },
-        body: JSON.stringify({ passwordActual, passwordNueva }),
-      })
-      if (!res.ok) {
-        const data = await res.json().catch(() => null)
-        throw new Error(data?.message || "Error al actualizar")
-      }
-      setEstado("ok")
-      setMensaje("Contraseña actualizada correctamente.")
-      setPasswordActual("")
-      setPasswordNueva("")
-    } catch (err: any) {
-      setEstado("error")
-      setMensaje(err?.message || "No se pudo actualizar la contraseña.")
-    }
-  }
-
-  return (
-    <div className="space-y-4">
-      <div className="space-y-1.5">
-        <Label className="text-sm">Contraseña actual</Label>
-        <Input
-          type="password"
-          value={passwordActual}
-          disabled={estado === "loading"}
-          onChange={(e: ChangeEvent<HTMLInputElement>) => setPasswordActual(e.target.value)}
-        />
-      </div>
-
-      <div className="space-y-1.5">
-        <Label className="text-sm">Nueva contraseña</Label>
-        <Input
-          type="password"
-          value={passwordNueva}
-          disabled={estado === "loading"}
-          onChange={(e: ChangeEvent<HTMLInputElement>) => setPasswordNueva(e.target.value)}
-        />
-        {passwordNueva.length > 0 && passwordNueva.length < 8 && (
-          <p className="text-xs text-amber-600">La contraseña debe tener al menos 8 caracteres.</p>
-        )}
-      </div>
-
-      <Button
-        onClick={handleSubmit}
-        disabled={estado === "loading" || !isValid}
-        className="bg-[#0F3D3A] hover:bg-[#0a2e2c] text-white rounded-xl"
-      >
-        {estado === "loading" ? "Actualizando…" : "Actualizar contraseña"}
-      </Button>
-
-      {mensaje && (
-        <div className={`flex items-center gap-2 text-sm font-medium ${
-          estado === "ok" ? "text-emerald-600" : "text-red-600"
-        }`}>
-          {estado === "ok"
-            ? <CheckCircle className="w-4 h-4" />
-            : <XCircle className="w-4 h-4" />}
-          {mensaje}
         </div>
       )}
     </div>
@@ -828,108 +809,141 @@ export default function SellerAccountPage() {
   ══════════════════════════════════════════ */
 
   return (
-    <main className="min-h-screen px-4 sm:px-6 py-10 space-y-6 max-w-3xl mx-auto bg-[#f8f5ef]">
-
-      {/* 1. HEADER */}
-      <section className="space-y-1 pb-2">
-        <h1 className="text-2xl font-bold text-neutral-900">Centro de cuenta</h1>
-        <p className="text-sm text-neutral-500">
-          Verifica tu identidad, gestiona tu seguridad y contacta soporte.
-        </p>
-      </section>
-
-      {/* 2. PROGRESS CARD */}
-      <SellerProgressCard
-        estadoValidacion={estado}
-        productos={progressProductos}
-        perfil={progressPerfil}
+    <main className="mx-auto min-h-screen max-w-5xl space-y-10 bg-[#f8f5ef] px-4 py-10 sm:px-6">
+      <SellerSectionHero
+        eyebrow="Cuenta del vendedor"
+        title="Cuenta"
+        description="Organiza la operación de tu tienda, revisa tu verificación y mantén a mano los canales clave de comunicación."
+        aside={
+          <>
+            <ShortcutCard
+              href="/seller/security"
+              icon={<Lock className="h-5 w-5" />}
+              title="Seguridad"
+              description="Gestiona tu contraseña y deja separado todo lo relacionado con acceso."
+              cta="Abrir seguridad"
+            />
+            <ShortcutCard
+              href="/seller/tickets"
+              icon={<TicketCheck className="h-5 w-5" />}
+              title="Tickets"
+              description="Consulta solicitudes en curso y sigue cualquier caso pendiente con soporte."
+              cta="Ver mis tickets"
+            />
+          </>
+        }
+        actions={
+          <Link
+            href="/seller/account#comunicaciones"
+            className="inline-flex items-center gap-2 text-sm font-medium text-[#0F3D3A] transition hover:text-[#0a2e2c]"
+          >
+            Ir a comunicaciones
+            <ArrowRight className="h-4 w-4" />
+          </Link>
+        }
       />
 
-      {/* 3. VERIFICATION — dominant, first card */}
-      <Section>
-        <SectionHeader
-          icon={<Shield className="w-5 h-5 text-neutral-600" />}
-          title="Verificación de identidad"
-          badge={<VerificationBadge estado={estado} />}
+      <section className="space-y-5 rounded-[32px] border border-white/60 bg-[linear-gradient(180deg,_rgba(255,255,255,0.62),_rgba(250,248,242,0.88))] p-4 shadow-[0_20px_45px_-36px_rgba(15,23,42,0.28)] backdrop-blur-sm sm:p-6">
+        <SectionIntro
+          eyebrow="Estado de cuenta"
+          title="Verificación y operación de la tienda"
+          description="Aquí ves el estado real de tu cuenta de vendedor: qué falta para activar tu tienda, qué permisos tienes hoy y si existe alguna restricción administrativa."
         />
 
-        <div className="space-y-5">
-          <VerificationStatusCard
-            estado={estado}
-            observaciones={observaciones}
-            kycTicket={kycTicket}
-          />
+        <div className="grid gap-6 xl:grid-cols-[minmax(0,1.4fr)_minmax(320px,0.9fr)]">
+          <div className="space-y-6">
+            <SellerProgressCard
+              estadoValidacion={estado}
+              productos={progressProductos}
+              perfil={progressPerfil}
+            />
 
-          {/* 4. DOCUMENTS STATUS */}
-          <div>
-            <p className="text-xs font-semibold text-neutral-400 uppercase tracking-wide mb-3">
-              Documentos requeridos
-            </p>
-            <DocumentsStatusList documentos={documentos} />
+            <Section>
+              <SectionHeader
+                icon={<Shield className="w-5 h-5 text-neutral-600" />}
+                title="Verificación de identidad"
+                badge={<VerificationBadge estado={estado} />}
+              />
+
+              <div className="space-y-5">
+                <VerificationStatusCard
+                  estado={estado}
+                  observaciones={observaciones}
+                  kycTicket={kycTicket}
+                />
+
+                <div>
+                  <p className="mb-3 text-xs font-semibold uppercase tracking-wide text-neutral-400">
+                    Documentos requeridos
+                  </p>
+                  <DocumentsStatusList documentos={documentos} />
+                </div>
+
+                <UploadDocumentsSection
+                  estado={estado}
+                  dpiFrente={dpiFrente}       setDpiFrente={setDpiFrente}
+                  dpiReverso={dpiReverso}     setDpiReverso={setDpiReverso}
+                  selfieDpi={selfieDpi}       setSelfieDpi={setSelfieDpi}
+                  estadoUpload={estadoUpload}
+                  onSubmit={handleUploadDocuments}
+                />
+              </div>
+            </Section>
           </div>
 
-          {/* UPLOAD (pendiente / rechazado only) */}
-          <UploadDocumentsSection
-            estado={estado}
-            dpiFrente={dpiFrente}       setDpiFrente={setDpiFrente}
-            dpiReverso={dpiReverso}     setDpiReverso={setDpiReverso}
-            selfieDpi={selfieDpi}       setSelfieDpi={setSelfieDpi}
-            estadoUpload={estadoUpload}
-            onSubmit={handleUploadDocuments}
-          />
+          <div className="space-y-6">
+            <Section>
+              <SectionHeader
+                icon={<Package className="w-5 h-5 text-neutral-600" />}
+                title="Estado operativo"
+              />
+              <OperationalStatusCard puedePublicar={puedePublicar} />
+            </Section>
+
+            <Section>
+              <SectionHeader
+                icon={<Store className="w-5 h-5 text-neutral-600" />}
+                title="Estado administrativo"
+              />
+              <AdminStatusCard estadoAdmin={estadoAdmin} />
+            </Section>
+          </div>
         </div>
-      </Section>
+      </section>
 
-      {/* 5. OPERATIONAL STATUS */}
-      <Section>
-        <SectionHeader
-          icon={<Package className="w-5 h-5 text-neutral-600" />}
-          title="Estado operativo"
+      <section
+        id="comunicaciones"
+        className="scroll-mt-24 space-y-5 rounded-[32px] border border-white/60 bg-[linear-gradient(180deg,_rgba(255,255,255,0.55),_rgba(248,245,236,0.9))] p-4 shadow-[0_20px_45px_-36px_rgba(15,23,42,0.22)] backdrop-blur-sm sm:p-6"
+      >
+        <SectionIntro
+          eyebrow="Comunicación"
+          title="Preferencias y ayuda"
+          description="Separamos las decisiones de comunicación y soporte para que puedas ajustar mensajes promocionales y resolver incidencias sin perder contexto operativo."
         />
-        <OperationalStatusCard puedePublicar={puedePublicar} />
-      </Section>
 
-      {/* 6. ADMIN STATUS */}
-      <Section>
-        <SectionHeader
-          icon={<Store className="w-5 h-5 text-neutral-600" />}
-          title="Estado administrativo"
-        />
-        <AdminStatusCard estadoAdmin={estadoAdmin} />
-      </Section>
+        <div className="grid gap-6 lg:grid-cols-2">
+          <Section>
+            <SectionHeader
+              icon={<AlertCircle className="w-5 h-5 text-neutral-600" />}
+              title="Preferencias de comunicación"
+            />
+            <CommunicationPreferencesPanel
+              compact
+              title="Marketing y comunicaciones opcionales"
+              description="Tus mensajes operativos y de seguridad siguen activos. Aquí controlas únicamente emails y WhatsApp promocionales de Flowjuyu."
+              surface="seller_account_preferences"
+            />
+          </Section>
 
-      {/* 7. SECURITY */}
-      <Section>
-        <SectionHeader
-          icon={<Lock className="w-5 h-5 text-neutral-600" />}
-          title="Seguridad de la cuenta"
-        />
-        <SecuritySection />
-      </Section>
-
-      {/* 8. COMMUNICATION PREFERENCES */}
-      <Section>
-        <SectionHeader
-          icon={<AlertCircle className="w-5 h-5 text-neutral-600" />}
-          title="Preferencias de comunicación"
-        />
-        <CommunicationPreferencesPanel
-          compact
-          title="Marketing y comunicaciones opcionales"
-          description="Tus mensajes operativos y de seguridad siguen activos. Aquí controlas únicamente emails y WhatsApp promocionales de Flowjuyu."
-          surface="seller_account_preferences"
-        />
-      </Section>
-
-      {/* 9. SUPPORT */}
-      <Section>
-        <SectionHeader
-          icon={<HelpCircle className="w-5 h-5 text-neutral-600" />}
-          title="Soporte y ayuda"
-        />
-        <SupportSection actionRequired={actionRequired} />
-      </Section>
-
+          <Section>
+            <SectionHeader
+              icon={<HelpCircle className="w-5 h-5 text-neutral-600" />}
+              title="Soporte y ayuda"
+            />
+            <SupportSection actionRequired={actionRequired} />
+          </Section>
+        </div>
+      </section>
     </main>
   )
 }

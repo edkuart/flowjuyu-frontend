@@ -8,6 +8,7 @@ import {
   Package,
   ShoppingCart,
   BarChart3,
+  User,
   Shield,
   Menu,
   LogOut,
@@ -27,7 +28,8 @@ const navItems = [
   { label: "Productos", icon: Package, href: "/seller/products" },
   { label: "Pedidos", icon: ShoppingCart, href: "/seller/orders" },
   { label: "Métricas", icon: BarChart3, href: "/seller/metrics" },
-  { label: "Cuenta y seguridad", icon: Shield, href: "/seller/account" },
+  { label: "Cuenta", icon: User, href: "/seller/account" },
+  { label: "Seguridad", icon: Shield, href: "/seller/security" },
 ];
 
 export default function SellerLayout({ children }: { children: ReactNode }) {
@@ -58,13 +60,19 @@ export default function SellerLayout({ children }: { children: ReactNode }) {
           {/* Navegación */}
           <nav className="flex-1 space-y-0.5 px-3 py-4">
             {navItems.map(({ label, icon, href }) => (
-              <SidebarNavItem
-                key={href}
-                href={href}
-                label={label}
-                icon={icon}
-                isActive={pathname.startsWith(href)}
-              />
+              <div key={href}>
+                {href === "/seller/account" ? (
+                  <div className="px-3 pb-2 pt-4 text-[11px] font-semibold uppercase tracking-[0.18em] text-neutral-400">
+                    Gestión personal
+                  </div>
+                ) : null}
+                <SidebarNavItem
+                  href={href}
+                  label={label}
+                  icon={icon}
+                  isActive={pathname.startsWith(href)}
+                />
+              </div>
             ))}
           </nav>
 
@@ -102,14 +110,20 @@ export default function SellerLayout({ children }: { children: ReactNode }) {
               <SheetContent side="left" className="w-72 bg-white">
                 <nav className="mt-8 space-y-0.5">
                   {navItems.map(({ label, icon, href }) => (
-                    <SidebarNavItem
-                      key={href}
-                      href={href}
-                      label={label}
-                      icon={icon}
-                      isActive={pathname.startsWith(href)}
-                      onClick={() => setOpen(false)}
-                    />
+                    <div key={href}>
+                      {href === "/seller/account" ? (
+                        <div className="px-3 pb-2 pt-4 text-[11px] font-semibold uppercase tracking-[0.18em] text-neutral-400">
+                          Gestión personal
+                        </div>
+                      ) : null}
+                      <SidebarNavItem
+                        href={href}
+                        label={label}
+                        icon={icon}
+                        isActive={pathname.startsWith(href)}
+                        onClick={() => setOpen(false)}
+                      />
+                    </div>
                   ))}
                 </nav>
 
