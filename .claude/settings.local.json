@@ -37,7 +37,8 @@
       "Bash(node --check \"c:/Users/Dell/Projects/Flowjuyu-1.0/flowjuyu-backend/migrations/20260412000001-create-user-consents.js\")",
       "Bash(node --check \"c:/Users/Dell/Projects/Flowjuyu-1.0/flowjuyu-backend/migrations/20260412000002-add-consent-fields-to-users.js\")",
       "Bash(node --check \"c:/Users/Dell/Projects/Flowjuyu-1.0/flowjuyu-backend/migrations/20260412000003-add-consent-fields-to-vendedor-perfil.js\")",
-      "Bash(node --check \"c:/Users/Dell/Projects/Flowjuyu-1.0/flowjuyu-backend/migrations/20260412000004-seed-policy-versions-v1.js\")"
+      "Bash(node --check \"c:/Users/Dell/Projects/Flowjuyu-1.0/flowjuyu-backend/migrations/20260412000004-seed-policy-versions-v1.js\")",
+      "Bash(grep -E \"\\(^|/\\)layout.tsx$\")"
     ],
     "additionalDirectories": [
       "C:\\Users\\Dell\\Projects\\Flowjuyu-1.0\\flowjuyu-backend\\src\\services",

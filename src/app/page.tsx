@@ -5,6 +5,7 @@ export const dynamic = "force-dynamic";
 import { fetchHomeCatalog, fetchTrendingProducts } from "@/services/homeService";
 
 import HeroSection            from "@/components/home/HeroSection";
+import LiveNowSection         from "@/components/home/LiveNowSection";
 import TrendingSection        from "@/components/home/TrendingSection";
 import StoryBridgeSection     from "@/components/home/StoryBridgeSection";
 import CategoriesSection      from "@/components/home/CategoriesSection";
@@ -50,6 +51,7 @@ export default async function HomePage(): Promise<React.ReactElement> {
   return (
     <main>
       <HeroSection featuredProducts={featuredProducts} />
+      <LiveNowSection />
       <TrendingSection trendingProducts={trendingProducts} />
       <StoryBridgeSection />
       <SellerHighlightSection />

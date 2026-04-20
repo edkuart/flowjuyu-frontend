@@ -55,11 +55,17 @@ export function track(event: string, payload?: AnalyticsPayload) {
     method: 'POST',
     body: JSON.stringify({
       event,
+      event_name: event,
       seller_id: sellerId,
       payload: nextPayload,
+      metadata: nextPayload,
     }),
   }).catch(() => {})
 
   // Future:
   // enrich with session ids, experiments, or source attribution
+}
+
+export function trackEvent(event_name: string, metadata?: AnalyticsPayload) {
+  track(event_name, metadata)
 }

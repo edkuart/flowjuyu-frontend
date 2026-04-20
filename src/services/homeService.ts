@@ -48,6 +48,25 @@ export type Tienda = {
   municipio?: string | null;
 };
 
+export type SellerLive = {
+  id: number;
+  nombre_comercio: string;
+  logo?: string | null;
+  banner_url?: string | null;
+  departamento?: string | null;
+  municipio?: string | null;
+  live_started_at?: string | null;
+  live_message?: string | null;
+  live_featured_products?: Array<{
+    id: string;
+    nombre: string;
+    precio: number | string;
+    imagen_url?: string | null;
+    internal_code?: string | null;
+    sku?: string | null;
+  }>;
+};
+
 export type HomeCatalogSection = {
   key: "featured" | "new_arrivals" | "trending";
   title: string;
@@ -120,6 +139,9 @@ export const fetchNuevosProductos = () =>
 
 export const fetchTiendas = () =>
   fetchJSON<Tienda>("/api/seller/sellers/top");
+
+export const fetchLiveSellers = () =>
+  fetchJSON<SellerLive>("/api/public/sellers/live");
 
 export async function fetchHomeCatalog(): Promise<HomeCatalogData | null> {
   if (!API) {

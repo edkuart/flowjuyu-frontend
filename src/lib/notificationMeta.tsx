@@ -4,10 +4,11 @@
 // Used by NotificationBell, buyer dashboard activity feed,
 // and any future surface that renders notifications.
 
-import { Heart, Star, Sparkles, Bell } from "lucide-react";
+import { Heart, Star, Sparkles, Bell, Users, Radio } from "lucide-react";
 import type { ElementType } from "react";
 
 // Priority scale (higher = shown first):
+//   live       → 4  (time-sensitive — shown at the very top)
 //   review     → 3  (user took an action, highest relevance)
 //   suggestion → 2  (personalised — important but not urgent)
 //   favorite   → 1  (activity confirmation)
@@ -15,14 +16,24 @@ import type { ElementType } from "react";
 
 export type NotificationMeta = {
   Icon: ElementType;
-  iconClass: string; // icon text color
-  bg: string;        // icon container background
-  rowBg: string;     // row tint when unread
-  priority: number;  // used for sorting
-  accent: string;    // left border for high-priority rows (review)
+  iconClass: string;  // icon text color
+  bg: string;         // icon container background (may include animate-* classes)
+  rowBg: string;      // row tint when unread
+  priority: number;   // used for sorting
+  accent: string;     // left border for high-priority rows
+  cta?: string;       // optional action label shown below the message
 };
 
 const META: Record<string, NotificationMeta> = {
+  live: {
+    Icon: Radio,
+    iconClass: "text-red-500",
+    bg: "bg-red-100 animate-pulse",
+    rowBg: "bg-red-50/60",
+    priority: 4,
+    accent: "border-l-2 border-red-500",
+    cta: "Ver ahora",
+  },
   review: {
     Icon: Star,
     iconClass: "text-yellow-500",
@@ -45,6 +56,22 @@ const META: Record<string, NotificationMeta> = {
     bg: "bg-orange-50",
     rowBg: "bg-orange-50/50",
     priority: 1,
+    accent: "",
+  },
+  discovery: {
+    Icon: Sparkles,
+    iconClass: "text-emerald-500",
+    bg: "bg-emerald-50",
+    rowBg: "bg-emerald-50/50",
+    priority: 2,
+    accent: "",
+  },
+  social: {
+    Icon: Users,
+    iconClass: "text-sky-500",
+    bg: "bg-sky-50",
+    rowBg: "bg-sky-50/50",
+    priority: 2,
     accent: "",
   },
 };

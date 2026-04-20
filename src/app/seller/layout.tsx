@@ -12,6 +12,7 @@ import {
   Shield,
   Menu,
   LogOut,
+  Layers2,
 } from "lucide-react";
 
 import AuthGuard from "@/components/auth/AuthGuard";
@@ -27,6 +28,7 @@ const navItems = [
   { label: "Mi tienda", icon: Home, href: "/seller/my-business" },
   { label: "Productos", icon: Package, href: "/seller/products" },
   { label: "Pedidos", icon: ShoppingCart, href: "/seller/orders" },
+  { label: "Colecciones", icon: Layers2, href: "/seller/collections" },
   { label: "Métricas", icon: BarChart3, href: "/seller/metrics" },
   { label: "Cuenta", icon: User, href: "/seller/account" },
   { label: "Seguridad", icon: Shield, href: "/seller/security" },

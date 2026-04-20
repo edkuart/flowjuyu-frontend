@@ -17,7 +17,11 @@ import {
   Star,
   BookOpen,
   Share2,
+  UserPlus,
 } from "lucide-react";
+import { useAuth } from "@/context/AuthContext";
+import { useRouter } from "next/navigation";
+import { FollowButton } from "@/components/seller/FollowButton";
 import ProductDiscoveryLayout from "@/components/product/discovery/ProductDiscoveryLayout";
 import ProductCardV2 from "@/components/product/ProductCardV2";
 import { ProductDetailsBlock } from "@/components/product/ProductDetailsBlock";
@@ -27,6 +31,7 @@ import { SellerLogo } from "@/components/seller/SellerLogo";
 import WhatsAppModal from "@/components/product/WhatsAppModal";
 import { buildHeaderStyle, DEFAULT_HEADER_STYLE } from "@/lib/headerStyle";
 import type { HeaderStyle } from "@/lib/headerStyle";
+import { trackEvent } from "@/lib/analytics";
 import { LEGAL_WHATSAPP_NOTICE } from "@/lib/legal";
 import type { PhoneNumber } from "@/lib/phone";
 import { buildWhatsAppHref, extractWhatsAppPhone } from "@/lib/whatsapp";
@@ -47,6 +52,15 @@ type Producto = {
   imagenes?: { url: string }[];
   internal_code?: string | null;
   atributos?: ProductAtributos | null;
+};
+
+type LiveFeaturedProduct = {
+  id: string;
+  nombre: string;
+  precio: number | string;
+  imagen_url?: string | null;
+  internal_code?: string | null;
+  sku?: string | null;
 };
 
 type Seller = {
@@ -70,6 +84,11 @@ type Seller = {
   facebook?: string | null;
   tiktok?: string | null;
   header_style?: HeaderStyle | null;
+  is_live?: boolean;
+  live_started_at?: string | null;
+  live_message?: string | null;
+  live_featured_products?: LiveFeaturedProduct[];
+  live_current_product?: LiveFeaturedProduct | null;
 };
 
 type Review = {
@@ -82,6 +101,32 @@ type Review = {
 };
 
 type RatingSummary = { rating: number; total_reviews: number };
+
+type CollectionItem = {
+  id: number;
+  product_id: string;
+  pos_x: number;
+  pos_y: number;
+  width: number;
+  height: number;
+  z_index: number;
+  product_name: string;
+  product_image: string | null;
+  product_price: number;
+  internal_code: string | null;
+};
+
+type PublicCollection = {
+  id: number;
+  name: string;
+  description: string | null;
+  background_color: string;
+  background_image_url: string | null;
+  canvas_width: number;
+  canvas_height: number;
+  created_at: string;
+  items: CollectionItem[];
+};
 
 // HeaderStyle, DEFAULT_HEADER_STYLE, buildHeaderStyle — imported from @/lib/headerStyle
 
@@ -243,6 +288,23 @@ function ReviewForm({
   );
 }
 
+function detectLiveSource() {
+  if (typeof window === "undefined") return "direct";
+
+  const params = new URLSearchParams(window.location.search);
+  const source = params.get("source");
+
+  if (source === "home" || source === "notification" || source === "direct") {
+    return source;
+  }
+
+  if (document.referrer.toLowerCase().includes("home")) {
+    return "home";
+  }
+
+  return "direct";
+}
+
 /* =====================================================
    COMPONENT
 ===================================================== */
@@ -258,6 +320,8 @@ export default function StoreClient({
 }) {
   const { dictionary } = useLanguage();
   const tr = createT(dictionary ?? esDictionary);
+  const { user } = useAuth();
+  const router   = useRouter();
   console.log("[DEBUG] Component render triggered");
   console.log("[DEBUG] seller object:", seller);
   console.log("[DEBUG] seller.id:", seller?.id, "| type:", typeof seller?.id);
@@ -279,6 +343,8 @@ export default function StoreClient({
   const [fabVisible, setFabVisible] = useState(false);
   const [qrOpen, setQrOpen] = useState(false);
   const [whatsAppOpen, setWhatsAppOpen] = useState(false);
+  const [whatsAppProduct, setWhatsAppProduct] =
+    useState<LiveFeaturedProduct | null>(null);
 
   // Reviews
   const [ratingSummary, setRatingSummary] = useState<RatingSummary | null>(
@@ -286,6 +352,9 @@ export default function StoreClient({
   );
   const [reviews, setReviews] = useState<Review[]>([]);
   const [showAllReviews, setShowAllReviews] = useState(false);
+
+  // Collections
+  const [collections, setCollections] = useState<PublicCollection[]>([]);
 
   console.log("[DEBUG] Render ratingSummary:", ratingSummary);
 
@@ -405,6 +474,22 @@ export default function StoreClient({
     loadReviews();
   }, [loadReviews]);
 
+  useEffect(() => {
+    if (!seller.is_live) return;
+
+    trackEvent("live_store_view", {
+      seller_id: seller.id,
+      source: detectLiveSource(),
+    });
+  }, [seller.id, seller.is_live]);
+
+  useEffect(() => {
+    fetch(`${API}/api/collections/public/seller/${seller.id}`)
+      .then((r) => r.ok ? r.json() : null)
+      .then((data) => { if (data?.ok) setCollections(data.data ?? []); })
+      .catch(() => {});
+  }, [seller.id]);
+
   /* ── Filtros + Sort ── */
   const productos = useMemo(() => {
     let list = [...initialProducts];
@@ -435,6 +520,19 @@ export default function StoreClient({
     [destacados, productos],
   );
 
+  const livePreviewProducts = useMemo(
+    () => seller.live_featured_products ?? [],
+    [seller.live_featured_products],
+  );
+  const currentLiveProduct = useMemo(
+    () => seller.live_current_product ?? null,
+    [seller.live_current_product],
+  );
+  const mainProduct = useMemo(
+    () => seller.live_featured_products?.[0] ?? null,
+    [seller.live_featured_products],
+  );
+
   /* ── Member since ── */
   const memberSince = useMemo(
     () =>
@@ -459,6 +557,22 @@ export default function StoreClient({
       ),
     [seller.nombre_comercio, tr],
   );
+  const mainProductWhatsappMessage = useMemo(() => {
+    if (!mainProduct) return sellerWhatsappMessage;
+
+    const productLine = `Hola${
+      seller.nombre_comercio ? ` ${seller.nombre_comercio}` : ""
+    }, me interesa el producto destacado que estás mostrando en vivo: ${
+      mainProduct.nombre
+    }.`;
+    const codeLine = mainProduct.sku
+      ? `\nSKU: ${mainProduct.sku}`
+      : mainProduct.internal_code
+        ? `\nCódigo: ${mainProduct.internal_code}`
+        : "";
+
+    return `${productLine}${codeLine}`;
+  }, [mainProduct, seller.nombre_comercio, sellerWhatsappMessage]);
 
   /* ── Header background ── */
   const headerBgStyle = useMemo(
@@ -488,6 +602,22 @@ export default function StoreClient({
       window.open(href, "_blank", "noopener,noreferrer");
     },
     [phone, seller.id],
+  );
+
+  const handleOpenWhatsApp = useCallback(
+    (product?: LiveFeaturedProduct | null) => {
+      if (product && mainProduct && product.id === mainProduct.id) {
+        trackEvent("live_whatsapp_click", {
+          seller_id: seller.id,
+          product_id: mainProduct.id,
+          source: "store_live",
+        });
+      }
+
+      setWhatsAppProduct(product ?? null);
+      setWhatsAppOpen(true);
+    },
+    [mainProduct, seller.id],
   );
 
   /* =====================================================
@@ -669,6 +799,22 @@ export default function StoreClient({
                       <Share2 className="h-4 w-4" />
                       {tr("seller.share")}
                     </button>
+
+                    {/* Follow CTA */}
+                    {!user ? (
+                      <button
+                        onClick={() => router.push("/login")}
+                        className="inline-flex items-center gap-2 rounded-full border border-white/25 bg-white/15 px-7 py-3 text-sm font-semibold text-white backdrop-blur transition-all duration-200 hover:bg-white/25"
+                      >
+                        <UserPlus className="h-4 w-4" />
+                        Seguir tienda
+                      </button>
+                    ) : user.role === "buyer" && Number(user.id) !== seller.id ? (
+                      <FollowButton
+                        sellerId={seller.id}
+                        className="px-7 py-3 text-sm font-semibold"
+                      />
+                    ) : null}
                   </div>
                 </div>
               </div>
@@ -689,6 +835,162 @@ export default function StoreClient({
             </div>
           </div>
         </div>
+
+        {seller.is_live &&
+          (seller.live_message || livePreviewProducts.length > 0) && (
+            <section className="mx-auto mt-8 max-w-6xl">
+              <div className="overflow-hidden rounded-[28px] border border-[#b42318]/10 bg-white shadow-[0_18px_48px_rgba(15,23,42,0.08)]">
+                <div className="bg-gradient-to-r from-[#fff6f4] via-white to-[#fff9f7] px-5 py-5 md:px-7">
+                  <div className="flex flex-col gap-4 md:flex-row md:items-end md:justify-between">
+                    <div className="space-y-3">
+                      <div className="inline-flex items-center gap-2 rounded-full border border-red-200 bg-red-50 px-3 py-1 text-[11px] font-semibold uppercase tracking-[0.16em] text-red-700">
+                        <span className="relative flex h-2.5 w-2.5">
+                          <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-red-400/60" />
+                          <span className="relative inline-flex h-2.5 w-2.5 rounded-full bg-red-500" />
+                        </span>
+                        En vivo ahora
+                      </div>
+                      <div className="space-y-2">
+                        <h2 className="text-2xl font-semibold tracking-tight text-neutral-900">
+                          En vivo ahora
+                        </h2>
+                        {seller.live_message ? (
+                          <p className="max-w-3xl text-sm leading-relaxed text-neutral-600 md:text-base">
+                            {seller.live_message}
+                          </p>
+                        ) : (
+                          <p className="max-w-3xl text-sm leading-relaxed text-neutral-600 md:text-base">
+                            Esta tienda está mostrando productos en este momento.
+                          </p>
+                        )}
+                      </div>
+                    </div>
+
+                    <a
+                      href="#catalogo"
+                      className="inline-flex items-center gap-2 self-start rounded-full border border-neutral-200 bg-white px-5 py-2.5 text-sm font-semibold text-neutral-800 transition hover:border-[#0F3D3A]/20 hover:text-[#0F3D3A]"
+                    >
+                      Ver todos los productos
+                      <ArrowRight className="h-4 w-4" />
+                    </a>
+                  </div>
+                </div>
+
+                {livePreviewProducts.length > 0 && (
+                  <div className="grid gap-4 border-t border-neutral-100 px-5 py-5 md:grid-cols-3 md:px-7">
+                    {livePreviewProducts.map((product) => (
+                      <Link
+                        key={product.id}
+                        href={
+                          product.internal_code
+                            ? `/p/${product.internal_code}`
+                            : `/product/${product.id}`
+                        }
+                        className="group overflow-hidden rounded-2xl border border-neutral-100 bg-[#fcfbf8] transition-all hover:-translate-y-0.5 hover:border-[#0F3D3A]/15 hover:shadow-md"
+                      >
+                        <div className="relative aspect-[4/3] bg-[#f3efe7]">
+                          <Image
+                            src={product.imagen_url || "/images/productos/default.jpg"}
+                            alt={product.nombre}
+                            fill
+                            sizes="(max-width: 768px) 100vw, 33vw"
+                            className="object-cover transition-transform duration-500 group-hover:scale-[1.03]"
+                          />
+                        </div>
+                        <div className="space-y-2 px-4 py-4">
+                          <div className="flex items-start justify-between gap-3">
+                            <h3 className="line-clamp-2 text-sm font-semibold text-neutral-900">
+                              {product.nombre}
+                            </h3>
+                            <p className="shrink-0 text-sm font-bold text-[#0F3D3A]">
+                              Q{Number(product.precio).toFixed(2)}
+                            </p>
+                          </div>
+                          <div className="flex items-center justify-between gap-3 text-xs text-neutral-500">
+                            <span>{product.sku ? `SKU ${product.sku}` : "Producto destacado"}</span>
+                            <span className="inline-flex items-center gap-1 font-semibold text-[#0F3D3A]">
+                              Ver producto
+                              <ArrowRight className="h-3.5 w-3.5" />
+                            </span>
+                          </div>
+                        </div>
+                      </Link>
+                    ))}
+                  </div>
+                )}
+              </div>
+            </section>
+          )}
+
+        {seller.is_live && mainProduct && (
+          <section className="mx-auto mt-6 max-w-6xl">
+            <div className="overflow-hidden rounded-2xl border border-neutral-200 bg-white shadow-sm transition-all duration-300 hover:shadow-md">
+              <div className="grid gap-0 md:grid-cols-[minmax(0,1.1fr)_minmax(0,0.9fr)]">
+                <div className="relative aspect-[4/3] bg-[#f3efe7] md:aspect-auto md:min-h-[320px]">
+                  <Image
+                    src={mainProduct.imagen_url || "/images/productos/default.jpg"}
+                    alt={mainProduct.nombre}
+                    fill
+                    sizes="(max-width: 768px) 100vw, 55vw"
+                    className="object-cover"
+                  />
+                </div>
+
+                <div className="flex flex-col justify-center px-5 py-6 md:px-8 md:py-8">
+                  <div className="space-y-4">
+                    <div className="space-y-2">
+                      <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-[#b42318]">
+                        Producto destacado en vivo
+                      </p>
+                      <h3 className="text-2xl font-semibold tracking-tight text-neutral-900 md:text-[2rem]">
+                        {mainProduct.nombre}
+                      </h3>
+                      <p className="text-sm leading-relaxed text-neutral-600">
+                        Mostrado en este momento
+                      </p>
+                    </div>
+
+                    <p className="text-3xl font-bold tracking-tight text-[#0F3D3A]">
+                      Q{Number(mainProduct.precio).toFixed(2)}
+                    </p>
+
+                    <div className="flex flex-col gap-3 pt-2 sm:flex-row">
+                      <Link
+                        href={
+                          mainProduct.internal_code
+                            ? `/p/${mainProduct.internal_code}`
+                            : `/product/${mainProduct.id}`
+                        }
+                        onClick={() => {
+                          trackEvent("live_product_click", {
+                            seller_id: seller.id,
+                            product_id: mainProduct.id,
+                            source: "store_live",
+                          });
+                        }}
+                        className="inline-flex min-h-12 flex-1 items-center justify-center gap-2 rounded-2xl bg-[#0F3D3A] px-5 text-sm font-semibold text-white transition hover:bg-[#0c312f]"
+                      >
+                        Comprar ahora
+                        <ArrowRight className="h-4 w-4" />
+                      </Link>
+
+                      {showWhatsapp ? (
+                        <button
+                          type="button"
+                          onClick={() => handleOpenWhatsApp(mainProduct)}
+                          className="inline-flex min-h-12 flex-1 items-center justify-center gap-2 rounded-2xl border border-neutral-200 bg-white px-5 text-sm font-semibold text-neutral-800 transition hover:border-[#0F3D3A]/20 hover:text-[#0F3D3A]"
+                        >
+                          <MessageCircle className="h-4 w-4" />
+                          WhatsApp
+                        </button>
+                      ) : null}
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </section>
+        )}
 
         {/* ══════════════════════════════════════════════
           TRUST BAR
@@ -974,7 +1276,151 @@ export default function StoreClient({
               </button>
             </div>
           )}
+
+          {seller.is_live && currentLiveProduct ? (
+            <div className="h-28 md:h-32" aria-hidden="true" />
+          ) : null}
         </section>
+
+        {/* ══════════════════════════════════════════════
+          COLLECTIONS SECTION
+      ══════════════════════════════════════════════ */}
+        {collections.length > 0 && (
+          <section className="mt-20">
+            <div className="mb-8">
+              <p className="mb-1 text-xs font-bold tracking-widest text-neutral-400 uppercase">
+                Looks y conjuntos
+              </p>
+              <h2 className="text-2xl font-bold text-neutral-900">
+                Colecciones de {seller.nombre_comercio}
+              </h2>
+            </div>
+
+            <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
+              {collections.map((col) => {
+                const PREVIEW_W = 320;
+                const scale = PREVIEW_W / (col.canvas_width || 800);
+                const previewH = (col.canvas_height || 600) * scale;
+
+                return (
+                  <div
+                    key={col.id}
+                    className="overflow-hidden rounded-2xl border border-neutral-100 bg-white shadow-sm transition-all hover:shadow-lg"
+                  >
+                    {/* Canvas preview */}
+                    <div
+                      className="relative overflow-hidden"
+                      style={{ width: PREVIEW_W, height: previewH }}
+                    >
+                      <div
+                        style={{
+                          width: col.canvas_width,
+                          height: col.canvas_height,
+                          backgroundColor: col.background_color || "#FFFFFF",
+                          transform: `scale(${scale})`,
+                          transformOrigin: "top left",
+                          position: "relative",
+                        }}
+                      >
+                        {col.items.length === 0 && (
+                          <div className="absolute inset-0 flex items-center justify-center text-neutral-300 text-sm">
+                            Colección vacía
+                          </div>
+                        )}
+                        {col.items.map((item) => {
+                          const href = item.internal_code
+                            ? `/p/${item.internal_code}`
+                            : `/product/${item.product_id}`;
+                          return (
+                            <Link
+                              key={item.id}
+                              href={href}
+                              title={`${item.product_name} — Q${Number(item.product_price).toFixed(2)}`}
+                              style={{
+                                position: "absolute",
+                                left: item.pos_x,
+                                top: item.pos_y,
+                                width: item.width,
+                                height: item.height,
+                                zIndex: item.z_index,
+                                display: "block",
+                                borderRadius: 8,
+                                overflow: "hidden",
+                              }}
+                              className="group/item transition-transform hover:scale-[1.03] hover:shadow-xl"
+                            >
+                              {item.product_image ? (
+                                <img
+                                  src={item.product_image}
+                                  alt={item.product_name}
+                                  style={{
+                                    width: "100%",
+                                    height: "100%",
+                                    objectFit: "cover",
+                                    borderRadius: 8,
+                                    display: "block",
+                                  }}
+                                />
+                              ) : (
+                                <div
+                                  style={{
+                                    width: "100%",
+                                    height: "100%",
+                                    background: "#e5e7eb",
+                                    borderRadius: 8,
+                                  }}
+                                />
+                              )}
+                              {/* Price tag on hover */}
+                              <div
+                                style={{
+                                  position: "absolute",
+                                  bottom: 0,
+                                  left: 0,
+                                  right: 0,
+                                  padding: "4px 6px",
+                                  background: "linear-gradient(to top, rgba(0,0,0,0.65), transparent)",
+                                  borderBottomLeftRadius: 8,
+                                  borderBottomRightRadius: 8,
+                                  opacity: 0,
+                                  transition: "opacity 0.2s",
+                                }}
+                                className="group-hover/item:opacity-100"
+                              >
+                                <p style={{ color: "#fff", fontSize: 10, fontWeight: 600, margin: 0, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>
+                                  {item.product_name}
+                                </p>
+                                <p style={{ color: "rgba(255,255,255,0.85)", fontSize: 9, margin: 0 }}>
+                                  Q{Number(item.product_price).toFixed(2)}
+                                </p>
+                              </div>
+                            </Link>
+                          );
+                        })}
+                      </div>
+                    </div>
+
+                    {/* Info */}
+                    <div className="px-4 py-3">
+                      <h3 className="font-semibold text-neutral-800 line-clamp-1">
+                        {col.name}
+                      </h3>
+                      {col.description && (
+                        <p className="mt-0.5 text-xs text-neutral-500 line-clamp-2">
+                          {col.description}
+                        </p>
+                      )}
+                      <p className="mt-1 text-xs text-neutral-400">
+                        {col.items.length}{" "}
+                        {col.items.length === 1 ? "prenda" : "prendas"}
+                      </p>
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+          </section>
+        )}
 
         {/* ══════════════════════════════════════════════
           REVIEWS SECTION
@@ -1101,19 +1547,87 @@ export default function StoreClient({
         )}
       </ProductDiscoveryLayout>
 
+      {seller.is_live && currentLiveProduct ? (
+        <div className="fixed inset-x-0 bottom-0 z-40 border-t border-neutral-200 bg-white/95 shadow-[0_-10px_30px_rgba(15,23,42,0.08)] backdrop-blur">
+          <div className="mx-auto flex max-w-6xl items-center gap-3 px-4 py-3 sm:px-6">
+            <div className="relative h-14 w-14 shrink-0 overflow-hidden rounded-xl bg-[#f3efe7] sm:h-16 sm:w-16">
+              <Image
+                src={
+                  currentLiveProduct.imagen_url || "/images/productos/default.jpg"
+                }
+                alt={currentLiveProduct.nombre}
+                fill
+                sizes="64px"
+                className="object-cover"
+              />
+            </div>
+
+            <div className="min-w-0 flex-1">
+              <p className="text-[10px] font-semibold uppercase tracking-[0.18em] text-[#b42318]">
+                Producto en vivo
+              </p>
+              <p className="truncate text-sm font-semibold text-neutral-900 sm:text-base">
+                {currentLiveProduct.nombre}
+              </p>
+              <p className="text-sm font-bold text-[#0F3D3A]">
+                Q{Number(currentLiveProduct.precio).toFixed(2)}
+              </p>
+            </div>
+
+            <div className="flex shrink-0 items-center gap-2">
+              <Link
+                href={
+                  currentLiveProduct.internal_code
+                    ? `/p/${currentLiveProduct.internal_code}`
+                    : `/product/${currentLiveProduct.id}`
+                }
+                className="inline-flex min-h-11 items-center justify-center rounded-xl bg-[#0F3D3A] px-4 text-sm font-semibold text-white transition hover:bg-[#0c312f]"
+              >
+                Ver
+              </Link>
+
+              {showWhatsapp ? (
+                <button
+                  type="button"
+                  onClick={() => handleOpenWhatsApp(currentLiveProduct)}
+                  className="inline-flex min-h-11 items-center justify-center rounded-xl border border-neutral-200 px-4 text-sm font-semibold text-neutral-800 transition hover:border-[#0F3D3A]/20 hover:text-[#0F3D3A]"
+                >
+                  WhatsApp
+                </button>
+              ) : null}
+            </div>
+          </div>
+        </div>
+      ) : null}
+
       {showWhatsapp && (
         <WhatsAppModal
           open={whatsAppOpen}
-          onClose={() => setWhatsAppOpen(false)}
+          onClose={() => {
+            setWhatsAppOpen(false);
+            setWhatsAppProduct(null);
+          }}
           onConfirm={(message) => {
             setWhatsAppOpen(false);
-            handleWhatsappConfirm(message);
+            handleWhatsappConfirm(message, whatsAppProduct?.id);
+            setWhatsAppProduct(null);
           }}
+          product={
+            whatsAppProduct
+              ? {
+                  nombre: whatsAppProduct.nombre,
+                  precio: Number(whatsAppProduct.precio),
+                  imagen: whatsAppProduct.imagen_url ?? null,
+                }
+              : undefined
+          }
           seller={{
             nombre: seller.nombre_comercio,
             imagen: seller.logo ?? null,
           }}
-          initialMessage={sellerWhatsappMessage}
+          initialMessage={
+            whatsAppProduct ? mainProductWhatsappMessage : sellerWhatsappMessage
+          }
           copy={{
             ariaLabel: tr("seller.whatsappModalAriaLabel"),
             title: tr("seller.whatsappModalTitle"),

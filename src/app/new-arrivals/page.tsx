@@ -25,8 +25,7 @@ type Producto = {
   created_at?: string | null;
   departamento?: string | null;
   municipio?: string | null;
-  categoria_id?: string | null;
-  categoria_nombre?: string | null;
+  categoria?: { id: number | null; nombre: string | null } | null;
   rating_avg?: number | null;
 };
 
@@ -152,9 +151,9 @@ function ProductCard({ product, index }: { product: Producto; index: number }) {
             <p className="font-serif italic text-[16px] leading-[1.2] text-[#0d2d20] line-clamp-2 transition-colors group-hover:text-[#0d2d20]/70">
               {product.nombre}
             </p>
-            {product.categoria_nombre && (
+            {product.categoria?.nombre && (
               <p className="mt-1 text-[10px] uppercase tracking-[0.22em] text-[#0d2d20]/45 truncate">
-                {product.categoria_nombre}
+                {product.categoria.nombre}
               </p>
             )}
           </div>
@@ -208,7 +207,7 @@ export default function NewArrivalsPage() {
     let list = [...products];
 
     if (activecat !== "todas") {
-      list = list.filter(p => p.categoria_id === activecat);
+      list = list.filter(p => String(p.categoria?.id) === activecat);
     }
 
     list.sort((a, b) => {

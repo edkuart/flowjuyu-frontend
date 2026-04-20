@@ -30,6 +30,7 @@ type Props = {
   precioMax?: number;
   setPrecioMin?: (v: number) => void;
   setPrecioMax?: (v: number) => void;
+  precioMaxLimit?: number;
   sort?: string;
   setSort?: (v: string) => void;
   departamento?: string;
@@ -65,9 +66,10 @@ export default function ProductDiscoveryLayout({
   categoriaId = null,
   setCategoriaId = () => {},
   precioMin = 0,
-  precioMax = 2000,
+  precioMax = 10000,
   setPrecioMin = () => {},
   setPrecioMax = () => {},
+  precioMaxLimit = 10000,
   sort = "",
   setSort = () => {},
   departamento = "",
@@ -140,6 +142,7 @@ export default function ProductDiscoveryLayout({
                 precioMax={precioMax}
                 setPrecioMin={setPrecioMin}
                 setPrecioMax={setPrecioMax}
+                precioMaxLimit={precioMaxLimit}
                 sort={sort}
                 setSort={setSort}
                 departamento={departamento}
@@ -232,6 +235,7 @@ export default function ProductDiscoveryLayout({
             precioMax={precioMax}
             setPrecioMin={setPrecioMin}
             setPrecioMax={setPrecioMax}
+            precioMaxLimit={precioMaxLimit}
             sort={sort}
             setSort={setSort}
             departamento={departamento}

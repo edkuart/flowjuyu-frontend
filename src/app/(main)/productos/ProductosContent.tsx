@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { useSearchParams, useRouter } from "next/navigation";
 import Link from "next/link";
 import { getProductImage } from "@/lib/getProductImage";
@@ -61,7 +61,9 @@ export default function ProductosPage() {
   // NOTA: Leemos "categoria" (del link del home) o "categoria_id" (si vienes de otro lado)
   const [categoriaId, setCategoriaId] = useState<number | null>(null);
   const [precioMin, setPrecioMin] = useState(0);
-  const [precioMax, setPrecioMax] = useState(2000);
+  const [precioMax, setPrecioMax] = useState(10000);
+  const [precioMaxLimit, setPrecioMaxLimit] = useState(10000);
+  const precioMaxLimitRef = useRef(10000);
   const [sort, setSort] = useState("");
   const [departamento, setDepartamento] = useState("");
   const [municipio, setMunicipio] = useState("");
@@ -228,7 +230,7 @@ export default function ProductosPage() {
         if (categoriaId) params.set("categoria_id", String(categoriaId));
 
         if (precioMin > 0) params.set("precioMin", String(precioMin));
-        if (precioMax < 2000) params.set("precioMax", String(precioMax));
+        if (precioMax < precioMaxLimitRef.current) params.set("precioMax", String(precioMax));
         if (sort) params.set("sort", sort);
         if (departamento) params.set("departamento", departamento);
         if (municipio) params.set("municipio", municipio);
@@ -269,7 +271,17 @@ export default function ProductosPage() {
         const data = await res.json();
 
         const lista = data.data || data || [];
-        setProductos(Array.isArray(lista) ? lista : []);
+        const arr: any[] = Array.isArray(lista) ? lista : [];
+        setProductos(arr);
+
+        if (arr.length > 0) {
+          const maxPrecio = Math.max(...arr.map((p: any) => Number(p.precio) || 0));
+          const newLimit = Math.ceil(maxPrecio / 500) * 500 || 10000;
+          if (newLimit !== precioMaxLimitRef.current) {
+            precioMaxLimitRef.current = newLimit;
+            setPrecioMaxLimit(newLimit);
+          }
+        }
       } catch (error) {
         console.error("Error cargando productos:", error);
         setProductos([]);
@@ -305,7 +317,7 @@ export default function ProductosPage() {
   const handleReset = () => {
     setCategoriaId(null);
     setPrecioMin(0);
-    setPrecioMax(2000);
+    setPrecioMax(precioMaxLimitRef.current);
     setSort("");
     setDepartamento("");
     setMunicipio("");
@@ -328,6 +340,7 @@ export default function ProductosPage() {
       setPrecioMin={setPrecioMin}
       precioMax={precioMax}
       setPrecioMax={setPrecioMax}
+      precioMaxLimit={precioMaxLimit}
       sort={sort}
       setSort={setSort}
       departamento={departamento}

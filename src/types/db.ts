@@ -49,6 +49,11 @@ export interface VendedorPerfil {
   estado_validacion?: EstadoVendedor | null;
   estado_admin?:      EstadoAdmin    | null;
   banner_url?:        string | null;
+  is_live?:           boolean | null;
+  live_started_at?:   string | null;
+  live_message?:      string | null;
+  live_featured_product_ids?: string[] | null;
+  live_current_product_id?: string | null;
   email_welcome_sent_at?: string | null;
   email_activation_sent_at?: string | null;
   email_week1_sent_at?: string | null;

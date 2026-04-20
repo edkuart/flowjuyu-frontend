@@ -15,6 +15,7 @@ import { apiFetch } from "@/lib/api";
 import { apiGetVendedorPerfil } from "@/services/vendedorPerfil";
 import { SellerProgressCard } from "@/components/seller/SellerProgressCard";
 import { MarketingOptInNudge } from "@/components/consent/MarketingOptInNudge";
+import SellerLivePanel from "@/components/seller/live/SellerLivePanel";
 import { BaseCard } from "@/components/ui/BaseCard";
 import { BaseSection } from "@/components/ui/BaseSection";
 import { BaseSectionHeading } from "@/components/ui/BaseSectionHeading";
@@ -27,16 +28,28 @@ import {
 } from "@/lib/sellerOnboarding";
 
 type SellerProduct = {
+  id: string;
+  nombre: string;
+  precio?: number | string | null;
   activo?: boolean;
   descripcion?: string | null;
   imagenes?: Array<{ url?: string | null }>;
   imagen_url?: string | null;
+  internal_code?: string | null;
+};
+
+type DashboardSellerProfile = SellerPerfil & {
+  is_live?: boolean | null;
+  live_started_at?: string | null;
+  live_message?: string | null;
+  live_featured_product_ids?: string[] | null;
+  live_current_product_id?: string | null;
 };
 
 export default function SellerDashboardHomePage() {
   const [loading, setLoading] = useState(true);
   const [sellerProducts, setSellerProducts] = useState<SellerProduct[]>([]);
-  const [sellerProfile, setSellerProfile] = useState<SellerPerfil | null>(null);
+  const [sellerProfile, setSellerProfile] = useState<DashboardSellerProfile | null>(null);
   const [sellerValidation, setSellerValidation] = useState<
     "pendiente" | "en_revision" | "aprobado" | "rechazado" | null
   >(null);
@@ -231,6 +244,44 @@ export default function SellerDashboardHomePage() {
                 perfil={sellerProfile}
               />
             </div>
+          </BaseSection>
+
+          <BaseSection>
+            <SellerLivePanel
+              isLive={Boolean(sellerProfile?.is_live)}
+              liveStartedAt={sellerProfile?.live_started_at ?? null}
+              liveMessage={sellerProfile?.live_message ?? null}
+              liveFeaturedProductIds={sellerProfile?.live_featured_product_ids ?? []}
+              liveCurrentProductId={sellerProfile?.live_current_product_id ?? null}
+              products={sellerProducts}
+              onStateChange={({ is_live, live_started_at }) => {
+                setSellerProfile((current) =>
+                  current
+                    ? {
+                        ...current,
+                        is_live,
+                        live_started_at,
+                      }
+                    : current,
+                );
+              }}
+              onConfigSave={({
+                live_message,
+                live_featured_product_ids,
+                live_current_product_id,
+              }) => {
+                setSellerProfile((current) =>
+                  current
+                    ? {
+                        ...current,
+                        live_message,
+                        live_featured_product_ids,
+                        live_current_product_id,
+                      }
+                    : current,
+                );
+              }}
+            />
           </BaseSection>
 
           <BaseSection>

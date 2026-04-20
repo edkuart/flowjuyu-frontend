@@ -45,25 +45,27 @@ type Props = {
   accesorioMateriales?: AccesorioMaterial[];
   accesorioMaterialId?: number | null;
   setAccesorioMaterialId?: (v: number | null) => void;
+  precioMaxLimit?: number;
   onReset: () => void;
   variant?: "desktop" | "mobile";
 };
 
-const PRECIO_MAX_LIMIT = 2000;
-
 const selectClass =
-  "w-full border border-neutral-200 rounded-lg px-3 py-2 text-sm bg-white text-neutral-700 focus:outline-none focus:ring-2 focus:ring-emerald-500/40 focus:border-emerald-500 transition-colors cursor-pointer";
+  "w-full appearance-none rounded-lg border border-[#0d2d20]/15 bg-white px-3 py-2.5 pr-9 text-sm text-[#0d2d20] transition-colors cursor-pointer focus:outline-none focus:border-[#0d2d20]/40 focus:ring-2 focus:ring-[#0d2d20]/10 bg-[url('data:image/svg+xml;utf8,<svg%20xmlns=%22http://www.w3.org/2000/svg%22%20width=%2212%22%20height=%2212%22%20viewBox=%220%200%2024%2024%22%20fill=%22none%22%20stroke=%22%230d2d20%22%20stroke-width=%222%22%20stroke-linecap=%22round%22%20stroke-linejoin=%22round%22><polyline%20points=%226%209%2012%2015%2018%209%22/></svg>')] bg-[length:12px_12px] bg-[right_0.75rem_center] bg-no-repeat";
+
+const sliderClass =
+  "h-[3px] w-full cursor-pointer appearance-none rounded-full bg-[#0d2d20]/10 accent-[#0d2d20] [&::-webkit-slider-thumb]:appearance-none [&::-webkit-slider-thumb]:h-4 [&::-webkit-slider-thumb]:w-4 [&::-webkit-slider-thumb]:rounded-full [&::-webkit-slider-thumb]:bg-[#0d2d20] [&::-webkit-slider-thumb]:border-2 [&::-webkit-slider-thumb]:border-[#f8f5ef] [&::-webkit-slider-thumb]:shadow-[0_0_0_1px_rgba(13,45,32,0.2)] [&::-moz-range-thumb]:h-4 [&::-moz-range-thumb]:w-4 [&::-moz-range-thumb]:rounded-full [&::-moz-range-thumb]:bg-[#0d2d20] [&::-moz-range-thumb]:border-2 [&::-moz-range-thumb]:border-[#f8f5ef]";
 
 function SectionTitle({ children }: { children: ReactNode }) {
   return (
-    <p className="mb-3 text-xs font-semibold tracking-wider text-neutral-400 uppercase">
+    <p className="mb-3 text-[10px] font-medium uppercase tracking-[0.22em] text-[#0d2d20]/60">
       {children}
     </p>
   );
 }
 
 function Divider() {
-  return <div className="border-t border-neutral-100" />;
+  return <div className="h-px bg-[#0d2d20]/10" />;
 }
 
 export default function FilterSidebar({
@@ -95,6 +97,7 @@ export default function FilterSidebar({
   accesorioMateriales = [],
   accesorioMaterialId = null,
   setAccesorioMaterialId,
+  precioMaxLimit = 10000,
   onReset,
   variant = "desktop",
 }: Props) {
@@ -130,7 +133,7 @@ export default function FilterSidebar({
     departamento !== "" ||
     municipio !== "" ||
     precioMin > 0 ||
-    precioMax < PRECIO_MAX_LIMIT ||
+    precioMax < precioMaxLimit ||
     sort !== "" ||
     (claseId ?? null) !== null ||
     (telaId ?? null) !== null ||
@@ -138,72 +141,69 @@ export default function FilterSidebar({
     (accesorioTipoId ?? null) !== null ||
     (accesorioMaterialId ?? null) !== null;
 
+  const activeCount = [
+    categoriaId,
+    departamento || null,
+    municipio || null,
+    precioMin > 0 ? precioMin : null,
+    precioMax < precioMaxLimit ? precioMax : null,
+    sort || null,
+    claseId,
+    telaId,
+    accesorioId,
+    accesorioTipoId,
+    accesorioMaterialId,
+  ].filter((v) => v !== null && v !== undefined && v !== "").length;
+
+  const isMobile = variant === "mobile";
+
   return (
     <aside
       className={[
-        "sticky top-24 overflow-hidden rounded-2xl border border-neutral-100 bg-white shadow-sm",
-        variant === "desktop" ? "p-5" : "p-4",
+        "overflow-hidden border border-[#0d2d20]/10 bg-[#f8f5ef]",
+        isMobile
+          ? "rounded-none border-0 p-5"
+          : "sticky top-24 rounded-2xl p-5 shadow-[0_1px_2px_rgba(13,45,32,0.04)]",
       ].join(" ")}
     >
-      <div className="mb-5 flex items-center justify-between">
-        <div className="flex items-center gap-2">
-          <svg
-            className="h-4 w-4 text-emerald-600"
-            fill="none"
-            stroke="currentColor"
-            viewBox="0 0 24 24"
-          >
-            <path
-              strokeLinecap="round"
-              strokeLinejoin="round"
-              strokeWidth={2}
-              d="M3 4a1 1 0 011-1h16a1 1 0 011 1v2a1 1 0 01-.293.707L13 13.414V19a1 1 0 01-.553.894l-4 2A1 1 0 017 21v-7.586L3.293 6.707A1 1 0 013 6V4z"
-            />
-          </svg>
-          <h2 className="text-sm font-semibold text-neutral-800">
+      <div className="mb-6 flex items-end justify-between gap-3">
+        <div className="space-y-1.5">
+          <p className="text-[10px] font-medium uppercase tracking-[0.22em] text-[#0d2d20]/50">
+            <span className="mr-2 text-[#d4a853]" aria-hidden>✦</span>
             {tr("filters.title")}
-          </h2>
-          {hasActiveFilters && (
-            <span className="inline-flex h-5 w-5 items-center justify-center rounded-full bg-emerald-100 text-xs font-medium text-emerald-700">
-              {
-                [
-                  categoriaId,
-                  departamento || null,
-                  municipio || null,
-                  precioMin > 0 ? precioMin : null,
-                  precioMax < PRECIO_MAX_LIMIT ? precioMax : null,
-                  sort || null,
-                  claseId,
-                  telaId,
-                  accesorioId,
-                  accesorioTipoId,
-                  accesorioMaterialId,
-                ].filter(Boolean).length
-              }
-            </span>
-          )}
+          </p>
+          <div className="flex items-baseline gap-2">
+            <h2 className="font-serif italic text-2xl leading-none text-[#0d2d20]">
+              Refinar
+            </h2>
+            {hasActiveFilters && (
+              <span className="inline-flex h-5 min-w-5 items-center justify-center rounded-full bg-[#0d2d20] px-1.5 text-[10px] font-medium text-white">
+                {activeCount}
+              </span>
+            )}
+          </div>
         </div>
         {hasActiveFilters && (
           <button
             onClick={onReset}
-            className="text-xs font-medium text-neutral-400 transition-colors hover:text-neutral-600"
+            className="text-[10px] font-medium uppercase tracking-[0.22em] text-[#0d2d20]/50 transition-colors hover:text-[#0d2d20]"
           >
             {tr("filters.clearAll")}
           </button>
         )}
       </div>
 
-      <div className="space-y-5">
+      <div className="space-y-6">
         <section>
           <SectionTitle>{tr("filters.category")}</SectionTitle>
-          <div className="flex flex-wrap gap-2">
+          <div className="flex flex-wrap gap-1.5">
             <button
               onClick={() => setCategoriaId(null)}
               className={[
-                "rounded-full border px-3 py-1.5 text-xs font-medium transition-all duration-150",
+                "rounded-full border px-3 py-1.5 text-[11px] font-medium uppercase tracking-[0.14em] transition-colors",
                 categoriaId === null
-                  ? "border-emerald-600 bg-emerald-600 text-white shadow-sm"
-                  : "border-neutral-200 bg-white text-neutral-600 hover:border-emerald-400 hover:text-emerald-700",
+                  ? "border-[#0d2d20] bg-[#0d2d20] text-white"
+                  : "border-[#0d2d20]/20 bg-white text-[#0d2d20]/70 hover:border-[#0d2d20]/50 hover:text-[#0d2d20]",
               ].join(" ")}
             >
               {tr("filters.allCategories")}
@@ -215,10 +215,10 @@ export default function FilterSidebar({
                   setCategoriaId(categoriaId === c.id ? null : c.id)
                 }
                 className={[
-                  "rounded-full border px-3 py-1.5 text-xs font-medium transition-all duration-150",
+                  "rounded-full border px-3 py-1.5 text-[11px] font-medium uppercase tracking-[0.14em] transition-colors",
                   categoriaId === c.id
-                    ? "border-emerald-600 bg-emerald-600 text-white shadow-sm"
-                    : "border-neutral-200 bg-white text-neutral-600 hover:border-emerald-400 hover:text-emerald-700",
+                    ? "border-[#0d2d20] bg-[#0d2d20] text-white"
+                    : "border-[#0d2d20]/20 bg-white text-[#0d2d20]/70 hover:border-[#0d2d20]/50 hover:text-[#0d2d20]",
                 ].join(" ")}
               >
                 {c.nombre}
@@ -230,53 +230,55 @@ export default function FilterSidebar({
         <Divider />
 
         <section>
-          <div className="mb-3 flex items-center justify-between">
+          <div className="mb-3 flex items-baseline justify-between">
             <SectionTitle>{tr("filters.price")}</SectionTitle>
-            <span className="text-xs font-medium text-emerald-600">
-              Q{precioMin} - Q{precioMax}
+            <span className="font-serif italic text-sm text-[#0d2d20]">
+              Q{precioMin}
+              <span className="mx-1.5 text-[#0d2d20]/30">–</span>
+              {precioMax >= precioMaxLimit ? "Sin límite" : `Q${precioMax}`}
             </span>
           </div>
 
-          <div className="space-y-3 px-1">
+          <div className="space-y-4 px-0.5">
             <div>
-              <div className="mb-1 flex justify-between text-xs text-neutral-400">
+              <div className="mb-1.5 flex justify-between text-[10px] uppercase tracking-[0.22em] text-[#0d2d20]/50">
                 <span>{tr("filters.min")}</span>
-                <span className="font-medium text-neutral-600">
+                <span className="normal-case tracking-normal text-[#0d2d20]/80">
                   Q{precioMin}
                 </span>
               </div>
               <input
                 type="range"
                 min={0}
-                max={PRECIO_MAX_LIMIT}
+                max={precioMaxLimit}
                 step={50}
                 value={precioMin}
                 onChange={handlePrecioMin}
-                className="h-1.5 w-full cursor-pointer appearance-none rounded-full bg-neutral-200 accent-emerald-600"
+                className={sliderClass}
               />
             </div>
 
             <div>
-              <div className="mb-1 flex justify-between text-xs text-neutral-400">
+              <div className="mb-1.5 flex justify-between text-[10px] uppercase tracking-[0.22em] text-[#0d2d20]/50">
                 <span>{tr("filters.max")}</span>
-                <span className="font-medium text-neutral-600">
-                  Q{precioMax}
+                <span className="normal-case tracking-normal text-[#0d2d20]/80">
+                  {precioMax >= precioMaxLimit ? "Sin límite" : `Q${precioMax}`}
                 </span>
               </div>
               <input
                 type="range"
                 min={0}
-                max={PRECIO_MAX_LIMIT}
+                max={precioMaxLimit}
                 step={50}
                 value={precioMax}
                 onChange={handlePrecioMax}
-                className="h-1.5 w-full cursor-pointer appearance-none rounded-full bg-neutral-200 accent-emerald-600"
+                className={sliderClass}
               />
             </div>
 
-            <div className="flex gap-2 pt-1">
+            <div className="flex items-center gap-2 pt-1">
               <div className="relative flex-1">
-                <span className="absolute top-1/2 left-2.5 -translate-y-1/2 text-xs font-medium text-neutral-400">
+                <span className="absolute top-1/2 left-3 -translate-y-1/2 text-xs font-medium text-[#0d2d20]/40">
                   Q
                 </span>
                 <input
@@ -285,32 +287,26 @@ export default function FilterSidebar({
                   max={precioMax - 1}
                   value={precioMin}
                   onChange={(e) =>
-                    setPrecioMin(
-                      Math.min(Number(e.target.value), precioMax - 1),
-                    )
+                    setPrecioMin(Math.min(Number(e.target.value), precioMax - 1))
                   }
-                  className="w-full rounded-lg border border-neutral-200 py-1.5 pr-2 pl-6 text-xs transition-colors focus:border-emerald-500 focus:ring-2 focus:ring-emerald-500/40 focus:outline-none"
+                  className="w-full rounded-lg border border-[#0d2d20]/15 bg-white py-2 pl-7 pr-2 text-xs text-[#0d2d20] transition-colors focus:border-[#0d2d20]/40 focus:outline-none focus:ring-2 focus:ring-[#0d2d20]/10"
                   placeholder="0"
                 />
               </div>
-              <div className="flex items-center text-xs text-neutral-300">
-                -
-              </div>
+              <div className="h-px w-2 bg-[#0d2d20]/20" />
               <div className="relative flex-1">
-                <span className="absolute top-1/2 left-2.5 -translate-y-1/2 text-xs font-medium text-neutral-400">
+                <span className="absolute top-1/2 left-3 -translate-y-1/2 text-xs font-medium text-[#0d2d20]/40">
                   Q
                 </span>
                 <input
                   type="number"
                   min={precioMin + 1}
-                  max={PRECIO_MAX_LIMIT}
+                  max={precioMaxLimit}
                   value={precioMax}
                   onChange={(e) =>
-                    setPrecioMax(
-                      Math.max(Number(e.target.value), precioMin + 1),
-                    )
+                    setPrecioMax(Math.max(Number(e.target.value), precioMin + 1))
                   }
-                  className="w-full rounded-lg border border-neutral-200 py-1.5 pr-2 pl-6 text-xs transition-colors focus:border-emerald-500 focus:ring-2 focus:ring-emerald-500/40 focus:outline-none"
+                  className="w-full rounded-lg border border-[#0d2d20]/15 bg-white py-2 pl-7 pr-2 text-xs text-[#0d2d20] transition-colors focus:border-[#0d2d20]/40 focus:outline-none focus:ring-2 focus:ring-[#0d2d20]/10"
                   placeholder="2000"
                 />
               </div>
@@ -367,9 +363,7 @@ export default function FilterSidebar({
                     className={selectClass}
                     value={claseId ?? ""}
                     onChange={(e) =>
-                      setClaseId!(
-                        e.target.value ? Number(e.target.value) : null,
-                      )
+                      setClaseId!(e.target.value ? Number(e.target.value) : null)
                     }
                   >
                     <option value="">{tr("filters.allClasses")}</option>
@@ -483,22 +477,9 @@ export default function FilterSidebar({
             <Divider />
             <Button
               variant="outline"
-              className="w-full rounded-lg border-neutral-200 text-sm font-medium text-neutral-500 transition-all hover:border-neutral-300 hover:bg-neutral-50 hover:text-neutral-700"
+              className="w-full rounded-full border-[#0d2d20]/20 bg-transparent py-3 text-[10px] font-medium uppercase tracking-[0.22em] text-[#0d2d20] transition-colors hover:bg-[#0d2d20] hover:text-white"
               onClick={onReset}
             >
-              <svg
-                className="mr-1.5 h-3.5 w-3.5"
-                fill="none"
-                stroke="currentColor"
-                viewBox="0 0 24 24"
-              >
-                <path
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                  strokeWidth={2}
-                  d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"
-                />
-              </svg>
               {tr("filters.reset")}
             </Button>
           </>

@@ -4,6 +4,7 @@ import { useEffect, useRef, useState } from "react";
 import Link from "next/link";
 import { Bell, CheckCheck } from "lucide-react";
 import { useNotifications, type Notification } from "@/hooks/useNotifications";
+import { useNotificationStream } from "@/hooks/useNotificationStream";
 import { getNotificationMeta, sortNotifications } from "@/lib/notificationMeta";
 import { cn } from "@/lib/utils";
 
@@ -24,7 +25,7 @@ function relativeTime(dateStr: string): string {
 // ─── Notification row ─────────────────────────────────────────────────────────
 
 function NotifRow({ notif, onRead }: { notif: Notification; onRead: (id: string) => void }) {
-  const { Icon, iconClass, bg, rowBg, accent } = getNotificationMeta(notif.type);
+  const { Icon, iconClass, bg, rowBg, accent, cta } = getNotificationMeta(notif.type);
 
   const content = (
     <div
@@ -53,6 +54,11 @@ function NotifRow({ notif, onRead }: { notif: Notification; onRead: (id: string)
         <p className="text-[10px] text-gray-400 mt-1 uppercase tracking-wide">
           {relativeTime(notif.created_at)}
         </p>
+        {cta && (
+          <span className="mt-1 inline-block text-[10px] font-semibold text-red-500 uppercase tracking-wide">
+            {cta} →
+          </span>
+        )}
       </div>
     </div>
   );
@@ -72,6 +78,7 @@ function NotifRow({ notif, onRead }: { notif: Notification; onRead: (id: string)
 
 export function NotificationBell() {
   const { notifications, unread, markAsRead, markAllAsRead } = useNotifications();
+  useNotificationStream(); // opens SSE connection; pushes arrivals into the shared store
   const [open, setOpen] = useState(false);
   const ref = useRef<HTMLDivElement>(null);
 

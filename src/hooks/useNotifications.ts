@@ -14,6 +14,14 @@ export type Notification = {
   link: string | null;
   is_read: boolean;
   created_at: string;
+  // Engagement extension — present on rows created after the schema migration
+  metadata?: Record<string, unknown> | null;
+  actor_id?: number | null;
+  actor_type?: string | null;
+  subject_type?: string | null;
+  subject_id?: string | null;
+  is_feed_item?: boolean;
+  channel?: string;
 };
 
 // ─── Module-level singleton store ─────────────────────────────────────────────
@@ -25,6 +33,7 @@ type Store = {
   loaded: boolean;
   subscribers: Set<() => void>;
   set(items: Notification[], unread: number): void;
+  prepend(n: Notification): void;
   markOne(id: string): void;
   markAll(): void;
 };
@@ -39,6 +48,15 @@ const _store: Store = {
     _store.items = items;
     _store.unread = unread;
     _store.loaded = true;
+    _store.subscribers.forEach((fn) => fn());
+  },
+
+  // Called by useNotificationStream when an SSE push arrives.
+  // Deduplicates by id so a concurrent polling fetch never creates a double entry.
+  prepend(n) {
+    if (_store.items.some((i) => i.id === n.id)) return;
+    _store.items = [n, ..._store.items];
+    if (!n.is_read) _store.unread += 1;
     _store.subscribers.forEach((fn) => fn());
   },
 
@@ -57,6 +75,12 @@ const _store: Store = {
   },
 };
 
+// ─── Module-level exports for use by SSE hook ─────────────────────────────────
+
+export function prependNotification(n: Notification): void {
+  _store.prepend(n);
+}
+
 // ─── Fetch helper ─────────────────────────────────────────────────────────────
 
 async function fetchStore(): Promise<void> {
@@ -71,8 +95,10 @@ async function fetchStore(): Promise<void> {
 }
 
 // ─── Hook ─────────────────────────────────────────────────────────────────────
+// Polling acts as fallback when SSE is unavailable (network drop, reconnecting).
+// When SSE is active, prependNotification() delivers new items with 0 ms latency.
 
-const POLL_INTERVAL = 45_000; // 45 seconds
+const POLL_INTERVAL = 45_000; // 45 s
 
 export function useNotifications() {
   const { user } = useAuth();
