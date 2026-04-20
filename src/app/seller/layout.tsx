@@ -13,6 +13,7 @@ import {
   Menu,
   LogOut,
   Layers2,
+  RadioTower,
 } from "lucide-react";
 
 import AuthGuard from "@/components/auth/AuthGuard";
@@ -25,6 +26,7 @@ import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet";
 
 const navItems = [
   { label: "Resumen", icon: LayoutDashboard, href: "/seller/dashboard" },
+  { label: "Live", icon: RadioTower, href: "/seller/live" },
   { label: "Mi tienda", icon: Home, href: "/seller/my-business" },
   { label: "Productos", icon: Package, href: "/seller/products" },
   { label: "Pedidos", icon: ShoppingCart, href: "/seller/orders" },
