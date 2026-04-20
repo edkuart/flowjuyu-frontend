@@ -6,9 +6,9 @@ module.exports = withIntl({
   reactStrictMode: true,
 
   images: {
-    // In local development, bypass Next's image optimizer so temporary
-    // DNS/network issues to Supabase don't turn into repeated `/_next/image` 500s.
-    unoptimized: process.env.NODE_ENV === "development",
+    // Bypass Next's /_next/image optimizer — Vercel Hobby plan quota (402)
+    // causes blank images. Images are served directly from their source URL.
+    unoptimized: true,
     remotePatterns: [
       // Supabase Storage — original objects
       {
