@@ -19,7 +19,7 @@ type PageShellProps = {
 
 export function PageShell({ children, className }: PageShellProps) {
   return (
-    <div className={cn("flex-1 py-6 md:py-10", className)}>
+    <div className={cn("relative z-0 flex-1 py-6 md:py-10", className)}>
       <Container size="wide">
         {children}
       </Container>

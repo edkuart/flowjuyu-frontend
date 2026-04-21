@@ -41,7 +41,7 @@ function LiveCard({
 
   return (
     <Link
-      href={`/store/${seller.id}?source=home`}
+      href={`/store/${seller.id}/live?source=home`}
       className={[
         "group block min-w-[280px] overflow-hidden rounded-[24px] border border-[#0d2d20]/8 bg-white",
         "shadow-[0_10px_30px_rgba(15,23,42,0.06)] transition-all duration-300",
@@ -163,6 +163,15 @@ function LiveCard({
               <span className="truncate">{ubicacion}</span>
             </div>
           )}
+
+          <div className="pt-2">
+            <span className="inline-flex items-center gap-2 rounded-full border border-[#0F3D3A]/10 bg-[#0F3D3A]/5 px-3 py-2 text-xs font-semibold text-[#0F3D3A] transition group-hover:border-[#0F3D3A]/20 group-hover:bg-[#0F3D3A]/8">
+              Entrar a la sala live
+              <span className="transition-transform duration-200 group-hover:translate-x-0.5">
+                →
+              </span>
+            </span>
+          </div>
         </div>
       </div>
     </Link>

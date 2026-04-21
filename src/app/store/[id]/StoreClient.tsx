@@ -144,6 +144,20 @@ type PublicCollection = {
   items: CollectionItem[];
 };
 
+function buildCollectionBoxShadow(content?: Record<string, any> | null): string | undefined {
+  if (!content?.shadowEnabled) return undefined;
+  return `${content.shadowX ?? 4}px ${content.shadowY ?? 4}px ${content.shadowBlur ?? 8}px ${content.shadowSpread ?? 0}px ${content.shadowColor ?? "rgba(0,0,0,0.3)"}`;
+}
+
+function buildCollectionBgRgba(content?: Record<string, any> | null): string | undefined {
+  if (!content?.bgColor) return undefined;
+  const hex = content.bgColor as string;
+  const r = parseInt(hex.slice(1, 3), 16);
+  const g = parseInt(hex.slice(3, 5), 16);
+  const b = parseInt(hex.slice(5, 7), 16);
+  return `rgba(${r},${g},${b},${content.bgOpacity ?? 0.6})`;
+}
+
 // HeaderStyle, DEFAULT_HEADER_STYLE, buildHeaderStyle — imported from @/lib/headerStyle
 
 // Re-export so existing imports from this file keep working
@@ -657,6 +671,13 @@ export default function StoreClient({
     () => seller.live_featured_products?.[0] ?? null,
     [seller.live_featured_products],
   );
+  const secondaryLiveProducts = useMemo(
+    () =>
+      livePreviewProducts.filter((product) =>
+        mainProduct ? product.id !== mainProduct.id : true,
+      ),
+    [livePreviewProducts, mainProduct],
+  );
   const liveExternalPreviewImage = useMemo(
     () =>
       seller.live_external_preview?.image_url ||
@@ -691,6 +712,24 @@ export default function StoreClient({
   const livePlatformTheme = useMemo(
     () => getLivePlatformTheme(seller.live_platform ?? null),
     [seller.live_platform],
+  );
+  const liveOverviewItems = useMemo(
+    () =>
+      [
+        viewerCount !== null
+          ? { label: "Viendo ahora", value: `${viewerCount}` }
+          : null,
+        livePlatformLabel
+          ? { label: "Transmisión", value: livePlatformLabel }
+          : null,
+        livePreviewProducts.length > 0
+          ? {
+              label: "Piezas del live",
+              value: `${livePreviewProducts.length}`,
+            }
+          : null,
+      ].filter(Boolean) as Array<{ label: string; value: string }>,
+    [viewerCount, livePlatformLabel, livePreviewProducts.length],
   );
   const LivePlatformIcon = useMemo(() => {
     if (seller.live_platform === "instagram") return Instagram;
@@ -1015,8 +1054,8 @@ export default function StoreClient({
               `}</style>
               <div className="overflow-hidden rounded-[28px] border border-[#b42318]/10 bg-white shadow-[0_18px_48px_rgba(15,23,42,0.08)]">
                 <div className="bg-gradient-to-r from-[#fff6f4] via-white to-[#fff9f7] px-5 py-5 md:px-7">
-                  <div className="flex flex-col gap-4 md:flex-row md:items-end md:justify-between">
-                    <div className="space-y-3">
+                  <div className="flex flex-col gap-5 md:flex-row md:items-start md:justify-between">
+                    <div className="space-y-4">
                       <div className="inline-flex items-center gap-2 rounded-full border border-red-200 bg-red-50 px-3 py-1 text-[11px] font-semibold uppercase tracking-[0.16em] text-red-700">
                         <span className="relative flex h-2.5 w-2.5">
                           <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-red-400/60" />
@@ -1028,11 +1067,6 @@ export default function StoreClient({
                         <h2 className="text-2xl font-semibold tracking-tight text-neutral-900">
                           En vivo ahora
                         </h2>
-                        {viewerCount !== null ? (
-                          <p className="text-sm font-medium text-neutral-700 transition-opacity duration-300">
-                            👁 {viewerCount} viendo ahora
-                          </p>
-                        ) : null}
                         {seller.live_message ? (
                           <p className="max-w-3xl text-sm leading-relaxed text-neutral-600 md:text-base">
                             {seller.live_message}
@@ -1042,6 +1076,23 @@ export default function StoreClient({
                             Esta tienda está mostrando productos en este momento.
                           </p>
                         )}
+                        {liveOverviewItems.length > 0 ? (
+                          <div className="-mx-1 flex gap-2 overflow-x-auto px-1 pb-1 [scrollbar-width:none] [-ms-overflow-style:none] [&::-webkit-scrollbar]:hidden">
+                            {liveOverviewItems.map((item) => (
+                              <div
+                                key={item.label}
+                                className="min-w-[132px] rounded-full border border-neutral-200 bg-white px-4 py-2.5 shadow-sm"
+                              >
+                                <p className="text-[10px] font-semibold uppercase tracking-[0.14em] text-neutral-500">
+                                  {item.label}
+                                </p>
+                                <p className="pt-1 text-sm font-semibold text-neutral-900">
+                                  {item.value}
+                                </p>
+                              </div>
+                            ))}
+                          </div>
+                        ) : null}
                         {seller.live_external_url ? (
                           <div className="pt-2">
                             <a
@@ -1113,60 +1164,85 @@ export default function StoreClient({
                       </div>
                     </div>
 
-                    <a
-                      href="#catalogo"
-                      className="inline-flex items-center gap-2 self-start rounded-full border border-neutral-200 bg-white px-5 py-2.5 text-sm font-semibold text-neutral-800 transition hover:border-[#0F3D3A]/20 hover:text-[#0F3D3A]"
-                    >
-                      Ver todos los productos
-                      <ArrowRight className="h-4 w-4" />
-                    </a>
+                    <div className="flex flex-wrap gap-3">
+                      <Link
+                        href={`/store/${seller.id}/live`}
+                        className="inline-flex items-center gap-2 self-start rounded-full bg-[#0F3D3A] px-5 py-2.5 text-sm font-semibold text-white transition hover:bg-[#0c312f]"
+                      >
+                        Entrar a la sala live
+                        <ArrowRight className="h-4 w-4" />
+                      </Link>
+                      <a
+                        href="#catalogo"
+                        className="inline-flex items-center gap-2 self-start rounded-full border border-neutral-200 bg-white px-5 py-2.5 text-sm font-semibold text-neutral-800 transition hover:border-[#0F3D3A]/20 hover:text-[#0F3D3A]"
+                      >
+                        Ver todos los productos
+                        <ArrowRight className="h-4 w-4" />
+                      </a>
+                    </div>
                   </div>
                 </div>
 
-                {livePreviewProducts.length > 0 && (
-                  <div className="grid gap-4 border-t border-neutral-100 px-5 py-5 md:grid-cols-3 md:px-7">
-                    {livePreviewProducts.map((product, index) => (
-                      <Link
-                        key={product.id}
-                        href={
-                          product.internal_code
-                            ? `/p/${product.internal_code}`
-                            : `/product/${product.id}`
-                        }
-                        className="group overflow-hidden rounded-2xl border border-neutral-100 bg-[#fcfbf8] transition-all hover:-translate-y-0.5 hover:border-[#0F3D3A]/15 hover:shadow-md"
-                        style={{
-                          animation: "live-vibrate-soft 4.6s ease-in-out infinite",
-                          animationDelay: `${index * 0.35}s`,
-                        }}
-                      >
-                        <div className="relative aspect-[4/3] bg-[#f3efe7]">
-                          <Image
-                            src={product.imagen_url || "/images/productos/default.jpg"}
-                            alt={product.nombre}
-                            fill
-                            sizes="(max-width: 768px) 100vw, 33vw"
-                            className="object-cover transition-transform duration-500 group-hover:scale-[1.03]"
-                          />
-                        </div>
-                        <div className="space-y-2 px-4 py-4">
-                          <div className="flex items-start justify-between gap-3">
-                            <h3 className="line-clamp-2 text-sm font-semibold text-neutral-900">
-                              {product.nombre}
-                            </h3>
-                            <p className="shrink-0 text-sm font-bold text-[#0F3D3A]">
-                              Q{Number(product.precio).toFixed(2)}
-                            </p>
+                {secondaryLiveProducts.length > 0 && (
+                  <div className="border-t border-neutral-100 px-5 py-5 md:px-7">
+                    <div className="mb-3 flex items-center justify-between gap-3">
+                      <div>
+                        <p className="text-[11px] font-semibold uppercase tracking-[0.16em] text-neutral-500">
+                          Piezas del live
+                        </p>
+                        <p className="text-sm text-neutral-600">
+                          Otras piezas que están apareciendo en esta transmisión.
+                        </p>
+                      </div>
+                    </div>
+                    <div className="-mx-1 flex gap-3 overflow-x-auto px-1 pb-1 [scrollbar-width:none] [-ms-overflow-style:none] [&::-webkit-scrollbar]:hidden">
+                      {secondaryLiveProducts.map((product, index) => (
+                        <Link
+                          key={product.id}
+                          href={
+                            product.internal_code
+                              ? `/p/${product.internal_code}`
+                              : `/product/${product.id}`
+                          }
+                          className="group flex min-w-[240px] items-center gap-3 rounded-2xl border border-neutral-100 bg-[#fcfbf8] p-3 transition-all hover:-translate-y-0.5 hover:border-[#0F3D3A]/15 hover:shadow-md md:min-w-[280px]"
+                          style={{
+                            animation: "live-vibrate-soft 4.6s ease-in-out infinite",
+                            animationDelay: `${index * 0.35}s`,
+                          }}
+                        >
+                          <div className="relative h-20 w-20 shrink-0 overflow-hidden rounded-xl bg-[#f3efe7]">
+                            <Image
+                              src={product.imagen_url || "/images/productos/default.jpg"}
+                              alt={product.nombre}
+                              fill
+                              sizes="80px"
+                              className="object-cover transition-transform duration-500 group-hover:scale-[1.03]"
+                            />
                           </div>
-                          <div className="flex items-center justify-between gap-3 text-xs text-neutral-500">
-                            <span>{product.sku ? `SKU ${product.sku}` : "Producto destacado"}</span>
-                            <span className="inline-flex items-center gap-1 font-semibold text-[#0F3D3A]">
-                              Ver producto
-                              <ArrowRight className="h-3.5 w-3.5" />
-                            </span>
+                          <div className="min-w-0 flex-1 space-y-2">
+                            <div className="flex items-start justify-between gap-3">
+                              <h3 className="line-clamp-2 text-sm font-semibold text-neutral-900">
+                                {product.nombre}
+                              </h3>
+                              <p className="shrink-0 text-sm font-bold text-[#0F3D3A]">
+                                Q{Number(product.precio).toFixed(2)}
+                              </p>
+                            </div>
+                            <div className="flex items-center justify-between gap-3 text-xs text-neutral-500">
+                              <span>
+                                {product.sku
+                                  ? `SKU ${product.sku}`
+                                  : "Producto del live"}
+                              </span>
+                              <span className="inline-flex items-center gap-1 font-semibold text-[#0F3D3A]">
+                                Ver
+                                <ArrowRight className="h-3.5 w-3.5" />
+                              </span>
+                            </div>
                           </div>
-                        </div>
-                      </Link>
-                    ))}
+                        </Link>
+                      ))}
+                    </div>
                   </div>
                 )}
               </div>
@@ -1586,6 +1662,21 @@ export default function StoreClient({
                           position: "relative",
                         }}
                       >
+                        {col.background_image_url && (
+                          <img
+                            src={col.background_image_url}
+                            alt=""
+                            style={{
+                              position: "absolute",
+                              inset: 0,
+                              width: "100%",
+                              height: "100%",
+                              objectFit: "cover",
+                              pointerEvents: "none",
+                              zIndex: 0,
+                            }}
+                          />
+                        )}
                         {col.items.length === 0 && (
                           <div className="absolute inset-0 flex items-center justify-center text-sm text-neutral-300">
                             Colección vacía
@@ -1618,7 +1709,7 @@ export default function StoreClient({
                             top: item.pos_y,
                             width: item.width,
                             height: item.height,
-                            zIndex: item.z_index,
+                            zIndex: (item.z_index ?? 0) + 1,
                             ...(rotation ? { transform: `rotate(${rotation}deg)`, transformOrigin: "center center" } : {}),
                           };
 
@@ -1635,15 +1726,7 @@ export default function StoreClient({
                           if (elType === "text") {
                             const tc = item.content ?? {};
                             const hasBg = tc.bgColor && tc.bgColor !== "";
-                            const bgRgba = hasBg
-                              ? (() => {
-                                  const hex = tc.bgColor as string;
-                                  const r = parseInt(hex.slice(1,3),16);
-                                  const g = parseInt(hex.slice(3,5),16);
-                                  const b = parseInt(hex.slice(5,7),16);
-                                  return `rgba(${r},${g},${b},${tc.bgOpacity ?? 0.6})`;
-                                })()
-                              : undefined;
+                            const bgRgba = hasBg ? buildCollectionBgRgba(tc) : undefined;
                             return (
                               <div key={item.id} style={outerStyle}>
                                 <div style={entranceStyle}>
@@ -1653,12 +1736,13 @@ export default function StoreClient({
                                         width: "100%", height: "100%",
                                         display: "flex",
                                         alignItems: "center",
-                                        padding: "8px 10px",
+                                        padding: `${tc.paddingY ?? 8}px ${tc.paddingX ?? 10}px`,
                                         color: tc.color || "#1a1a1a",
                                         fontSize: tc.fontSize || 24,
                                         fontFamily: tc.fontFamily || "inherit",
                                         fontWeight: tc.fontWeight || "bold",
                                         fontStyle: tc.fontStyle || "normal",
+                                        letterSpacing: `${tc.letterSpacing ?? 0}px`,
                                         textAlign: tc.textAlign || "center",
                                         justifyContent:
                                           tc.textAlign === "right" ? "flex-end"
@@ -1673,7 +1757,7 @@ export default function StoreClient({
                                         whiteSpace: "pre-wrap",
                                         wordBreak: "break-word",
                                         overflow: "hidden",
-                                        lineHeight: 1.2,
+                                        lineHeight: tc.lineHeight ?? 1.2,
                                         background: bgRgba,
                                         borderRadius: hasBg ? 8 : undefined,
                                       }}
@@ -1701,7 +1785,15 @@ export default function StoreClient({
                                       style={{
                                         width: "100%", height: "100%",
                                         background: shapeBg,
-                                        borderRadius: sc.shapeType === "circle" ? "50%" : `${sc.borderRadius ?? 8}px`,
+                                        boxShadow: buildCollectionBoxShadow(sc),
+                                        borderRadius: sc.shapeType === "circle" ? "50%"
+                                          : (sc.shapeType === "triangle" || sc.shapeType === "star" || sc.shapeType === "line") ? "0"
+                                          : `${sc.borderRadius ?? 8}px`,
+                                        clipPath: sc.shapeType === "triangle"
+                                          ? "polygon(50% 0%, 0% 100%, 100% 100%)"
+                                          : sc.shapeType === "star"
+                                          ? "polygon(50% 0%, 61% 35%, 98% 35%, 68% 57%, 79% 91%, 50% 70%, 21% 91%, 32% 57%, 2% 35%, 39% 35%)"
+                                          : undefined,
                                         opacity: sc.opacity ?? 1,
                                       }}
                                     />
@@ -1726,6 +1818,7 @@ export default function StoreClient({
                                           objectFit: ic.objectFit ?? "cover",
                                           borderRadius: ic.borderRadius ?? 8,
                                           opacity: ic.opacity ?? 1,
+                                          boxShadow: buildCollectionBoxShadow(ic),
                                           display: "block",
                                         }}
                                       />

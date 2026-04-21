@@ -2,9 +2,7 @@
 
 import { useEffect, useState } from "react";
 
-import LiveToggleCard from "@/components/seller/dashboard/LiveToggleCard";
 import SellerLivePanel from "@/components/seller/live/SellerLivePanel";
-import { BaseCard } from "@/components/ui/BaseCard";
 import { BaseSection } from "@/components/ui/BaseSection";
 import { BaseSectionHeading } from "@/components/ui/BaseSectionHeading";
 import { apiFetch } from "@/lib/api";
@@ -257,68 +255,11 @@ export function SellerLiveWorkspace() {
       ) : (
         <>
           <BaseSection>
-            <BaseCard
-              className="border border-[#0F3D3A]/10 bg-gradient-to-br from-[#0F3D3A] via-[#14544f] to-[#1b6b63] text-white"
-              contentClassName="space-y-4"
-            >
-              <div className="space-y-2">
-                <p className="text-xs font-semibold uppercase tracking-[0.18em] text-white/70">
-                  Live workspace
-                </p>
-                <h1 className="text-3xl font-semibold tracking-tight">
-                  Gestiona tu live en una sola vista
-                </h1>
-                <p className="max-w-3xl text-sm leading-relaxed text-white/80">
-                  Desde aquí puedes activar el live, preparar el preview y conectar la transmisión externa que verán compradores y seguidores.
-                </p>
-              </div>
-            </BaseCard>
-          </BaseSection>
-
-          <BaseSection>
             <BaseSectionHeading
               eyebrow="Live"
               title="Centro de control del live"
               description="Controla tu estado en vivo, el mensaje, los productos destacados y el enlace a tu transmisión externa."
             />
-
-            {!sellerProfile?.is_live ? (
-              <BaseCard
-                className="mb-6 border-[#0F3D3A]/10 bg-white"
-                contentClassName="space-y-5"
-              >
-                <div className="space-y-2 text-center sm:text-left">
-                  <p className="text-[11px] font-semibold uppercase tracking-[0.16em] text-[#0F3D3A]/60">
-                    Empieza tu transmisión
-                  </p>
-                  <h2 className="text-2xl font-semibold tracking-tight text-neutral-900">
-                    Activa el modo en vivo para mostrar tus productos en tiempo real
-                  </h2>
-                  <p className="max-w-2xl text-sm leading-relaxed text-neutral-600">
-                    Cuando estés listo, inicia live desde aquí y luego completa el preview para que compradores y seguidores entiendan qué estás vendiendo ahora.
-                  </p>
-                </div>
-
-                <div className="rounded-2xl border border-dashed border-[#0F3D3A]/12 bg-[#fcfbf8] px-4 py-4">
-                  <LiveToggleCard
-                    isLive={false}
-                    liveStartedAt={null}
-                    variant="plain"
-                    onStateChange={(newState, meta) => {
-                      setSellerProfile((current) =>
-                        current
-                          ? {
-                              ...current,
-                              is_live: newState,
-                              live_started_at: meta?.liveStartedAt ?? null,
-                            }
-                          : current,
-                      );
-                    }}
-                  />
-                </div>
-              </BaseCard>
-            ) : null}
 
             <SellerLivePanel
               isLive={Boolean(sellerProfile?.is_live)}

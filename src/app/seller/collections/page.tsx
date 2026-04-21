@@ -3,7 +3,7 @@
 import { useEffect, useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { Plus, Layers2, Pencil, Eye, EyeOff, Trash2 } from "lucide-react";
+import { Plus, Layers2, Pencil, Eye, EyeOff, Trash2, Copy } from "lucide-react";
 import { apiFetch } from "@/lib/api";
 
 type Collection = {
@@ -80,13 +80,22 @@ export default function CollectionsPage() {
             Crea looks y conjuntos con tus productos para mostrarlos en tu perfil público.
           </p>
         </div>
-        <button
-          onClick={() => setShowModal(true)}
-          className="flex items-center gap-2 rounded-lg bg-[#0F3D3A] px-4 py-2 text-sm font-medium text-white transition hover:bg-[#14544f]"
-        >
-          <Plus className="h-4 w-4" />
-          Nueva colección
-        </button>
+        <div className="flex items-center gap-2">
+          <Link
+            href="/seller/templates"
+            className="flex items-center gap-2 rounded-lg border border-neutral-200 px-4 py-2 text-sm font-medium text-neutral-700 transition hover:bg-neutral-50"
+          >
+            <Copy className="h-4 w-4" />
+            Ver plantillas
+          </Link>
+          <button
+            onClick={() => setShowModal(true)}
+            className="flex items-center gap-2 rounded-lg bg-[#0F3D3A] px-4 py-2 text-sm font-medium text-white transition hover:bg-[#14544f]"
+          >
+            <Plus className="h-4 w-4" />
+            Nueva colección
+          </button>
+        </div>
       </div>
 
       {/* Error */}

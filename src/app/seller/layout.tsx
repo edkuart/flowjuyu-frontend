@@ -67,7 +67,7 @@ export default function SellerLayout({ children }: { children: ReactNode }) {
     <AuthGuard allowedRoles={["seller", "admin"]}>
       <div className="bg-background flex min-h-screen">
         {/* ================= DESKTOP SIDEBAR ================= */}
-        <aside className="border-border sticky top-0 hidden h-screen w-64 flex-col border-r bg-white md:flex">
+        <aside className="border-border sticky top-0 z-30 hidden h-screen w-64 flex-col border-r bg-white md:flex">
           {/* Sidebar header */}
           <div className="border-border border-b px-6 py-5">
             <h2 className="text-foreground text-lg font-semibold tracking-tight">
@@ -135,7 +135,7 @@ export default function SellerLayout({ children }: { children: ReactNode }) {
         </aside>
 
         {/* ================= CONTENIDO ================= */}
-        <div className="flex min-h-screen flex-1 flex-col">
+        <div className="relative z-0 flex min-h-screen min-w-0 flex-1 flex-col">
           {/* ================= MOBILE HEADER ================= */}
           <div className="border-border flex items-center justify-between border-b bg-white px-4 py-4 md:hidden">
             <h2 className="text-foreground text-base font-semibold">
