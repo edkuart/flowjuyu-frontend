@@ -5,11 +5,16 @@ import Link from "next/link";
 import { MapPin } from "lucide-react";
 import FallbackImg from "@/components/FallbackImg";
 import { getApiUrl } from "@/lib/config";
+import { getLivePlatformLabel, getLivePlatformTheme } from "@/lib/liveExternal";
 import { fetchLiveSellers, type SellerLive } from "@/services/homeService";
 
 type LivePreviewData = Pick<
   SellerLive,
-  "live_message" | "live_featured_products"
+  | "live_message"
+  | "live_featured_products"
+  | "live_platform"
+  | "live_external_url"
+  | "live_external_preview"
 >;
 
 const API = getApiUrl();
@@ -27,6 +32,12 @@ function LiveCard({
     preview?.live_featured_products?.[0] ??
     seller.live_featured_products?.[0] ??
     null;
+  const livePlatform = preview?.live_platform ?? seller.live_platform ?? null;
+  const livePlatformLabel = getLivePlatformLabel(livePlatform);
+  const liveExternalPreview =
+    preview?.live_external_preview ?? seller.live_external_preview ?? null;
+  const previewImage = liveExternalPreview?.image_url ?? previewProduct?.imagen_url;
+  const platformTheme = getLivePlatformTheme(livePlatform);
 
   return (
     <Link
@@ -39,12 +50,38 @@ function LiveCard({
       ].join(" ")}
     >
       <div className="relative aspect-[16/10] overflow-hidden bg-[#e7e0d3]">
-        <FallbackImg
-          src={seller.banner_url}
-          fallback="/images/tiendas/default.jpg"
-          alt={seller.nombre_comercio}
-          className="h-full w-full object-cover transition-transform duration-500 group-hover:scale-[1.03]"
-        />
+        {previewImage ? (
+          <FallbackImg
+            src={previewImage}
+            fallback="/images/tiendas/default.jpg"
+            alt={seller.nombre_comercio}
+            className="h-full w-full object-cover transition-transform duration-500 group-hover:scale-[1.03]"
+          />
+        ) : (
+          <div
+            className={[
+              "flex h-full w-full flex-col justify-between p-4",
+              platformTheme.surfaceClass,
+            ].join(" ")}
+          >
+            <div
+              className={[
+                "inline-flex w-fit items-center rounded-full px-3 py-1 text-[10px] font-semibold uppercase tracking-[0.18em]",
+                platformTheme.badgeClass,
+              ].join(" ")}
+            >
+              {livePlatformLabel ? `Live en ${livePlatformLabel}` : "Live externo"}
+            </div>
+            <div>
+              <p className="text-lg font-semibold leading-tight text-[#11110f]">
+                {liveExternalPreview?.title || seller.nombre_comercio}
+              </p>
+              <p className="mt-1 text-xs text-[#11110f]/60">
+                {liveExternalPreview?.description || "Abre la tienda para ver el live y sus productos."}
+              </p>
+            </div>
+          </div>
+        )}
 
         <div className="absolute inset-0 bg-gradient-to-t from-[#11110f]/60 via-[#11110f]/10 to-transparent" />
 
@@ -83,6 +120,18 @@ function LiveCard({
           {liveMessage ? (
             <p className="line-clamp-1 text-sm leading-6 text-[#0d2d20]/62">
               {liveMessage}
+            </p>
+          ) : null}
+
+          {livePlatformLabel ? (
+            <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-[#b42318]/72">
+              En vivo en {livePlatformLabel}
+            </p>
+          ) : null}
+
+          {liveExternalPreview?.title ? (
+            <p className="line-clamp-1 text-xs text-[#0d2d20]/52">
+              {liveExternalPreview.title}
             </p>
           ) : null}
 
@@ -161,6 +210,9 @@ export default function LiveNowSection() {
                 seller?: {
                   live_message?: string | null;
                   live_featured_products?: SellerLive["live_featured_products"];
+                  live_platform?: SellerLive["live_platform"];
+                  live_external_url?: SellerLive["live_external_url"];
+                  live_external_preview?: SellerLive["live_external_preview"];
                 };
               }
             | null;
@@ -173,6 +225,9 @@ export default function LiveNowSection() {
             [seller.id]: {
               live_message: json.seller?.live_message ?? null,
               live_featured_products: json.seller?.live_featured_products ?? [],
+              live_platform: json.seller?.live_platform ?? null,
+              live_external_url: json.seller?.live_external_url ?? null,
+              live_external_preview: json.seller?.live_external_preview ?? null,
             },
           }));
         })

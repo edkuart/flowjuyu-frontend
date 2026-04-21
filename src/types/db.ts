@@ -54,6 +54,9 @@ export interface VendedorPerfil {
   live_message?:      string | null;
   live_featured_product_ids?: string[] | null;
   live_current_product_id?: string | null;
+  live_external_url?: string | null;
+  live_platform?: "tiktok" | "instagram" | "facebook" | null;
+  live_collection_id?: number | null;
   email_welcome_sent_at?: string | null;
   email_activation_sent_at?: string | null;
   email_week1_sent_at?: string | null;

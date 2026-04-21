@@ -23,6 +23,7 @@ import { PageShell } from "@/components/layout/PageShell";
 import { SidebarNavItem } from "@/components/layout/SidebarNavItem";
 import { useAuth } from "@/context/AuthContext";
 import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet";
+import { apiGetVendedorPerfil } from "@/services/vendedorPerfil";
 
 const navItems = [
   { label: "Resumen", icon: LayoutDashboard, href: "/seller/dashboard" },
@@ -39,12 +40,28 @@ const navItems = [
 export default function SellerLayout({ children }: { children: ReactNode }) {
   const pathname = usePathname();
   const [open, setOpen] = useState(false);
+  const [isLive, setIsLive] = useState(false);
   const { logout } = useAuth();
 
   // Cierra automáticamente el menú móvil cuando cambia la ruta
   useEffect(() => {
     setOpen(false);
   }, [pathname]);
+
+  useEffect(() => {
+    let cancelled = false;
+
+    apiGetVendedorPerfil()
+      .then((profileRes) => {
+        if (cancelled || !profileRes?.ok || !profileRes.perfil) return;
+        setIsLive(Boolean(profileRes.perfil.is_live));
+      })
+      .catch(() => {});
+
+    return () => {
+      cancelled = true;
+    };
+  }, []);
 
   return (
     <AuthGuard allowedRoles={["seller", "admin"]}>
@@ -72,9 +89,30 @@ export default function SellerLayout({ children }: { children: ReactNode }) {
                 ) : null}
                 <SidebarNavItem
                   href={href}
-                  label={label}
+                  label={
+                    href === "/seller/live"
+                      ? isLive
+                        ? "En vivo ahora"
+                        : "En vivo"
+                      : label
+                  }
                   icon={icon}
                   isActive={pathname.startsWith(href)}
+                  labelClassName={
+                    href === "/seller/live" && isLive
+                      ? "font-semibold text-red-600"
+                      : undefined
+                  }
+                  iconClassName={
+                    href === "/seller/live" && isLive
+                      ? "text-red-600"
+                      : undefined
+                  }
+                  badge={
+                    href === "/seller/live" && isLive ? (
+                      <span className="flex h-2.5 w-2.5 shrink-0 rounded-full bg-red-500" />
+                    ) : undefined
+                  }
                 />
               </div>
             ))}
@@ -122,10 +160,31 @@ export default function SellerLayout({ children }: { children: ReactNode }) {
                       ) : null}
                       <SidebarNavItem
                         href={href}
-                        label={label}
+                        label={
+                          href === "/seller/live"
+                            ? isLive
+                              ? "En vivo ahora"
+                              : "En vivo"
+                            : label
+                        }
                         icon={icon}
                         isActive={pathname.startsWith(href)}
                         onClick={() => setOpen(false)}
+                        labelClassName={
+                          href === "/seller/live" && isLive
+                            ? "font-semibold text-red-600"
+                            : undefined
+                        }
+                        iconClassName={
+                          href === "/seller/live" && isLive
+                            ? "text-red-600"
+                            : undefined
+                        }
+                        badge={
+                          href === "/seller/live" && isLive ? (
+                            <span className="flex h-2.5 w-2.5 shrink-0 rounded-full bg-red-500" />
+                          ) : undefined
+                        }
                       />
                     </div>
                   ))}

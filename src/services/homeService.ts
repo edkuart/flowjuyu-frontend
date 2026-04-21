@@ -57,6 +57,15 @@ export type SellerLive = {
   municipio?: string | null;
   live_started_at?: string | null;
   live_message?: string | null;
+  live_platform?: "tiktok" | "instagram" | "facebook" | null;
+  live_external_url?: string | null;
+  live_external_preview?: {
+    title?: string | null;
+    description?: string | null;
+    image_url?: string | null;
+    site_name?: string | null;
+    canonical_url?: string | null;
+  } | null;
   live_featured_products?: Array<{
     id: string;
     nombre: string;

@@ -26,6 +26,9 @@ type SidebarNavItemProps = {
   onClick?: () => void;
   /** Optional badge node — numeric count, "Pronto" pill, etc. */
   badge?: ReactNode;
+  className?: string;
+  labelClassName?: string;
+  iconClassName?: string;
 };
 
 export function SidebarNavItem({
@@ -35,6 +38,9 @@ export function SidebarNavItem({
   isActive,
   onClick,
   badge,
+  className,
+  labelClassName,
+  iconClassName,
 }: SidebarNavItemProps) {
   return (
     <Link
@@ -48,7 +54,8 @@ export function SidebarNavItem({
         "border-l-2",
         isActive
           ? "bg-primary/10 text-primary font-semibold border-primary"
-          : "text-muted-foreground hover:bg-muted hover:text-foreground border-transparent"
+          : "text-muted-foreground hover:bg-muted hover:text-foreground border-transparent",
+        className,
       )}
     >
       <Icon
@@ -56,10 +63,11 @@ export function SidebarNavItem({
           "w-4 h-4 shrink-0",
           isActive
             ? "text-primary"
-            : "text-muted-foreground group-hover:text-foreground"
+            : "text-muted-foreground group-hover:text-foreground",
+          iconClassName,
         )}
       />
-      <span className="flex-1 truncate">{label}</span>
+      <span className={cn("flex-1 truncate", labelClassName)}>{label}</span>
       {badge}
     </Link>
   );

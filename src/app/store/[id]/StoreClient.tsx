@@ -11,8 +11,11 @@ import Link from "next/link";
 import { getProductImage } from "@/lib/getProductImage";
 import {
   ArrowRight,
+  Facebook,
+  Instagram,
   MessageCircle,
   MapPin,
+  Music2,
   ShieldCheck,
   Star,
   BookOpen,
@@ -32,6 +35,7 @@ import WhatsAppModal from "@/components/product/WhatsAppModal";
 import { buildHeaderStyle, DEFAULT_HEADER_STYLE } from "@/lib/headerStyle";
 import type { HeaderStyle } from "@/lib/headerStyle";
 import { trackEvent } from "@/lib/analytics";
+import { getLivePlatformLabel, getLivePlatformTheme } from "@/lib/liveExternal";
 import { LEGAL_WHATSAPP_NOTICE } from "@/lib/legal";
 import type { PhoneNumber } from "@/lib/phone";
 import { buildWhatsAppHref, extractWhatsAppPhone } from "@/lib/whatsapp";
@@ -87,6 +91,15 @@ type Seller = {
   is_live?: boolean;
   live_started_at?: string | null;
   live_message?: string | null;
+  live_external_url?: string | null;
+  live_platform?: "tiktok" | "instagram" | "facebook" | null;
+  live_external_preview?: {
+    title?: string | null;
+    description?: string | null;
+    image_url?: string | null;
+    site_name?: string | null;
+    canonical_url?: string | null;
+  } | null;
   live_featured_products?: LiveFeaturedProduct[];
   live_current_product?: LiveFeaturedProduct | null;
 };
@@ -104,15 +117,17 @@ type RatingSummary = { rating: number; total_reviews: number };
 
 type CollectionItem = {
   id: number;
-  product_id: string;
+  element_type?: "product" | "text" | "shape" | "image";
+  content?: Record<string, any> | null;
+  product_id: string | null;
   pos_x: number;
   pos_y: number;
   width: number;
   height: number;
   z_index: number;
-  product_name: string;
+  product_name: string | null;
   product_image: string | null;
-  product_price: number;
+  product_price: number | null;
   internal_code: string | null;
 };
 
@@ -121,6 +136,7 @@ type PublicCollection = {
   name: string;
   description: string | null;
   background_color: string;
+  background_style: string | null;
   background_image_url: string | null;
   canvas_width: number;
   canvas_height: number;
@@ -345,6 +361,11 @@ export default function StoreClient({
   const [whatsAppOpen, setWhatsAppOpen] = useState(false);
   const [whatsAppProduct, setWhatsAppProduct] =
     useState<LiveFeaturedProduct | null>(null);
+  const [viewerCount, setViewerCount] = useState<number | null>(null);
+  const [currentLiveProduct, setCurrentLiveProduct] =
+    useState<LiveFeaturedProduct | null>(seller.live_current_product ?? null);
+  const [isCurrentLiveProductChanging, setIsCurrentLiveProductChanging] =
+    useState(false);
 
   // Reviews
   const [ratingSummary, setRatingSummary] = useState<RatingSummary | null>(
@@ -484,6 +505,114 @@ export default function StoreClient({
   }, [seller.id, seller.is_live]);
 
   useEffect(() => {
+    if (!seller.is_live) {
+      setViewerCount(null);
+      return;
+    }
+
+    let cancelled = false;
+
+    const fetchViewerCount = async () => {
+      try {
+        const res = await fetch(`${API}/api/analytics/live-viewers/${seller.id}`, {
+          cache: "no-store",
+        });
+        if (!res.ok) return;
+
+        const json = await res.json().catch(() => null);
+        const nextCount = Number(json?.data?.viewer_count);
+
+        if (!cancelled) {
+          setViewerCount(Number.isFinite(nextCount) ? nextCount : 0);
+        }
+      } catch (error) {
+        console.error("live viewer count error", error);
+      }
+    };
+
+    const sendHeartbeat = () => {
+      if (typeof document !== "undefined" && document.visibilityState === "hidden") {
+        return;
+      }
+
+      trackEvent("live_store_heartbeat", {
+        seller_id: seller.id,
+        source: "store_live",
+      });
+    };
+
+    const initialTimeout = window.setTimeout(() => {
+      void fetchViewerCount();
+    }, 800);
+
+    const countInterval = window.setInterval(() => {
+      void fetchViewerCount();
+    }, 15000);
+
+    const heartbeatInterval = window.setInterval(() => {
+      sendHeartbeat();
+    }, 30000);
+
+    return () => {
+      cancelled = true;
+      window.clearTimeout(initialTimeout);
+      window.clearInterval(countInterval);
+      window.clearInterval(heartbeatInterval);
+    };
+  }, [seller.id, seller.is_live]);
+
+  useEffect(() => {
+    setCurrentLiveProduct(seller.live_current_product ?? null);
+  }, [seller.live_current_product]);
+
+  useEffect(() => {
+    if (!seller.is_live) return;
+
+    let cancelled = false;
+
+    const pollLiveCurrentProduct = async () => {
+      try {
+        const res = await fetch(`${API}/api/public/seller/${seller.id}`);
+        if (!res.ok) return;
+
+        const data = await res.json();
+        const nextProduct = data?.seller?.live_current_product ?? null;
+
+        if (cancelled) return;
+
+        setCurrentLiveProduct((prev) => {
+          const prevId = prev?.id ?? null;
+          const nextId = nextProduct?.id ?? null;
+
+          if (prevId === nextId) return prev;
+
+          setIsCurrentLiveProductChanging(true);
+          return nextProduct;
+        });
+      } catch (error) {
+        console.error("live polling error", error);
+      }
+    };
+
+    const interval = window.setInterval(pollLiveCurrentProduct, 5000);
+
+    return () => {
+      cancelled = true;
+      window.clearInterval(interval);
+    };
+  }, [seller.id, seller.is_live]);
+
+  useEffect(() => {
+    if (!isCurrentLiveProductChanging) return;
+
+    const timeout = window.setTimeout(() => {
+      setIsCurrentLiveProductChanging(false);
+    }, 300);
+
+    return () => window.clearTimeout(timeout);
+  }, [isCurrentLiveProductChanging]);
+
+  useEffect(() => {
     fetch(`${API}/api/collections/public/seller/${seller.id}`)
       .then((r) => r.ok ? r.json() : null)
       .then((data) => { if (data?.ok) setCollections(data.data ?? []); })
@@ -524,14 +653,50 @@ export default function StoreClient({
     () => seller.live_featured_products ?? [],
     [seller.live_featured_products],
   );
-  const currentLiveProduct = useMemo(
-    () => seller.live_current_product ?? null,
-    [seller.live_current_product],
-  );
   const mainProduct = useMemo(
     () => seller.live_featured_products?.[0] ?? null,
     [seller.live_featured_products],
   );
+  const liveExternalPreviewImage = useMemo(
+    () =>
+      seller.live_external_preview?.image_url ||
+      mainProduct?.imagen_url ||
+      livePreviewProducts[0]?.imagen_url ||
+      null,
+    [
+      livePreviewProducts,
+      mainProduct?.imagen_url,
+      seller.live_external_preview?.image_url,
+    ],
+  );
+  const liveExternalPreviewTitle = useMemo(
+    () =>
+      seller.live_external_preview?.title ||
+      seller.live_external_preview?.site_name ||
+      seller.nombre_comercio,
+    [
+      seller.live_external_preview?.site_name,
+      seller.live_external_preview?.title,
+      seller.nombre_comercio,
+    ],
+  );
+  const liveExternalPreviewDescription = useMemo(
+    () => seller.live_external_preview?.description ?? null,
+    [seller.live_external_preview?.description],
+  );
+  const livePlatformLabel = useMemo(
+    () => getLivePlatformLabel(seller.live_platform ?? null),
+    [seller.live_platform],
+  );
+  const livePlatformTheme = useMemo(
+    () => getLivePlatformTheme(seller.live_platform ?? null),
+    [seller.live_platform],
+  );
+  const LivePlatformIcon = useMemo(() => {
+    if (seller.live_platform === "instagram") return Instagram;
+    if (seller.live_platform === "facebook") return Facebook;
+    return Music2;
+  }, [seller.live_platform]);
 
   /* ── Member since ── */
   const memberSince = useMemo(
@@ -839,6 +1004,15 @@ export default function StoreClient({
         {seller.is_live &&
           (seller.live_message || livePreviewProducts.length > 0) && (
             <section className="mx-auto mt-8 max-w-6xl">
+              <style>{`
+                @keyframes live-vibrate-soft {
+                  0%, 100% { transform: translate3d(0, 0, 0) rotate(0deg); }
+                  20% { transform: translate3d(-1px, 0, 0) rotate(-0.4deg); }
+                  40% { transform: translate3d(1px, -1px, 0) rotate(0.35deg); }
+                  60% { transform: translate3d(-1px, 1px, 0) rotate(-0.3deg); }
+                  80% { transform: translate3d(1px, 0, 0) rotate(0.25deg); }
+                }
+              `}</style>
               <div className="overflow-hidden rounded-[28px] border border-[#b42318]/10 bg-white shadow-[0_18px_48px_rgba(15,23,42,0.08)]">
                 <div className="bg-gradient-to-r from-[#fff6f4] via-white to-[#fff9f7] px-5 py-5 md:px-7">
                   <div className="flex flex-col gap-4 md:flex-row md:items-end md:justify-between">
@@ -854,6 +1028,11 @@ export default function StoreClient({
                         <h2 className="text-2xl font-semibold tracking-tight text-neutral-900">
                           En vivo ahora
                         </h2>
+                        {viewerCount !== null ? (
+                          <p className="text-sm font-medium text-neutral-700 transition-opacity duration-300">
+                            👁 {viewerCount} viendo ahora
+                          </p>
+                        ) : null}
                         {seller.live_message ? (
                           <p className="max-w-3xl text-sm leading-relaxed text-neutral-600 md:text-base">
                             {seller.live_message}
@@ -863,6 +1042,74 @@ export default function StoreClient({
                             Esta tienda está mostrando productos en este momento.
                           </p>
                         )}
+                        {seller.live_external_url ? (
+                          <div className="pt-2">
+                            <a
+                              href={seller.live_external_url}
+                              target="_blank"
+                              rel="noopener noreferrer"
+                              onClick={() => {
+                                trackEvent("live_external_click", {
+                                  seller_id: seller.id,
+                                  platform: seller.live_platform ?? null,
+                                  external_url: seller.live_external_url,
+                                  source: "store_live",
+                                });
+                              }}
+                              className="inline-flex w-full max-w-md items-center gap-3 overflow-hidden rounded-2xl border border-neutral-200 bg-white p-2 pr-4 text-left text-sm font-semibold text-neutral-800 shadow-sm transition hover:border-[#0F3D3A]/20 hover:text-[#0F3D3A]"
+                            >
+                              {liveExternalPreviewImage ? (
+                                <div className="relative h-16 w-20 shrink-0 overflow-hidden rounded-xl bg-[#f3efe7]">
+                                  <Image
+                                    src={liveExternalPreviewImage}
+                                    alt={seller.nombre_comercio}
+                                    fill
+                                    sizes="80px"
+                                    className="object-cover"
+                                  />
+                                </div>
+                              ) : (
+                                <div
+                                  className={[
+                                    "flex h-16 w-20 shrink-0 flex-col justify-between overflow-hidden rounded-xl border p-2",
+                                    livePlatformTheme.surfaceClass,
+                                  ].join(" ")}
+                                >
+                                  <span
+                                    className={[
+                                      "inline-flex w-fit rounded-full px-2 py-1 text-[9px] font-semibold uppercase tracking-[0.16em]",
+                                      livePlatformTheme.badgeClass,
+                                    ].join(" ")}
+                                  >
+                                    {livePlatformLabel || "Live"}
+                                  </span>
+                                  <LivePlatformIcon
+                                    className={[
+                                      "h-4 w-4",
+                                      livePlatformTheme.iconClass,
+                                    ].join(" ")}
+                                  />
+                                </div>
+                              )}
+                              <div className="min-w-0 flex-1">
+                                <p className="text-[11px] font-semibold uppercase tracking-[0.16em] text-[#b42318]">
+                                  {livePlatformLabel
+                                    ? `En vivo en ${livePlatformLabel}`
+                                    : "Live externo"}
+                                </p>
+                                <p className="truncate text-sm font-medium text-neutral-900">
+                                  {liveExternalPreviewTitle}
+                                </p>
+                                <p className="truncate text-xs text-neutral-500">
+                                  {liveExternalPreviewDescription || "Abrir transmisión"}
+                                </p>
+                              </div>
+                              <div className="inline-flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-[#0F3D3A]/6 text-[#0F3D3A]">
+                                <LivePlatformIcon className="h-4 w-4" />
+                              </div>
+                            </a>
+                          </div>
+                        ) : null}
                       </div>
                     </div>
 
@@ -878,7 +1125,7 @@ export default function StoreClient({
 
                 {livePreviewProducts.length > 0 && (
                   <div className="grid gap-4 border-t border-neutral-100 px-5 py-5 md:grid-cols-3 md:px-7">
-                    {livePreviewProducts.map((product) => (
+                    {livePreviewProducts.map((product, index) => (
                       <Link
                         key={product.id}
                         href={
@@ -887,6 +1134,10 @@ export default function StoreClient({
                             : `/product/${product.id}`
                         }
                         className="group overflow-hidden rounded-2xl border border-neutral-100 bg-[#fcfbf8] transition-all hover:-translate-y-0.5 hover:border-[#0F3D3A]/15 hover:shadow-md"
+                        style={{
+                          animation: "live-vibrate-soft 4.6s ease-in-out infinite",
+                          animationDelay: `${index * 0.35}s`,
+                        }}
                       >
                         <div className="relative aspect-[4/3] bg-[#f3efe7]">
                           <Image
@@ -1296,6 +1547,19 @@ export default function StoreClient({
               </h2>
             </div>
 
+            {/* CSS keyframes for collection animations */}
+            <style>{`
+              @keyframes coll-fadeIn   { from { opacity: 0; } to { opacity: 1; } }
+              @keyframes coll-slideUp  { from { opacity: 0; transform: translateY(20px); } to { opacity: 1; transform: translateY(0); } }
+              @keyframes coll-slideLeft{ from { opacity: 0; transform: translateX(20px); } to { opacity: 1; transform: translateX(0); } }
+              @keyframes coll-zoomIn   { from { opacity: 0; transform: scale(0.6); } to { opacity: 1; transform: scale(1); } }
+              @keyframes coll-float    { 0%,100%{transform:translateY(0)}   50%{transform:translateY(-10px)} }
+              @keyframes coll-pulse    { 0%,100%{transform:scale(1)}        50%{transform:scale(1.06)} }
+              @keyframes coll-spin     { from{transform:rotate(0deg)}       to{transform:rotate(360deg)} }
+              @keyframes coll-shake    { 0%,100%{transform:translateX(0)}   25%,75%{transform:translateX(-5px)} 50%{transform:translateX(5px)} }
+              @keyframes coll-bounce   { 0%,100%{transform:translateY(0)}   50%{transform:translateY(-14px)} }
+            `}</style>
+
             <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
               {collections.map((col) => {
                 const PREVIEW_W = 320;
@@ -1316,85 +1580,211 @@ export default function StoreClient({
                         style={{
                           width: col.canvas_width,
                           height: col.canvas_height,
-                          backgroundColor: col.background_color || "#FFFFFF",
+                          background: col.background_style || col.background_color || "#FFFFFF",
                           transform: `scale(${scale})`,
                           transformOrigin: "top left",
                           position: "relative",
                         }}
                       >
                         {col.items.length === 0 && (
-                          <div className="absolute inset-0 flex items-center justify-center text-neutral-300 text-sm">
+                          <div className="absolute inset-0 flex items-center justify-center text-sm text-neutral-300">
                             Colección vacía
                           </div>
                         )}
+
                         {col.items.map((item) => {
+                          const anim    = item.content?.animation as string | undefined;
+                          const motion  = item.content?.motion    as string | undefined;
+                          const rotation = Number(item.content?.rotation ?? 0);
+
+                          const animName  = anim   && anim   !== "none" ? `coll-${anim}`   : null;
+                          const hasMotion = motion && motion !== "none";
+                          const animDelay = (item.z_index ?? 0) * 0.08;
+
+                          const MOTION_DUR: Record<string, string> = {
+                            float:  "3s ease-in-out infinite",
+                            pulse:  "2s ease-in-out infinite",
+                            spin:   "4s linear infinite",
+                            shake:  "0.5s ease-in-out infinite",
+                            bounce: "1s ease-in-out infinite",
+                          };
+
+                          const elType = item.element_type || "product";
+
+                          /* Outer div: absolute position + static rotation */
+                          const outerStyle: React.CSSProperties = {
+                            position: "absolute",
+                            left: item.pos_x,
+                            top: item.pos_y,
+                            width: item.width,
+                            height: item.height,
+                            zIndex: item.z_index,
+                            ...(rotation ? { transform: `rotate(${rotation}deg)`, transformOrigin: "center center" } : {}),
+                          };
+
+                          /* Entrance animation wrapper */
+                          const entranceStyle: React.CSSProperties = animName
+                            ? { width: "100%", height: "100%", animation: `${animName} 0.5s ease forwards`, animationDelay: `${animDelay}s`, opacity: 0 }
+                            : { width: "100%", height: "100%" };
+
+                          /* Continuous motion wrapper */
+                          const motionStyle: React.CSSProperties = hasMotion
+                            ? { width: "100%", height: "100%", animation: `coll-${motion} ${MOTION_DUR[motion!]}` }
+                            : { width: "100%", height: "100%" };
+
+                          if (elType === "text") {
+                            const tc = item.content ?? {};
+                            const hasBg = tc.bgColor && tc.bgColor !== "";
+                            const bgRgba = hasBg
+                              ? (() => {
+                                  const hex = tc.bgColor as string;
+                                  const r = parseInt(hex.slice(1,3),16);
+                                  const g = parseInt(hex.slice(3,5),16);
+                                  const b = parseInt(hex.slice(5,7),16);
+                                  return `rgba(${r},${g},${b},${tc.bgOpacity ?? 0.6})`;
+                                })()
+                              : undefined;
+                            return (
+                              <div key={item.id} style={outerStyle}>
+                                <div style={entranceStyle}>
+                                  <div style={motionStyle}>
+                                    <div
+                                      style={{
+                                        width: "100%", height: "100%",
+                                        display: "flex",
+                                        alignItems: "center",
+                                        padding: "8px 10px",
+                                        color: tc.color || "#1a1a1a",
+                                        fontSize: tc.fontSize || 24,
+                                        fontFamily: tc.fontFamily || "inherit",
+                                        fontWeight: tc.fontWeight || "bold",
+                                        fontStyle: tc.fontStyle || "normal",
+                                        textAlign: tc.textAlign || "center",
+                                        justifyContent:
+                                          tc.textAlign === "right" ? "flex-end"
+                                          : tc.textAlign === "center" ? "center"
+                                          : "flex-start",
+                                        textShadow: tc.shadow
+                                          ? `${tc.shadowX ?? 2}px ${tc.shadowY ?? 2}px ${tc.shadowBlur ?? 4}px ${tc.shadowColor ?? "#000000"}`
+                                          : undefined,
+                                        WebkitTextStroke: tc.outline
+                                          ? `${tc.outlineWidth ?? 1}px ${tc.outlineColor ?? "#000000"}`
+                                          : undefined,
+                                        whiteSpace: "pre-wrap",
+                                        wordBreak: "break-word",
+                                        overflow: "hidden",
+                                        lineHeight: 1.2,
+                                        background: bgRgba,
+                                        borderRadius: hasBg ? 8 : undefined,
+                                      }}
+                                    >
+                                      {tc.text || ""}
+                                    </div>
+                                  </div>
+                                </div>
+                              </div>
+                            );
+                          }
+
+                          if (elType === "shape") {
+                            const sc = item.content ?? {};
+                            const shapeBg = sc.gradientEnabled && sc.gradientColor2
+                              ? sc.gradientType === "radial"
+                                ? `radial-gradient(circle, ${sc.fillColor}, ${sc.gradientColor2})`
+                                : `linear-gradient(${sc.gradientAngle ?? 135}deg, ${sc.fillColor}, ${sc.gradientColor2})`
+                              : (sc.fillColor || "#0F3D3A");
+                            return (
+                              <div key={item.id} style={outerStyle}>
+                                <div style={entranceStyle}>
+                                  <div style={motionStyle}>
+                                    <div
+                                      style={{
+                                        width: "100%", height: "100%",
+                                        background: shapeBg,
+                                        borderRadius: sc.shapeType === "circle" ? "50%" : `${sc.borderRadius ?? 8}px`,
+                                        opacity: sc.opacity ?? 1,
+                                      }}
+                                    />
+                                  </div>
+                                </div>
+                              </div>
+                            );
+                          }
+
+                          if (elType === "image") {
+                            const ic = item.content ?? {};
+                            return (
+                              <div key={item.id} style={outerStyle}>
+                                <div style={entranceStyle}>
+                                  <div style={motionStyle}>
+                                    {ic.url ? (
+                                      <img
+                                        src={ic.url}
+                                        alt=""
+                                        style={{
+                                          width: "100%", height: "100%",
+                                          objectFit: ic.objectFit ?? "cover",
+                                          borderRadius: ic.borderRadius ?? 8,
+                                          opacity: ic.opacity ?? 1,
+                                          display: "block",
+                                        }}
+                                      />
+                                    ) : (
+                                      <div style={{ width: "100%", height: "100%", background: "#e5e7eb", borderRadius: 8 }} />
+                                    )}
+                                  </div>
+                                </div>
+                              </div>
+                            );
+                          }
+
+                          /* product (default) */
                           const href = item.internal_code
                             ? `/p/${item.internal_code}`
                             : `/product/${item.product_id}`;
                           return (
-                            <Link
-                              key={item.id}
-                              href={href}
-                              title={`${item.product_name} — Q${Number(item.product_price).toFixed(2)}`}
-                              style={{
-                                position: "absolute",
-                                left: item.pos_x,
-                                top: item.pos_y,
-                                width: item.width,
-                                height: item.height,
-                                zIndex: item.z_index,
-                                display: "block",
-                                borderRadius: 8,
-                                overflow: "hidden",
-                              }}
-                              className="group/item transition-transform hover:scale-[1.03] hover:shadow-xl"
-                            >
-                              {item.product_image ? (
-                                <img
-                                  src={item.product_image}
-                                  alt={item.product_name}
-                                  style={{
-                                    width: "100%",
-                                    height: "100%",
-                                    objectFit: "cover",
-                                    borderRadius: 8,
-                                    display: "block",
-                                  }}
-                                />
-                              ) : (
-                                <div
-                                  style={{
-                                    width: "100%",
-                                    height: "100%",
-                                    background: "#e5e7eb",
-                                    borderRadius: 8,
-                                  }}
-                                />
-                              )}
-                              {/* Price tag on hover */}
-                              <div
-                                style={{
-                                  position: "absolute",
-                                  bottom: 0,
-                                  left: 0,
-                                  right: 0,
-                                  padding: "4px 6px",
-                                  background: "linear-gradient(to top, rgba(0,0,0,0.65), transparent)",
-                                  borderBottomLeftRadius: 8,
-                                  borderBottomRightRadius: 8,
-                                  opacity: 0,
-                                  transition: "opacity 0.2s",
-                                }}
-                                className="group-hover/item:opacity-100"
-                              >
-                                <p style={{ color: "#fff", fontSize: 10, fontWeight: 600, margin: 0, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>
-                                  {item.product_name}
-                                </p>
-                                <p style={{ color: "rgba(255,255,255,0.85)", fontSize: 9, margin: 0 }}>
-                                  Q{Number(item.product_price).toFixed(2)}
-                                </p>
+                            <div key={item.id} style={outerStyle}>
+                              <div style={entranceStyle}>
+                                <div style={motionStyle}>
+                                  <Link
+                                    href={href}
+                                    title={`${item.product_name ?? ""} — Q${Number(item.product_price ?? 0).toFixed(2)}`}
+                                    style={{ display: "block", width: "100%", height: "100%", borderRadius: 8, overflow: "hidden", position: "relative" }}
+                                    className="group/item transition-transform hover:scale-[1.03] hover:shadow-xl"
+                                  >
+                                    {item.product_image ? (
+                                      <img
+                                        src={item.product_image}
+                                        alt={item.product_name ?? ""}
+                                        style={{ width: "100%", height: "100%", objectFit: "cover", borderRadius: 8, display: "block" }}
+                                      />
+                                    ) : (
+                                      <div style={{ width: "100%", height: "100%", background: "#e5e7eb", borderRadius: 8 }} />
+                                    )}
+                                    <div
+                                      style={{
+                                        position: "absolute",
+                                        bottom: 0, left: 0, right: 0,
+                                        padding: "4px 6px",
+                                        background: "linear-gradient(to top, rgba(0,0,0,0.65), transparent)",
+                                        borderBottomLeftRadius: 8,
+                                        borderBottomRightRadius: 8,
+                                        opacity: 0,
+                                        transition: "opacity 0.2s",
+                                      }}
+                                      className="group-hover/item:opacity-100"
+                                    >
+                                      <p style={{ color: "#fff", fontSize: 10, fontWeight: 600, margin: 0, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>
+                                        {item.product_name}
+                                      </p>
+                                      <p style={{ color: "rgba(255,255,255,0.85)", fontSize: 9, margin: 0 }}>
+                                        Q{Number(item.product_price ?? 0).toFixed(2)}
+                                      </p>
+                                    </div>
+                                  </Link>
+                                </div>
                               </div>
-                            </Link>
+                            </div>
                           );
                         })}
                       </div>
@@ -1402,17 +1792,13 @@ export default function StoreClient({
 
                     {/* Info */}
                     <div className="px-4 py-3">
-                      <h3 className="font-semibold text-neutral-800 line-clamp-1">
-                        {col.name}
-                      </h3>
+                      <h3 className="line-clamp-1 font-semibold text-neutral-800">{col.name}</h3>
                       {col.description && (
-                        <p className="mt-0.5 text-xs text-neutral-500 line-clamp-2">
-                          {col.description}
-                        </p>
+                        <p className="mt-0.5 line-clamp-2 text-xs text-neutral-500">{col.description}</p>
                       )}
                       <p className="mt-1 text-xs text-neutral-400">
                         {col.items.length}{" "}
-                        {col.items.length === 1 ? "prenda" : "prendas"}
+                        {col.items.length === 1 ? "elemento" : "elementos"}
                       </p>
                     </div>
                   </div>
@@ -1548,7 +1934,11 @@ export default function StoreClient({
       </ProductDiscoveryLayout>
 
       {seller.is_live && currentLiveProduct ? (
-        <div className="fixed inset-x-0 bottom-0 z-40 border-t border-neutral-200 bg-white/95 shadow-[0_-10px_30px_rgba(15,23,42,0.08)] backdrop-blur">
+        <div
+          className={`fixed inset-x-0 bottom-0 z-40 border-t border-neutral-200 bg-white/95 shadow-[0_-10px_30px_rgba(15,23,42,0.08)] backdrop-blur transition-opacity duration-300 ${
+            isCurrentLiveProductChanging ? "opacity-80" : "opacity-100"
+          }`}
+        >
           <div className="mx-auto flex max-w-6xl items-center gap-3 px-4 py-3 sm:px-6">
             <div className="relative h-14 w-14 shrink-0 overflow-hidden rounded-xl bg-[#f3efe7] sm:h-16 sm:w-16">
               <Image
