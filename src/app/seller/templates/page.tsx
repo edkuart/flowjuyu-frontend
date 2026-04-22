@@ -18,6 +18,33 @@ type CollectionTemplate = {
   created_at: string;
 };
 
+function getCanvasFormatLabel(width: number, height: number) {
+  if (width === height) return "Square";
+  if (height > width) return "Portrait";
+  return "Landscape";
+}
+
+function getTemplateMeta(name: string) {
+  const [familyRaw, variantRaw] = name.split("/").map((part) => part.trim());
+  const family = familyRaw || name;
+  const variant = variantRaw || "Base";
+
+  const descriptions: Record<string, string> = {
+    "Maison Editorial": "Lanzamientos premium con direccion editorial y hero dominante.",
+    "Signature Drop": "Drops de alto impacto para novedades y capsulas cortas.",
+    "Crafted Heritage": "Textiles, origen y oficio con tono de lujo artesanal.",
+    "Modern Atelier": "Moda refinada, limpia y contemporanea para colecciones sobrias.",
+    "Premium Offer": "Promociones elegantes que siguen priorizando percepcion de marca.",
+    "Lookbook Grid": "Presentacion de multiples piezas con lectura editorial clara.",
+  };
+
+  return {
+    family,
+    variant,
+    description: descriptions[family] ?? "Plantilla premium pensada para lanzar colecciones con mas criterio comercial.",
+  };
+}
+
 export default function SellerTemplatesPage() {
   const [templates, setTemplates] = useState<CollectionTemplate[]>([]);
   const [loading, setLoading] = useState(true);
@@ -29,6 +56,12 @@ export default function SellerTemplatesPage() {
       .finally(() => setLoading(false));
   }, []);
 
+  const sortedTemplates = [...templates].sort((a, b) => {
+    const metaA = getTemplateMeta(a.name);
+    const metaB = getTemplateMeta(b.name);
+    return metaA.family.localeCompare(metaB.family) || metaA.variant.localeCompare(metaB.variant);
+  });
+
   return (
     <div className="space-y-6">
       <div className="flex items-center justify-between gap-4">
@@ -39,7 +72,7 @@ export default function SellerTemplatesPage() {
           </Link>
           <h1 className="text-2xl font-bold text-neutral-900">Plantillas</h1>
           <p className="mt-1 text-sm text-neutral-500">
-            Galería de plantillas públicas para arrancar más rápido tus colecciones.
+            Biblioteca premium para lanzar colecciones con mejor jerarquia, tono y adaptacion por formato.
           </p>
         </div>
       </div>
@@ -54,7 +87,9 @@ export default function SellerTemplatesPage() {
         </div>
       ) : (
         <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-3">
-          {templates.map((template) => (
+          {sortedTemplates.map((template) => {
+            const templateMeta = getTemplateMeta(template.name);
+            return (
             <div key={template.id} className="overflow-hidden rounded-2xl border border-neutral-200 bg-white">
               <div
                 className="relative h-40 w-full overflow-hidden"
@@ -67,14 +102,26 @@ export default function SellerTemplatesPage() {
                     className="h-full w-full object-cover"
                   />
                 )}
+                <div className="absolute left-3 top-3 rounded-full border border-white/70 bg-white/85 px-2 py-1 text-[10px] font-semibold uppercase tracking-[0.16em] text-neutral-500 shadow-sm">
+                  {templateMeta.variant}
+                </div>
                 <div className="absolute bottom-3 right-3 rounded-full bg-black/70 px-2.5 py-1 text-[11px] font-medium text-white">
                   {template.canvas_width} × {template.canvas_height}
                 </div>
               </div>
               <div className="space-y-3 p-4">
                 <div>
-                  <h2 className="text-sm font-semibold text-neutral-900">{template.name}</h2>
-                  <p className="mt-1 text-xs text-neutral-500">{template.item_count} elementos</p>
+                  <div className="mb-2 flex flex-wrap gap-1.5">
+                    <span className="rounded-full bg-[#F3F7F6] px-2 py-1 text-[10px] font-semibold uppercase tracking-[0.14em] text-[#0F3D3A]">
+                      {templateMeta.family}
+                    </span>
+                    <span className="rounded-full bg-neutral-100 px-2 py-1 text-[10px] font-semibold uppercase tracking-[0.14em] text-neutral-500">
+                      {getCanvasFormatLabel(template.canvas_width, template.canvas_height)}
+                    </span>
+                  </div>
+                  <h2 className="text-sm font-semibold text-neutral-900">{templateMeta.family}</h2>
+                  <p className="mt-1 text-xs leading-relaxed text-neutral-500">{templateMeta.description}</p>
+                  <p className="mt-2 text-xs text-neutral-400">{template.item_count} elementos</p>
                 </div>
                 <Link
                   href="/seller/collections"
@@ -85,7 +132,7 @@ export default function SellerTemplatesPage() {
                 </Link>
               </div>
             </div>
-          ))}
+          )})}
         </div>
       )}
     </div>

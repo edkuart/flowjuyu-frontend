@@ -6,17 +6,298 @@ import { useRouter } from "next/navigation";
 import { Plus, Layers2, Pencil, Eye, EyeOff, Trash2, Copy } from "lucide-react";
 import { apiFetch } from "@/lib/api";
 
+type CollectionPreviewItem = {
+  id: number;
+  element_type: string;
+  content?: Record<string, any> | null;
+  pos_x: number;
+  pos_y: number;
+  width: number;
+  height: number;
+  z_index: number;
+  product_image?: string | null;
+};
+
 type Collection = {
   id: number;
   name: string;
   description: string | null;
   status: "draft" | "published";
   background_color: string;
+  background_style?: string | null;
+  background_image_url?: string | null;
   canvas_width: number;
   canvas_height: number;
   item_count: number;
   created_at: string;
+  items?: CollectionPreviewItem[];
 };
+
+function buildBoxShadow(shadow?: {
+  shadowEnabled?: boolean;
+  shadowX?: number;
+  shadowY?: number;
+  shadowBlur?: number;
+  shadowSpread?: number;
+  shadowColor?: string;
+}) {
+  if (!shadow?.shadowEnabled) return undefined;
+  return `${shadow.shadowX ?? 0}px ${shadow.shadowY ?? 0}px ${Math.max(0, shadow.shadowBlur ?? 0)}px ${shadow.shadowSpread ?? 0}px ${shadow.shadowColor ?? "rgba(15,61,58,0.18)"}`;
+}
+
+function getShapePreviewStyle(content: Record<string, any>, scale: number) {
+  const shapeType = String(content?.shapeType ?? "rect");
+  const background = content?.gradientEnabled && content?.gradientColor2
+    ? `linear-gradient(${content?.gradientAngle ?? 135}deg, ${content?.fillColor ?? "#0F3D3A"}, ${content?.gradientColor2})`
+    : (content?.fillColor ?? "#0F3D3A");
+  const borderWidth = Math.max(0, Number(content?.strokeWidth ?? 0) * scale);
+  const shared = {
+    background,
+    opacity: content?.opacity ?? 1,
+    border: borderWidth > 0 ? `${borderWidth}px solid ${content?.strokeColor ?? "transparent"}` : undefined,
+    boxShadow: buildBoxShadow({
+      shadowEnabled: content?.shadowEnabled,
+      shadowX: (content?.shadowX ?? 0) * scale,
+      shadowY: (content?.shadowY ?? 0) * scale,
+      shadowBlur: (content?.shadowBlur ?? 0) * scale,
+      shadowSpread: (content?.shadowSpread ?? 0) * scale,
+      shadowColor: content?.shadowColor,
+    }),
+  } as const;
+
+  if (shapeType === "circle") {
+    return { ...shared, borderRadius: "999px" };
+  }
+  if (shapeType === "line") {
+    return { ...shared, height: Math.max(2, Number(content?.strokeWidth ?? 4) * scale), borderRadius: 999 };
+  }
+  if (shapeType === "triangle") {
+    return {
+      ...shared,
+      clipPath: "polygon(50% 0%, 0% 100%, 100% 100%)",
+    };
+  }
+  if (shapeType === "star") {
+    return {
+      ...shared,
+      clipPath:
+        "polygon(50% 0%, 61% 35%, 98% 35%, 68% 57%, 79% 91%, 50% 70%, 21% 91%, 32% 57%, 2% 35%, 39% 35%)",
+    };
+  }
+  return {
+    ...shared,
+    borderRadius: `${Math.max(0, Number(content?.borderRadius ?? 12) * scale)}px`,
+  };
+}
+
+function CollectionCanvasPreview({ collection }: { collection: Collection }) {
+  const previewFrameWidth = 220;
+  const previewFrameHeight = 220;
+  const canvasRatio = collection.canvas_width / Math.max(1, collection.canvas_height);
+  const previewItems = (collection.items ?? []).slice(0, 12);
+  const itemBounds = previewItems.reduce(
+    (acc, item) => {
+      const x = Number(item.pos_x ?? 0);
+      const y = Number(item.pos_y ?? 0);
+      const width = Math.max(1, Number(item.width ?? 0));
+      const height = Math.max(1, Number(item.height ?? 0));
+
+      return {
+        minX: Math.min(acc.minX, x),
+        minY: Math.min(acc.minY, y),
+        maxX: Math.max(acc.maxX, x + width),
+        maxY: Math.max(acc.maxY, y + height),
+      };
+    },
+    {
+      minX: collection.canvas_width * 0.18,
+      minY: collection.canvas_height * 0.14,
+      maxX: collection.canvas_width * 0.82,
+      maxY: collection.canvas_height * 0.72,
+    }
+  );
+  const contentWidth = Math.max(1, itemBounds.maxX - itemBounds.minX);
+  const contentHeight = Math.max(1, itemBounds.maxY - itemBounds.minY);
+  const contentCenterX = itemBounds.minX + contentWidth / 2;
+  const contentCenterY = itemBounds.minY + contentHeight / 2;
+  const zoomFactor = previewItems.length > 0
+    ? Math.min(
+        1.1,
+        Math.max(
+          canvasRatio < 0.9 ? 0.98 : 1,
+          Math.min(
+            (collection.canvas_width * 0.92) / contentWidth,
+            (collection.canvas_height * 0.9) / contentHeight
+          )
+        )
+      )
+    : (canvasRatio < 0.9 ? 1.02 : canvasRatio > 1.2 ? 1.01 : 1);
+  const scale = Math.max(
+    previewFrameWidth / Math.max(1, collection.canvas_width),
+    previewFrameHeight / Math.max(1, collection.canvas_height)
+  ) * zoomFactor;
+  const previewWidth = Math.max(previewFrameWidth, collection.canvas_width * scale);
+  const previewHeight = Math.max(previewFrameHeight, collection.canvas_height * scale);
+  const overflowX = Math.max(0, previewWidth - previewFrameWidth);
+  const overflowY = Math.max(0, previewHeight - previewFrameHeight);
+  const scaledCenterX = contentCenterX * scale;
+  const scaledCenterY = contentCenterY * scale;
+  const targetCenterX = previewFrameWidth / 2;
+  const targetCenterY = previewFrameHeight * (canvasRatio < 0.9 ? 0.38 : 0.44);
+  const offsetX = Math.min(
+    overflowX,
+    Math.max(0, scaledCenterX - targetCenterX)
+  );
+  const offsetY = Math.min(
+    overflowY,
+    Math.max(0, scaledCenterY - targetCenterY)
+  );
+
+  return (
+    <div className="relative flex h-64 items-center justify-center overflow-hidden border-b border-neutral-100 bg-[linear-gradient(180deg,#FBF8F1_0%,#F4EFE7_100%)] px-4 py-4">
+      <div
+        className="relative overflow-hidden rounded-[24px] border border-white/80 bg-white shadow-[0_16px_38px_rgba(15,61,58,0.12)]"
+        style={{
+          width: previewFrameWidth,
+          height: previewFrameHeight,
+        }}
+      >
+        <div
+          className="absolute overflow-hidden"
+          style={{
+            width: previewWidth,
+            height: previewHeight,
+            left: -offsetX,
+            top: -offsetY,
+            background: collection.background_style || collection.background_color || "#FFFFFF",
+          }}
+        >
+          {collection.background_image_url && (
+            <img
+              src={collection.background_image_url}
+              alt=""
+              className="absolute inset-0 h-full w-full object-cover"
+            />
+          )}
+
+          {previewItems.length === 0 && (
+            <div className="absolute inset-0 flex items-center justify-center gap-2 text-[10px] font-medium text-neutral-400">
+              <Layers2 className="h-4 w-4 opacity-60" />
+              <span>
+                {collection.canvas_width} × {collection.canvas_height}
+              </span>
+            </div>
+          )}
+
+          {previewItems.map((item) => {
+            const left = Number(item.pos_x ?? 0) * scale;
+            const top = Number(item.pos_y ?? 0) * scale;
+            const width = Math.max(8, Number(item.width ?? 60) * scale);
+            const height = Math.max(8, Number(item.height ?? 40) * scale);
+            const content = item.content ?? {};
+
+            if (item.element_type === "text") {
+              return (
+                <div
+                  key={`collection-preview-text-${collection.id}-${item.id}`}
+                  style={{
+                    position: "absolute",
+                    left,
+                    top,
+                    width,
+                    minHeight: height,
+                    color: content?.color ?? "#1A1A1A",
+                    fontSize: Math.max(6, Number(content?.fontSize ?? 16) * scale * 0.72),
+                    fontWeight: content?.fontWeight ?? "700",
+                    lineHeight: content?.lineHeight ?? 1.1,
+                    letterSpacing: `${(content?.letterSpacing ?? 0) * scale}px`,
+                    padding: `${Math.max(0, Number(content?.paddingY ?? 0) * scale)}px ${Math.max(0, Number(content?.paddingX ?? 0) * scale)}px`,
+                    overflow: "hidden",
+                    whiteSpace: "pre-wrap",
+                    wordBreak: "break-word",
+                    opacity: 0.96,
+                  }}
+                >
+                  {String(content?.text ?? "").slice(0, 52)}
+                </div>
+              );
+            }
+
+            if (item.element_type === "shape") {
+              const shapeStyle = getShapePreviewStyle(content, scale);
+              return (
+                <div
+                  key={`collection-preview-shape-${collection.id}-${item.id}`}
+                  style={{
+                    position: "absolute",
+                    left,
+                    top,
+                    width,
+                    height,
+                    ...shapeStyle,
+                  }}
+                />
+              );
+            }
+
+            if (item.element_type === "image" || item.element_type === "product") {
+              const imageUrl = String(content?.url ?? item.product_image ?? "");
+              if (imageUrl) {
+                return (
+                  <img
+                    key={`collection-preview-image-${collection.id}-${item.id}`}
+                    src={imageUrl}
+                    alt=""
+                    style={{
+                      position: "absolute",
+                      left,
+                      top,
+                      width,
+                      height,
+                      objectFit: "cover",
+                      borderRadius: `${Math.max(2, Number(content?.borderRadius ?? 10) * scale)}px`,
+                      boxShadow: buildBoxShadow({
+                        shadowEnabled: content?.shadowEnabled,
+                        shadowX: (content?.shadowX ?? 0) * scale,
+                        shadowY: (content?.shadowY ?? 0) * scale,
+                        shadowBlur: (content?.shadowBlur ?? 0) * scale,
+                        shadowSpread: (content?.shadowSpread ?? 0) * scale,
+                        shadowColor: content?.shadowColor,
+                      }),
+                    }}
+                  />
+                );
+              }
+
+              return (
+                <div
+                  key={`collection-preview-placeholder-${collection.id}-${item.id}`}
+                  style={{
+                    position: "absolute",
+                    left,
+                    top,
+                    width,
+                    height,
+                    borderRadius: `${Math.max(2, Number(content?.borderRadius ?? 10) * scale)}px`,
+                    background: item.element_type === "product" ? "#DCE5E0" : "#E7E5E4",
+                  }}
+                />
+              );
+            }
+
+            return null;
+          })}
+        </div>
+        <div
+          className="pointer-events-none absolute inset-0 rounded-2xl"
+          style={{
+            boxShadow: "inset 0 1px 0 rgba(255,255,255,0.55)",
+          }}
+        />
+      </div>
+    </div>
+  );
+}
 
 export default function CollectionsPage() {
   const router = useRouter();
@@ -34,6 +315,56 @@ export default function CollectionsPage() {
       .catch(() => setError("No se pudieron cargar las colecciones"))
       .finally(() => setLoading(false));
   }, []);
+
+  useEffect(() => {
+    const collectionsNeedingPreview = collections.filter(
+      (collection) =>
+        !Array.isArray(collection.items) ||
+        collection.items.length === 0 ||
+        collection.background_style === undefined
+    );
+
+    if (collectionsNeedingPreview.length === 0) return;
+
+    let cancelled = false;
+
+    Promise.all(
+      collectionsNeedingPreview.map(async (collection) => {
+        try {
+          const res = await apiFetch(`/api/collections/${collection.id}`);
+          const data = await res.json();
+          if (!data?.ok || !data?.data) return null;
+
+          return {
+            id: collection.id,
+            items: Array.isArray(data.data.items) ? data.data.items : [],
+            background_style: data.data.background_style ?? null,
+            background_image_url: data.data.background_image_url ?? null,
+            background_color: data.data.background_color ?? collection.background_color,
+            canvas_width: data.data.canvas_width ?? collection.canvas_width,
+            canvas_height: data.data.canvas_height ?? collection.canvas_height,
+          };
+        } catch {
+          return null;
+        }
+      })
+    ).then((results) => {
+      if (cancelled) return;
+      const updates = results.filter(Boolean) as Array<Partial<Collection> & { id: number }>;
+      if (updates.length === 0) return;
+
+      setCollections((current) =>
+        current.map((collection) => {
+          const update = updates.find((item) => item.id === collection.id);
+          return update ? { ...collection, ...update } : collection;
+        })
+      );
+    });
+
+    return () => {
+      cancelled = true;
+    };
+  }, [collections]);
 
   async function handleCreate() {
     if (!newName.trim()) return;
@@ -142,16 +473,7 @@ export default function CollectionsPage() {
               key={col.id}
               className="group relative flex flex-col overflow-hidden rounded-2xl border border-neutral-200 bg-white transition hover:shadow-md"
             >
-              {/* Preview header */}
-              <div
-                className="flex h-32 items-center justify-center"
-                style={{ backgroundColor: col.background_color }}
-              >
-                <Layers2 className="h-10 w-10 text-neutral-400 opacity-40" />
-                <span className="ml-2 text-sm font-medium text-neutral-500 opacity-50">
-                  {col.canvas_width} × {col.canvas_height}
-                </span>
-              </div>
+              <CollectionCanvasPreview collection={col} />
 
               {/* Info */}
               <div className="flex flex-1 flex-col gap-3 p-4">
