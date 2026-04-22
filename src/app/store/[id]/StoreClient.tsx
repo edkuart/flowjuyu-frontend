@@ -27,6 +27,7 @@ import { useRouter } from "next/navigation";
 import { FollowButton } from "@/components/seller/FollowButton";
 import ProductDiscoveryLayout from "@/components/product/discovery/ProductDiscoveryLayout";
 import ProductCardV2 from "@/components/product/ProductCardV2";
+import CollectionArtworkPreview from "@/components/seller/CollectionArtworkPreview";
 import { ProductDetailsBlock } from "@/components/product/ProductDetailsBlock";
 import SellerQrModal from "@/components/seller/SellerQrModal";
 import SocialButtons from "@/components/seller/SocialButtons";
@@ -102,6 +103,7 @@ type Seller = {
   } | null;
   live_featured_products?: LiveFeaturedProduct[];
   live_current_product?: LiveFeaturedProduct | null;
+  live_collection_id?: number | null;
 };
 
 type Review = {
@@ -131,16 +133,29 @@ type CollectionItem = {
   internal_code: string | null;
 };
 
+type PublicCollectionProduct = {
+  id: string;
+  nombre: string;
+  precio?: number | string | null;
+  imagen_url?: string | null;
+  internal_code?: string | null;
+  seller_sku?: string | null;
+};
+
 type PublicCollection = {
   id: number;
   name: string;
   description: string | null;
+  promo_image_url?: string | null;
   background_color: string;
   background_style: string | null;
   background_image_url: string | null;
   canvas_width: number;
   canvas_height: number;
   created_at: string;
+  item_count?: number;
+  product_count?: number;
+  products?: PublicCollectionProduct[];
   items: CollectionItem[];
 };
 
@@ -632,6 +647,17 @@ export default function StoreClient({
       .then((data) => { if (data?.ok) setCollections(data.data ?? []); })
       .catch(() => {});
   }, [seller.id]);
+
+  const featuredCollection = useMemo(() => {
+    const liveCollectionId = Number(seller.live_collection_id ?? 0);
+    if (!liveCollectionId) return null;
+    return collections.find((collection) => collection.id === liveCollectionId) ?? null;
+  }, [collections, seller.live_collection_id]);
+
+  const storefrontCollections = useMemo(
+    () => collections.filter((collection) => collection.id !== featuredCollection?.id),
+    [collections, featuredCollection?.id],
+  );
 
   /* ── Filtros + Sort ── */
   const productos = useMemo(() => {
@@ -1612,292 +1638,139 @@ export default function StoreClient({
         {/* ══════════════════════════════════════════════
           COLLECTIONS SECTION
       ══════════════════════════════════════════════ */}
-        {collections.length > 0 && (
-          <section className="mt-20">
-            <div className="mb-8">
-              <p className="mb-1 text-xs font-bold tracking-widest text-neutral-400 uppercase">
-                Looks y conjuntos
-              </p>
-              <h2 className="text-2xl font-bold text-neutral-900">
-                Colecciones de {seller.nombre_comercio}
-              </h2>
-            </div>
-
-            {/* CSS keyframes for collection animations */}
-            <style>{`
-              @keyframes coll-fadeIn   { from { opacity: 0; } to { opacity: 1; } }
-              @keyframes coll-slideUp  { from { opacity: 0; transform: translateY(20px); } to { opacity: 1; transform: translateY(0); } }
-              @keyframes coll-slideLeft{ from { opacity: 0; transform: translateX(20px); } to { opacity: 1; transform: translateX(0); } }
-              @keyframes coll-zoomIn   { from { opacity: 0; transform: scale(0.6); } to { opacity: 1; transform: scale(1); } }
-              @keyframes coll-float    { 0%,100%{transform:translateY(0)}   50%{transform:translateY(-10px)} }
-              @keyframes coll-pulse    { 0%,100%{transform:scale(1)}        50%{transform:scale(1.06)} }
-              @keyframes coll-spin     { from{transform:rotate(0deg)}       to{transform:rotate(360deg)} }
-              @keyframes coll-shake    { 0%,100%{transform:translateX(0)}   25%,75%{transform:translateX(-5px)} 50%{transform:translateX(5px)} }
-              @keyframes coll-bounce   { 0%,100%{transform:translateY(0)}   50%{transform:translateY(-14px)} }
-            `}</style>
-
-            <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
-              {collections.map((col) => {
-                const PREVIEW_W = 320;
-                const scale = PREVIEW_W / (col.canvas_width || 800);
-                const previewH = (col.canvas_height || 600) * scale;
-
-                return (
-                  <div
-                    key={col.id}
-                    className="overflow-hidden rounded-2xl border border-neutral-100 bg-white shadow-sm transition-all hover:shadow-lg"
-                  >
-                    {/* Canvas preview */}
-                    <div
-                      className="relative overflow-hidden"
-                      style={{ width: PREVIEW_W, height: previewH }}
-                    >
-                      <div
-                        style={{
-                          width: col.canvas_width,
-                          height: col.canvas_height,
-                          background: col.background_style || col.background_color || "#FFFFFF",
-                          transform: `scale(${scale})`,
-                          transformOrigin: "top left",
-                          position: "relative",
-                        }}
-                      >
-                        {col.background_image_url && (
-                          <img
-                            src={col.background_image_url}
-                            alt=""
-                            style={{
-                              position: "absolute",
-                              inset: 0,
-                              width: "100%",
-                              height: "100%",
-                              objectFit: "cover",
-                              pointerEvents: "none",
-                              zIndex: 0,
-                            }}
-                          />
-                        )}
-                        {col.items.length === 0 && (
-                          <div className="absolute inset-0 flex items-center justify-center text-sm text-neutral-300">
-                            Colección vacía
-                          </div>
-                        )}
-
-                        {col.items.map((item) => {
-                          const anim    = item.content?.animation as string | undefined;
-                          const motion  = item.content?.motion    as string | undefined;
-                          const rotation = Number(item.content?.rotation ?? 0);
-
-                          const animName  = anim   && anim   !== "none" ? `coll-${anim}`   : null;
-                          const hasMotion = motion && motion !== "none";
-                          const animDelay = (item.z_index ?? 0) * 0.08;
-
-                          const MOTION_DUR: Record<string, string> = {
-                            float:  "3s ease-in-out infinite",
-                            pulse:  "2s ease-in-out infinite",
-                            spin:   "4s linear infinite",
-                            shake:  "0.5s ease-in-out infinite",
-                            bounce: "1s ease-in-out infinite",
-                          };
-
-                          const elType = item.element_type || "product";
-
-                          /* Outer div: absolute position + static rotation */
-                          const outerStyle: React.CSSProperties = {
-                            position: "absolute",
-                            left: item.pos_x,
-                            top: item.pos_y,
-                            width: item.width,
-                            height: item.height,
-                            zIndex: (item.z_index ?? 0) + 1,
-                            ...(rotation ? { transform: `rotate(${rotation}deg)`, transformOrigin: "center center" } : {}),
-                          };
-
-                          /* Entrance animation wrapper */
-                          const entranceStyle: React.CSSProperties = animName
-                            ? { width: "100%", height: "100%", animation: `${animName} 0.5s ease forwards`, animationDelay: `${animDelay}s`, opacity: 0 }
-                            : { width: "100%", height: "100%" };
-
-                          /* Continuous motion wrapper */
-                          const motionStyle: React.CSSProperties = hasMotion
-                            ? { width: "100%", height: "100%", animation: `coll-${motion} ${MOTION_DUR[motion!]}` }
-                            : { width: "100%", height: "100%" };
-
-                          if (elType === "text") {
-                            const tc = item.content ?? {};
-                            const hasBg = tc.bgColor && tc.bgColor !== "";
-                            const bgRgba = hasBg ? buildCollectionBgRgba(tc) : undefined;
-                            return (
-                              <div key={item.id} style={outerStyle}>
-                                <div style={entranceStyle}>
-                                  <div style={motionStyle}>
-                                    <div
-                                      style={{
-                                        width: "100%", height: "100%",
-                                        display: "flex",
-                                        alignItems: "center",
-                                        padding: `${tc.paddingY ?? 8}px ${tc.paddingX ?? 10}px`,
-                                        color: tc.color || "#1a1a1a",
-                                        fontSize: tc.fontSize || 24,
-                                        fontFamily: tc.fontFamily || "inherit",
-                                        fontWeight: tc.fontWeight || "bold",
-                                        fontStyle: tc.fontStyle || "normal",
-                                        letterSpacing: `${tc.letterSpacing ?? 0}px`,
-                                        textAlign: tc.textAlign || "center",
-                                        justifyContent:
-                                          tc.textAlign === "right" ? "flex-end"
-                                          : tc.textAlign === "center" ? "center"
-                                          : "flex-start",
-                                        textShadow: tc.shadow
-                                          ? `${tc.shadowX ?? 2}px ${tc.shadowY ?? 2}px ${tc.shadowBlur ?? 4}px ${tc.shadowColor ?? "#000000"}`
-                                          : undefined,
-                                        WebkitTextStroke: tc.outline
-                                          ? `${tc.outlineWidth ?? 1}px ${tc.outlineColor ?? "#000000"}`
-                                          : undefined,
-                                        whiteSpace: "pre-wrap",
-                                        wordBreak: "break-word",
-                                        overflow: "hidden",
-                                        lineHeight: tc.lineHeight ?? 1.2,
-                                        background: bgRgba,
-                                        borderRadius: hasBg ? 8 : undefined,
-                                      }}
-                                    >
-                                      {tc.text || ""}
-                                    </div>
-                                  </div>
-                                </div>
-                              </div>
-                            );
-                          }
-
-                          if (elType === "shape") {
-                            const sc = item.content ?? {};
-                            const shapeBg = sc.gradientEnabled && sc.gradientColor2
-                              ? sc.gradientType === "radial"
-                                ? `radial-gradient(circle, ${sc.fillColor}, ${sc.gradientColor2})`
-                                : `linear-gradient(${sc.gradientAngle ?? 135}deg, ${sc.fillColor}, ${sc.gradientColor2})`
-                              : (sc.fillColor || "#0F3D3A");
-                            return (
-                              <div key={item.id} style={outerStyle}>
-                                <div style={entranceStyle}>
-                                  <div style={motionStyle}>
-                                    <div
-                                      style={{
-                                        width: "100%", height: "100%",
-                                        background: shapeBg,
-                                        boxShadow: buildCollectionBoxShadow(sc),
-                                        borderRadius: sc.shapeType === "circle" ? "50%"
-                                          : (sc.shapeType === "triangle" || sc.shapeType === "star" || sc.shapeType === "line") ? "0"
-                                          : `${sc.borderRadius ?? 8}px`,
-                                        clipPath: sc.shapeType === "triangle"
-                                          ? "polygon(50% 0%, 0% 100%, 100% 100%)"
-                                          : sc.shapeType === "star"
-                                          ? "polygon(50% 0%, 61% 35%, 98% 35%, 68% 57%, 79% 91%, 50% 70%, 21% 91%, 32% 57%, 2% 35%, 39% 35%)"
-                                          : undefined,
-                                        opacity: sc.opacity ?? 1,
-                                      }}
-                                    />
-                                  </div>
-                                </div>
-                              </div>
-                            );
-                          }
-
-                          if (elType === "image") {
-                            const ic = item.content ?? {};
-                            return (
-                              <div key={item.id} style={outerStyle}>
-                                <div style={entranceStyle}>
-                                  <div style={motionStyle}>
-                                    {ic.url ? (
-                                      <img
-                                        src={ic.url}
-                                        alt=""
-                                        style={{
-                                          width: "100%", height: "100%",
-                                          objectFit: ic.objectFit ?? "cover",
-                                          borderRadius: ic.borderRadius ?? 8,
-                                          opacity: ic.opacity ?? 1,
-                                          boxShadow: buildCollectionBoxShadow(ic),
-                                          display: "block",
-                                        }}
-                                      />
-                                    ) : (
-                                      <div style={{ width: "100%", height: "100%", background: "#e5e7eb", borderRadius: 8 }} />
-                                    )}
-                                  </div>
-                                </div>
-                              </div>
-                            );
-                          }
-
-                          /* product (default) */
-                          const href = item.internal_code
-                            ? `/p/${item.internal_code}`
-                            : `/product/${item.product_id}`;
-                          return (
-                            <div key={item.id} style={outerStyle}>
-                              <div style={entranceStyle}>
-                                <div style={motionStyle}>
-                                  <Link
-                                    href={href}
-                                    title={`${item.product_name ?? ""} — Q${Number(item.product_price ?? 0).toFixed(2)}`}
-                                    style={{ display: "block", width: "100%", height: "100%", borderRadius: 8, overflow: "hidden", position: "relative" }}
-                                    className="group/item transition-transform hover:scale-[1.03] hover:shadow-xl"
-                                  >
-                                    {item.product_image ? (
-                                      <img
-                                        src={item.product_image}
-                                        alt={item.product_name ?? ""}
-                                        style={{ width: "100%", height: "100%", objectFit: "cover", borderRadius: 8, display: "block" }}
-                                      />
-                                    ) : (
-                                      <div style={{ width: "100%", height: "100%", background: "#e5e7eb", borderRadius: 8 }} />
-                                    )}
-                                    <div
-                                      style={{
-                                        position: "absolute",
-                                        bottom: 0, left: 0, right: 0,
-                                        padding: "4px 6px",
-                                        background: "linear-gradient(to top, rgba(0,0,0,0.65), transparent)",
-                                        borderBottomLeftRadius: 8,
-                                        borderBottomRightRadius: 8,
-                                        opacity: 0,
-                                        transition: "opacity 0.2s",
-                                      }}
-                                      className="group-hover/item:opacity-100"
-                                    >
-                                      <p style={{ color: "#fff", fontSize: 10, fontWeight: 600, margin: 0, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>
-                                        {item.product_name}
-                                      </p>
-                                      <p style={{ color: "rgba(255,255,255,0.85)", fontSize: 9, margin: 0 }}>
-                                        Q{Number(item.product_price ?? 0).toFixed(2)}
-                                      </p>
-                                    </div>
-                                  </Link>
-                                </div>
-                              </div>
-                            </div>
-                          );
-                        })}
-                      </div>
-                    </div>
-
-                    {/* Info */}
-                    <div className="px-4 py-3">
-                      <h3 className="line-clamp-1 font-semibold text-neutral-800">{col.name}</h3>
-                      {col.description && (
-                        <p className="mt-0.5 line-clamp-2 text-xs text-neutral-500">{col.description}</p>
-                      )}
-                      <p className="mt-1 text-xs text-neutral-400">
-                        {col.items.length}{" "}
-                        {col.items.length === 1 ? "elemento" : "elementos"}
-                      </p>
-                    </div>
+        {(featuredCollection || storefrontCollections.length > 0) && (
+          <section className="mt-20 space-y-10">
+            {featuredCollection ? (
+              <div className="overflow-hidden rounded-[32px] border border-neutral-200 bg-[linear-gradient(135deg,#FBF5EE_0%,#F3ECE2_46%,#E9DED1_100%)] shadow-[0_24px_60px_rgba(15,61,58,0.08)]">
+                <div className="grid gap-0 lg:grid-cols-[1.05fr_0.95fr]">
+                  <div className="min-h-[340px] overflow-hidden border-b border-neutral-100 lg:min-h-[460px] lg:border-b-0 lg:border-r">
+                    <CollectionArtworkPreview
+                      name={featuredCollection.name}
+                      imageUrl={featuredCollection.promo_image_url ?? featuredCollection.background_image_url ?? null}
+                      items={featuredCollection.items}
+                      backgroundColor={featuredCollection.background_color}
+                      backgroundStyle={featuredCollection.background_style}
+                      canvasWidth={featuredCollection.canvas_width}
+                      canvasHeight={featuredCollection.canvas_height}
+                    />
                   </div>
-                );
-              })}
-            </div>
+                  <div className="flex flex-col justify-between gap-6 p-8 lg:p-10">
+                    <div>
+                      <p className="text-xs font-bold uppercase tracking-[0.28em] text-neutral-400">Coleccion destacada</p>
+                      <h2 className="mt-3 text-3xl font-bold text-neutral-900">{featuredCollection.name}</h2>
+                      <p className="mt-3 max-w-xl text-sm leading-7 text-neutral-600">{featuredCollection.description || `Una seleccion curada de ${seller.nombre_comercio} para descubrir piezas que conviven como conjunto dentro de la tienda.`}</p>
+                      <p className="mt-4 text-sm font-medium text-neutral-500">{featuredCollection.product_count ?? featuredCollection.item_count ?? featuredCollection.products?.length ?? 0} productos enlazados</p>
+                    </div>
+                    {(featuredCollection.products ?? []).length > 0 ? (
+                      <div className="grid gap-3 sm:grid-cols-2">
+                        {(featuredCollection.products ?? []).slice(0, 4).map((product) => (
+                          <div key={product.id} className="flex items-center gap-3 rounded-2xl border border-white/80 bg-white/80 p-3 backdrop-blur">
+                            <div className="h-14 w-14 overflow-hidden rounded-xl bg-white">
+                              {product.imagen_url ? (
+                                <img src={product.imagen_url} alt={product.nombre} className="h-full w-full object-cover" />
+                              ) : (
+                                <div className="flex h-full w-full items-center justify-center text-neutral-300">•</div>
+                              )}
+                            </div>
+                            <div className="min-w-0">
+                              <p className="truncate text-sm font-medium text-neutral-800">{product.nombre}</p>
+                              {product.precio != null ? <p className="text-xs text-neutral-500">Q{Number(product.precio).toFixed(2)}</p> : null}
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+                    ) : null}
+                  </div>
+                </div>
+              </div>
+            ) : null}
+
+            {storefrontCollections.length > 0 ? (
+              <div>
+                <div className="mb-8">
+                  <p className="mb-1 text-xs font-bold tracking-widest text-neutral-400 uppercase">
+                    Looks y conjuntos
+                  </p>
+                  <h2 className="text-2xl font-bold text-neutral-900">
+                    Colecciones de {seller.nombre_comercio}
+                  </h2>
+                </div>
+
+                <style>{`
+                  @keyframes coll-fadeIn   { from { opacity: 0; } to { opacity: 1; } }
+                  @keyframes coll-slideUp  { from { opacity: 0; transform: translateY(20px); } to { opacity: 1; transform: translateY(0); } }
+                  @keyframes coll-slideLeft{ from { opacity: 0; transform: translateX(20px); } to { opacity: 1; transform: translateX(0); } }
+                  @keyframes coll-zoomIn   { from { opacity: 0; transform: scale(0.6); } to { opacity: 1; transform: scale(1); } }
+                  @keyframes coll-float    { 0%,100%{transform:translateY(0)}   50%{transform:translateY(-10px)} }
+                  @keyframes coll-pulse    { 0%,100%{transform:scale(1)}        50%{transform:scale(1.06)} }
+                  @keyframes coll-spin     { from{transform:rotate(0deg)}       to{transform:rotate(360deg)} }
+                  @keyframes coll-shake    { 0%,100%{transform:translateX(0)}   25%,75%{transform:translateX(-5px)} 50%{transform:translateX(5px)} }
+                  @keyframes coll-bounce   { 0%,100%{transform:translateY(0)}   50%{transform:translateY(-14px)} }
+                `}</style>
+
+                <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
+                  {storefrontCollections.map((col) => {
+                    const linkedProducts = (col.products ?? []).slice(0, 4);
+                    const totalProducts = col.product_count ?? col.item_count ?? col.products?.length ?? col.items.length;
+
+                    return (
+                      <article
+                        key={col.id}
+                        className="overflow-hidden rounded-2xl border border-neutral-100 bg-white shadow-sm transition-all hover:-translate-y-1 hover:shadow-lg"
+                      >
+                        <div className="relative aspect-[4/5] overflow-hidden bg-[linear-gradient(135deg,#FBF4EC_0%,#F1E7D9_45%,#E8DED2_100%)]">
+                          <CollectionArtworkPreview
+                            name={col.name}
+                            imageUrl={col.promo_image_url ?? col.background_image_url ?? null}
+                            items={col.items}
+                            backgroundColor={col.background_color}
+                            backgroundStyle={col.background_style}
+                            canvasWidth={col.canvas_width}
+                            canvasHeight={col.canvas_height}
+                          />
+
+                          <div className="absolute inset-x-0 bottom-0 bg-gradient-to-t from-black/60 via-black/15 to-transparent px-5 py-5 text-white">
+                            <p className="text-[11px] font-semibold uppercase tracking-[0.28em] text-white/75">Colección</p>
+                            <h3 className="mt-1 text-xl font-semibold">{col.name}</h3>
+                            <p className="mt-1 text-sm text-white/82">{totalProducts} {totalProducts === 1 ? "pieza dentro del conjunto" : "piezas dentro del conjunto"}</p>
+                          </div>
+                        </div>
+
+                        <div className="space-y-4 p-5">
+                          {col.description ? (
+                            <p className="line-clamp-3 text-sm leading-6 text-neutral-600">{col.description}</p>
+                          ) : (
+                            <p className="text-sm leading-6 text-neutral-400">Esta colección se comparte como un conjunto visual de productos seleccionados.</p>
+                          )}
+
+                          {linkedProducts.length > 0 ? (
+                            <div className="grid gap-3 sm:grid-cols-2">
+                              {linkedProducts.map((product) => (
+                                <div key={product.id} className="flex items-center gap-3 rounded-2xl border border-neutral-100 bg-neutral-50 p-2.5">
+                                  <div className="h-14 w-14 overflow-hidden rounded-xl bg-white">
+                                    {product.imagen_url ? (
+                                      <img src={product.imagen_url} alt={product.nombre} className="h-full w-full object-cover" />
+                                    ) : (
+                                      <div className="flex h-full w-full items-center justify-center text-neutral-300">•</div>
+                                    )}
+                                  </div>
+                                  <div className="min-w-0">
+                                    <p className="truncate text-sm font-medium text-neutral-800">{product.nombre}</p>
+                                    {product.precio != null ? (
+                                      <p className="text-xs text-neutral-500">Q{Number(product.precio).toFixed(2)}</p>
+                                    ) : null}
+                                  </div>
+                                </div>
+                              ))}
+                            </div>
+                          ) : null}
+                        </div>
+                      </article>
+                    );
+                  })}
+                </div>
+              </div>
+            ) : null}
           </section>
         )}
 
@@ -2134,3 +2007,4 @@ export default function StoreClient({
     </>
   );
 }
+

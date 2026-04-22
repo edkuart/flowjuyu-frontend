@@ -14,6 +14,7 @@ import {
   LogOut,
   Layers2,
   RadioTower,
+  Store,
 } from "lucide-react";
 
 import AuthGuard from "@/components/auth/AuthGuard";
@@ -28,6 +29,7 @@ import { apiGetVendedorPerfil } from "@/services/vendedorPerfil";
 const navItems = [
   { label: "Resumen", icon: LayoutDashboard, href: "/seller/dashboard" },
   { label: "Live", icon: RadioTower, href: "/seller/live" },
+  { label: "Coleccion en tienda", icon: Store, href: "/seller/store-collection" },
   { label: "Mi tienda", icon: Home, href: "/seller/my-business" },
   { label: "Productos", icon: Package, href: "/seller/products" },
   { label: "Pedidos", icon: ShoppingCart, href: "/seller/orders" },
