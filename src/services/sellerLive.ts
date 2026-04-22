@@ -4,6 +4,7 @@ import type { LivePlatform } from "@/lib/liveExternal";
 type LiveResponse = {
   success?: boolean;
   is_live?: boolean;
+  live_started_at?: string | null;
   message?: string;
 };
 
@@ -30,6 +31,10 @@ async function postLive(path: "/api/seller/live/start" | "/api/seller/live/end")
 
   return {
     isLive: Boolean(json.is_live),
+    liveStartedAt:
+      typeof json.live_started_at === "string"
+        ? json.live_started_at
+        : null,
   };
 }
 

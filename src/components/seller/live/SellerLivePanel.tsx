@@ -294,7 +294,7 @@ export default function SellerLivePanel({
       className="rounded-xl border-[#0F3D3A]/10 bg-white"
       contentClassName="space-y-6"
     >
-      <div className="flex items-start justify-between gap-4">
+      <div className="space-y-2">
         <div className="space-y-2">
           <div className="inline-flex items-center gap-2 rounded-full bg-[#0F3D3A]/6 px-3 py-1 text-[11px] font-semibold uppercase tracking-[0.16em] text-[#0F3D3A]/80 ring-1 ring-[#0F3D3A]/10">
             <RadioTower className="h-3.5 w-3.5" />
@@ -312,16 +312,16 @@ export default function SellerLivePanel({
                 <p className="text-xs font-medium uppercase tracking-[0.14em] text-neutral-500">
                   Sesiones activas y respuesta del live
                 </p>
-                <div className="-mx-1 flex snap-x gap-2 overflow-x-auto px-1 pb-1 [scrollbar-width:none] [-ms-overflow-style:none] [&::-webkit-scrollbar]:hidden">
+                <div className="grid grid-cols-2 gap-2 sm:grid-cols-3 xl:grid-cols-6">
                   {liveMetricCards.map((metric) => (
                     <div
                       key={metric.label}
-                      className={`min-w-[138px] snap-start rounded-2xl border px-3 py-3 shadow-sm ${metric.tone}`}
+                      className={`min-w-0 rounded-2xl border px-3 py-3 shadow-sm ${metric.tone}`}
                     >
-                      <p className="text-[11px] font-semibold uppercase tracking-[0.12em] opacity-70">
+                      <p className="text-[10px] font-semibold uppercase tracking-[0.12em] opacity-70 sm:text-[11px]">
                         {metric.label}
                       </p>
-                      <p className="pt-1 text-lg font-semibold tracking-tight">
+                      <p className="pt-1 text-base font-semibold tracking-tight sm:text-lg">
                         {metric.value}
                       </p>
                     </div>

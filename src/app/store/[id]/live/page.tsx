@@ -8,13 +8,17 @@ const SITE_URL = "https://www.flowjuyu.com";
 async function fetchStore(id: string) {
   if (!id) return null;
 
-  const res = await fetch(`${API}/api/public/seller/${id}`, {
-    cache: "no-store",
-  });
+  try {
+    const res = await fetch(`${API}/api/public/seller/${id}`, {
+      cache: "no-store",
+    });
 
-  if (!res.ok) return null;
+    if (!res.ok) return null;
 
-  return await res.json();
+    return await res.json();
+  } catch {
+    return null;
+  }
 }
 
 export async function generateMetadata({

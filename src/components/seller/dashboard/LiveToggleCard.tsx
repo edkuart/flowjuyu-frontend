@@ -22,6 +22,7 @@ function formatStartedAt(value?: string | null) {
 
   const date = new Date(value);
   if (Number.isNaN(date.getTime())) return null;
+  if (date.getTime() > Date.now() + 60_000) return null;
 
   return new Intl.DateTimeFormat("es-GT", {
     day: "numeric",
@@ -51,14 +52,13 @@ export default function LiveToggleCard({
       setError(null);
 
       if (isLive) {
-        await endSellerLive();
-        onStateChange?.(false, { liveStartedAt: null });
+        const result = await endSellerLive();
+        onStateChange?.(false, { liveStartedAt: result.liveStartedAt });
         return;
       }
 
-      await startSellerLive();
-      const startedAt = new Date().toISOString();
-      onStateChange?.(true, { liveStartedAt: startedAt });
+      const result = await startSellerLive();
+      onStateChange?.(true, { liveStartedAt: result.liveStartedAt });
     } catch (err: any) {
       setError(err?.message || "No se pudo cambiar el estado en vivo");
     } finally {

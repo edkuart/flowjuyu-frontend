@@ -13,6 +13,7 @@ import {
   Store,
 } from "lucide-react";
 
+import PublicLiveChat from "@/components/live/PublicLiveChat";
 import WhatsAppModal from "@/components/product/WhatsAppModal";
 import { SellerLogo } from "@/components/seller/SellerLogo";
 import { trackEvent } from "@/lib/analytics";
@@ -523,47 +524,13 @@ export default function LiveStoreClient({ seller, initialProducts }: Props) {
             </div>
 
             <aside className="space-y-5">
-              <div className="rounded-[28px] border border-neutral-200 bg-white p-5 shadow-sm">
-                <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-neutral-500">
-                  Pregunta rápida
-                </p>
-                <h2 className="mt-2 text-xl font-semibold tracking-tight text-neutral-900">
-                  Conversa con el taller
-                </h2>
-                <p className="mt-2 text-sm leading-relaxed text-neutral-600">
-                  Todavía no hay chat público en tiempo real, pero ya puedes
-                  abrir una conversación directa con mensajes listos para enviar.
-                </p>
-
-                <div className="mt-4 flex flex-wrap gap-2">
-                  {QUICK_QUESTIONS.map((question) => (
-                    <button
-                      key={question}
-                      type="button"
-                      onClick={() => openWhatsApp(mainProduct, question)}
-                      className="rounded-full border border-neutral-200 bg-[#fcfbf8] px-3 py-2 text-left text-xs font-medium text-neutral-700 transition hover:border-[#0F3D3A]/20 hover:text-[#0F3D3A]"
-                    >
-                      {question}
-                    </button>
-                  ))}
-                </div>
-
-                {showWhatsapp ? (
-                  <button
-                    type="button"
-                    onClick={() => openWhatsApp(mainProduct)}
-                    className="mt-5 inline-flex min-h-11 w-full items-center justify-center gap-2 rounded-2xl bg-[#0F3D3A] px-4 text-sm font-semibold text-white transition hover:bg-[#0c312f]"
-                  >
-                    <MessageCircle className="h-4 w-4" />
-                    Abrir conversación
-                  </button>
-                ) : (
-                  <div className="mt-5 rounded-2xl border border-dashed border-neutral-200 bg-[#fcfbf8] px-4 py-4 text-sm text-neutral-500">
-                    Este taller todavía no configuró WhatsApp para responder
-                    preguntas rápidas desde la sala live.
-                  </div>
-                )}
-              </div>
+              <PublicLiveChat
+                sellerId={seller.id}
+                quickQuestions={QUICK_QUESTIONS}
+                onFallbackQuestion={(question) =>
+                  openWhatsApp(mainProduct, question)
+                }
+              />
 
               {secondaryProducts.length > 0 ? (
                 <div className="rounded-[28px] border border-neutral-200 bg-white p-5 shadow-sm">

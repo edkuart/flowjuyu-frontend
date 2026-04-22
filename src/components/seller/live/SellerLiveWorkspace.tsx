@@ -3,6 +3,7 @@
 import { useEffect, useState } from "react";
 
 import SellerLivePanel from "@/components/seller/live/SellerLivePanel";
+import SellerLiveChatInbox from "@/components/seller/live/SellerLiveChatInbox";
 import { BaseSection } from "@/components/ui/BaseSection";
 import { BaseSectionHeading } from "@/components/ui/BaseSectionHeading";
 import { apiFetch } from "@/lib/api";
@@ -311,6 +312,16 @@ export function SellerLiveWorkspace() {
                 );
               }}
             />
+          </BaseSection>
+
+          <BaseSection>
+            <BaseSectionHeading
+              eyebrow="Chat"
+              title="Moderación de la conversación"
+              description="Administra lo que aparece en el chat público de tu sala live sin salir del dashboard."
+            />
+
+            <SellerLiveChatInbox enabled={Boolean(sellerProfile?.is_live)} />
           </BaseSection>
         </>
       )}
