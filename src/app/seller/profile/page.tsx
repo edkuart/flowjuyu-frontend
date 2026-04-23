@@ -31,6 +31,25 @@ import { MapPin, QrCode, ShieldCheck, Eye, Hand, Leaf, ArrowLeft } from "lucide-
 import { SellerContactCTA } from "@/components/seller/SellerContactCTA"
 import SellerQrModal from "@/components/seller/SellerQrModal"
 import { StoreHeaderPreview } from "@/components/seller/StoreHeaderPreview"
+import { PageBackNav } from "@/components/ui/PageBackNav"
+import {
+  SellerInfoRow,
+  SellerSectionCard,
+  SellerSectionHeading,
+} from "@/components/seller/ui/SellerProfileSection"
+import {
+  sellerFieldClassName,
+  sellerGlassButtonClassName,
+  sellerHelperTextClassName,
+  sellerLinkClassName,
+  sellerMutedValueClassName,
+  sellerOptionCardActiveClassName,
+  sellerOptionCardClassName,
+  sellerPillClassName,
+  sellerPrimarySoftButtonClassName,
+  sellerSelectClassName,
+  sellerTextareaClassName,
+} from "@/components/seller/ui/sellerFormStyles"
 import { PhoneInput } from "@/components/ui/PhoneInput"
 import { formatPhone, phoneToWaUrl } from "@/lib/phone"
 import {
@@ -40,54 +59,6 @@ import {
 } from "@/lib/imageCompression"
 import { apiFetch } from "@/services/apiClient"
 import type { PhoneNumber } from "@/lib/phone"
-
-/* ──────────────────────────────────────────
-   SMALL HELPERS
-────────────────────────────────────────── */
-
-function SectionCard({
-  title,
-  children,
-}: {
-  title: string
-  children: React.ReactNode
-}) {
-  return (
-    <section className="bg-white rounded-2xl border border-neutral-100 shadow-sm overflow-hidden">
-      <div className="px-6 py-4 border-b border-neutral-100">
-        <p className="text-[11px] font-bold uppercase tracking-widest text-neutral-400">
-          {title}
-        </p>
-      </div>
-      <div className="p-6 md:p-8">{children}</div>
-    </section>
-  )
-}
-
-function SectionHeading({ children }: { children: React.ReactNode }) {
-  return (
-    <p className="px-6 py-3 text-[10px] font-bold uppercase tracking-widest text-neutral-400 bg-neutral-50/80 border-b border-neutral-100">
-      {children}
-    </p>
-  )
-}
-
-function InfoRow({
-  label,
-  children,
-}: {
-  label: string
-  children: React.ReactNode
-}) {
-  return (
-    <div className="px-6 py-4 grid grid-cols-[148px_1fr] items-start gap-4 border-b border-neutral-100 last:border-0">
-      <span className="text-[11px] font-semibold uppercase tracking-wide text-neutral-400 pt-0.5">
-        {label}
-      </span>
-      <div className="text-sm text-neutral-700">{children}</div>
-    </div>
-  )
-}
 
 /* ──────────────────────────────────────────
    PAGE
@@ -121,6 +92,8 @@ const OVERLAY_QUICK_PRESETS: { name: string; config: Partial<HeaderStyle> }[] = 
 
 // Gradient sub-variants — all 4 options including the default
 const GRADIENT_VARIANT_KEYS: GradientVariantKey[] = ["default", "suave", "calido", "oscuro"]
+const heroNameInputClassName =
+  "max-w-xs border-white/18 bg-white/10 text-lg font-bold text-white shadow-[inset_0_1px_0_rgba(255,255,255,0.12)] placeholder:text-white/45 focus-visible:border-white/30 focus-visible:ring-[3px] focus-visible:ring-white/12"
 
 export default function SellerPublicProfilePage() {
   const { user } = useAuth()
@@ -296,13 +269,19 @@ export default function SellerPublicProfilePage() {
     <main className="max-w-4xl mx-auto px-4 py-12 space-y-10">
 
       {/* ── Back navigation ── */}
-      <button
+      <PageBackNav
+        variant="panel"
         onClick={() => router.push('/seller/my-business')}
-        className="inline-flex items-center gap-1.5 text-sm text-neutral-500 hover:text-neutral-800 transition-colors cursor-pointer -mt-2"
-      >
-        <ArrowLeft className="w-4 h-4" />
-        Volver
-      </button>
+        className="-mt-2"
+        meta="Perfil del vendedor"
+        title={
+          <div className="min-w-0">
+            <p className="truncate text-[15px] font-semibold text-[#14231c]">
+              {vendedor.nombre_comercio || "Editar perfil"}
+            </p>
+          </div>
+        }
+      />
 
       {/* ══════════════════════════════════════
           1. HERO
@@ -339,7 +318,7 @@ export default function SellerPublicProfilePage() {
                 />
                 <button
                   onClick={() => inputFileRef.current?.click()}
-                  className="absolute -bottom-2.5 left-1/2 -translate-x-1/2 whitespace-nowrap text-[10px] font-bold bg-white text-[#0F3D3A] px-3 py-1 rounded-full shadow-md hover:bg-neutral-100 transition"
+                  className="absolute -bottom-2.5 left-1/2 -translate-x-1/2 whitespace-nowrap rounded-full border border-white/35 bg-white px-3 py-1 text-[10px] font-semibold text-[#0F3D3A] shadow-lg transition hover:bg-[#f6f4ef]"
                 >
                   Cambiar logo
                 </button>
@@ -354,7 +333,7 @@ export default function SellerPublicProfilePage() {
               <Input
                 value={formData.nombre_comercio || ""}
                 onChange={(e) => onChange("nombre_comercio", e.target.value)}
-                className="text-lg font-bold bg-white/10 border-white/25 text-white placeholder:text-white/40 max-w-xs"
+                className={heroNameInputClassName}
                 placeholder="Nombre del negocio"
               />
             ) : (
@@ -372,16 +351,16 @@ export default function SellerPublicProfilePage() {
 
             <div className="flex gap-2 flex-wrap justify-center sm:justify-start pt-1">
               {esVerificado ? (
-                <span className="inline-flex items-center gap-1.5 text-[11px] font-semibold bg-emerald-500/20 border border-emerald-400/30 text-emerald-100 px-2.5 py-1 rounded-full">
+                <span className={`${sellerPillClassName} border-emerald-300/30 bg-emerald-500/18 text-emerald-50`}>
                   <ShieldCheck className="w-3 h-3" />
                   Tienda verificada
                 </span>
               ) : (
-                <span className="inline-flex items-center gap-1.5 text-[11px] font-medium bg-amber-400/15 border border-amber-300/25 text-amber-100/90 px-2.5 py-1 rounded-full">
+                <span className={`${sellerPillClassName} border-amber-300/25 bg-amber-400/14 font-medium text-amber-50`}>
                   Pendiente de verificación
                 </span>
               )}
-              <span className="inline-flex items-center gap-1.5 text-[11px] font-medium bg-white/10 border border-white/15 text-white/80 px-2.5 py-1 rounded-full">
+              <span className={`${sellerPillClassName} border-white/15 bg-white/10 font-medium text-white/85`}>
                 <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 flex-shrink-0" />
                 Activa
               </span>
@@ -395,7 +374,7 @@ export default function SellerPublicProfilePage() {
                 <Button
                   variant="outline"
                   size="sm"
-                  className="w-full sm:w-auto border-white/25 text-white bg-white/10 hover:bg-white/20 hover:text-white hover:border-white/40 gap-1.5 transition-all"
+                  className={`w-full gap-1.5 sm:w-auto ${sellerGlassButtonClassName}`}
                 >
                   <Eye className="w-3.5 h-3.5" />
                   Ver tienda
@@ -405,7 +384,7 @@ export default function SellerPublicProfilePage() {
                 variant="outline"
                 size="sm"
                 onClick={() => setQrOpen(true)}
-                className="w-full sm:w-auto border-white/25 text-white bg-white/10 hover:bg-white/20 hover:text-white hover:border-white/40 gap-1.5 transition-all"
+                className={`w-full gap-1.5 sm:w-auto ${sellerGlassButtonClassName}`}
               >
                 <QrCode className="w-3.5 h-3.5" />
                 QR
@@ -414,7 +393,7 @@ export default function SellerPublicProfilePage() {
                 variant="outline"
                 size="sm"
                 onClick={() => setEditando(!editando)}
-                className="w-full sm:w-auto border-white/25 text-white bg-white/10 hover:bg-white/20 hover:text-white hover:border-white/40 transition-all"
+                className={`w-full sm:w-auto ${sellerGlassButtonClassName}`}
               >
                 {editando ? "Cancelar" : "Editar perfil"}
               </Button>
@@ -422,7 +401,7 @@ export default function SellerPublicProfilePage() {
                 <Button
                   size="sm"
                   onClick={onSubmit}
-                  className="w-full sm:w-auto bg-white text-[#0F3D3A] hover:bg-neutral-100 font-semibold shadow-sm transition-all"
+                  className={`w-full font-semibold sm:w-auto ${sellerPrimarySoftButtonClassName}`}
                 >
                   Guardar cambios
                 </Button>
@@ -449,14 +428,16 @@ export default function SellerPublicProfilePage() {
       {/* ══════════════════════════════════════
           2. DESCRIPCIÓN DE LA TIENDA
       ══════════════════════════════════════ */}
-      <SectionCard title={editando ? "Descripción de tu tienda" : "Sobre esta tienda"}>
+      <SellerSectionCard
+        title={editando ? "Descripción de tu tienda" : "Sobre esta tienda"}
+      >
         {editando ? (
           <Textarea
             value={formData.descripcion || ""}
             onChange={(e) => onChange("descripcion", e.target.value)}
             placeholder="Cuenta qué vendes, cómo trabajas y qué hace única tu tienda"
             rows={5}
-            className="resize-none text-sm"
+            className={`resize-none ${sellerTextareaClassName}`}
           />
         ) : vendedor.descripcion ? (
           <div className="space-y-4">
@@ -475,15 +456,17 @@ export default function SellerPublicProfilePage() {
           </p>
         )}
 
-      </SectionCard>
+      </SellerSectionCard>
 
       {/* ══════════════════════════════════════
           3. MENSAJE PÚBLICO
       ══════════════════════════════════════ */}
-      <SectionCard title={editando ? "Mensaje público de tu tienda" : "En palabras del artesano"}>
+      <SellerSectionCard
+        title={editando ? "Mensaje público de tu tienda" : "En palabras del artesano"}
+      >
         {editando ? (
           <div className="space-y-3">
-            <p className="text-[13px] text-neutral-500 leading-snug">
+            <p className="text-[13px] leading-snug text-[#7b8881]">
               Este mensaje aparece en la parte principal de tu tienda. Úsalo para invitar al cliente a contactarte.
             </p>
             <div className="relative">
@@ -494,7 +477,7 @@ export default function SellerPublicProfilePage() {
                 }
                 placeholder="Ej: Piezas hechas a mano con técnicas tradicionales. Escríbeme para más información."
                 rows={3}
-                className="resize-none text-sm pr-16"
+                className={`resize-none pr-16 ${sellerTextareaClassName}`}
               />
               <span
                 className={`absolute bottom-2.5 right-3 text-[11px] tabular-nums font-medium pointer-events-none ${
@@ -520,16 +503,16 @@ export default function SellerPublicProfilePage() {
             Agrega un mensaje corto para invitar a los compradores a contactarte
           </p>
         )}
-      </SectionCard>
+      </SellerSectionCard>
 
       {/* ══════════════════════════════════════
           4 & 5. INFORMACIÓN DEL NEGOCIO + CONTACTO
       ══════════════════════════════════════ */}
-      <section className="bg-white rounded-2xl border border-neutral-100 shadow-sm overflow-hidden">
+      <SellerSectionCard title="Datos del negocio" bodyClassName="p-0">
 
-        <SectionHeading>Información del negocio</SectionHeading>
+        <SellerSectionHeading>Información del negocio</SellerSectionHeading>
 
-        <InfoRow label="Departamento">
+        <SellerInfoRow label="Departamento">
           {editando ? (
             <select
               value={formData.departamento || ""}
@@ -537,7 +520,7 @@ export default function SellerPublicProfilePage() {
                 onChange("departamento", e.target.value)
                 onChange("municipio", "")
               }}
-              className="w-full border border-neutral-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-[#0F3D3A]/20 cursor-pointer"
+              className={sellerSelectClassName}
             >
               <option value="">Seleccionar departamento</option>
               {departamentos.map((dep) => (
@@ -546,18 +529,19 @@ export default function SellerPublicProfilePage() {
             </select>
           ) : (
             <span className={vendedor.departamento ? "" : "text-neutral-400"}>
+              
               {vendedor.departamento || "—"}
             </span>
           )}
-        </InfoRow>
+        </SellerInfoRow>
 
-        <InfoRow label="Municipio">
+        <SellerInfoRow label="Municipio">
           {editando ? (
             <select
               value={formData.municipio || ""}
               onChange={(e) => onChange("municipio", e.target.value)}
               disabled={!formData.departamento}
-              className="w-full border border-neutral-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-[#0F3D3A]/20 cursor-pointer disabled:bg-neutral-50 disabled:text-neutral-400 disabled:cursor-not-allowed"
+              className={sellerSelectClassName}
             >
               <option value="">Seleccionar municipio</option>
               {departamentos
@@ -567,30 +551,30 @@ export default function SellerPublicProfilePage() {
                 ))}
             </select>
           ) : (
-            <span className={vendedor.municipio ? "" : "text-neutral-400"}>
+            <span className={vendedor.municipio ? "" : sellerMutedValueClassName}>
               {vendedor.municipio || "—"}
             </span>
           )}
-        </InfoRow>
+        </SellerInfoRow>
 
-        <InfoRow label="Dirección">
+        <SellerInfoRow label="Dirección">
           {editando ? (
             <Textarea
               value={formData.direccion || ""}
               onChange={(e) => onChange("direccion", e.target.value)}
               rows={2}
-              className="resize-none text-sm"
+              className={`resize-none ${sellerTextareaClassName}`}
             />
           ) : (
-            <span className={vendedor.direccion ? "" : "text-neutral-400"}>
+            <span className={vendedor.direccion ? "" : sellerMutedValueClassName}>
               {vendedor.direccion || "—"}
             </span>
           )}
-        </InfoRow>
+        </SellerInfoRow>
 
-        <SectionHeading>Contacto</SectionHeading>
+        <SellerSectionHeading>Contacto</SellerSectionHeading>
 
-        <InfoRow label="Teléfono">
+        <SellerInfoRow label="Teléfono">
           {editando ? (
             <PhoneInput
               value={formData.telefono_comercio ?? null}
@@ -599,13 +583,13 @@ export default function SellerPublicProfilePage() {
               }
             />
           ) : (
-            <span className={vendedor.telefono_comercio ? "" : "text-neutral-400"}>
+            <span className={vendedor.telefono_comercio ? "" : sellerMutedValueClassName}>
               {formatPhone(vendedor.telefono_comercio)}
             </span>
           )}
-        </InfoRow>
+        </SellerInfoRow>
 
-        <InfoRow label="WhatsApp">
+        <SellerInfoRow label="WhatsApp">
           {editando ? (
             <div className="space-y-1.5">
               <PhoneInput
@@ -615,7 +599,7 @@ export default function SellerPublicProfilePage() {
                 }
               />
               {formData.whatsapp_numero && (
-                <p className="text-[11px] text-neutral-400">
+                <p className={sellerHelperTextClassName}>
                   Enlace:{" "}
                   <span className="font-mono text-neutral-600">
                     wa.me/{formData.whatsapp_numero.country_code}{formData.whatsapp_numero.number}
@@ -624,86 +608,86 @@ export default function SellerPublicProfilePage() {
               )}
             </div>
           ) : (
-            <span className={vendedor.whatsapp_numero ? "" : "text-neutral-400"}>
+            <span className={vendedor.whatsapp_numero ? "" : sellerMutedValueClassName}>
               {vendedor.whatsapp_numero ? formatPhone(vendedor.whatsapp_numero) : "Sin número de WhatsApp"}
             </span>
           )}
-        </InfoRow>
+        </SellerInfoRow>
 
-        <SectionHeading>Redes sociales</SectionHeading>
+        <SellerSectionHeading>Redes sociales</SellerSectionHeading>
 
-        <InfoRow label="Instagram">
+        <SellerInfoRow label="Instagram">
           {editando ? (
             <Input
               value={formData.instagram || ""}
               onChange={(e) => onChange("instagram", e.target.value)}
               placeholder="https://instagram.com/tu_tienda"
-              className="text-sm"
+              className={sellerFieldClassName}
             />
           ) : vendedor.instagram ? (
             <a
               href={vendedor.instagram}
               target="_blank"
               rel="noopener noreferrer"
-              className="text-[#0F3D3A] hover:underline break-all transition-colors cursor-pointer"
+              className={sellerLinkClassName}
             >
               {vendedor.instagram}
             </a>
           ) : (
-            <span className="text-neutral-400">—</span>
+            <span className={sellerMutedValueClassName}>—</span>
           )}
-        </InfoRow>
+        </SellerInfoRow>
 
-        <InfoRow label="Facebook">
+        <SellerInfoRow label="Facebook">
           {editando ? (
             <Input
               value={formData.facebook || ""}
               onChange={(e) => onChange("facebook", e.target.value)}
               placeholder="https://facebook.com/tu_tienda"
-              className="text-sm"
+              className={sellerFieldClassName}
             />
           ) : vendedor.facebook ? (
             <a
               href={vendedor.facebook}
               target="_blank"
               rel="noopener noreferrer"
-              className="text-[#0F3D3A] hover:underline break-all transition-colors cursor-pointer"
+              className={sellerLinkClassName}
             >
               {vendedor.facebook}
             </a>
           ) : (
-            <span className="text-neutral-400">—</span>
+            <span className={sellerMutedValueClassName}>—</span>
           )}
-        </InfoRow>
+        </SellerInfoRow>
 
-        <InfoRow label="TikTok">
+        <SellerInfoRow label="TikTok">
           {editando ? (
             <Input
               value={formData.tiktok || ""}
               onChange={(e) => onChange("tiktok", e.target.value)}
               placeholder="https://tiktok.com/@tu_tienda"
-              className="text-sm"
+              className={sellerFieldClassName}
             />
           ) : vendedor.tiktok ? (
             <a
               href={vendedor.tiktok}
               target="_blank"
               rel="noopener noreferrer"
-              className="text-[#0F3D3A] hover:underline break-all transition-colors cursor-pointer"
+              className={sellerLinkClassName}
             >
               {vendedor.tiktok}
             </a>
           ) : (
-            <span className="text-neutral-400">—</span>
+            <span className={sellerMutedValueClassName}>—</span>
           )}
-        </InfoRow>
+        </SellerInfoRow>
 
-      </section>
+      </SellerSectionCard>
 
       {/* ══════════════════════════════════════
           ESTILO DEL ENCABEZADO
       ══════════════════════════════════════ */}
-      <SectionCard title="Estilo del encabezado">
+      <SellerSectionCard title="Estilo del encabezado">
         <div className="space-y-6">
 
           {/* ── Visual Score ── */}
@@ -744,7 +728,7 @@ export default function SellerPublicProfilePage() {
                 <button
                   type="button"
                   onClick={() => setShowSuggestion(v => !v)}
-                  className="text-[11px] font-semibold text-[#0F3D3A] hover:text-[#0a2e2b] underline underline-offset-2 transition-colors cursor-pointer"
+                className="text-[11px] font-semibold text-[#0F3D3A] underline underline-offset-2 transition-colors hover:text-[#0a2e2b]"
                 >
                   {showSuggestion ? "← Ver mi versión" : "Ver sugerencia →"}
                 </button>
@@ -760,7 +744,7 @@ export default function SellerPublicProfilePage() {
               <button
                 type="button"
                 onClick={() => { setHS(recommendedStyle); setShowSuggestion(false) }}
-                className="mt-2 w-full py-2 text-xs font-semibold rounded-lg bg-[#0F3D3A] text-white hover:bg-[#0a2e2b] transition-colors cursor-pointer"
+                className={`mt-2 w-full rounded-xl px-4 py-2.5 text-xs font-semibold ${sellerPrimarySoftButtonClassName}`}
               >
                 Aplicar esta sugerencia
               </button>
@@ -770,8 +754,8 @@ export default function SellerPublicProfilePage() {
           {editando ? (
             <>
               {/* ── Theme selector ── */}
-              <div className="pt-1 border-t border-neutral-100">
-                <p className="text-xs font-semibold text-neutral-500 uppercase tracking-wide mb-2">
+              <div className="border-t border-[#0f2e22]/8 pt-2">
+                <p className="mb-2 text-xs font-semibold uppercase tracking-wide text-neutral-500">
                   Identidad visual
                 </p>
                 <div className="grid grid-cols-3 gap-2">
@@ -783,10 +767,10 @@ export default function SellerPublicProfilePage() {
                         key={key}
                         type="button"
                         onClick={() => setHS(prev => ({ ...prev, ...theme.style }))}
-                        className={`flex flex-col items-center gap-1 px-2 py-3 rounded-xl border-2 text-center transition-all duration-300 cursor-pointer ${
+                        className={`flex flex-col items-center gap-1 px-2 py-3 ${sellerOptionCardClassName} ${
                           active
-                            ? "border-[#0F3D3A] bg-[#0F3D3A]/5"
-                            : "border-neutral-200 hover:border-neutral-300"
+                            ? sellerOptionCardActiveClassName
+                            : ""
                         }`}
                       >
                         <span className={`text-base leading-none ${active ? "text-[#0F3D3A]" : "text-neutral-400"}`}>
@@ -804,7 +788,7 @@ export default function SellerPublicProfilePage() {
 
               {/* ── Mode selector ── */}
               <div>
-                <p className="text-xs font-semibold text-neutral-500 uppercase tracking-wide mb-3">
+                <p className="mb-3 text-xs font-semibold uppercase tracking-wide text-neutral-500">
                   Modo
                 </p>
                 <div className="grid grid-cols-3 gap-3">
@@ -815,10 +799,10 @@ export default function SellerPublicProfilePage() {
                         key={value}
                         type="button"
                         onClick={() => setHS(prev => ({ ...prev, mode: value }))}
-                        className={`flex flex-col items-center gap-1.5 px-3 py-4 rounded-xl border-2 text-center transition-all cursor-pointer ${
+                        className={`flex flex-col items-center gap-1.5 px-3 py-4 ${sellerOptionCardClassName} ${
                           active
-                            ? "border-[#0F3D3A] bg-[#0F3D3A]/5"
-                            : "border-neutral-200 hover:border-neutral-300"
+                            ? sellerOptionCardActiveClassName
+                            : ""
                         }`}
                       >
                         <span className={`text-sm font-semibold ${active ? "text-[#0F3D3A]" : "text-neutral-700"}`}>
@@ -833,8 +817,8 @@ export default function SellerPublicProfilePage() {
 
               {/* ── Gradient variants — only when gradient mode is selected ── */}
               {headerStyle.mode === "gradient" && (
-                <div className="space-y-3 pt-2 border-t border-neutral-100">
-                  <p className="text-xs font-semibold text-neutral-500 uppercase tracking-wide">
+                <div className="space-y-3 border-t border-[#0f2e22]/8 pt-3">
+                  <p className="text-xs font-semibold uppercase tracking-wide text-neutral-500">
                     Variante
                   </p>
                   <div className="grid grid-cols-2 gap-2">
@@ -851,10 +835,10 @@ export default function SellerPublicProfilePage() {
                               gradient_variant: key === "default" ? undefined : key,
                             }))
                           }
-                          className={`relative overflow-hidden rounded-xl border-2 px-3 py-3 text-left transition-all cursor-pointer ${
+                          className={`relative overflow-hidden rounded-2xl border px-3 py-3 text-left shadow-sm transition-all ${
                             active
-                              ? "border-[#0F3D3A]"
-                              : "border-neutral-200 hover:border-neutral-300"
+                              ? "border-[#0F3D3A]/26 shadow-[0_10px_24px_rgba(15,61,58,0.12)]"
+                              : "border-[#0f2e22]/10 hover:border-[#0f2e22]/18"
                           }`}
                           style={{
                             backgroundImage: variant.backgroundImage,
@@ -878,19 +862,19 @@ export default function SellerPublicProfilePage() {
 
               {/* ── Banner uploader — only for image-based modes ── */}
               {headerStyle.mode !== "gradient" && (
-                <div className="space-y-3 pt-2 border-t border-neutral-100">
+                <div className="space-y-3 border-t border-[#0f2e22]/8 pt-3">
                   <div>
-                    <p className="text-xs font-semibold text-neutral-500 uppercase tracking-wide">
+                    <p className="text-xs font-semibold uppercase tracking-wide text-neutral-500">
                       Imagen del encabezado
                     </p>
-                    <p className="text-[11px] text-neutral-400 mt-0.5">
+                    <p className="mt-0.5 text-[11px] text-neutral-400">
                       Esta imagen se mostrará en tu tienda pública
                     </p>
                   </div>
 
                   {/* No banner state */}
                   {!bannerPreview && !formData.banner_url && (
-                    <div className="h-20 rounded-xl border-2 border-dashed border-neutral-200 flex items-center justify-center text-neutral-400 text-sm">
+                    <div className="flex h-20 items-center justify-center rounded-2xl border border-dashed border-[#0f2e22]/12 bg-[#faf8f3] text-sm text-neutral-400">
                       Sin imagen
                     </div>
                   )}
@@ -907,7 +891,7 @@ export default function SellerPublicProfilePage() {
                     type="button"
                     disabled={bannerUploading}
                     onClick={() => bannerInputRef.current?.click()}
-                    className="inline-flex items-center gap-2 px-4 py-2 text-xs font-semibold rounded-lg border border-neutral-200 bg-white text-neutral-700 hover:bg-neutral-50 hover:border-neutral-300 transition-colors cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"
+                    className="inline-flex items-center gap-2 rounded-xl border border-[#0f2e22]/10 bg-white px-4 py-2 text-xs font-semibold text-neutral-700 transition-colors hover:border-[#0f2e22]/20 hover:bg-[#faf8f3] disabled:cursor-not-allowed disabled:opacity-50"
                   >
                     {bannerUploading
                       ? "Subiendo…"
@@ -920,11 +904,11 @@ export default function SellerPublicProfilePage() {
 
               {/* ── Overlay controls — only in image+overlay mode ── */}
               {headerStyle.mode === "image+overlay" && (
-                <div className="space-y-5 pt-2 border-t border-neutral-100">
+                <div className="space-y-5 border-t border-[#0f2e22]/8 pt-3">
 
                   {/* Quick presets */}
                   <div>
-                    <p className="text-xs font-semibold text-neutral-500 uppercase tracking-wide mb-2">
+                    <p className="mb-2 text-xs font-semibold uppercase tracking-wide text-neutral-500">
                       Presets rápidos
                     </p>
                     <div className="flex flex-wrap gap-2">
@@ -933,7 +917,7 @@ export default function SellerPublicProfilePage() {
                           key={name}
                           type="button"
                           onClick={() => setHS(prev => ({ ...prev, ...config }))}
-                          className="px-3 py-1.5 text-[11px] font-semibold rounded-full border border-neutral-200 bg-white text-neutral-700 hover:bg-neutral-50 hover:border-neutral-300 transition-colors cursor-pointer"
+                          className="rounded-full border border-[#0f2e22]/10 bg-white px-3 py-1.5 text-[11px] font-semibold text-neutral-700 transition-colors hover:border-[#0f2e22]/20 hover:bg-[#faf8f3]"
                         >
                           {name}
                         </button>
@@ -943,7 +927,7 @@ export default function SellerPublicProfilePage() {
 
                   {/* Color palette */}
                   <div>
-                    <p className="text-xs font-semibold text-neutral-500 uppercase tracking-wide mb-3">
+                    <p className="mb-3 text-xs font-semibold uppercase tracking-wide text-neutral-500">
                       Color del overlay
                     </p>
                     <div className="flex items-center gap-3">
@@ -955,8 +939,8 @@ export default function SellerPublicProfilePage() {
                             type="button"
                             onClick={() => setHS(prev => ({ ...prev, overlay_color: color }))}
                             title={name}
-                            className={`w-9 h-9 rounded-full border-4 transition-all cursor-pointer ${
-                              selected ? "border-neutral-800 scale-110 shadow-md" : "border-white shadow-sm hover:scale-105"
+                            className={`h-9 w-9 rounded-full border-4 transition-all ${
+                              selected ? "scale-110 border-neutral-800 shadow-md" : "border-white shadow-sm hover:scale-105"
                             }`}
                             style={{ backgroundColor: color }}
                           />
@@ -968,7 +952,7 @@ export default function SellerPublicProfilePage() {
                   {/* Opacity slider */}
                   <div>
                     <div className="flex items-center justify-between mb-2">
-                      <p className="text-xs font-semibold text-neutral-500 uppercase tracking-wide">
+                      <p className="text-xs font-semibold uppercase tracking-wide text-neutral-500">
                         Intensidad
                       </p>
                       <span className="text-xs font-mono text-neutral-600">
@@ -986,7 +970,7 @@ export default function SellerPublicProfilePage() {
                       }
                       className="w-full accent-[#0F3D3A]"
                     />
-                    <div className="flex justify-between text-[10px] text-neutral-400 mt-1">
+                    <div className="mt-1 flex justify-between text-[10px] text-neutral-400">
                       <span>Sutil</span>
                       <span>Intenso</span>
                     </div>
@@ -996,19 +980,19 @@ export default function SellerPublicProfilePage() {
 
               {/* ── Smart suggestions — shown at bottom of edit section ── */}
               {suggestions.length > 0 && (
-                <div className="space-y-2 pt-2 border-t border-neutral-100">
-                  <p className="text-xs font-semibold text-neutral-500 uppercase tracking-wide">
+                <div className="space-y-2 border-t border-[#0f2e22]/8 pt-3">
+                  <p className="text-xs font-semibold uppercase tracking-wide text-neutral-500">
                     Sugerencias
                   </p>
                   {suggestions.map((s) => (
                     <div
                       key={s.key}
-                      className={`text-[13px] p-3 rounded-lg leading-snug ${
+                      className={`rounded-2xl border p-3 text-[13px] leading-snug ${
                         s.priority === "high"
-                          ? "bg-red-50 text-red-700 border border-red-100"
+                          ? "border-red-100 bg-red-50 text-red-700"
                           : s.priority === "medium"
-                          ? "bg-amber-50 text-amber-700 border border-amber-100"
-                          : "bg-blue-50 text-blue-600 border border-blue-100"
+                          ? "border-amber-100 bg-amber-50 text-amber-700"
+                          : "border-blue-100 bg-blue-50 text-blue-600"
                       }`}
                     >
                       💡 {s.message}
@@ -1042,7 +1026,7 @@ export default function SellerPublicProfilePage() {
             </div>
           )}
         </div>
-      </SectionCard>
+      </SellerSectionCard>
 
     </main>
 

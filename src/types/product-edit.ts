@@ -130,6 +130,7 @@ export interface CommonSectionProps {
   updateFields: (partial: Partial<ProductEditData>) => void
   onSave: () => void
   sectionState: SectionSaveState
+  completionLabel?: string
   isSaving: boolean
   defaultExpanded?: boolean
   priority?: "high" | "low"

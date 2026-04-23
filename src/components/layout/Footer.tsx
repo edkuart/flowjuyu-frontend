@@ -12,96 +12,99 @@ export default function Footer() {
   const tr = createT(dictionary ?? esDictionary);
 
   return (
-    <footer className="mt-24 bg-gradient-to-r from-[#0f2e22] to-[#184c37] text-white">
+    <footer className="brand-shell mt-24 border-t border-[var(--brand-line)]">
       <div className="mx-auto max-w-7xl px-6 py-16 md:px-12">
         <div className="grid gap-10 md:grid-cols-4">
           <div>
-            <h3 className="mb-3 font-serif text-xl">Flowjuyu</h3>
-            <p className="text-sm leading-relaxed text-white/70">
+            <p className="mb-3 text-[10px] font-semibold uppercase tracking-[0.18em] text-[var(--brand-faint)]">
+              Marketplace textil
+            </p>
+            <h3 className="mb-3 font-serif text-2xl text-[var(--brand-ink)]">Flowjuyu</h3>
+            <p className="max-w-xs text-sm leading-relaxed text-[var(--brand-soft)]">
               {tr("footer.brandDescription")}
             </p>
           </div>
 
           <div className="space-y-2 text-sm">
-            <p className="mb-3 font-medium text-white/80">
+            <p className="mb-3 text-[11px] font-semibold uppercase tracking-[0.14em] text-[var(--brand-faint)]">
               {tr("footer.exploreTitle")}
             </p>
             <Link
               href="/productos"
-              className="block text-white/60 transition hover:text-white"
+              className="brand-link-soft block"
             >
               {tr("footer.exploreCatalog")}
             </Link>
             <Link
               href="/new-arrivals"
-              className="block text-white/60 transition hover:text-white"
+              className="brand-link-soft block"
             >
               {tr("footer.newArrivals")}
             </Link>
             <Link
               href="/sell"
-              className="block text-white/60 transition hover:text-white"
+              className="brand-link-soft block"
             >
               {tr("footer.sellLink")}
             </Link>
           </div>
 
           <div className="space-y-2 text-sm">
-            <p className="mb-3 font-medium text-white/80">
+            <p className="mb-3 text-[11px] font-semibold uppercase tracking-[0.14em] text-[var(--brand-faint)]">
               {tr("footer.helpTitle")}
             </p>
             <Link
               href="/help/faq"
-              className="block text-white/60 transition hover:text-white"
+              className="brand-link-soft block"
             >
               {tr("nav.faq")}
             </Link>
             <Link
               href="/help/contact"
-              className="block text-white/60 transition hover:text-white"
+              className="brand-link-soft block"
             >
               {tr("footer.contactSupport")}
             </Link>
             <Link
               href="/help/returns"
-              className="block text-white/60 transition hover:text-white"
+              className="brand-link-soft block"
             >
               {tr("nav.returns")}
             </Link>
           </div>
 
           <div className="space-y-2 text-sm">
-            <p className="mb-3 font-medium text-white/80">
+            <p className="mb-3 text-[11px] font-semibold uppercase tracking-[0.14em] text-[var(--brand-faint)]">
               {tr("footer.legalTitle")}
             </p>
             <Link
               href="/legal/privacy"
-              className="block text-white/60 transition hover:text-white"
+              className="brand-link-soft block"
             >
               {tr("footer.privacy")}
             </Link>
             <Link
               href="/legal/terms"
-              className="block text-white/60 transition hover:text-white"
+              className="brand-link-soft block"
             >
               {tr("footer.terms")}
             </Link>
             <Link
               href="/legal/communications"
-              className="block text-white/60 transition hover:text-white"
+              className="brand-link-soft block"
             >
               Comunicaciones
             </Link>
           </div>
         </div>
 
-        <div className="mt-10 rounded-2xl border border-white/10 bg-white/5 px-4 py-3 text-sm text-white/70">
+        <div className="brand-panel mt-10 px-4 py-3 text-sm text-[var(--brand-soft)]">
           {LEGAL_COOKIE_NOTICE}
         </div>
 
-        <div className="mt-8 flex flex-wrap justify-between gap-4 border-t border-white/10 pt-6 text-xs text-white/40">
+        <div className="mt-8 flex flex-wrap justify-between gap-4 border-t border-[var(--brand-line)] pt-6 text-xs text-[var(--brand-faint)]">
           <span>© {new Date().getFullYear()} Flowjuyu</span>
-          <span>{tr("footer.madeInGuatemala")} 🇬🇹</span>
+          <span>{tr("footer.madeInGuatemala")} GT</span>
         </div>
       </div>
     </footer>

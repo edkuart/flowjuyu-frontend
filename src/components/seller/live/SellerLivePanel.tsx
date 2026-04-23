@@ -14,8 +14,17 @@ import {
 
 import LiveToggleCard from "@/components/seller/dashboard/LiveToggleCard";
 import LivePreviewEditor from "@/components/seller/dashboard/LivePreviewEditor";
+import {
+  SellerActionButton,
+  SellerIconBadge,
+  SellerPill,
+  SellerSurfaceCard,
+} from "@/components/seller/ui/SellerPrimitives";
+import {
+  sellerFieldClassName,
+  sellerSurfaceSoftClassName,
+} from "@/components/seller/ui/sellerFormStyles";
 import { BaseCard } from "@/components/ui/BaseCard";
-import { Button } from "@/components/ui/button";
 import {
   getLivePlatformLabel,
   isValidLiveExternalUrl,
@@ -175,16 +184,14 @@ export default function SellerLivePanel({
       ? {
           label: "Viendo ahora",
           value: String(viewerCount),
-          tone:
-            "border-[#0F3D3A]/10 bg-[#0F3D3A]/5 text-[#0F3D3A]",
+          tone: "border-[var(--seller-line-strong)] bg-[color:color-mix(in_srgb,var(--seller-accent)_6%,white)] text-[var(--seller-accent)]",
         }
       : null,
     buyerViewerCount !== null
       ? {
           label: "Compradores",
           value: String(buyerViewerCount),
-          tone:
-            "border-[#0F3D3A]/10 bg-[#0F3D3A]/5 text-[#0F3D3A]",
+          tone: "border-[var(--seller-line-strong)] bg-[color:color-mix(in_srgb,var(--seller-accent)_6%,white)] text-[var(--seller-accent)]",
         }
       : null,
     guestViewerCount !== null
@@ -291,12 +298,12 @@ export default function SellerLivePanel({
 
   return (
     <BaseCard
-      className="rounded-xl border-[#0F3D3A]/10 bg-white"
+      className="rounded-xl border-[var(--seller-line-strong)] bg-white"
       contentClassName="space-y-6"
     >
       <div className="space-y-2">
         <div className="space-y-2">
-          <div className="inline-flex items-center gap-2 rounded-full bg-[#0F3D3A]/6 px-3 py-1 text-[11px] font-semibold uppercase tracking-[0.16em] text-[#0F3D3A]/80 ring-1 ring-[#0F3D3A]/10">
+          <div className="inline-flex items-center gap-2 rounded-full border border-[var(--seller-line)] bg-[color:color-mix(in_srgb,var(--seller-accent)_6%,white)] px-3 py-1 text-[11px] font-semibold uppercase tracking-[0.16em] text-[var(--seller-accent)]">
             <RadioTower className="h-3.5 w-3.5" />
             Live
           </div>
@@ -348,6 +355,7 @@ export default function SellerLivePanel({
       />
 
       <div className="h-px bg-gradient-to-r from-[#0F3D3A]/12 via-[#0F3D3A]/6 to-transparent" />
+      
 
       <LivePreviewEditor
         products={products}
@@ -371,7 +379,7 @@ export default function SellerLivePanel({
         hideSaveButton
       />
 
-      <div className="space-y-4 rounded-2xl border border-neutral-200 bg-[#fcfbf8] px-4 py-4">
+      <SellerSurfaceCard tone="soft" className="space-y-4 px-4 py-4">
         <div className="flex items-start justify-between gap-3">
           <div className="space-y-1">
             <p className="text-sm font-medium text-neutral-900">
@@ -384,10 +392,11 @@ export default function SellerLivePanel({
             </p>
           </div>
 
-          <button
+          <SellerActionButton
             type="button"
             onClick={() => setIsCollectionOpen((current) => !current)}
-            className="inline-flex min-h-10 shrink-0 items-center gap-2 rounded-xl border border-neutral-200 bg-white px-3 text-sm font-medium text-neutral-700 transition hover:border-[#0F3D3A]/15 hover:text-[#0F3D3A]"
+            tone="neutral"
+            className="min-h-10 shrink-0 px-3"
           >
             {isCollectionOpen ? "Ocultar" : "Editar"}
             {isCollectionOpen ? (
@@ -395,11 +404,11 @@ export default function SellerLivePanel({
             ) : (
               <ChevronDown className="h-4 w-4" />
             )}
-          </button>
+          </SellerActionButton>
         </div>
 
-        <div className="rounded-xl border border-[#0F3D3A]/10 bg-white px-4 py-3">
-          <p className="text-xs font-semibold uppercase tracking-[0.14em] text-[#0F3D3A]/70">
+        <div className="seller-panel-subtle rounded-xl px-4 py-3">
+          <p className="text-xs font-semibold uppercase tracking-[0.14em] text-[var(--seller-accent)]/70">
             Fuente actual del live
           </p>
           <p className="mt-2 text-sm font-medium text-neutral-900">
@@ -416,13 +425,13 @@ export default function SellerLivePanel({
 
         {isCollectionOpen ? (
           collections.length === 0 ? (
-            <div className="space-y-3 rounded-xl border border-dashed border-neutral-200 bg-white px-4 py-4 text-sm text-neutral-600">
+            <div className="space-y-3 rounded-xl border border-dashed border-[var(--seller-line-strong)] bg-white px-4 py-4 text-sm text-neutral-600">
               <p>
                 Aún no tienes colecciones creadas. Mientras tanto, puedes seguir usando la selección manual de productos destacados.
               </p>
               <Link
                 href="/seller/collections"
-                className="inline-flex min-h-11 items-center justify-center rounded-xl border border-[#0F3D3A]/15 bg-[#f5faf8] px-4 text-sm font-semibold text-[#0F3D3A] transition hover:border-[#0F3D3A]/25 hover:bg-[#edf6f2]"
+                className="seller-option-card-active inline-flex min-h-11 items-center justify-center rounded-xl px-4 text-sm font-semibold text-[var(--seller-accent)] transition"
               >
                 Crear o revisar colecciones
               </Link>
@@ -437,7 +446,7 @@ export default function SellerLivePanel({
                   const nextValue = Number(event.target.value);
                   setSelectedCollectionId(Number.isInteger(nextValue) && nextValue > 0 ? nextValue : "");
                 }}
-                className="min-h-11 w-full rounded-xl border border-neutral-200 bg-white px-4 text-sm text-neutral-800 outline-none transition focus:border-[#0F3D3A]/30 focus:ring-2 focus:ring-[#0F3D3A]/10"
+                className={sellerFieldClassName}
               >
                 <option value="">Usar selección manual</option>
                 {activeCollections.map((collection) => (
@@ -449,11 +458,11 @@ export default function SellerLivePanel({
               </select>
 
               {selectedCollectionId ? (
-                <div className="rounded-xl border border-[#0F3D3A]/10 bg-[#f5faf8] px-4 py-3 text-xs text-[#0F3D3A]">
+                <div className="rounded-xl border border-[var(--seller-line-strong)] bg-[color:color-mix(in_srgb,var(--seller-accent)_6%,white)] px-4 py-3 text-xs text-[var(--seller-accent)]">
                   <p className="font-medium">
                     La colección elegida tendrá prioridad sobre la selección manual de productos destacados.
                   </p>
-                  <p className="mt-1 text-[#0F3D3A]/80">
+                  <p className="mt-1 text-[var(--seller-accent)]/80">
                     {selectedCollection?.item_count
                       ? `${selectedCollection.item_count} item(s) se usarán como base del preview live.`
                       : "La colección se aplicará en cuanto tenga productos activos vinculados."}
@@ -467,9 +476,9 @@ export default function SellerLivePanel({
             </div>
           )
         ) : null}
-      </div>
+      </SellerSurfaceCard>
 
-      <div className="space-y-4 rounded-2xl border border-neutral-200 bg-[#fcfbf8] px-4 py-4">
+      <SellerSurfaceCard tone="soft" className="space-y-4 px-4 py-4">
         <div className="flex items-start justify-between gap-3">
           <div className="space-y-1">
             <p className="text-sm font-medium text-neutral-900">
@@ -482,10 +491,11 @@ export default function SellerLivePanel({
             </p>
           </div>
 
-          <button
+          <SellerActionButton
             type="button"
             onClick={() => setIsExternalOpen((current) => !current)}
-            className="inline-flex min-h-10 shrink-0 items-center gap-2 rounded-xl border border-neutral-200 bg-white px-3 text-sm font-medium text-neutral-700 transition hover:border-[#0F3D3A]/15 hover:text-[#0F3D3A]"
+            tone="neutral"
+            className="min-h-10 shrink-0 px-3"
           >
             {isExternalOpen ? "Ocultar" : "Editar"}
             {isExternalOpen ? (
@@ -493,12 +503,12 @@ export default function SellerLivePanel({
             ) : (
               <ChevronDown className="h-4 w-4" />
             )}
-          </button>
+          </SellerActionButton>
         </div>
 
-        <div className="rounded-xl border border-[#0F3D3A]/10 bg-white px-4 py-3">
+        <div className="seller-panel-subtle rounded-xl px-4 py-3">
           <div className="flex items-center gap-2">
-            <PlatformIcon className="h-4 w-4 text-[#0F3D3A]" />
+            <PlatformIcon className="h-4 w-4 text-[var(--seller-accent)]" />
             <p className="text-sm font-medium text-neutral-900">
               {platformLabel && externalUrl.trim()
                 ? `En vivo en ${platformLabel}`
@@ -554,7 +564,7 @@ export default function SellerLivePanel({
                     setError(null);
                     setPlatform(event.target.value as LivePlatform | "");
                   }}
-                  className="min-h-11 w-full rounded-xl border border-neutral-200 bg-white px-4 text-sm text-neutral-800 outline-none transition focus:border-[#0F3D3A]/30 focus:ring-2 focus:ring-[#0F3D3A]/10"
+                  className={sellerFieldClassName}
                 >
                   <option value="">Selecciona plataforma</option>
                   {LIVE_PLATFORM_OPTIONS.map((option) => (
@@ -578,7 +588,7 @@ export default function SellerLivePanel({
                     setExternalUrl(event.target.value);
                   }}
                   placeholder={externalUrlPlaceholder}
-                  className="min-h-11 w-full rounded-xl border border-neutral-200 bg-white px-4 text-sm text-neutral-800 outline-none transition placeholder:text-neutral-400 focus:border-[#0F3D3A]/30 focus:ring-2 focus:ring-[#0F3D3A]/10"
+                  className={sellerFieldClassName}
                 />
               </label>
             </div>
@@ -590,13 +600,13 @@ export default function SellerLivePanel({
             ) : null}
           </>
         ) : null}
-      </div>
+      </SellerSurfaceCard>
 
-      <Button
+      <SellerActionButton
         type="button"
         onClick={handleSave}
         disabled={isSaving}
-        className="min-h-11 w-full rounded-xl bg-[#0F3D3A] text-white hover:bg-[#0c312f]"
+        className="min-h-11 w-full"
       >
         {isSaving ? (
           <>
@@ -606,7 +616,7 @@ export default function SellerLivePanel({
         ) : (
           "Guardar preview del live"
         )}
-      </Button>
+      </SellerActionButton>
     </BaseCard>
   );
 }

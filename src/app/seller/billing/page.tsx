@@ -11,10 +11,11 @@
 "use client"
 
 import { useEffect, useState } from "react"
-import { Receipt, CreditCard } from "lucide-react"
+import { CreditCard, Receipt } from "lucide-react"
 import { BillingSubscriptionCard } from "@/components/seller/billing/BillingSubscriptionCard"
-import { BillingInvoiceList }      from "@/components/seller/billing/BillingInvoiceList"
-import { BillingPaymentList }      from "@/components/seller/billing/BillingPaymentList"
+import { BillingInvoiceList } from "@/components/seller/billing/BillingInvoiceList"
+import { BillingPaymentList } from "@/components/seller/billing/BillingPaymentList"
+import { SellerPanelHeader, SellerPill, SellerSurfaceCard } from "@/components/seller/ui/SellerPrimitives"
 import { fetchCurrentSubscription } from "@/services/sellerBilling"
 import type { CurrentSubscription } from "@/types/billing"
 
@@ -33,23 +34,21 @@ export default function SellerBillingPage() {
   }, [])
 
   return (
-    <div className="min-h-screen bg-neutral-50">
-      <div className="max-w-2xl mx-auto px-4 py-6 space-y-6">
+    <div className="min-h-screen bg-[#f8f5ef]">
+      <div className="mx-auto max-w-3xl space-y-6 px-4 py-8 sm:px-6">
+        <SellerSurfaceCard className="overflow-hidden">
+          <SellerPanelHeader
+            eyebrow="Billing seller"
+            title="Mi suscripción"
+            description="Gestiona tu plan, facturas y pagos desde una misma vista."
+            action={<SellerPill tone="neutral">{activeTab === "invoices" ? "Facturas" : "Pagos"}</SellerPill>}
+          />
+        </SellerSurfaceCard>
 
-        {/* Page header */}
-        <div>
-          <h1 className="text-xl font-bold text-neutral-900">Mi suscripción</h1>
-          <p className="text-sm text-neutral-500 mt-0.5">
-            Gestiona tu plan, facturas y pagos.
-          </p>
-        </div>
-
-        {/* Subscription hero card */}
         <BillingSubscriptionCard subscription={subscription} loading={loading} />
 
-        {/* Tabs */}
-        <div>
-          <div className="flex border-b border-neutral-200 gap-1">
+        <SellerSurfaceCard className="overflow-hidden">
+          <div className="flex gap-1 border-b border-[var(--seller-line)] px-3 pt-3">
             <TabButton
               active={activeTab === "invoices"}
               onClick={() => setActiveTab("invoices")}
@@ -64,12 +63,11 @@ export default function SellerBillingPage() {
             />
           </div>
 
-          <div className="mt-4">
+          <div className="p-4 sm:p-5">
             {activeTab === "invoices" && <BillingInvoiceList />}
             {activeTab === "payments" && <BillingPaymentList />}
           </div>
-        </div>
-
+        </SellerSurfaceCard>
       </div>
     </div>
   )
@@ -88,11 +86,12 @@ function TabButton({
 }) {
   return (
     <button
+      type="button"
       onClick={onClick}
-      className={`flex items-center gap-1.5 px-4 py-2.5 text-sm font-medium border-b-2 transition-colors ${
+      className={`flex items-center gap-1.5 rounded-t-[var(--seller-radius-md)] border-b-2 px-4 py-2.5 text-sm font-medium transition-colors ${
         active
-          ? "border-[#0F3D3A] text-[#0F3D3A]"
-          : "border-transparent text-neutral-500 hover:text-neutral-700"
+          ? "border-[var(--seller-accent)] bg-[color:color-mix(in_srgb,var(--seller-accent)_6%,white)] text-[var(--seller-accent)]"
+          : "border-transparent text-[var(--seller-muted)] hover:text-[var(--seller-ink)]"
       }`}
     >
       {icon}

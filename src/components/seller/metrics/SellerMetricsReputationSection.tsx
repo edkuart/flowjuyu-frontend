@@ -3,6 +3,7 @@
 import { MessageSquareQuote, ShieldCheck } from "lucide-react";
 
 import { BaseExpandableCard } from "@/components/ui/BaseExpandableCard";
+import { SellerDetailPanel, SellerPill } from "@/components/seller/ui/SellerPrimitives";
 import {
   MetricsMiniCard,
   MetricsSectionIntro,
@@ -62,55 +63,35 @@ export function SellerMetricsReputationSection({
         defaultExpanded={false}
       >
         <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
-          <div className="rounded-3xl border border-neutral-200 bg-white p-5 shadow-sm">
-            <div className="flex items-center gap-3">
-              <span className="flex h-10 w-10 items-center justify-center rounded-2xl bg-[#0F3D3A]/8">
-                <MessageSquareQuote className="h-5 w-5 text-[#0F3D3A]" />
-              </span>
-              <div>
-                <p className="text-sm font-semibold text-neutral-900">
-                  Terminos frecuentes
-                </p>
-                <p className="text-xs text-neutral-500">
-                  Palabras que mas se repiten en la experiencia del cliente.
-                </p>
-              </div>
-            </div>
-
+          <SellerDetailPanel
+            icon={<MessageSquareQuote className="h-5 w-5" />}
+            title="Terminos frecuentes"
+            description="Palabras que mas se repiten en la experiencia del cliente."
+          >
             <div className="mt-4 flex flex-wrap gap-2">
               {topTerms.length > 0 ? (
                 topTerms.map((term) => (
-                  <span
+                  <SellerPill
                     key={term.term}
-                    className="rounded-full border border-neutral-200 bg-neutral-50 px-3 py-1 text-xs font-medium text-neutral-700"
+                    tone="neutral"
+                    className="px-3 py-1 text-xs font-medium text-[var(--seller-text)]"
                   >
                     {term.term} · {term.count}
-                  </span>
+                  </SellerPill>
                 ))
               ) : (
-                <p className="text-sm text-neutral-500">
+                <p className="text-sm text-[var(--seller-muted)]">
                   Todavia no hay suficiente feedback para detectar patrones.
                 </p>
               )}
             </div>
-          </div>
+          </SellerDetailPanel>
 
-          <div className="rounded-3xl border border-neutral-200 bg-white p-5 shadow-sm">
-            <div className="flex items-center gap-3">
-              <span className="flex h-10 w-10 items-center justify-center rounded-2xl bg-[#0F3D3A]/8">
-                <ShieldCheck className="h-5 w-5 text-[#0F3D3A]" />
-              </span>
-              <div>
-                <p className="text-sm font-semibold text-neutral-900">
-                  Lectura recomendada
-                </p>
-                <p className="text-xs text-neutral-500">
-                  Usa esta seccion para detectar confianza, no para seguir
-                  trafico o conversion.
-                </p>
-              </div>
-            </div>
-          </div>
+          <SellerDetailPanel
+            icon={<ShieldCheck className="h-5 w-5" />}
+            title="Lectura recomendada"
+            description="Usa esta seccion para detectar confianza, no para seguir trafico o conversion."
+          />
         </div>
       </BaseExpandableCard>
     </div>

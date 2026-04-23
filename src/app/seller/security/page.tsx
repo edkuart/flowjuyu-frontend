@@ -1,11 +1,13 @@
 "use client"
 
 import Link from "next/link"
+import { useRouter } from "next/navigation"
 import { ArrowRight, LifeBuoy, Lock, MonitorSmartphone, Shield, ShieldCheck, Smartphone } from "lucide-react"
 
 import { SellerSectionHero } from "@/components/seller/SellerSectionHero"
+import { SellerPanelHeader, SellerPill, SellerSurfaceCard } from "@/components/seller/ui/SellerPrimitives"
 import { SellerSecuritySection } from "@/components/settings/SellerSecuritySection"
-import { Card, CardContent } from "@/components/ui/card"
+import { PageBackNav } from "@/components/ui/PageBackNav"
 
 function SummaryCard({
   icon,
@@ -37,19 +39,29 @@ function FutureSecurityCard({
   description: string
 }) {
   return (
-    <div className="rounded-[24px] border border-neutral-200 bg-[linear-gradient(180deg,_#fbfaf7,_#f4f2eb)] p-4 shadow-[0_12px_28px_-24px_rgba(15,23,42,0.3)]">
-      <div className="mb-3 flex h-11 w-11 items-center justify-center rounded-2xl border border-neutral-200 bg-white text-neutral-700 shadow-sm">
+    <SellerSurfaceCard tone="soft" className="p-4">
+      <div className="mb-3 flex h-11 w-11 items-center justify-center rounded-2xl border border-[var(--seller-line)] bg-white text-[var(--seller-text)] shadow-[var(--seller-shadow-panel)]">
         {icon}
       </div>
-      <h3 className="text-sm font-semibold text-neutral-900">{title}</h3>
-      <p className="mt-1 text-sm leading-6 text-neutral-500">{description}</p>
-    </div>
+      <h3 className="text-sm font-semibold text-[var(--seller-ink)]">{title}</h3>
+      <p className="mt-1 text-sm leading-6 text-[var(--seller-muted)]">{description}</p>
+    </SellerSurfaceCard>
   )
 }
 
 export default function SellerSecurityPage() {
+  const router = useRouter()
+
   return (
     <main className="mx-auto min-h-screen max-w-5xl space-y-8 bg-[#f8f5ef] px-4 py-10 sm:px-6">
+      <PageBackNav
+        variant="panel"
+        onClick={() => router.push("/seller/account")}
+        label="Volver a cuenta"
+        meta="Cuenta del vendedor"
+        title={<p className="truncate text-[15px] font-semibold text-[var(--seller-ink)]">Seguridad</p>}
+      />
+
       <SellerSectionHero
         eyebrow="Protección de acceso"
         title="Seguridad"
@@ -57,10 +69,10 @@ export default function SellerSecurityPage() {
         tone="accent"
         actions={
           <Link
-            href="/seller/account"
+            href="/seller/tickets"
             className="inline-flex items-center gap-2 text-sm font-medium text-white/90 transition hover:text-white"
           >
-            Volver a cuenta
+            Ir a soporte
             <ArrowRight className="h-4 w-4" />
           </Link>
         }
@@ -81,40 +93,31 @@ export default function SellerSecurityPage() {
       />
 
       <section className="grid gap-6 xl:grid-cols-[minmax(0,1.25fr)_minmax(320px,0.8fr)]">
-        <Card className="border border-neutral-200 bg-[linear-gradient(180deg,_rgba(255,255,255,0.98),_rgba(249,248,243,0.96))] shadow-[0_16px_40px_-26px_rgba(15,23,42,0.22)]">
-          <CardContent className="space-y-6 p-6">
-            <div className="flex items-center justify-between gap-3 border-b border-neutral-100 pb-4">
-              <div className="flex items-center gap-3 font-semibold text-neutral-800">
-                <div className="flex h-10 w-10 items-center justify-center rounded-2xl bg-[#0F3D3A]/8 text-[#0F3D3A]">
-                  <Shield className="h-5 w-5" />
-                </div>
-                <div>
-                  <p className="text-sm font-semibold text-neutral-900">Seguridad de la cuenta</p>
-                </div>
-              </div>
-              <span className="inline-flex items-center gap-1.5 rounded-full bg-neutral-100 px-2.5 py-1 text-xs font-medium text-neutral-600">
+        <SellerSurfaceCard>
+          <SellerPanelHeader
+            icon={<Shield className="h-5 w-5" />}
+            title="Seguridad de la cuenta"
+            action={
+              <SellerPill tone="neutral">
                 <Lock className="h-3.5 w-3.5" />
                 Acceso
-              </span>
-            </div>
-
+              </SellerPill>
+            }
+          />
+          <div className="space-y-6 p-6">
             <SellerSecuritySection />
-          </CardContent>
-        </Card>
+          </div>
+        </SellerSurfaceCard>
 
         <div className="space-y-6">
-          <Card className="border border-neutral-200 bg-[linear-gradient(180deg,_rgba(255,255,255,0.98),_rgba(249,248,243,0.96))] shadow-[0_16px_40px_-26px_rgba(15,23,42,0.22)]">
-            <CardContent className="space-y-4 p-6">
-              <div className="space-y-1">
-                <p className="text-xs font-semibold uppercase tracking-[0.18em] text-neutral-400">
-                  Próximamente
-                </p>
-                <h2 className="text-lg font-semibold text-neutral-900">Controles que vamos a sumar</h2>
-                <p className="text-sm leading-6 text-neutral-500">
-                  La pantalla ya queda preparada para crecer sin volver a mezclar seguridad con cuenta.
-                </p>
-              </div>
+          <SellerSurfaceCard>
+            <SellerPanelHeader
+              eyebrow="Próximamente"
+              title="Controles que vamos a sumar"
+              description="La pantalla ya queda preparada para crecer sin volver a mezclar seguridad con cuenta."
+            />
 
+            <div className="space-y-4 p-6">
               <div className="space-y-3">
                 <FutureSecurityCard
                   icon={<MonitorSmartphone className="h-5 w-5" />}
@@ -127,32 +130,28 @@ export default function SellerSecurityPage() {
                   description="Agregar un segundo factor o validaciones reforzadas para acciones sensibles."
                 />
               </div>
-            </CardContent>
-          </Card>
+            </div>
+          </SellerSurfaceCard>
 
-          <Card className="border border-neutral-200 bg-[linear-gradient(180deg,_rgba(255,255,255,0.98),_rgba(249,248,243,0.96))] shadow-[0_16px_40px_-26px_rgba(15,23,42,0.22)]">
-            <CardContent className="space-y-4 p-6">
-              <div className="flex items-center gap-2.5 font-semibold text-neutral-800">
-                <div className="flex h-10 w-10 items-center justify-center rounded-2xl bg-[#0F3D3A]/8 text-[#0F3D3A]">
-                  <LifeBuoy className="h-5 w-5" />
-                </div>
-                <div>
-                  <p className="text-sm font-semibold text-neutral-900">Ayuda rápida</p>
-                </div>
-              </div>
-              <p className="text-sm leading-6 text-neutral-500">
+          <SellerSurfaceCard>
+            <SellerPanelHeader
+              icon={<LifeBuoy className="h-5 w-5" />}
+              title="Ayuda rápida"
+            />
+            <div className="space-y-4 p-6">
+              <p className="text-sm leading-6 text-[var(--seller-muted)]">
                 Si detectas accesos extraños, cambios que no reconoces o problemas para entrar,
                 puedes continuar el seguimiento desde soporte.
               </p>
               <Link
                 href="/seller/tickets"
-                className="inline-flex items-center gap-2 text-sm font-medium text-[#0F3D3A] transition hover:text-[#0a2e2c]"
+                className="inline-flex items-center gap-2 text-sm font-medium text-[var(--seller-accent)] transition hover:text-[var(--seller-accent-strong)]"
               >
                 Ir a mis tickets
                 <ArrowRight className="h-4 w-4" />
               </Link>
-            </CardContent>
-          </Card>
+            </div>
+          </SellerSurfaceCard>
         </div>
       </section>
     </main>

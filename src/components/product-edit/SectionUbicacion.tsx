@@ -14,11 +14,17 @@ import { SectionCard } from "./SectionCard"
 import { departamentosConMunicipios } from "@/data/municipios"
 import type { CommonSectionProps } from "@/types/product-edit"
 
+const fieldLabelClass =
+  "text-[11px] font-semibold uppercase tracking-[0.08em] text-[#5f6f66]"
+const fieldClass =
+  "h-11 w-full rounded-xl border border-[#0f2e22]/12 bg-white/95 px-3 text-[15px] shadow-[0_1px_0_rgba(15,46,34,0.04)] transition outline-none focus:border-[#0f2e22]/28 focus:ring-[3px] focus:ring-[#0f2e22]/10"
+
 export function SectionUbicacion({
   product,
   updateFields,
   onSave,
   sectionState,
+  completionLabel,
   isSaving,
   defaultExpanded,
   priority,
@@ -51,6 +57,7 @@ export function SectionUbicacion({
       description="Origen del producto — opcional. Ayuda a compradores a encontrar artesanías de su región."
       onSave={onSave}
       sectionState={sectionState}
+      completionLabel={completionLabel}
       isSaving={isSaving}
       saveLabel="Guardar"
       defaultExpanded={defaultExpanded}
@@ -59,10 +66,10 @@ export function SectionUbicacion({
 
       {/* Departamento */}
       <div className="space-y-1">
-        <Label htmlFor="edit-departamento">Departamento</Label>
+        <Label htmlFor="edit-departamento" className={fieldLabelClass}>Departamento</Label>
         <select
           id="edit-departamento"
-          className="w-full border rounded-md px-3 py-1.5 text-sm bg-white focus:outline-none focus:ring-2 focus:ring-ring h-9"
+          className={fieldClass}
           value={product.departamento ?? ""}
           onChange={(e) => handleDepartamentoChange(e.target.value)}
         >
@@ -78,10 +85,10 @@ export function SectionUbicacion({
       {/* Municipio — only show when a departamento is selected */}
       {product.departamento && (
         <div className="space-y-1">
-          <Label htmlFor="edit-municipio">Municipio</Label>
+          <Label htmlFor="edit-municipio" className={fieldLabelClass}>Municipio</Label>
           <select
             id="edit-municipio"
-            className="w-full border rounded-md px-3 py-1.5 text-sm bg-white focus:outline-none focus:ring-2 focus:ring-ring h-9"
+            className={fieldClass}
             value={product.municipio ?? ""}
             onChange={(e) => handleMunicipioChange(e.target.value)}
           >
@@ -98,7 +105,7 @@ export function SectionUbicacion({
       {/* Custom overrides (rarely used — only shown when already set) */}
       {product.departamento_custom && (
         <div className="space-y-1">
-          <Label htmlFor="edit-dep-custom">
+          <Label htmlFor="edit-dep-custom" className={fieldLabelClass}>
             Departamento personalizado
           </Label>
           <Input
@@ -107,13 +114,14 @@ export function SectionUbicacion({
             onChange={(e) =>
               updateFields({ departamento_custom: e.target.value || null })
             }
+            className="h-11 rounded-xl border border-[#0f2e22]/12 bg-white/95 text-[15px] shadow-[0_1px_0_rgba(15,46,34,0.04)] focus-visible:border-[#0f2e22]/28 focus-visible:ring-[3px] focus-visible:ring-[#0f2e22]/10"
           />
         </div>
       )}
 
       {product.municipio_custom && (
         <div className="space-y-1">
-          <Label htmlFor="edit-mun-custom">
+          <Label htmlFor="edit-mun-custom" className={fieldLabelClass}>
             Municipio personalizado
           </Label>
           <Input
@@ -122,6 +130,7 @@ export function SectionUbicacion({
             onChange={(e) =>
               updateFields({ municipio_custom: e.target.value || null })
             }
+            className="h-11 rounded-xl border border-[#0f2e22]/12 bg-white/95 text-[15px] shadow-[0_1px_0_rgba(15,46,34,0.04)] focus-visible:border-[#0f2e22]/28 focus-visible:ring-[3px] focus-visible:ring-[#0f2e22]/10"
           />
         </div>
       )}

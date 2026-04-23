@@ -17,6 +17,7 @@
 import Link from "next/link"
 import { CheckCircle2, AlertTriangle, Clock, Zap, XCircle, PauseCircle, ArrowRight, RefreshCw } from "lucide-react"
 import { Button } from "@/components/ui/button"
+import { SellerSurfaceCard } from "@/components/seller/ui/SellerPrimitives"
 import { SubscriptionStatusBadge } from "./BillingStatusBadge"
 import { formatQ, formatDate, cycleLabelShort, daysLabel } from "./billingFormatters"
 import type { CurrentSubscription } from "@/types/billing"
@@ -32,7 +33,7 @@ interface Props {
 
 function Skeleton() {
   return (
-    <div className="rounded-2xl border border-neutral-200 bg-white p-6 space-y-4 animate-pulse">
+    <SellerSurfaceCard className="space-y-4 p-6 animate-pulse">
       <div className="flex items-center gap-3">
         <div className="w-9 h-9 rounded-xl bg-neutral-100" />
         <div className="space-y-1.5">
@@ -42,7 +43,7 @@ function Skeleton() {
       </div>
       <div className="h-2 w-full bg-neutral-100 rounded-full" />
       <div className="h-9 w-full bg-neutral-100 rounded-xl" />
-    </div>
+    </SellerSurfaceCard>
   )
 }
 
@@ -50,23 +51,23 @@ function Skeleton() {
 
 function NoPlanCard() {
   return (
-    <div className="rounded-2xl border-2 border-dashed border-[#0F3D3A]/20 bg-white p-6 text-center space-y-4">
-      <div className="w-12 h-12 rounded-2xl bg-[#0F3D3A]/5 flex items-center justify-center mx-auto">
-        <Zap className="w-5 h-5 text-[#0F3D3A]" />
+    <SellerSurfaceCard className="space-y-4 border-2 border-dashed border-[color:color-mix(in_srgb,var(--seller-accent)_18%,transparent)] p-6 text-center">
+      <div className="mx-auto flex h-12 w-12 items-center justify-center rounded-2xl bg-[color:color-mix(in_srgb,var(--seller-accent)_5%,white)]">
+        <Zap className="h-5 w-5 text-[var(--seller-accent)]" />
       </div>
       <div className="space-y-1">
-        <p className="text-sm font-bold text-neutral-800">Tu tienda aún no tiene un plan</p>
-        <p className="text-xs text-neutral-500 leading-relaxed max-w-[26ch] mx-auto">
+        <p className="text-sm font-bold text-[var(--seller-ink)]">Tu tienda aún no tiene un plan</p>
+        <p className="mx-auto max-w-[26ch] text-xs leading-relaxed text-[var(--seller-muted)]">
           Elige un plan para publicar tus productos y comenzar a vender.
         </p>
       </div>
-      <Button asChild className="w-full bg-[#0F3D3A] hover:bg-[#0C2F2C] text-white font-semibold text-sm">
+      <Button asChild className="seller-button-primary w-full text-sm font-semibold">
         <Link href="/seller/billing/planes">
           Ver planes disponibles
           <ArrowRight className="w-4 h-4 ml-2" />
         </Link>
       </Button>
-    </div>
+    </SellerSurfaceCard>
   )
 }
 
@@ -188,24 +189,24 @@ export function BillingSubscriptionCard({ subscription: sub, loading }: Props) {
   })()
 
   const ctaStyle = {
-    primary: "bg-[#0F3D3A] hover:bg-[#0C2F2C] text-white",
+    primary: "seller-button-primary",
     warning: "bg-amber-500 hover:bg-amber-600 text-white",
     danger:  "bg-red-600 hover:bg-red-700 text-white",
   }
 
   return (
-    <div className="rounded-2xl border border-neutral-200 bg-white overflow-hidden shadow-sm">
+    <SellerSurfaceCard className="overflow-hidden">
 
       {/* Header band */}
-      <div className={`px-5 py-4 ${config.headerBg} border-b border-neutral-100`}>
+      <div className={`border-b border-[var(--seller-line)] px-5 py-4 ${config.headerBg}`}>
         <div className="flex items-start justify-between gap-3">
           <div className="flex items-center gap-3">
-            <div className="w-9 h-9 rounded-xl bg-white shadow-sm border border-neutral-100 flex items-center justify-center flex-shrink-0">
+            <div className="flex h-9 w-9 flex-shrink-0 items-center justify-center rounded-xl border border-[var(--seller-line)] bg-white shadow-[var(--seller-shadow-panel)]">
               {config.iconEl}
             </div>
             <div>
-              <p className="text-sm font-bold text-neutral-800 leading-snug">{config.headline}</p>
-              <p className="text-xs text-neutral-500 leading-relaxed mt-0.5">{config.subline}</p>
+              <p className="text-sm font-bold leading-snug text-[var(--seller-ink)]">{config.headline}</p>
+              <p className="mt-0.5 text-xs leading-relaxed text-[var(--seller-muted)]">{config.subline}</p>
             </div>
           </div>
           <SubscriptionStatusBadge status={sub.status} className="flex-shrink-0 mt-0.5" />
@@ -218,14 +219,14 @@ export function BillingSubscriptionCard({ subscription: sub, loading }: Props) {
         {/* Plan + price */}
         <div className="flex items-center justify-between">
           <div className="space-y-0.5">
-            <p className="text-xs text-neutral-500">Plan</p>
-            <p className="text-sm font-semibold text-neutral-800">{sub.plan.name}</p>
+            <p className="text-xs text-[var(--seller-muted)]">Plan</p>
+            <p className="text-sm font-semibold text-[var(--seller-ink)]">{sub.plan.name}</p>
           </div>
           <div className="text-right space-y-0.5">
-            <p className="text-xs text-neutral-500">Precio</p>
-            <p className="text-sm font-semibold text-neutral-800">
+            <p className="text-xs text-[var(--seller-muted)]">Precio</p>
+            <p className="text-sm font-semibold text-[var(--seller-ink)]">
               {formatQ(sub.priceAtSignup)}
-              <span className="text-xs font-normal text-neutral-400 ml-1">/ {cycleLabelShort(sub.billingCycle)}</span>
+              <span className="ml-1 text-xs font-normal text-[var(--seller-soft-text)]">/ {cycleLabelShort(sub.billingCycle)}</span>
             </p>
           </div>
         </div>
@@ -236,9 +237,9 @@ export function BillingSubscriptionCard({ subscription: sub, loading }: Props) {
         ) : null}
 
         {/* Plan features */}
-        <div className="rounded-lg bg-neutral-50 border border-neutral-100 px-4 py-2.5 flex items-center justify-between text-xs">
-          <span className="text-neutral-500">Productos publicables</span>
-          <span className="font-semibold text-neutral-700">{sub.plan.maxProducts}</span>
+        <div className="seller-panel-subtle flex items-center justify-between rounded-[var(--seller-radius-lg)] px-4 py-2.5 text-xs">
+          <span className="text-[var(--seller-muted)]">Productos publicables</span>
+          <span className="font-semibold text-[var(--seller-ink)]">{sub.plan.maxProducts}</span>
         </div>
 
         {/* CTA */}
@@ -255,6 +256,6 @@ export function BillingSubscriptionCard({ subscription: sub, loading }: Props) {
         )}
 
       </div>
-    </div>
+    </SellerSurfaceCard>
   )
 }

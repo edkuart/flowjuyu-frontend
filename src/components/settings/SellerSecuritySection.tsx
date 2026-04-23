@@ -3,7 +3,8 @@
 import { useState, type ChangeEvent } from "react"
 import { CheckCircle, Lock, XCircle } from "lucide-react"
 
-import { Button } from "@/components/ui/button"
+import { SellerActionButton, SellerPill, SellerSurfaceCard } from "@/components/seller/ui/SellerPrimitives"
+import { sellerFieldClassName, sellerHelperTextClassName } from "@/components/seller/ui/sellerFormStyles"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 
@@ -51,29 +52,27 @@ export function SellerSecuritySection() {
 
   return (
     <div className="space-y-6">
-      <div className="flex items-start gap-3 rounded-[24px] border border-neutral-200 bg-[linear-gradient(180deg,_rgba(255,255,255,0.72),_rgba(247,245,238,0.92))] px-4 py-4">
-        <div className="rounded-xl border border-neutral-200 bg-white p-2 shadow-sm">
-          <Lock className="h-4 w-4 text-neutral-600" />
+      <SellerSurfaceCard tone="soft" className="flex items-start gap-3 px-4 py-4">
+        <div className="rounded-[var(--seller-radius-md)] border border-[var(--seller-line)] bg-white p-2 shadow-[var(--seller-shadow-panel)]">
+          <Lock className="h-4 w-4 text-[var(--seller-muted)]" />
         </div>
         <div className="space-y-1">
-          <p className="text-sm font-semibold text-neutral-800">Contraseña de acceso</p>
-          <p className="text-sm text-neutral-500">
+          <p className="text-sm font-semibold text-[var(--seller-ink)]">Contraseña de acceso</p>
+          <p className="text-sm text-[var(--seller-muted)]">
             Usa una contraseña única y de al menos 8 caracteres para proteger tu panel.
           </p>
         </div>
-      </div>
+      </SellerSurfaceCard>
 
-      <div className="rounded-[26px] border border-neutral-200 bg-[linear-gradient(180deg,_rgba(255,255,255,0.98),_rgba(249,248,243,0.96))] p-5 shadow-[0_16px_40px_-26px_rgba(15,23,42,0.22)]">
-        <div className="mb-5 flex items-center justify-between gap-3 border-b border-neutral-100 pb-4">
+      <SellerSurfaceCard className="p-5">
+        <div className="mb-5 flex items-center justify-between gap-3 border-b border-[var(--seller-line)] pb-4">
           <div>
-            <h3 className="text-sm font-semibold text-neutral-900">Actualizar contraseña</h3>
-            <p className="text-sm text-neutral-500">
+            <h3 className="text-sm font-semibold text-[var(--seller-ink)]">Actualizar contraseña</h3>
+            <p className="text-sm text-[var(--seller-muted)]">
               Cambia tu clave actual para reforzar el acceso a tu panel.
             </p>
           </div>
-          <span className="rounded-full bg-neutral-100 px-2.5 py-1 text-xs font-medium text-neutral-600">
-            Recomendado
-          </span>
+          <SellerPill tone="neutral">Recomendado</SellerPill>
         </div>
 
         <div className="space-y-4">
@@ -85,7 +84,7 @@ export function SellerSecuritySection() {
                 value={passwordActual}
                 disabled={estado === "loading"}
                 onChange={(e: ChangeEvent<HTMLInputElement>) => setPasswordActual(e.target.value)}
-                className="rounded-xl border-neutral-200 bg-white/90"
+                className={sellerFieldClassName}
               />
             </div>
 
@@ -96,25 +95,25 @@ export function SellerSecuritySection() {
                 value={passwordNueva}
                 disabled={estado === "loading"}
                 onChange={(e: ChangeEvent<HTMLInputElement>) => setPasswordNueva(e.target.value)}
-                className="rounded-xl border-neutral-200 bg-white/90"
+                className={sellerFieldClassName}
               />
               {passwordNueva.length > 0 && passwordNueva.length < 8 && (
-                <p className="text-xs text-amber-600">La contraseña debe tener al menos 8 caracteres.</p>
+                <p className={sellerHelperTextClassName}>La contraseña debe tener al menos 8 caracteres.</p>
               )}
             </div>
           </div>
 
-          <Button
+          <SellerActionButton
             onClick={handleSubmit}
             disabled={estado === "loading" || !isValid}
-            className="rounded-xl bg-[#0F3D3A] px-5 text-white shadow-[0_16px_30px_-20px_rgba(15,61,58,0.7)] hover:bg-[#0a2e2c]"
+            className="px-5"
           >
             {estado === "loading" ? "Actualizando…" : "Actualizar contraseña"}
-          </Button>
+          </SellerActionButton>
 
           {mensaje && (
             <div
-              className={`flex items-center gap-2 rounded-xl px-3 py-2 text-sm font-medium ${
+              className={`flex items-center gap-2 rounded-[var(--seller-radius-md)] px-3 py-2 text-sm font-medium ${
                 estado === "ok"
                   ? "bg-emerald-50 text-emerald-700"
                   : "bg-red-50 text-red-600"
@@ -125,7 +124,7 @@ export function SellerSecuritySection() {
             </div>
           )}
         </div>
-      </div>
+      </SellerSurfaceCard>
     </div>
   )
 }

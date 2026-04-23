@@ -3,6 +3,7 @@
 import { MessageCircle, TrendingUp, UserRound } from "lucide-react";
 
 import { BaseExpandableCard } from "@/components/ui/BaseExpandableCard";
+import { SellerDetailPanel } from "@/components/seller/ui/SellerPrimitives";
 import {
   MetricsMiniCard,
   MetricsSectionIntro,
@@ -74,39 +75,20 @@ export function SellerMetricsTrafficSection({
       </BaseExpandableCard>
 
       <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
-        <div className="rounded-3xl border border-neutral-200 bg-white p-5 shadow-sm">
-          <div className="flex items-center gap-3">
-            <span className="flex h-10 w-10 items-center justify-center rounded-2xl bg-[#0F3D3A]/8">
-              <TrendingUp className="h-5 w-5 text-[#0F3D3A]" />
-            </span>
-            <div>
-              <p className="text-sm font-semibold text-neutral-900">
-                Pulso semanal
-              </p>
-              <p className="text-xs text-neutral-500">
-                {growthPercent >= 0
-                  ? `Tus visitas crecieron ${growthPercent}% frente a la semana anterior.`
-                  : `Tus visitas bajaron ${Math.abs(growthPercent)}% frente a la semana anterior.`}
-              </p>
-            </div>
-          </div>
-        </div>
-        <div className="rounded-3xl border border-neutral-200 bg-white p-5 shadow-sm">
-          <div className="flex items-center gap-3">
-            <span className="flex h-10 w-10 items-center justify-center rounded-2xl bg-[#0F3D3A]/8">
-              <UserRound className="h-5 w-5 text-[#0F3D3A]" />
-            </span>
-            <div>
-              <p className="text-sm font-semibold text-neutral-900">
-                Ruta del interes
-              </p>
-              <p className="text-xs text-neutral-500">
-                Perfil, productos y WhatsApp quedan separados para entender
-                donde se rompe la conversion.
-              </p>
-            </div>
-          </div>
-        </div>
+        <SellerDetailPanel
+          icon={<TrendingUp className="h-5 w-5" />}
+          title="Pulso semanal"
+          description={
+            growthPercent >= 0
+              ? `Tus visitas crecieron ${growthPercent}% frente a la semana anterior.`
+              : `Tus visitas bajaron ${Math.abs(growthPercent)}% frente a la semana anterior.`
+          }
+        />
+        <SellerDetailPanel
+          icon={<UserRound className="h-5 w-5" />}
+          title="Ruta del interes"
+          description="Perfil, productos y WhatsApp quedan separados para entender donde se rompe la conversion."
+        />
       </div>
     </div>
   );

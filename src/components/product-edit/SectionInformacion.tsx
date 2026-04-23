@@ -15,6 +15,12 @@ import { SectionCard } from "./SectionCard"
 import type { CommonSectionProps } from "@/types/product-edit"
 
 const SKU_PATTERN = /^[A-Za-z0-9_-]+$/
+const fieldLabelClass =
+  "text-[11px] font-semibold uppercase tracking-[0.08em] text-[#5f6f66]"
+const fieldClass =
+  "h-11 rounded-xl border border-[#0f2e22]/12 bg-white/95 text-[15px] shadow-[0_1px_0_rgba(15,46,34,0.04)] transition focus-visible:border-[#0f2e22]/28 focus-visible:ring-[3px] focus-visible:ring-[#0f2e22]/10"
+const textareaClass =
+  "min-h-[132px] rounded-2xl border border-[#0f2e22]/12 bg-white/95 text-[15px] shadow-[0_1px_0_rgba(15,46,34,0.04)] transition focus-visible:border-[#0f2e22]/28 focus-visible:ring-[3px] focus-visible:ring-[#0f2e22]/10"
 
 function buildAutoSkuPreview(nombre: string, fallbackCode: string) {
   const prefix = nombre
@@ -40,6 +46,7 @@ export function SectionInformacion({
   updateFields,
   onSave,
   sectionState,
+  completionLabel,
   isSaving,
   defaultExpanded,
   priority,
@@ -68,6 +75,7 @@ export function SectionInformacion({
       description="Nombre y descripción — lo primero que verán los compradores."
       onSave={onSave}
       sectionState={sectionState}
+      completionLabel={completionLabel}
       isSaving={isSaving}
       saveLabel="Guardar"
       defaultExpanded={defaultExpanded}
@@ -80,7 +88,7 @@ export function SectionInformacion({
       <div className="space-y-1.5">
         <Label
           htmlFor="edit-nombre"
-          className="text-xs font-medium text-gray-600"
+          className={fieldLabelClass}
         >
           Nombre <span className="text-destructive">*</span>
         </Label>
@@ -90,14 +98,14 @@ export function SectionInformacion({
           onChange={(e) => updateFields({ nombre: e.target.value })}
           placeholder="Nombre del producto"
           maxLength={200}
-          className="h-9 border-gray-200 text-sm focus-visible:border-[#0f2e22]/50 focus-visible:ring-1 focus-visible:ring-[#0f2e22]/40"
+          className={fieldClass}
         />
       </div>
 
       <div className="space-y-1.5">
         <Label
           htmlFor="edit-descripcion"
-          className="text-xs font-medium text-gray-600"
+          className={fieldLabelClass}
         >
           Descripción
         </Label>
@@ -111,7 +119,7 @@ export function SectionInformacion({
           }
           placeholder="Técnica, materiales, dimensiones, historia del artesano…"
           rows={3}
-          className="resize-none border-gray-200 text-sm focus-visible:border-[#0f2e22]/50 focus-visible:ring-1 focus-visible:ring-[#0f2e22]/40"
+          className={`resize-none ${textareaClass}`}
           maxLength={2000}
         />
         <SellerEducationHint title="Descripcion clara">
@@ -123,25 +131,25 @@ export function SectionInformacion({
             <p>Uso:</p>
           </div>
         </SellerEducationHint>
-        <p className="text-right text-[11px] text-gray-300">
+        <p className="text-right text-[11px] tabular-nums text-[#99a49e]">
           {(product.descripcion ?? "").length} / 2000
         </p>
       </div>
 
-      <div className="space-y-3 rounded-lg border border-gray-100 bg-gray-50/70 p-3">
+      <div className="space-y-3 rounded-2xl border border-[#0f2e22]/10 bg-[#f7f4ee]/88 p-4 shadow-[inset_0_1px_0_rgba(255,255,255,0.7)]">
         <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
           <div className="min-w-0 space-y-0.5">
             <Label
               htmlFor="edit-sku-mode"
-              className="text-xs font-medium text-gray-700"
+              className={fieldLabelClass}
             >
               SKU del vendedor
             </Label>
-            <p className="text-muted-foreground text-[11px] leading-snug">
+            <p className="text-[12px] leading-snug text-[#738178]">
               Usa un código automático o define tu propio identificador interno.
             </p>
           </div>
-          <div className="flex items-center gap-2 rounded-md bg-white px-2.5 py-2 text-xs text-gray-600">
+          <div className="flex items-center gap-2 rounded-full border border-[#0f2e22]/10 bg-white px-3 py-2 text-[11px] font-medium text-[#6d7b73] shadow-sm">
             <span
               className={
                 !isManualSku ? "font-medium text-[#0f2e22]" : undefined
@@ -172,7 +180,7 @@ export function SectionInformacion({
           <div className="space-y-1.5">
             <Label
               htmlFor="edit-seller-sku"
-              className="text-xs font-medium text-gray-600"
+              className={fieldLabelClass}
             >
               SKU manual
             </Label>
@@ -183,7 +191,7 @@ export function SectionInformacion({
               placeholder="Ej. HUIPIL-AZUL-001"
               maxLength={100}
               aria-invalid={Boolean(sellerSkuError)}
-              className="h-9 border-gray-200 font-mono text-sm focus-visible:border-[#0f2e22]/50 focus-visible:ring-1 focus-visible:ring-[#0f2e22]/40"
+              className={`${fieldClass} font-mono`}
             />
             <div className="flex items-start justify-between gap-3 text-[11px]">
               <p
@@ -194,14 +202,14 @@ export function SectionInformacion({
                 {sellerSkuError ??
                   "Opcional. Solo letras, números, guion y guion bajo."}
               </p>
-              <span className="shrink-0 text-gray-300">
+              <span className="shrink-0 tabular-nums text-[#99a49e]">
                 {sellerSku.length} / 100
               </span>
             </div>
           </div>
         ) : (
-          <div className="rounded-md border border-dashed border-gray-200 bg-white px-3 py-2">
-            <p className="text-[11px] font-medium text-gray-500">
+          <div className="rounded-2xl border border-dashed border-[#0f2e22]/14 bg-white px-4 py-3 shadow-[0_1px_0_rgba(15,46,34,0.03)]">
+            <p className="text-[11px] font-semibold uppercase tracking-[0.08em] text-[#8a968f]">
               Vista previa
             </p>
             <p className="mt-1 font-mono text-sm font-medium break-words text-[#0f2e22]">

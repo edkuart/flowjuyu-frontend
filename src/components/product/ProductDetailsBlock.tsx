@@ -1,7 +1,8 @@
 "use client";
 
 import { Feather, Ruler, Scissors, Sparkles } from "lucide-react";
-import type { ProductAtributos, ProductMedidas } from "@/types/product-edit";
+import { formatMeasuresForStore } from "@/lib/productMeasures";
+import type { ProductAtributos } from "@/types/product-edit";
 
 type ProductDetailsBlockProps = {
   atributos?: ProductAtributos | null;
@@ -20,38 +21,10 @@ function cleanText(value: unknown): string | null {
   return text.length > 0 ? text : null;
 }
 
-function cleanNumber(value: unknown): number | null {
-  if (typeof value !== "number" && typeof value !== "string") return null;
-  const parsed = Number(value);
-  return Number.isFinite(parsed) && parsed > 0 ? parsed : null;
-}
-
-function formatDimension(value: number) {
-  return Number.isInteger(value) ? String(value) : value.toFixed(1);
-}
-
-function formatMedidas(medidas?: ProductMedidas): string | null {
-  if (!medidas) return null;
-
-  const largo = cleanNumber(medidas.largo);
-  const ancho = cleanNumber(medidas.ancho);
-  const alto = cleanNumber(medidas.alto);
-  const unidad = cleanText(medidas.unidad) ?? "cm";
-
-  if (!largo || !ancho) return null;
-
-  const dimensions = [largo, ancho, alto]
-    .filter((value): value is number => Boolean(value))
-    .map(formatDimension)
-    .join("×");
-
-  return `${dimensions} ${unidad}`;
-}
-
 function buildDetails(atributos?: ProductAtributos | null): DetailItem[] {
   if (!atributos || typeof atributos !== "object") return [];
 
-  const medidas = formatMedidas(atributos.medidas);
+  const medidas = formatMeasuresForStore(atributos.medidas);
   const material = cleanText(atributos.material_principal);
   const tecnica = cleanText(atributos.tecnica);
   const cuidados = cleanText(atributos.cuidados);

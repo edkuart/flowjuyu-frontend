@@ -27,6 +27,15 @@ import { Textarea } from "@/components/ui/textarea"
 import { Label } from "@/components/ui/label"
 import { SellerSectionHero } from "@/components/seller/SellerSectionHero"
 import { SellerProgressCard } from "@/components/seller/SellerProgressCard"
+import { SellerSectionCard } from "@/components/seller/ui/SellerProfileSection"
+import {
+  sellerFieldClassName,
+  sellerOptionCardActiveClassName,
+  sellerOptionCardClassName,
+  sellerPillClassName,
+  sellerPrimarySoftButtonClassName,
+  sellerTextareaClassName,
+} from "@/components/seller/ui/sellerFormStyles"
 import { CommunicationPreferencesPanel } from "@/components/settings/CommunicationPreferencesPanel"
 import { apiGetVendedorPerfil } from "@/services/vendedorPerfil"
 import type { SellerPerfil } from "@/lib/sellerProgress"
@@ -52,11 +61,9 @@ function Section({
   className?: string
 }) {
   return (
-    <Card
-      className={`border border-neutral-200 bg-[linear-gradient(180deg,_rgba(255,255,255,0.98),_rgba(249,248,243,0.96))] shadow-[0_16px_40px_-26px_rgba(15,23,42,0.22)] ${className}`}
-    >
-      <CardContent className="p-6">{children}</CardContent>
-    </Card>
+    <SellerSectionCard title="Panel" className={className} bodyClassName="p-6">
+      {children}
+    </SellerSectionCard>
   )
 }
 
@@ -70,9 +77,9 @@ function SectionHeader({
   badge?: React.ReactNode
 }) {
   return (
-    <div className="mb-5 flex items-center justify-between gap-3 border-b border-neutral-100 pb-4">
+    <div className="mb-5 flex items-center justify-between gap-3 border-b border-[#0f2e22]/8 pb-4">
       <div className="flex items-center gap-3 font-semibold text-neutral-800">
-        <div className="flex h-10 w-10 items-center justify-center rounded-2xl bg-[#0F3D3A]/8 text-[#0F3D3A]">
+        <div className="flex h-10 w-10 items-center justify-center rounded-2xl border border-[#0F3D3A]/10 bg-[#0F3D3A]/8 text-[#0F3D3A] shadow-sm">
           {icon}
         </div>
         <div>
@@ -95,7 +102,7 @@ function SectionIntro({
 }) {
   return (
     <div className="space-y-2">
-      <p className="text-[11px] font-semibold uppercase tracking-[0.22em] text-neutral-400">
+      <p className="text-[11px] font-semibold uppercase tracking-[0.22em] text-[#8c9892]">
         {eyebrow}
       </p>
       <h2 className="text-xl font-semibold tracking-tight text-neutral-900">{title}</h2>
@@ -120,7 +127,7 @@ function ShortcutCard({
   return (
     <Link
       href={href}
-      className="group relative overflow-hidden rounded-[26px] border border-neutral-200 bg-[linear-gradient(180deg,_#ffffff,_#f7f6f1)] p-5 shadow-[0_18px_40px_-28px_rgba(15,23,42,0.3)] transition duration-200 hover:-translate-y-1 hover:border-[#0F3D3A]/20 hover:shadow-[0_24px_55px_-30px_rgba(15,61,58,0.35)]"
+      className={`group relative overflow-hidden p-5 ${sellerOptionCardClassName} rounded-[26px] shadow-[0_18px_40px_-28px_rgba(15,23,42,0.3)] hover:-translate-y-1 hover:shadow-[0_24px_55px_-30px_rgba(15,61,58,0.35)]`}
     >
       <div
         aria-hidden="true"
@@ -156,7 +163,7 @@ function VerificationBadge({ estado }: { estado: EstadoValidacion }) {
   const cfg = map[estado]
   if (!cfg) return null
   return (
-    <span className={`inline-flex items-center gap-1.5 text-xs font-semibold px-2.5 py-1 rounded-full ${cfg.cls}`}>
+    <span className={`inline-flex items-center gap-1.5 rounded-full px-2.5 py-1 text-xs font-semibold ${cfg.cls}`}>
       {cfg.icon}
       {cfg.label}
     </span>
@@ -213,7 +220,7 @@ function VerificationStatusCard({
   if (!cfg) return null
 
   return (
-    <div className={`rounded-[24px] border border-neutral-200 border-l-4 ${cfg.accent} px-5 py-4 shadow-[0_12px_28px_-24px_rgba(15,23,42,0.35)] space-y-3`}>
+    <div className={`space-y-3 rounded-[24px] border border-neutral-200 border-l-4 px-5 py-4 shadow-[0_12px_28px_-24px_rgba(15,23,42,0.35)] ${cfg.accent}`}>
       <div className="flex items-start gap-3">
         <div className="flex h-10 w-10 items-center justify-center rounded-2xl bg-white/80 shadow-sm">
           {cfg.icon}
@@ -234,7 +241,7 @@ function VerificationStatusCard({
       {kycTicket && (
         <div className="ml-8 mt-1">
           <Link href={`/seller/tickets/${kycTicket.id}`}>
-            <div className="inline-flex items-center gap-2 bg-white border border-purple-200 rounded-xl px-3 py-2 text-xs text-purple-700 font-medium hover:bg-purple-50 transition">
+            <div className="inline-flex items-center gap-2 rounded-xl border border-purple-200 bg-white px-3 py-2 text-xs font-medium text-purple-700 transition hover:bg-purple-50">
               <TicketCheck className="w-3.5 h-3.5" />
               Tu verificación está siendo gestionada en un ticket → Ver ticket
             </div>
@@ -246,7 +253,7 @@ function VerificationStatusCard({
       {estado === "rechazado" && !kycTicket && (
         <div className="ml-8 mt-1">
           <Link href="/seller/tickets/new">
-            <div className="inline-flex items-center gap-2 bg-white border border-red-200 rounded-xl px-3 py-2 text-xs text-red-600 font-medium hover:bg-red-50 transition">
+            <div className="inline-flex items-center gap-2 rounded-xl border border-red-200 bg-white px-3 py-2 text-xs font-medium text-red-600 transition hover:bg-red-50">
               <HelpCircle className="w-3.5 h-3.5" />
               ¿Necesitas ayuda? Abre un ticket de soporte
             </div>
@@ -294,7 +301,7 @@ function DocumentsStatusList({
   return (
     <div className="space-y-2.5">
       {docs.map((doc) => (
-        <div key={doc.key} className="flex items-start gap-3 rounded-2xl border border-neutral-200 bg-white/75 px-4 py-3">
+        <div key={doc.key} className="flex items-start gap-3 rounded-2xl border border-[#0f2e22]/10 bg-[#fcfbf8] px-4 py-3">
           <div className="mt-0.5 flex h-8 w-8 flex-shrink-0 items-center justify-center rounded-xl bg-neutral-50">
             {doc.subido ? (
               <FileCheck className="w-4 h-4 text-emerald-600" />
@@ -348,7 +355,7 @@ function UploadDocumentsSection({
   const allSelected = Boolean(dpiFrente && dpiReverso && selfieDpi)
 
   return (
-    <div className="pt-5 border-t border-neutral-100 space-y-4">
+    <div className="space-y-4 border-t border-[#0f2e22]/8 pt-5">
       <div>
         <p className="text-sm font-semibold text-neutral-800">
           {estado === "rechazado" ? "Vuelve a subir tus documentos" : "Subir documentos de verificación"}
@@ -383,7 +390,7 @@ function UploadDocumentsSection({
         <Button
           onClick={onSubmit}
           disabled={estadoUpload === "loading" || !allSelected}
-          className="bg-[#0F3D3A] hover:bg-[#0a2e2c] text-white rounded-xl"
+          className={`rounded-xl ${sellerPrimarySoftButtonClassName}`}
         >
           {estadoUpload === "loading" ? "Enviando documentos…" : "Enviar documentos"}
         </Button>
@@ -427,7 +434,7 @@ function FileField({
         type="file"
         accept="image/*"
         disabled={disabled}
-        className="text-sm"
+        className={sellerFieldClassName}
         onChange={(e: ChangeEvent<HTMLInputElement>) => onChange(e.target.files?.[0] ?? null)}
       />
     </div>
@@ -520,7 +527,7 @@ function AdminStatusCard({ estadoAdmin }: { estadoAdmin: string | null }) {
       <div className="flex items-center justify-between">
         <span className="text-sm text-neutral-600">Estado del comercio</span>
         {cfg ? (
-          <span className={`text-xs font-semibold px-2.5 py-1 rounded-full ${cfg.badge}`}>
+          <span className={`rounded-full px-2.5 py-1 text-xs font-semibold ${cfg.badge}`}>
             {estadoAdmin === "activo" ? "Activo" : estadoAdmin === "inactivo" ? "Inactivo" : "Suspendido"}
           </span>
         ) : (
@@ -531,13 +538,13 @@ function AdminStatusCard({ estadoAdmin }: { estadoAdmin: string | null }) {
         <p className="text-xs text-neutral-500">{cfg.note}</p>
       )}
       {cfg?.alert && (
-        <div className="bg-red-50 border border-red-200 rounded-xl p-4 space-y-3">
+        <div className="space-y-3 rounded-xl border border-red-200 bg-red-50 p-4">
           <div className="flex items-start gap-2.5">
             <AlertTriangle className="w-4 h-4 text-red-500 flex-shrink-0 mt-0.5" />
             <p className="text-sm text-red-700">{cfg.alert}</p>
           </div>
           <Link href="/seller/tickets/new">
-            <Button className="bg-red-600 hover:bg-red-700 text-white text-xs rounded-xl h-8">
+            <Button className="h-8 rounded-xl bg-red-600 text-xs text-white hover:bg-red-700">
               Contactar soporte ahora
             </Button>
           </Link>
@@ -584,7 +591,7 @@ function SupportSection({ actionRequired }: { actionRequired: number }) {
       </p>
 
       {actionRequired > 0 && (
-        <div className="bg-yellow-50 border border-yellow-200 rounded-xl p-3 flex items-start gap-2.5">
+        <div className="flex items-start gap-2.5 rounded-xl border border-yellow-200 bg-yellow-50 p-3">
           <AlertCircle className="w-4 h-4 text-yellow-600 flex-shrink-0 mt-0.5" />
           <div className="flex-1 text-sm">
             <span className="font-semibold text-yellow-800">
@@ -607,18 +614,18 @@ function SupportSection({ actionRequired }: { actionRequired: number }) {
             placeholder="Describe tu consulta o problema en detalle…"
             rows={4}
             disabled={estado === "loading"}
-            className="resize-none"
+            className={`resize-none ${sellerTextareaClassName}`}
           />
           <div className="flex items-center gap-3 flex-wrap">
             <Button
               onClick={handleSubmit}
               disabled={estado === "loading" || !mensaje.trim()}
-              className="bg-[#0F3D3A] hover:bg-[#0a2e2c] text-white rounded-xl"
+              className={`rounded-xl ${sellerPrimarySoftButtonClassName}`}
             >
               {estado === "loading" ? "Enviando…" : "Enviar mensaje"}
             </Button>
             <Link href="/seller/tickets">
-              <Button variant="outline" className="rounded-xl text-sm">
+              <Button variant="outline" className="rounded-xl border-[#0f2e22]/10 text-sm hover:bg-[#faf8f3]">
                 Ver mis tickets
               </Button>
             </Link>
@@ -633,7 +640,7 @@ function SupportSection({ actionRequired }: { actionRequired: number }) {
       )}
 
       {estado === "ok" && (
-        <div className="bg-emerald-50 border border-emerald-200 rounded-xl p-4 space-y-2">
+        <div className="space-y-2 rounded-xl border border-emerald-200 bg-emerald-50 p-4">
           <div className="flex items-center gap-2 text-emerald-700 font-semibold text-sm">
             <CheckCircle className="w-4 h-4" />
             Mensaje enviado correctamente

@@ -3,9 +3,16 @@
 import { ChangeEvent, useEffect, useMemo, useState } from "react";
 import Link from "next/link";
 import { useParams } from "next/navigation";
-import { ArrowLeft, ImageIcon, Loader2, Plus, Sparkles, Trash2 } from "lucide-react";
+import { ImageIcon, Loader2, Plus, Sparkles, Trash2 } from "lucide-react";
+import {
+  SellerActionButton,
+  SellerPill,
+  SellerSurfaceCard,
+} from "@/components/seller/ui/SellerPrimitives";
+import { sellerFieldClassName } from "@/components/seller/ui/sellerFormStyles";
+import { PageBackNav } from "@/components/ui/PageBackNav";
 import { apiFetch } from "@/lib/api";
-import CollectionArtworkPreview from "@/components/seller/CollectionArtworkPreview";
+import { CollectionPreviewBox } from "@/components/seller/CollectionArtworkPreview";
 
 type CollectionProduct = {
   id: string;
@@ -219,120 +226,123 @@ export default function CollectionDetailPage() {
   }
 
   return (
-    <div className="space-y-8 pb-12">
-      <div className="flex items-center justify-between gap-4">
-        <div>
-          <Link href="/seller/collections" className="flex items-center gap-1.5 text-sm text-neutral-500 transition hover:text-neutral-800">
-            <ArrowLeft className="h-4 w-4" />
-            Volver a colecciones
-          </Link>
-          <h1 className="mt-3 text-3xl font-bold text-neutral-900">{collection.name}</h1>
+    <div className="min-w-0 space-y-6 pb-12 md:space-y-8">
+      <div className="flex flex-col gap-4 md:flex-row md:items-start md:justify-between">
+        <div className="min-w-0">
+          <PageBackNav
+            variant="panel"
+            onClick={() => (window.location.href = "/seller/collections")}
+            label="Volver a colecciones"
+            meta="Colecciones"
+            title={<p className="truncate text-[15px] font-semibold text-[var(--seller-ink)]">{collection.name}</p>}
+            className="mb-3"
+          />
+          <h1 className="mt-3 break-words text-3xl font-bold text-neutral-900">{collection.name}</h1>
           <p className="mt-2 max-w-3xl text-sm leading-6 text-neutral-500">
             Aquí defines la colección como concepto comercial. Si quieres construir la imagen desde cero con capas y composición, entra al canvas como herramienta separada.
           </p>
         </div>
-        <div className="flex items-center gap-2">
+        <div className="grid w-full grid-cols-2 gap-2 md:flex md:w-auto md:flex-wrap md:justify-end">
           <button
             onClick={handleTogglePublish}
             disabled={saving || publishing}
-            className="rounded-lg border border-neutral-200 px-4 py-2 text-sm font-medium text-neutral-700 transition hover:bg-neutral-50 disabled:opacity-60"
+            className="min-w-0 rounded-lg border border-[var(--seller-line-strong)] px-3 py-2 text-center text-sm font-medium text-[var(--seller-text)] transition hover:bg-[var(--seller-panel)] disabled:opacity-60 md:px-4"
           >
             {publishing ? "Actualizando..." : collection.status === "published" ? "Pasar a borrador" : "Publicar"}
           </button>
-          <button
+          <SellerActionButton
             onClick={() => saveCollection()}
             disabled={saving}
-            className="rounded-lg bg-[#0F3D3A] px-4 py-2 text-sm font-medium text-white transition hover:bg-[#14544f] disabled:opacity-60"
+            className="min-w-0 px-3 py-2 text-center text-sm font-medium md:px-4"
           >
             {saving ? "Guardando..." : "Guardar colección"}
-          </button>
+          </SellerActionButton>
         </div>
       </div>
 
       {error && <div className="rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">{error}</div>}
       {success && <div className="rounded-xl border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm text-emerald-700">{success}</div>}
 
-      <div className="grid gap-6 xl:grid-cols-[1.05fr_0.95fr]">
-        <section className="space-y-6 rounded-[28px] border border-neutral-200 bg-white p-6 shadow-sm">
+      <div className="grid min-w-0 gap-6 xl:grid-cols-[minmax(0,1.05fr)_minmax(0,0.95fr)]">
+        <SellerSurfaceCard className="min-w-0 space-y-6 p-5 sm:p-6">
           <div className="space-y-1">
-            <p className="text-xs font-semibold uppercase tracking-[0.24em] text-[#0F3D3A]">Identidad de la colección</p>
+            <p className="text-xs font-semibold uppercase tracking-[0.24em] text-[var(--seller-accent)]">Identidad de la colección</p>
             <h2 className="text-xl font-semibold text-neutral-900">Portada y mensaje</h2>
           </div>
 
-          <div className="grid gap-6 lg:grid-cols-[280px_1fr]">
-            <div className="space-y-3">
-              <div className="relative h-[320px] overflow-hidden rounded-[26px] border border-neutral-200 bg-[linear-gradient(135deg,#FFF8F0_0%,#F5EEE5_42%,#E9DFD2_100%)]">
-                <CollectionArtworkPreview
-                  name={collection.name}
-                  imageUrl={promoImageUrl}
-                  items={collection.items}
-                  backgroundColor={collection.background_color}
-                  backgroundStyle={collection.background_style}
-                  canvasWidth={collection.canvas_width}
-                  canvasHeight={collection.canvas_height}
-                />
-              </div>
+          <div className="min-w-0 space-y-5">
+            <CollectionPreviewBox
+              name={collection.name}
+              imageUrl={promoImageUrl}
+              items={collection.items}
+              backgroundColor={collection.background_color}
+              backgroundStyle={collection.background_style}
+              canvasWidth={collection.canvas_width}
+              canvasHeight={collection.canvas_height}
+              maxWidth={700}
+              maxHeight={520}
+              className="w-full rounded-[22px]"
+            />
 
-              <label className="flex cursor-pointer items-center justify-center gap-2 rounded-xl border border-neutral-200 px-4 py-3 text-sm font-medium text-neutral-700 transition hover:bg-neutral-50">
+            <div className="grid grid-cols-2 gap-3">
+              <label className="flex cursor-pointer items-center justify-center gap-2 rounded-xl border border-[var(--seller-line-strong)] px-4 py-3 text-sm font-medium text-[var(--seller-text)] transition hover:bg-[var(--seller-panel)]">
                 {uploadingImage ? <Loader2 className="h-4 w-4 animate-spin" /> : <ImageIcon className="h-4 w-4" />}
-                {uploadingImage ? "Subiendo imagen..." : "Subir imagen promocional"}
+                {uploadingImage ? "Subiendo..." : "Subir imagen"}
                 <input type="file" accept="image/*" className="hidden" onChange={handleUploadImage} />
               </label>
 
               <Link
                 href={`/seller/collections/${collection.id}/canvas`}
-                className="flex items-center justify-center gap-2 rounded-xl border border-dashed border-[#0F3D3A]/30 bg-[#0F3D3A]/5 px-4 py-3 text-sm font-medium text-[#0F3D3A] transition hover:bg-[#0F3D3A]/8"
+                className="seller-option-card-active flex items-center justify-center gap-2 rounded-xl border border-dashed px-4 py-3 text-sm font-medium text-[var(--seller-accent)] transition"
               >
                 <Sparkles className="h-4 w-4" />
-                Abrir editor canvas
+                Editor canvas
               </Link>
             </div>
 
-            <div className="space-y-4">
-              <div>
-                <label className="mb-2 block text-sm font-medium text-neutral-700">Nombre</label>
-                <input
-                  type="text"
-                  maxLength={120}
-                  value={collection.name}
-                  onChange={(event) => setCollection((current) => current ? { ...current, name: event.target.value } : current)}
-                  className="w-full rounded-xl border border-neutral-300 px-4 py-3 text-sm outline-none focus:border-[#0F3D3A] focus:ring-2 focus:ring-[#0F3D3A]/15"
-                />
-              </div>
+            <div>
+              <label className="mb-2 block text-sm font-medium text-neutral-700">Nombre</label>
+              <input
+                type="text"
+                maxLength={120}
+                value={collection.name}
+                onChange={(event) => setCollection((current) => current ? { ...current, name: event.target.value } : current)}
+                className={sellerFieldClassName}
+              />
+            </div>
 
-              <div>
-                <label className="mb-2 block text-sm font-medium text-neutral-700">Descripción</label>
-                <textarea
-                  rows={5}
-                  value={collection.description ?? ""}
-                  onChange={(event) => setCollection((current) => current ? { ...current, description: event.target.value } : current)}
-                  placeholder="Explica la idea, el tono o la inspiración detrás de esta colección."
-                  className="w-full rounded-xl border border-neutral-300 px-4 py-3 text-sm outline-none focus:border-[#0F3D3A] focus:ring-2 focus:ring-[#0F3D3A]/15"
-                />
-              </div>
+            <div>
+              <label className="mb-2 block text-sm font-medium text-neutral-700">Descripción</label>
+              <textarea
+                rows={4}
+                value={collection.description ?? ""}
+                onChange={(event) => setCollection((current) => current ? { ...current, description: event.target.value } : current)}
+                placeholder="Explica la idea, el tono o la inspiración detrás de esta colección."
+                className={sellerFieldClassName}
+              />
+            </div>
 
-              <div className="rounded-2xl border border-neutral-100 bg-neutral-50 p-4 text-sm text-neutral-600">
-                <p className="font-semibold text-neutral-800">Estado actual</p>
-                <p className="mt-1">{collection.status === "published" ? "Esta colección ya se muestra públicamente." : "Esta colección sigue como borrador."}</p>
-                <p className="mt-2">Productos vinculados: <span className="font-semibold text-neutral-800">{selectedProductIds.length}</span></p>
-              </div>
+            <div className="seller-panel-subtle rounded-2xl p-4 text-sm text-neutral-600">
+              <p className="font-semibold text-neutral-800">Estado actual</p>
+              <p className="mt-1">{collection.status === "published" ? "Esta colección ya se muestra públicamente." : "Esta colección sigue como borrador."}</p>
+              <p className="mt-2">Productos vinculados: <span className="font-semibold text-neutral-800">{selectedProductIds.length}</span></p>
             </div>
           </div>
-        </section>
+        </SellerSurfaceCard>
 
-        <section className="space-y-6 rounded-[28px] border border-neutral-200 bg-white p-6 shadow-sm">
+        <SellerSurfaceCard className="min-w-0 space-y-6 p-5 sm:p-6">
           <div className="flex items-start justify-between gap-4">
             <div>
-              <p className="text-xs font-semibold uppercase tracking-[0.24em] text-[#0F3D3A]">Productos</p>
+              <p className="text-xs font-semibold uppercase tracking-[0.24em] text-[var(--seller-accent)]">Productos</p>
               <h2 className="text-xl font-semibold text-neutral-900">Selecciona lo que vive dentro de la colección</h2>
               <p className="mt-1 text-sm text-neutral-500">Puedes usar una imagen ya hecha y luego asociar aquí los artículos que forman el conjunto.</p>
             </div>
-            <span className="rounded-full bg-neutral-100 px-3 py-1 text-xs font-semibold text-neutral-600">
+            <SellerPill tone="neutral" className="px-3 py-1 text-xs font-semibold">
               {selectedProductIds.length} seleccionados
-            </span>
+            </SellerPill>
           </div>
 
-          <div className="rounded-2xl border border-neutral-200 p-3">
+          <div className="rounded-2xl border border-[var(--seller-line-strong)] p-3">
             <input
               type="text"
               value={search}
@@ -352,8 +362,8 @@ export default function CollectionDetailPage() {
                   onClick={() => toggleProduct(product.id)}
                   className={`flex w-full items-center gap-3 rounded-2xl border p-3 text-left transition ${
                     selected
-                      ? "border-[#0F3D3A] bg-[#0F3D3A]/5"
-                      : "border-neutral-200 hover:border-neutral-300 hover:bg-neutral-50"
+                      ? "border-[var(--seller-accent)] bg-[color:color-mix(in_srgb,var(--seller-accent)_5%,white)]"
+                      : "border-[var(--seller-line-strong)] hover:border-[var(--seller-line-strong)] hover:bg-[var(--seller-panel)]"
                   }`}
                 >
                   <div className="h-16 w-16 overflow-hidden rounded-xl bg-neutral-100">
@@ -369,7 +379,7 @@ export default function CollectionDetailPage() {
                     <p className="truncate text-sm font-semibold text-neutral-800">{product.nombre}</p>
                     <p className="text-xs text-neutral-500">Q{Number(product.precio ?? 0).toFixed(2)}</p>
                   </div>
-                  <div className={`h-5 w-5 rounded-full border ${selected ? "border-[#0F3D3A] bg-[#0F3D3A]" : "border-neutral-300 bg-white"}`} />
+                  <div className={`h-5 w-5 rounded-full border ${selected ? "border-[var(--seller-accent)] bg-[var(--seller-accent)]" : "border-neutral-300 bg-white"}`} />
                 </button>
               );
             })}
@@ -380,18 +390,18 @@ export default function CollectionDetailPage() {
               </div>
             )}
           </div>
-        </section>
+        </SellerSurfaceCard>
       </div>
 
-      <section className="rounded-[28px] border border-neutral-200 bg-white p-6 shadow-sm">
+      <SellerSurfaceCard className="min-w-0 p-5 sm:p-6">
         <div className="flex items-center justify-between gap-4">
           <div>
-            <p className="text-xs font-semibold uppercase tracking-[0.24em] text-[#0F3D3A]">Resumen visual</p>
+            <p className="text-xs font-semibold uppercase tracking-[0.24em] text-[var(--seller-accent)]">Resumen visual</p>
             <h2 className="text-xl font-semibold text-neutral-900">Productos dentro de esta colección</h2>
           </div>
           <button
             onClick={() => setSelectedProductIds([])}
-            className="inline-flex items-center gap-2 rounded-lg border border-neutral-200 px-3 py-2 text-sm text-neutral-600 transition hover:bg-neutral-50"
+            className="inline-flex items-center gap-2 rounded-lg border border-[var(--seller-line-strong)] px-3 py-2 text-sm text-[var(--seller-muted)] transition hover:bg-[var(--seller-panel)]"
           >
             <Trash2 className="h-4 w-4" />
             Limpiar selección
@@ -424,14 +434,14 @@ export default function CollectionDetailPage() {
             <button
               type="button"
               onClick={() => window.scrollTo({ top: 0, behavior: "smooth" })}
-              className="flex min-h-[280px] flex-col items-center justify-center rounded-2xl border border-dashed border-neutral-200 bg-neutral-50 text-neutral-500 transition hover:border-[#0F3D3A]/40 hover:bg-[#0F3D3A]/5 hover:text-[#0F3D3A]"
+              className="flex min-h-[280px] flex-col items-center justify-center rounded-2xl border border-dashed border-[var(--seller-line-strong)] bg-[var(--seller-panel)] text-[var(--seller-muted)] transition hover:border-[color:color-mix(in_srgb,var(--seller-accent)_25%,transparent)] hover:bg-[color:color-mix(in_srgb,var(--seller-accent)_5%,white)] hover:text-[var(--seller-accent)]"
             >
               <Plus className="mb-2 h-5 w-5" />
               Agregar más productos
             </button>
           </div>
         )}
-      </section>
+      </SellerSurfaceCard>
     </div>
   );
 }

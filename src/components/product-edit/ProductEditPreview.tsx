@@ -10,6 +10,7 @@ import Image from "next/image"
 import { MapPin, Package } from "lucide-react"
 import { ProductConversionCard } from "@/components/product/ProductConversionCard"
 import { ProductTitle } from "@/components/product/ProductTitle"
+import { formatMeasuresForStore } from "@/lib/productMeasures"
 import { getProductConversionInsights } from "@/lib/productConversion"
 import type { ProductEditData, ProductAtributos } from "@/types/product-edit"
 
@@ -24,12 +25,8 @@ function buildAtributosLine(a: ProductAtributos | undefined): string | null {
   const parts: string[] = []
 
   if (a.medidas) {
-    const { largo, ancho, alto, unidad } = a.medidas
-    const dims = [largo, ancho, alto].filter((n): n is number => n != null && n > 0)
-    if (dims.length > 0) {
-      const u = unidad ? ` ${unidad}` : ""
-      parts.push(dims.join(" × ") + u)
-    }
+    const medidas = formatMeasuresForStore(a.medidas)
+    if (medidas) parts.push(medidas)
   }
 
   if (a.material_principal) parts.push(a.material_principal)
@@ -60,23 +57,23 @@ export function ProductEditPreview({ product }: Props) {
   const atributosLine = buildAtributosLine(product.atributos)
 
   return (
-    <div className="space-y-3">
+    <div className="space-y-4">
       {/* Live label */}
       <div className="flex items-center gap-2 px-0.5">
         <span className="relative flex h-1.5 w-1.5">
           <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75" />
           <span className="relative inline-flex rounded-full h-1.5 w-1.5 bg-emerald-500" />
         </span>
-        <p className="text-[10px] font-bold text-gray-400 uppercase tracking-[0.14em]">
+        <p className="text-[10px] font-bold uppercase tracking-[0.14em] text-gray-400">
           Vista previa en tiempo real
         </p>
       </div>
 
       {/* ── Hero card ─────────────────────────────────────────────────────────── */}
-      <div className="group bg-white border border-gray-100 rounded-2xl overflow-hidden shadow-[0_4px_28px_-8px_rgba(0,0,0,0.10)] transition-shadow duration-300 hover:shadow-[0_8px_36px_-8px_rgba(0,0,0,0.14)]">
+      <div className="group overflow-hidden rounded-[28px] border border-[#0f2e22]/8 bg-white shadow-[0_18px_45px_-28px_rgba(15,46,34,0.28)] transition-all duration-300 hover:-translate-y-0.5 hover:shadow-[0_22px_55px_-28px_rgba(15,46,34,0.34)]">
 
         {/* Image area */}
-        <div className="aspect-square bg-[#f5f4f2] relative overflow-hidden">
+        <div className="relative aspect-square overflow-hidden bg-[linear-gradient(135deg,#f7f4ee_0%,#efe7db_100%)]">
           {product.imagen_principal ? (
             <Image
               src={product.imagen_principal}
@@ -117,7 +114,7 @@ export function ProductEditPreview({ product }: Props) {
         </div>
 
         {/* Info area */}
-        <div className="px-4 pt-4 pb-4 space-y-2">
+        <div className="space-y-2.5 px-4 pb-4 pt-4">
           {/* Name */}
           <ProductTitle value={product.nombre ?? ""} variant="preview" />
 
@@ -153,7 +150,7 @@ export function ProductEditPreview({ product }: Props) {
       {/* Conversion score card */}
       <ProductConversionCard insights={insights} />
 
-      <p className="text-[10px] text-center text-gray-300 tracking-wide">
+      <p className="text-center text-[10px] tracking-wide text-gray-300">
         Refleja cambios al instante
       </p>
     </div>

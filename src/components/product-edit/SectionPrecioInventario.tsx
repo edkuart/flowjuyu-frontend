@@ -18,11 +18,17 @@ import { SellerEducationHint } from "@/components/seller/SellerEducationHint"
 import { SectionCard } from "./SectionCard"
 import type { CommonSectionProps } from "@/types/product-edit"
 
+const fieldLabelClass =
+  "text-[11px] font-semibold uppercase tracking-[0.08em] text-[#5f6f66]"
+const fieldClass =
+  "h-11 rounded-xl border border-[#0f2e22]/12 bg-white/95 text-[15px] shadow-[0_1px_0_rgba(15,46,34,0.04)] transition focus-visible:border-[#0f2e22]/28 focus-visible:ring-[3px] focus-visible:ring-[#0f2e22]/10"
+
 export function SectionPrecioInventario({
   product,
   updateFields,
   onSave,
   sectionState,
+  completionLabel,
   isSaving,
   defaultExpanded,
   priority,
@@ -87,6 +93,7 @@ export function SectionPrecioInventario({
       description="Define cuánto cuesta y cuántas unidades tienes disponibles."
       onSave={onSave}
       sectionState={sectionState}
+      completionLabel={completionLabel}
       isSaving={isSaving}
       saveLabel="Guardar"
       defaultExpanded={defaultExpanded}
@@ -99,7 +106,7 @@ export function SectionPrecioInventario({
       <div className="grid grid-cols-2 gap-3">
         {/* Precio */}
         <div className="space-y-1.5">
-          <Label htmlFor="edit-precio" className="text-xs font-medium text-gray-600">
+          <Label htmlFor="edit-precio" className={fieldLabelClass}>
             Precio (Q) <span className="text-destructive">*</span>
           </Label>
           <Input
@@ -111,13 +118,13 @@ export function SectionPrecioInventario({
             onChange={(e) => handlePrecioChange(e.target.value)}
             onBlur={handlePrecioBlur}
             placeholder="0.00"
-            className="h-9 text-sm border-gray-200 focus-visible:ring-1 focus-visible:ring-[#0f2e22]/40 focus-visible:border-[#0f2e22]/50"
+            className={fieldClass}
           />
         </div>
 
         {/* Stock */}
         <div className="space-y-1.5">
-          <Label htmlFor="edit-stock" className="text-xs font-medium text-gray-600">
+          <Label htmlFor="edit-stock" className={fieldLabelClass}>
             Stock <span className="text-destructive">*</span>
           </Label>
           <Input
@@ -128,23 +135,23 @@ export function SectionPrecioInventario({
             value={product.stock}
             onChange={(e) => handleStockChange(e.target.value)}
             placeholder="0"
-            className="h-9 text-sm border-gray-200 focus-visible:ring-1 focus-visible:ring-[#0f2e22]/40 focus-visible:border-[#0f2e22]/50"
+            className={fieldClass}
           />
         </div>
       </div>
 
       {/* Read-only identifiers */}
       {(product.internal_code || product.seller_sku) && (
-        <div className="bg-gray-50 border rounded-lg px-3 py-2 space-y-1">
+        <div className="space-y-1 rounded-2xl border border-[#0f2e22]/10 bg-[#f7f4ee]/88 px-4 py-3 shadow-[inset_0_1px_0_rgba(255,255,255,0.7)]">
           {product.internal_code && (
-            <p className="text-xs text-muted-foreground">
-              <span className="font-medium">Código FJ:</span>{" "}
+            <p className="text-[12px] text-[#738178]">
+              <span className="font-semibold text-[#425149]">Código FJ:</span>{" "}
               <span className="font-mono">{product.internal_code}</span>
             </p>
           )}
           {product.seller_sku && (
-            <p className="text-xs text-muted-foreground">
-              <span className="font-medium">SKU:</span>{" "}
+            <p className="text-[12px] text-[#738178]">
+              <span className="font-semibold text-[#425149]">SKU:</span>{" "}
               <span className="font-mono">{product.seller_sku}</span>
             </p>
           )}

@@ -18,12 +18,12 @@ const SUB_LABELS: Record<SubscriptionStatus, string> = {
 }
 
 const SUB_STYLES: Record<SubscriptionStatus, string> = {
-  active:    "bg-emerald-50 text-emerald-700 border-emerald-200",
-  past_due:  "bg-amber-50  text-amber-700  border-amber-200",
-  expired:   "bg-red-50    text-red-700    border-red-200",
-  draft:     "bg-blue-50   text-blue-700   border-blue-200",
-  paused:    "bg-neutral-100 text-neutral-500 border-neutral-200",
-  cancelled: "bg-neutral-100 text-neutral-500 border-neutral-200",
+  active:    "border-emerald-200 bg-emerald-50 text-emerald-700",
+  past_due:  "border-amber-200 bg-amber-50 text-amber-700",
+  expired:   "border-red-200 bg-red-50 text-red-700",
+  draft:     "border-blue-200 bg-blue-50 text-blue-700",
+  paused:    "border-[var(--seller-line)] bg-[var(--seller-panel-soft)] text-[var(--seller-muted)]",
+  cancelled: "border-[var(--seller-line)] bg-[var(--seller-panel-soft)] text-[var(--seller-muted)]",
 }
 
 export function SubscriptionStatusBadge({
@@ -57,11 +57,11 @@ const INV_LABELS: Record<InvoiceStatus, string> = {
 }
 
 const INV_STYLES: Record<InvoiceStatus, string> = {
-  draft:          "bg-neutral-100 text-neutral-500 border-neutral-200",
-  open:           "bg-amber-50    text-amber-700   border-amber-200",
-  paid:           "bg-emerald-50  text-emerald-700 border-emerald-200",
-  void:           "bg-neutral-100 text-neutral-400 border-neutral-200",
-  uncollectible:  "bg-red-50      text-red-600     border-red-200",
+  draft:          "border-[var(--seller-line)] bg-[var(--seller-panel-soft)] text-[var(--seller-muted)]",
+  open:           "border-amber-200 bg-amber-50 text-amber-700",
+  paid:           "border-emerald-200 bg-emerald-50 text-emerald-700",
+  void:           "border-[var(--seller-line)] bg-[var(--seller-panel-soft)] text-[var(--seller-soft-text)]",
+  uncollectible:  "border-red-200 bg-red-50 text-red-600",
 }
 
 export function InvoiceStatusBadge({
@@ -97,13 +97,13 @@ const PMT_LABELS: Record<PaymentStatus, string> = {
 }
 
 const PMT_STYLES: Record<PaymentStatus, string> = {
-  pending:        "bg-blue-50    text-blue-700   border-blue-200",
-  processing:     "bg-blue-50    text-blue-700   border-blue-200",
-  confirmed:      "bg-emerald-50 text-emerald-700 border-emerald-200",
-  failed:         "bg-red-50     text-red-700    border-red-200",
-  cancelled:      "bg-neutral-100 text-neutral-400 border-neutral-200",
-  expired:        "bg-neutral-100 text-neutral-500 border-neutral-200",
-  manual_pending: "bg-amber-50   text-amber-700  border-amber-200",
+  pending:        "border-blue-200 bg-blue-50 text-blue-700",
+  processing:     "border-blue-200 bg-blue-50 text-blue-700",
+  confirmed:      "border-emerald-200 bg-emerald-50 text-emerald-700",
+  failed:         "border-red-200 bg-red-50 text-red-700",
+  cancelled:      "border-[var(--seller-line)] bg-[var(--seller-panel-soft)] text-[var(--seller-soft-text)]",
+  expired:        "border-[var(--seller-line)] bg-[var(--seller-panel-soft)] text-[var(--seller-muted)]",
+  manual_pending: "border-amber-200 bg-amber-50 text-amber-700",
 }
 
 export function PaymentStatusBadge({
@@ -136,10 +136,10 @@ const RPT_LABELS: Record<ReportStatus, string> = {
 }
 
 const RPT_STYLES: Record<ReportStatus, string> = {
-  submitted:    "bg-blue-50    text-blue-700    border-blue-200",
-  under_review: "bg-amber-50   text-amber-700   border-amber-200",
-  approved:     "bg-emerald-50 text-emerald-700 border-emerald-200",
-  rejected:     "bg-red-50     text-red-700     border-red-200",
+  submitted:    "border-blue-200 bg-blue-50 text-blue-700",
+  under_review: "border-amber-200 bg-amber-50 text-amber-700",
+  approved:     "border-emerald-200 bg-emerald-50 text-emerald-700",
+  rejected:     "border-red-200 bg-red-50 text-red-700",
 }
 
 export function ReportStatusBadge({

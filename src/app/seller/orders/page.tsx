@@ -8,6 +8,15 @@ import { Card, CardContent } from '@/components/ui/card'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog'
+import { PageBackNav } from '@/components/ui/PageBackNav'
+import {
+  SellerActionButton,
+  SellerDetailPanel,
+  SellerPanelHeader,
+  SellerPill,
+  SellerSurfaceCard,
+} from '@/components/seller/ui/SellerPrimitives'
+import { sellerFieldClassName, sellerHelperTextClassName } from '@/components/seller/ui/sellerFormStyles'
 import {
   CalendarDays,
   Loader2,
@@ -22,6 +31,7 @@ import {
   Sparkles,
   Share2,
   MessageCircle,
+  ShoppingCart,
 } from 'lucide-react'
 
 const API = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8800'
@@ -702,49 +712,78 @@ export default function SellerOrdersPage() {
 
   return (
     <main className="max-w-6xl mx-auto px-4 py-10 space-y-8">
-      <header className="flex items-center justify-between gap-4">
-        <div>
-          <h1 className="text-3xl font-bold text-neutral-900">Historial de pedidos</h1>
-          <p className="text-muted-foreground text-sm mt-1">Consulta, filtra y exporta tus pedidos</p>
+      <PageBackNav
+        variant="panel"
+        label="Volver"
+        onClick={() => window.history.back()}
+        title="Historial de pedidos"
+        meta="Ventas y seguimiento"
+      />
+
+      <SellerSurfaceCard className="overflow-hidden">
+        <SellerPanelHeader
+          eyebrow="Pedidos"
+          icon={<ShoppingCart className="h-5 w-5" />}
+          title="Historial de pedidos"
+          description="Consulta, filtra y exporta tus pedidos desde una vista más clara y profesional."
+          action={<SellerPill tone="neutral">{formatQ(totalPagina)} en página</SellerPill>}
+        />
+        <div className="grid gap-3 border-t border-[var(--seller-line)] p-5 md:grid-cols-4">
+          <SellerDetailPanel
+            icon={<Package className="h-4 w-4" />}
+            title={`${pedidos.length} pedidos`}
+            description="Resultados visibles con los filtros actuales."
+          />
+          <SellerDetailPanel
+            icon={<CalendarDays className="h-4 w-4" />}
+            title={from || to ? `${from || 'Inicio'} - ${to || 'Hoy'}` : 'Rango completo'}
+            description="Periodo aplicado en esta vista."
+          />
+          <SellerDetailPanel
+            icon={<BarChart2 className="h-4 w-4" />}
+            title={estado}
+            description="Estado filtrado."
+          />
+          <SellerDetailPanel
+            icon={<ShieldCheck className="h-4 w-4" />}
+            title={formatQ(totalPagina)}
+            description="Monto total de esta página."
+          />
         </div>
-        <div className="text-right">
-          <div className="text-xs text-muted-foreground">Total en página</div>
-          <div className="text-lg font-semibold">{formatQ(totalPagina)}</div>
-        </div>
-      </header>
+      </SellerSurfaceCard>
 
       {/* Quick ranges */}
       <div className="flex flex-wrap gap-2">
         {quickRanges.map((r) => (
-          <Button
+          <SellerActionButton
             key={r.key}
-            variant={activeKey === r.key ? 'default' : 'outline'}
-            size="sm"
+            tone={activeKey === r.key ? 'primary' : 'neutral'}
+            className="px-3 py-2 text-xs"
             onClick={() => { setFrom(r.from); setTo(r.to); setPage(1) }}
           >
             {r.label}
-          </Button>
+          </SellerActionButton>
         ))}
-        <Button
-          variant={!from && !to ? 'default' : 'outline'}
-          size="sm"
+        <SellerActionButton
+          tone={!from && !to ? 'primary' : 'neutral'}
+          className="px-3 py-2 text-xs"
           onClick={() => { setFrom(''); setTo('') }}
         >
           Todos
-        </Button>
+        </SellerActionButton>
       </div>
 
       {/* Filters */}
-      <Card>
+      <SellerSurfaceCard>
         <CardContent className="p-4 grid gap-3 md:grid-cols-5">
           <div className="md:col-span-2">
-            <Label className="text-xs">Buscar (ID o cliente)</Label>
-            <Input placeholder="Ej. 1248 o María" value={q} onChange={(e) => setQ(e.target.value)} />
+            <Label className="text-xs text-[var(--seller-soft-text)]">Buscar (ID o cliente)</Label>
+            <Input className={sellerFieldClassName} placeholder="Ej. 1248 o María" value={q} onChange={(e) => setQ(e.target.value)} />
           </div>
           <div>
-            <Label className="text-xs">Estado</Label>
+            <Label className="text-xs text-[var(--seller-soft-text)]">Estado</Label>
             <select
-              className="w-full h-9 border rounded-md bg-background"
+              className={`${sellerFieldClassName} w-full`}
               value={estado}
               onChange={(e) => setEstado(e.target.value as Pedido['estado'] | 'Todos')}
             >
@@ -753,21 +792,21 @@ export default function SellerOrdersPage() {
             </select>
           </div>
           <div>
-            <Label className="text-xs">Desde</Label>
-            <Input type="date" value={from} onChange={(e) => setFrom(e.target.value)} />
+            <Label className="text-xs text-[var(--seller-soft-text)]">Desde</Label>
+            <Input className={sellerFieldClassName} type="date" value={from} onChange={(e) => setFrom(e.target.value)} />
           </div>
           <div>
-            <Label className="text-xs">Hasta</Label>
-            <Input type="date" value={to} onChange={(e) => setTo(e.target.value)} />
+            <Label className="text-xs text-[var(--seller-soft-text)]">Hasta</Label>
+            <Input className={sellerFieldClassName} type="date" value={to} onChange={(e) => setTo(e.target.value)} />
           </div>
           <div className="md:col-span-5 flex items-center justify-end gap-2">
-            <Button variant="outline" onClick={() => { setQ(''); setEstado('Todos'); setFrom(''); setTo('') }}>
+            <SellerActionButton tone="neutral" onClick={() => { setQ(''); setEstado('Todos'); setFrom(''); setTo('') }}>
               Limpiar
-            </Button>
-            <Button variant="secondary" onClick={exportCSV}>Exportar CSV</Button>
+            </SellerActionButton>
+            <SellerActionButton onClick={exportCSV}>Exportar CSV</SellerActionButton>
           </div>
         </CardContent>
-      </Card>
+      </SellerSurfaceCard>
 
       {/* List */}
       <section className="space-y-4">
@@ -779,24 +818,24 @@ export default function SellerOrdersPage() {
           </Card>
         ) : pedidos.length === 0 ? (
           q.trim() || estado !== 'Todos' || from || to ? (
-            <Card>
-              <CardContent className="p-8 text-center text-muted-foreground">
+            <SellerSurfaceCard>
+              <CardContent className="p-8 text-center text-[var(--seller-muted)]">
                 No hay pedidos con esos filtros.
               </CardContent>
-            </Card>
+            </SellerSurfaceCard>
           ) : (
             <SellerOrdersEmptyState slug={slug} />
           )
         ) : (
           pedidos.map((pedido) => (
-            <Card key={pedido.id}>
+            <SellerSurfaceCard key={pedido.id}>
               <CardContent className="p-6 space-y-4">
                 <div className="flex justify-between items-start gap-4">
                   <div>
-                    <p className="text-sm text-muted-foreground">
+                    <p className="text-sm text-[var(--seller-muted)]">
                       Pedido <span className="font-medium">#{pedido.id}</span>
                     </p>
-                    <p className="text-base font-semibold">
+                    <p className="text-base font-semibold text-[var(--seller-ink)]">
                       {pedido.productos.length}{' '}
                       {pedido.productos.length > 1 ? 'artículos' : 'artículo'}
                     </p>
@@ -814,7 +853,7 @@ export default function SellerOrdersPage() {
                   </div>
                 </div>
 
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 text-sm text-neutral-700">
+                <div className="grid grid-cols-1 gap-4 text-sm text-[var(--seller-text)] sm:grid-cols-2">
                   <div className="space-y-1">
                     <p><span className="font-medium">Cliente:</span> {pedido.cliente}</p>
                     <p><span className="font-medium">Total:</span> {formatQ(pedido.total)}</p>
@@ -827,11 +866,11 @@ export default function SellerOrdersPage() {
                         <img
                           src={producto.imagen || '/placeholder.svg'}
                           alt={producto.nombre}
-                          className="w-14 h-14 object-cover rounded-md border"
+                          className="h-14 w-14 rounded-md border border-[var(--seller-line)] object-cover"
                         />
                         <div>
                           <p className="text-sm font-medium">{producto.nombre}</p>
-                          <p className="text-xs text-muted-foreground">
+                          <p className="text-xs text-[var(--seller-muted)]">
                             {producto.cantidad ? `x${producto.cantidad} · ` : ''}
                             {formatQ(producto.precio)}
                           </p>
@@ -842,33 +881,33 @@ export default function SellerOrdersPage() {
                 </div>
 
                 <div className="flex justify-end">
-                  <Button size="sm" variant="secondary" onClick={() => { setCurrent(pedido); setOpen(true) }}>
+                  <SellerActionButton tone="neutral" className="px-3 py-2 text-xs" onClick={() => { setCurrent(pedido); setOpen(true) }}>
                     Ver detalle
-                  </Button>
+                  </SellerActionButton>
                 </div>
               </CardContent>
-            </Card>
+            </SellerSurfaceCard>
           ))
         )}
       </section>
 
       {/* Pagination */}
       <div className="flex items-center justify-between pt-2">
-        <Button
-          variant="outline"
+        <SellerActionButton
+          tone="neutral"
           disabled={page === 1 || loading}
           onClick={() => { const p = page - 1; setPage(p); cargarPedidos(p) }}
         >
           ← Anterior
-        </Button>
-        <span className="text-xs text-muted-foreground">Página {page}</span>
-        <Button
-          variant="outline"
+        </SellerActionButton>
+        <span className={sellerHelperTextClassName}>Página {page}</span>
+        <SellerActionButton
+          tone="neutral"
           disabled={!hasMore || loading}
           onClick={() => { const p = page + 1; setPage(p); cargarPedidos(p) }}
         >
           Siguiente →
-        </Button>
+        </SellerActionButton>
       </div>
 
       {/* Detail modal */}

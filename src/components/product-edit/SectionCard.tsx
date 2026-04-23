@@ -18,6 +18,7 @@ interface SectionCardProps {
   sectionState: SectionSaveState
   isSaving: boolean
   onSave: () => void
+  completionLabel?: string
   saveLabel?: string
   defaultExpanded?: boolean
   priority?: "high" | "low"
@@ -30,9 +31,10 @@ export function SectionCard({
   sectionState,
   isSaving,
   onSave,
+  completionLabel,
   saveLabel = "Guardar",
   defaultExpanded = true,
-  priority = "high",
+  priority: _priority = "high",
   children,
 }: SectionCardProps) {
   const [expanded, setExpanded] = useState(defaultExpanded)
@@ -41,21 +43,14 @@ export function SectionCard({
   const isBlocked     = isSaving && !isThisSection
   const isSuccess     = sectionState.status === "success"
   const isError       = sectionState.status === "error"
-  const isLow         = priority === "low"
 
   return (
     <section
       className={cn(
-        "bg-white rounded-xl overflow-hidden transition-shadow duration-300",
-        isLow
-          ? "border border-gray-100 shadow-[0_1px_4px_-2px_rgba(0,0,0,0.05)]"
-          : "border border-gray-100 shadow-[0_2px_12px_-4px_rgba(0,0,0,0.08)] hover:shadow-[0_4px_20px_-4px_rgba(0,0,0,0.10)]"
+        "overflow-hidden rounded-2xl border border-[#0f2e22]/8 bg-white shadow-[0_8px_28px_-18px_rgba(15,46,34,0.16)] transition-shadow duration-300 hover:shadow-[0_14px_38px_-22px_rgba(15,46,34,0.22)]"
       )}
     >
-      {/* High-priority accent stripe */}
-      {!isLow && (
-        <div className="h-[2px] bg-gradient-to-r from-[#0f2e22]/70 via-[#0f2e22]/20 to-transparent" />
-      )}
+      <div className="h-[2px] bg-gradient-to-r from-[#0f2e22]/72 via-[#0f2e22]/18 to-transparent" />
 
       {/* ── Collapsible header ───────────────────────────────────────────────── */}
       <button
@@ -63,30 +58,17 @@ export function SectionCard({
         onClick={() => setExpanded((v) => !v)}
         aria-expanded={expanded}
         className={cn(
-          "w-full text-left flex items-center justify-between gap-3 px-4 py-3",
-          "border-b transition-colors duration-150",
+          "flex w-full items-center justify-between gap-3 border-b border-[#0f2e22]/6 px-5 py-4 text-left transition-colors duration-150",
           "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-[#0f2e22]/30",
-          isLow
-            ? "border-gray-100/60 bg-gray-50/30 hover:bg-gray-50/60"
-            : "border-gray-100 bg-transparent hover:bg-gray-50/40"
+          "bg-white hover:bg-[#f7f6f2]"
         )}
       >
         <div className="min-w-0 flex-1">
-          <h2
-            className={cn(
-              "font-semibold leading-none tracking-tight",
-              isLow ? "text-xs text-gray-400" : "text-[13px] text-gray-900"
-            )}
-          >
+          <h2 className="text-[13px] font-semibold leading-none tracking-tight text-[#14231c]">
             {title}
           </h2>
           {description && expanded && (
-            <p
-              className={cn(
-                "mt-1 leading-relaxed",
-                isLow ? "text-[11px] text-gray-300" : "text-xs text-gray-400"
-              )}
-            >
+            <p className="mt-1 text-[11px] leading-relaxed text-neutral-400">
               {description}
             </p>
           )}
@@ -106,18 +88,27 @@ export function SectionCard({
               Error
             </span>
           )}
-          {!expanded && !isSuccess && !isError && !isThisSection && (
-            <span className="text-[10px] text-gray-300 font-medium">
+          {!expanded && !isSuccess && !isError && !isThisSection && completionLabel && (
+            <span
+              className={cn(
+                "text-[10px] font-medium",
+                completionLabel === "Completo" ? "text-emerald-600" : "text-neutral-300"
+              )}
+            >
+              {completionLabel}
+            </span>
+          )}
+          {!expanded && !isSuccess && !isError && !isThisSection && !completionLabel && (
+            <span className="text-[10px] font-medium text-neutral-300">
               Pendiente
             </span>
           )}
           {!expanded && isThisSection && (
-            <Loader2 className="w-3 h-3 text-gray-300 animate-spin" />
+            <Loader2 className="h-3 w-3 animate-spin text-neutral-300" />
           )}
           <ChevronDown
             className={cn(
-              "w-3.5 h-3.5 transition-transform duration-300 ease-out",
-              isLow ? "text-gray-300" : "text-gray-400",
+              "h-3.5 w-3.5 text-neutral-400 transition-transform duration-300 ease-out",
               expanded && "rotate-180"
             )}
           />
@@ -132,7 +123,7 @@ export function SectionCard({
         )}
       >
         <div className="overflow-hidden">
-          <div className="px-4 py-4 space-y-3">
+          <div className="space-y-3 px-5 py-5">
 
             {/* Fields — disabled while this section is saving */}
             <fieldset disabled={isThisSection} className="space-y-3 border-none p-0 m-0">

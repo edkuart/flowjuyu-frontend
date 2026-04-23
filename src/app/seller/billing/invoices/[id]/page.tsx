@@ -15,10 +15,16 @@ import { useEffect, useState } from "react"
 import { useParams, useRouter } from "next/navigation"
 import Link from "next/link"
 import {
-  ArrowLeft, FileText, CreditCard, CheckCircle2,
+  FileText, CreditCard, CheckCircle2,
   Loader2, AlertCircle, ChevronRight,
 } from "lucide-react"
 import { Button } from "@/components/ui/button"
+import {
+  SellerActionButton,
+  SellerPanelHeader,
+  SellerSurfaceCard,
+} from "@/components/seller/ui/SellerPrimitives"
+import { PageBackNav } from "@/components/ui/PageBackNav"
 import { InvoiceStatusBadge, PaymentStatusBadge, providerLabel } from "@/components/seller/billing/BillingStatusBadge"
 import { formatQ, formatDate, formatDateTime } from "@/components/seller/billing/billingFormatters"
 import { fetchInvoiceDetail, createPaymentLink } from "@/services/sellerBilling"
@@ -49,14 +55,14 @@ export default function InvoiceDetailPage() {
   // Error / not found
   if (error || !detail) {
     return (
-      <div className="min-h-screen bg-neutral-50 flex items-center justify-center p-6">
-        <div className="text-center space-y-4 max-w-xs">
+      <div className="flex min-h-screen items-center justify-center bg-[#f8f5ef] p-6">
+        <SellerSurfaceCard className="max-w-xs space-y-4 p-6 text-center">
           <AlertCircle className="w-8 h-8 text-neutral-300 mx-auto" />
           <p className="text-sm text-neutral-500">{error ?? "Factura no encontrada."}</p>
           <Button asChild variant="outline" size="sm">
             <Link href="/seller/billing">← Volver a facturación</Link>
           </Button>
-        </div>
+        </SellerSurfaceCard>
       </div>
     )
   }
@@ -88,34 +94,27 @@ export default function InvoiceDetailPage() {
   }
 
   return (
-    <div className="min-h-screen bg-neutral-50">
-      <div className="max-w-2xl mx-auto px-4 py-6 space-y-5">
+    <div className="min-h-screen bg-[#f8f5ef]">
+      <div className="mx-auto max-w-2xl space-y-5 px-4 py-6">
 
         {/* Back */}
-        <Link
-          href="/seller/billing"
-          className="inline-flex items-center gap-1.5 text-sm text-neutral-500 hover:text-neutral-700 transition-colors"
-        >
-          <ArrowLeft className="w-4 h-4" />
-          Facturación
-        </Link>
+        <PageBackNav
+          variant="panel"
+          onClick={() => (window.location.href = "/seller/billing")}
+          label="Facturación"
+          meta="Facturación"
+          title={<p className="truncate text-[15px] font-semibold text-[var(--seller-ink)]">Factura {invoice.invoiceNumber}</p>}
+        />
 
         {/* Header card */}
-        <div className="rounded-2xl border border-neutral-200 bg-white overflow-hidden shadow-sm">
-          <div className="px-5 py-4 bg-neutral-50 border-b border-neutral-100">
-            <div className="flex items-start justify-between gap-3">
-              <div className="flex items-center gap-3">
-                <div className="w-9 h-9 rounded-xl bg-white shadow-sm border border-neutral-100 flex items-center justify-center">
-                  <FileText className="w-4 h-4 text-neutral-500" />
-                </div>
-                <div>
-                  <p className="text-xs text-neutral-400">Factura</p>
-                  <p className="text-sm font-bold text-neutral-800">{invoice.invoiceNumber}</p>
-                </div>
-              </div>
-              <InvoiceStatusBadge status={invoice.status} />
-            </div>
-          </div>
+        <SellerSurfaceCard className="overflow-hidden">
+          <SellerPanelHeader
+            icon={<FileText className="w-4 h-4" />}
+            eyebrow="Factura"
+            title={invoice.invoiceNumber}
+            action={<InvoiceStatusBadge status={invoice.status} />}
+            className="bg-[var(--seller-panel)]"
+          />
 
           <div className="px-5 py-4 space-y-4">
             {/* Amount */}
@@ -144,15 +143,15 @@ export default function InvoiceDetailPage() {
               )}
             </div>
           </div>
-        </div>
+        </SellerSurfaceCard>
 
         {/* Line items */}
         {items.length > 0 && (
           <section className="space-y-2">
-            <h2 className="text-xs font-bold text-neutral-500 uppercase tracking-wide px-1">
+            <h2 className="px-1 text-xs font-bold uppercase tracking-wide text-[var(--seller-muted)]">
               Detalle
             </h2>
-            <div className="rounded-xl border border-neutral-200 bg-white divide-y divide-neutral-100">
+            <SellerSurfaceCard className="divide-y divide-[var(--seller-line)] overflow-hidden rounded-xl">
               {items.map((item) => (
                 <div key={item.id} className="px-4 py-3.5">
                   <div className="flex items-start justify-between gap-3">
@@ -174,21 +173,21 @@ export default function InvoiceDetailPage() {
                 <p className="text-xs font-bold text-neutral-500">Total</p>
                 <p className="text-sm font-bold text-neutral-900">{formatQ(invoice.totalAmount)}</p>
               </div>
-            </div>
+            </SellerSurfaceCard>
           </section>
         )}
 
         {/* Payment attempts */}
         {payments.length > 0 && (
           <section className="space-y-2">
-            <h2 className="text-xs font-bold text-neutral-500 uppercase tracking-wide px-1">
+            <h2 className="px-1 text-xs font-bold uppercase tracking-wide text-[var(--seller-muted)]">
               Intentos de pago
             </h2>
-            <div className="rounded-xl border border-neutral-200 bg-white divide-y divide-neutral-100">
+            <SellerSurfaceCard className="divide-y divide-[var(--seller-line)] overflow-hidden rounded-xl">
               {payments.map((pmt) => (
                 <PaymentAttemptRow key={pmt.id} payment={pmt} />
               ))}
-            </div>
+            </SellerSurfaceCard>
           </section>
         )}
 
@@ -204,7 +203,7 @@ export default function InvoiceDetailPage() {
             <Button
               onClick={handlePay}
               disabled={paying}
-              className="w-full bg-[#0F3D3A] hover:bg-[#0C2F2C] text-white font-semibold text-sm"
+              className="seller-button-primary w-full text-sm font-semibold"
             >
               {paying ? (
                 <><Loader2 className="w-4 h-4 mr-2 animate-spin" /> Preparando pago…</>
@@ -238,9 +237,9 @@ export default function InvoiceDetailPage() {
 
 function MetaCell({ label, value }: { label: string; value: string }) {
   return (
-    <div className="rounded-lg bg-neutral-50 border border-neutral-100 px-3 py-2.5">
-      <p className="text-xs text-neutral-400">{label}</p>
-      <p className="text-xs font-semibold text-neutral-700 mt-0.5">{value}</p>
+    <div className="seller-panel-subtle rounded-lg px-3 py-2.5">
+      <p className="text-xs text-[var(--seller-soft-text)]">{label}</p>
+      <p className="mt-0.5 text-xs font-semibold text-[var(--seller-text)]">{value}</p>
     </div>
   )
 }
@@ -249,7 +248,7 @@ function PaymentAttemptRow({ payment }: { payment: PaymentSummary }) {
   return (
     <Link
       href={`/seller/billing/payments/${payment.id}`}
-      className="flex items-center gap-4 px-4 py-3.5 hover:bg-neutral-50 transition-colors group"
+      className="group flex items-center gap-4 px-4 py-3.5 transition-colors hover:bg-[var(--seller-panel)]"
     >
       <div className="flex-1 min-w-0">
         <div className="flex items-center gap-2 flex-wrap">
@@ -270,10 +269,10 @@ function PaymentAttemptRow({ payment }: { payment: PaymentSummary }) {
 
 function PageSkeleton() {
   return (
-    <div className="min-h-screen bg-neutral-50">
-      <div className="max-w-2xl mx-auto px-4 py-6 space-y-5 animate-pulse">
+    <div className="min-h-screen bg-[#f8f5ef]">
+      <div className="mx-auto max-w-2xl space-y-5 px-4 py-6 animate-pulse">
         <div className="h-4 w-24 bg-neutral-200 rounded-full" />
-        <div className="rounded-2xl border border-neutral-200 bg-white p-5 space-y-4">
+        <SellerSurfaceCard className="space-y-4 p-5">
           <div className="h-5 w-40 bg-neutral-100 rounded-full" />
           <div className="h-8 w-28 bg-neutral-100 rounded-full" />
           <div className="grid grid-cols-2 gap-3">
@@ -281,7 +280,7 @@ function PageSkeleton() {
               <div key={i} className="h-12 bg-neutral-100 rounded-lg" />
             ))}
           </div>
-        </div>
+        </SellerSurfaceCard>
       </div>
     </div>
   )

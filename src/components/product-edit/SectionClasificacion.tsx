@@ -26,6 +26,10 @@ import type { CommonSectionProps, Opcion, ClaseOpcion } from "@/types/product-ed
 const OTROS = "__OTROS__"
 // Sentinel used in tela <select> to represent "not applicable"
 const NA = "__NA__"
+const fieldLabelClass =
+  "text-[11px] font-semibold uppercase tracking-[0.08em] text-[#5f6f66]"
+const fieldClass =
+  "h-11 w-full rounded-xl border border-[#0f2e22]/12 bg-white/95 px-3 text-[15px] shadow-[0_1px_0_rgba(15,46,34,0.04)] transition outline-none focus:border-[#0f2e22]/28 focus:ring-[3px] focus:ring-[#0f2e22]/10 disabled:cursor-not-allowed disabled:opacity-50"
 
 // ── Inline select helper ───────────────────────────────────────────────────────
 
@@ -54,13 +58,13 @@ function FieldSelect({
 }) {
   return (
     <div className="space-y-1">
-      <Label htmlFor={id}>
+      <Label htmlFor={id} className={fieldLabelClass}>
         {label}
         {required && <span className="text-destructive ml-1">*</span>}
       </Label>
       <select
         id={id}
-        className="w-full border rounded-md px-3 py-1.5 text-sm bg-white focus:outline-none focus:ring-2 focus:ring-ring disabled:opacity-50 disabled:cursor-not-allowed h-9"
+        className={fieldClass}
         value={value}
         onChange={(e) => onChange(e.target.value)}
         disabled={disabled}
@@ -85,6 +89,7 @@ export function SectionClasificacion({
   updateFields,
   onSave,
   sectionState,
+  completionLabel,
   isSaving,
   defaultExpanded,
   priority,
@@ -311,6 +316,7 @@ export function SectionClasificacion({
       description="Categoría, clase y tela — ayuda a los compradores a encontrar tu producto."
       onSave={onSave}
       sectionState={sectionState}
+      completionLabel={completionLabel}
       isSaving={isSaving}
       saveLabel="Guardar"
       defaultExpanded={defaultExpanded}
@@ -329,7 +335,7 @@ export function SectionClasificacion({
       {categoriaSel === OTROS && (
         <div className="flex gap-2 -mt-2">
           <Input
-            className="flex-1"
+            className="h-11 flex-1 rounded-xl border border-[#0f2e22]/12 bg-white/95 text-[15px] shadow-[0_1px_0_rgba(15,46,34,0.04)] focus-visible:border-[#0f2e22]/28 focus-visible:ring-[3px] focus-visible:ring-[#0f2e22]/10"
             placeholder="Nombre de categoría personalizada"
             value={categoriaInput}
             onChange={(e) => {
@@ -350,12 +356,12 @@ export function SectionClasificacion({
       ──────────────────────────────────────────────────────────────────── */}
       {rule.showClase && (
         <div className="space-y-1">
-          <Label htmlFor="edit-clase">
+          <Label htmlFor="edit-clase" className={fieldLabelClass}>
             Clase <span className="text-destructive">*</span>
           </Label>
           <select
             id="edit-clase"
-            className="w-full border rounded-md px-3 py-1.5 text-sm bg-white focus:outline-none focus:ring-2 focus:ring-ring h-9"
+            className={fieldClass}
             value={claseSel}
             onChange={(e) => handleClaseChange(e.target.value)}
           >
@@ -372,7 +378,7 @@ export function SectionClasificacion({
             ))}
           </select>
           {!product.clase_id && (
-            <p className="text-xs text-destructive">
+            <p className="text-[12px] text-destructive">
               La clase es obligatoria. Debe seleccionar una opción.
             </p>
           )}
@@ -396,7 +402,7 @@ export function SectionClasificacion({
           {telaSel === OTROS && (
             <div className="flex gap-2 -mt-2">
               <Input
-                className="flex-1"
+                className="h-11 flex-1 rounded-xl border border-[#0f2e22]/12 bg-white/95 text-[15px] shadow-[0_1px_0_rgba(15,46,34,0.04)] focus-visible:border-[#0f2e22]/28 focus-visible:ring-[3px] focus-visible:ring-[#0f2e22]/10"
                 placeholder="Nombre de tela o material personalizado"
                 value={telaInput}
                 onChange={(e) => {
@@ -412,9 +418,9 @@ export function SectionClasificacion({
       {/* ── Accesorio ──────────────────────────────────────────────────── */}
       {rule.showAccesorios && (
         <>
-          <hr className="border-gray-100" />
+          <hr className="border-[#0f2e22]/8" />
 
-          <p className="text-xs font-medium text-muted-foreground uppercase tracking-wide">
+          <p className="text-[11px] font-semibold uppercase tracking-[0.08em] text-[#7e8a83]">
             Accesorio (opcional)
           </p>
 
@@ -430,7 +436,7 @@ export function SectionClasificacion({
           {accesorioSel === OTROS && (
             <div className="flex gap-2 -mt-2">
               <Input
-                className="flex-1"
+                className="h-11 flex-1 rounded-xl border border-[#0f2e22]/12 bg-white/95 text-[15px] shadow-[0_1px_0_rgba(15,46,34,0.04)] focus-visible:border-[#0f2e22]/28 focus-visible:ring-[3px] focus-visible:ring-[#0f2e22]/10"
                 placeholder="Nombre de accesorio personalizado"
                 value={accesorioInput}
                 onChange={(e) => {
@@ -461,7 +467,7 @@ export function SectionClasificacion({
               {tipoSel === OTROS && (
                 <div className="flex gap-2 -mt-2">
                   <Input
-                    className="flex-1"
+                    className="h-11 flex-1 rounded-xl border border-[#0f2e22]/12 bg-white/95 text-[15px] shadow-[0_1px_0_rgba(15,46,34,0.04)] focus-visible:border-[#0f2e22]/28 focus-visible:ring-[3px] focus-visible:ring-[#0f2e22]/10"
                     placeholder="Subtipo personalizado"
                     value={tipoInput}
                     onChange={(e) => {
@@ -486,7 +492,7 @@ export function SectionClasificacion({
           {materialSel === OTROS && (
             <div className="flex gap-2 -mt-2">
               <Input
-                className="flex-1"
+                className="h-11 flex-1 rounded-xl border border-[#0f2e22]/12 bg-white/95 text-[15px] shadow-[0_1px_0_rgba(15,46,34,0.04)] focus-visible:border-[#0f2e22]/28 focus-visible:ring-[3px] focus-visible:ring-[#0f2e22]/10"
                 placeholder="Material personalizado"
                 value={materialInput}
                 onChange={(e) => {

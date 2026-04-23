@@ -2,7 +2,7 @@
 
 "use client";
 
-import { useMemo, useState, useEffect, useCallback } from "react";
+import { useMemo, useState, useEffect, useCallback, useRef } from "react";
 import { useLanguage } from "@/i18n/context/useLanguage";
 import { createT } from "@/i18n/utils/t";
 import esDictionary from "@/i18n/dictionaries/es";
@@ -27,12 +27,13 @@ import { useRouter } from "next/navigation";
 import { FollowButton } from "@/components/seller/FollowButton";
 import ProductDiscoveryLayout from "@/components/product/discovery/ProductDiscoveryLayout";
 import ProductCardV2 from "@/components/product/ProductCardV2";
-import CollectionArtworkPreview from "@/components/seller/CollectionArtworkPreview";
+import CollectionArtworkPreview, { CollectionPreviewBox } from "@/components/seller/CollectionArtworkPreview";
 import { ProductDetailsBlock } from "@/components/product/ProductDetailsBlock";
 import SellerQrModal from "@/components/seller/SellerQrModal";
 import SocialButtons from "@/components/seller/SocialButtons";
 import { SellerLogo } from "@/components/seller/SellerLogo";
 import WhatsAppModal from "@/components/product/WhatsAppModal";
+import { FloatingActionDock } from "@/components/ui/FloatingActionDock";
 import { buildHeaderStyle, DEFAULT_HEADER_STYLE } from "@/lib/headerStyle";
 import type { HeaderStyle } from "@/lib/headerStyle";
 import { trackEvent } from "@/lib/analytics";
@@ -70,6 +71,7 @@ type LiveFeaturedProduct = {
 
 type Seller = {
   id: number;
+  user_id?: number | null;
   nombre_comercio: string;
   descripcion?: string | null;
   logo?: string | null;
@@ -390,6 +392,12 @@ export default function StoreClient({
   const [whatsAppOpen, setWhatsAppOpen] = useState(false);
   const [whatsAppProduct, setWhatsAppProduct] =
     useState<LiveFeaturedProduct | null>(null);
+  const [mobileDockSection, setMobileDockSection] = useState<
+    "catalog" | "collections" | "reviews"
+  >("catalog");
+  const catalogSectionRef = useRef<HTMLElement | null>(null);
+  const reviewsSectionRef = useRef<HTMLElement | null>(null);
+  const collectionsSectionRef = useRef<HTMLElement | null>(null);
   const [viewerCount, setViewerCount] = useState<number | null>(null);
   const [currentLiveProduct, setCurrentLiveProduct] =
     useState<LiveFeaturedProduct | null>(seller.live_current_product ?? null);
@@ -405,6 +413,7 @@ export default function StoreClient({
 
   // Collections
   const [collections, setCollections] = useState<PublicCollection[]>([]);
+  const publicStoreId = Number(seller.user_id ?? seller.id);
 
   console.log("[DEBUG] Render ratingSummary:", ratingSummary);
 
@@ -850,6 +859,76 @@ export default function StoreClient({
     [mainProduct, seller.id],
   );
 
+  const scrollToElement = useCallback((element: HTMLElement | null) => {
+    if (!element) return;
+    element.scrollIntoView({ behavior: "smooth", block: "start" });
+  }, []);
+
+  const handleShareStore = useCallback(async () => {
+    const shareUrl = typeof window !== "undefined" ? window.location.href : "";
+    if (!shareUrl) return;
+
+    const shareTitle = seller.nombre_comercio;
+    const shareText = `Descubre la tienda de ${seller.nombre_comercio} en Flowjuyu.`;
+
+    if (typeof navigator !== "undefined" && navigator.share) {
+      try {
+        await navigator.share({
+          title: shareTitle,
+          text: shareText,
+          url: shareUrl,
+        });
+        return;
+      } catch {}
+    }
+
+    if (typeof navigator !== "undefined" && navigator.clipboard?.writeText) {
+      try {
+        await navigator.clipboard.writeText(shareUrl);
+      } catch {}
+    }
+
+    setQrOpen(true);
+  }, [seller.nombre_comercio]);
+
+  useEffect(() => {
+    if (seller.is_live || typeof window === "undefined") return;
+
+    const sections = [
+      { key: "catalog" as const, element: catalogSectionRef.current },
+      { key: "collections" as const, element: collectionsSectionRef.current },
+      { key: "reviews" as const, element: reviewsSectionRef.current },
+    ].filter(
+      (entry): entry is {
+        key: "catalog" | "collections" | "reviews";
+        element: HTMLElement;
+      } => Boolean(entry.element),
+    );
+
+    if (!sections.length) return;
+
+    const observer = new IntersectionObserver(
+      (entries) => {
+        const visible = entries
+          .filter((entry) => entry.isIntersecting)
+          .sort((a, b) => b.intersectionRatio - a.intersectionRatio)[0];
+
+        if (!visible) return;
+        const match = sections.find((section) => section.element === visible.target);
+        if (match) {
+          setMobileDockSection(match.key);
+        }
+      },
+      {
+        rootMargin: "-20% 0px -45% 0px",
+        threshold: [0.2, 0.4, 0.6],
+      },
+    );
+
+    sections.forEach((section) => observer.observe(section.element));
+    return () => observer.disconnect();
+  }, [seller.is_live, collections.length, reviews.length, productos.length]);
+
   /* =====================================================
      RENDER
   ===================================================== */
@@ -879,7 +958,7 @@ export default function StoreClient({
           <button
             onClick={() => setWhatsAppOpen(true)}
             aria-label={sellerWhatsappLabel}
-            className={`fixed right-6 bottom-6 z-50 flex items-center gap-2.5 rounded-full bg-green-500 px-5 py-3.5 font-semibold text-white shadow-2xl transition-all duration-300 hover:bg-green-600 active:scale-95 ${
+            className={`fixed bottom-3 right-3 z-50 flex items-center justify-center gap-2 rounded-full bg-green-500 px-4 py-4 font-semibold text-white shadow-[0_18px_40px_-18px_rgba(16,185,129,0.95)] transition-all duration-300 hover:bg-green-600 active:scale-95 sm:bottom-6 sm:right-6 sm:justify-start sm:px-5 sm:py-3.5 ${
               fabVisible
                 ? "translate-y-0 opacity-100"
                 : "pointer-events-none translate-y-4 opacity-0"
@@ -888,6 +967,53 @@ export default function StoreClient({
             <MessageCircle className="h-5 w-5 shrink-0" />
             <span className="hidden sm:inline">{sellerWhatsappLabel}</span>
           </button>
+        )}
+
+        {!seller.is_live && (
+          <div
+            className="fixed bottom-3 left-3 right-[4.85rem] z-40 md:hidden"
+            style={{ paddingBottom: "max(env(safe-area-inset-bottom), 0px)" }}
+          >
+            <FloatingActionDock
+              className="mx-auto w-full"
+              maxVisible={4}
+              compact
+              variant="buyer"
+              actions={[
+                {
+                  key: "catalog",
+                  label: "Catalogo",
+                  icon: ArrowRight,
+                  active: mobileDockSection === "catalog",
+                  onClick: () => {
+                    scrollToElement(catalogSectionRef.current);
+                  },
+                },
+                {
+                  key: "collections",
+                  label: "Looks",
+                  icon: BookOpen,
+                  active: mobileDockSection === "collections",
+                  onClick: () => scrollToElement(collectionsSectionRef.current),
+                },
+                {
+                  key: "reviews",
+                  label: "Resenas",
+                  icon: Star,
+                  active: mobileDockSection === "reviews",
+                  onClick: () => scrollToElement(reviewsSectionRef.current),
+                },
+                {
+                  key: "share",
+                  label: "Compartir",
+                  icon: Share2,
+                  onClick: () => {
+                    void handleShareStore();
+                  },
+                },
+              ]}
+            />
+          </div>
         )}
 
         {/* ══════════════════════════════════════════════
@@ -1192,7 +1318,7 @@ export default function StoreClient({
 
                     <div className="flex flex-wrap gap-3">
                       <Link
-                        href={`/store/${seller.id}/live`}
+                        href={`/store/${publicStoreId}/live`}
                         className="inline-flex items-center gap-2 self-start rounded-full bg-[#0F3D3A] px-5 py-2.5 text-sm font-semibold text-white transition hover:bg-[#0c312f]"
                       >
                         Entrar a la sala live
@@ -1565,7 +1691,7 @@ export default function StoreClient({
         {/* ══════════════════════════════════════════════
           PRODUCT GRID
       ══════════════════════════════════════════════ */}
-        <section id="catalogo">
+        <section id="catalogo" ref={catalogSectionRef}>
           <div className="mb-6 flex items-end justify-between">
             <div>
               <p className="mb-1 text-xs font-bold tracking-widest text-neutral-400 uppercase">
@@ -1639,7 +1765,7 @@ export default function StoreClient({
           COLLECTIONS SECTION
       ══════════════════════════════════════════════ */}
         {(featuredCollection || storefrontCollections.length > 0) && (
-          <section className="mt-20 space-y-10">
+          <section ref={collectionsSectionRef} className="mt-20 space-y-10">
             {featuredCollection ? (
               <div className="overflow-hidden rounded-[32px] border border-neutral-200 bg-[linear-gradient(135deg,#FBF5EE_0%,#F3ECE2_46%,#E9DED1_100%)] shadow-[0_24px_60px_rgba(15,61,58,0.08)]">
                 <div className="grid gap-0 lg:grid-cols-[1.05fr_0.95fr]">
@@ -1718,23 +1844,24 @@ export default function StoreClient({
                         key={col.id}
                         className="overflow-hidden rounded-2xl border border-neutral-100 bg-white shadow-sm transition-all hover:-translate-y-1 hover:shadow-lg"
                       >
-                        <div className="relative aspect-[4/5] overflow-hidden bg-[linear-gradient(135deg,#FBF4EC_0%,#F1E7D9_45%,#E8DED2_100%)]">
-                          <CollectionArtworkPreview
-                            name={col.name}
-                            imageUrl={col.promo_image_url ?? col.background_image_url ?? null}
-                            items={col.items}
-                            backgroundColor={col.background_color}
-                            backgroundStyle={col.background_style}
-                            canvasWidth={col.canvas_width}
-                            canvasHeight={col.canvas_height}
-                          />
-
+                        <CollectionPreviewBox
+                          name={col.name}
+                          imageUrl={col.promo_image_url ?? col.background_image_url ?? null}
+                          items={col.items}
+                          backgroundColor={col.background_color}
+                          backgroundStyle={col.background_style}
+                          canvasWidth={col.canvas_width}
+                          canvasHeight={col.canvas_height}
+                          maxWidth={480}
+                          maxHeight={480}
+                          className="w-full"
+                        >
                           <div className="absolute inset-x-0 bottom-0 bg-gradient-to-t from-black/60 via-black/15 to-transparent px-5 py-5 text-white">
                             <p className="text-[11px] font-semibold uppercase tracking-[0.28em] text-white/75">Colección</p>
                             <h3 className="mt-1 text-xl font-semibold">{col.name}</h3>
                             <p className="mt-1 text-sm text-white/82">{totalProducts} {totalProducts === 1 ? "pieza dentro del conjunto" : "piezas dentro del conjunto"}</p>
                           </div>
-                        </div>
+                        </CollectionPreviewBox>
 
                         <div className="space-y-4 p-5">
                           {col.description ? (
@@ -1789,7 +1916,7 @@ export default function StoreClient({
           null)
         }
         {config.show_reviews && (
-          <section className="mt-20">
+          <section ref={reviewsSectionRef} className="mt-20">
             <div className="mb-8 flex items-end justify-between">
               <div>
                 <p className="mb-1 text-xs font-bold tracking-widest text-neutral-400 uppercase">
@@ -2001,7 +2128,7 @@ export default function StoreClient({
       <SellerQrModal
         open={qrOpen}
         onClose={() => setQrOpen(false)}
-        sellerId={seller.id}
+        sellerId={publicStoreId}
         nombreComercio={seller.nombre_comercio}
       />
     </>

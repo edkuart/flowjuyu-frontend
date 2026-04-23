@@ -182,7 +182,7 @@ export function SellerProgressCard({
   if (percentage === 100) return null
 
   return (
-    <div className="overflow-hidden rounded-[26px] border border-neutral-200 bg-[linear-gradient(180deg,_rgba(255,255,255,0.98),_rgba(248,246,240,0.94))] shadow-[0_18px_40px_-30px_rgba(15,23,42,0.28)]">
+    <div className="seller-surface-card overflow-hidden rounded-[26px] bg-[linear-gradient(180deg,_rgba(255,255,255,0.98),_rgba(248,246,240,0.94))] shadow-[0_18px_40px_-30px_rgba(15,23,42,0.28)]">
 
       {/* ── Top accent: live gradient fill ── */}
       <div
@@ -220,7 +220,7 @@ export function SellerProgressCard({
         </div>
 
         {/* ── REJECTED VERIFICATION WARNING ── */}
-        {estadoValidacion === "rechazado" && (
+      {estadoValidacion === "rechazado" && (
           <div className="flex items-start gap-3 rounded-2xl border border-red-200 bg-[linear-gradient(180deg,_#fff1f1,_#fffbfb)] px-4 py-3">
             <AlertCircle className="w-4 h-4 text-red-500 mt-0.5 flex-shrink-0" />
             <p className="text-sm text-red-700 font-medium leading-snug">
@@ -240,7 +240,7 @@ export function SellerProgressCard({
         {/* ── NEXT STEP CTA ── */}
         {nextAction && nextHref && (
           <Link href={nextHref}>
-            <div className="group flex cursor-pointer items-center gap-3 rounded-2xl bg-[linear-gradient(135deg,_#0F3D3A,_#164d49)] px-4 py-3 text-white shadow-[0_18px_36px_-24px_rgba(15,61,58,0.6)] transition-all hover:-translate-y-0.5 hover:bg-[#0C2F2C]">
+            <div className="group flex cursor-pointer items-center gap-3 rounded-2xl bg-[linear-gradient(135deg,var(--seller-accent),#164d49)] px-4 py-3 text-white shadow-[0_18px_36px_-24px_rgba(15,61,58,0.6)] transition-all hover:-translate-y-0.5 hover:bg-[var(--seller-accent-strong)]">
               <ArrowRight className="w-4 h-4 flex-shrink-0 transition-transform group-hover:translate-x-0.5" />
               <div className="flex-1 min-w-0">
                 <p className="text-xs font-semibold leading-none opacity-75">

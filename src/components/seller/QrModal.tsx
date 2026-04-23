@@ -15,7 +15,7 @@ import {
 } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 
-const PUBLIC_BASE = process.env.NEXT_PUBLIC_SITE_URL || "https://flowjuyu.com";
+const PUBLIC_BASE = process.env.NEXT_PUBLIC_SITE_URL || "https://www.flowjuyu.com";
 
 type Props = {
   open: boolean;

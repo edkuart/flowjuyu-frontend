@@ -25,8 +25,8 @@ export function SellerSectionHero({
     <section
       className={`relative overflow-hidden rounded-[28px] shadow-sm ${
         accent
-          ? "bg-[#0F3D3A] text-white shadow-xl shadow-[#0F3D3A]/15"
-          : "border border-neutral-200 bg-[radial-gradient(circle_at_top_left,_rgba(15,61,58,0.08),_transparent_35%),linear-gradient(180deg,_#ffffff,_#fbfaf7)] text-neutral-900"
+          ? "bg-[var(--seller-accent)] text-white shadow-xl shadow-[color-mix(in_srgb,var(--seller-accent)_15%,transparent)]"
+          : "seller-surface-card bg-[radial-gradient(circle_at_top_left,_rgba(15,61,58,0.08),_transparent_35%),linear-gradient(180deg,_#ffffff,_#fbfaf7)] text-neutral-900"
       }`}
     >
       <div
@@ -43,7 +43,7 @@ export function SellerSectionHero({
             className={`inline-flex items-center gap-2 rounded-full px-3 py-1 text-xs font-semibold uppercase tracking-[0.18em] ${
               accent
                 ? "border border-white/10 bg-white/10 text-white/80"
-                : "border border-[#0F3D3A]/10 bg-[#0F3D3A]/8 text-[#0F3D3A]"
+                : "border border-[color:var(--seller-line-strong)] bg-[color:color-mix(in_srgb,var(--seller-accent)_8%,white)] text-[var(--seller-accent)]"
             }`}
           >
             {eyebrow}
@@ -53,7 +53,7 @@ export function SellerSectionHero({
             <h1 className="text-3xl font-bold tracking-tight sm:text-[2.1rem]">{title}</h1>
             <p
               className={`max-w-2xl text-sm leading-6 ${
-                accent ? "text-white/75" : "text-neutral-500"
+                accent ? "text-white/75" : "text-[var(--seller-muted)]"
               }`}
             >
               {description}

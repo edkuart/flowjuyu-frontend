@@ -35,6 +35,7 @@ interface Props {
   stagedImages?: StagedProductImage[]
   isSaving: boolean
   sectionState: SectionSaveState
+  completionLabel?: string
   onUpload: (files: File[]) => Promise<void>
   onDelete: (imageId: number | string) => Promise<void>
   onSetPrincipal: (imageUrlOrId: string) => Promise<void>
@@ -49,12 +50,13 @@ export function SectionImagenes({
   stagedImages = [],
   isSaving,
   sectionState,
+  completionLabel,
   onUpload,
   onDelete,
   onSetPrincipal,
   onReorder,
   defaultExpanded = false,
-  priority = "high",
+  priority: _priority = "high",
 }: Props) {
   const fileInputRef = useRef<HTMLInputElement>(null)
   const [expanded, setExpanded] = useState(defaultExpanded)
@@ -149,21 +151,13 @@ export function SectionImagenes({
         }))
   const principalUrl = product.imagen_principal
 
-  const isLow = priority === "low"
-
   return (
     <section
       className={cn(
-        "bg-white rounded-xl overflow-hidden transition-shadow duration-300",
-        isLow
-          ? "border border-gray-100 shadow-[0_1px_4px_-2px_rgba(0,0,0,0.05)]"
-          : "border border-gray-100 shadow-[0_2px_12px_-4px_rgba(0,0,0,0.08)] hover:shadow-[0_4px_20px_-4px_rgba(0,0,0,0.10)]"
+        "overflow-hidden rounded-2xl border border-[#0f2e22]/8 bg-white shadow-[0_8px_28px_-18px_rgba(15,46,34,0.16)] transition-shadow duration-300 hover:shadow-[0_14px_38px_-22px_rgba(15,46,34,0.22)]"
       )}
     >
-      {/* High-priority accent stripe */}
-      {!isLow && (
-        <div className="h-[2px] bg-gradient-to-r from-[#0f2e22]/70 via-[#0f2e22]/20 to-transparent" />
-      )}
+      <div className="h-[2px] bg-gradient-to-r from-[#0f2e22]/72 via-[#0f2e22]/18 to-transparent" />
 
       {/* Collapsible header */}
       <button
@@ -171,28 +165,23 @@ export function SectionImagenes({
         onClick={() => setExpanded((v) => !v)}
         aria-expanded={expanded}
         className={cn(
-          "w-full text-left px-4 py-3 flex items-center justify-between gap-3 border-b transition-colors duration-150",
+          "flex w-full items-center justify-between gap-3 border-b border-[#0f2e22]/6 px-5 py-4 text-left transition-colors duration-150",
           "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-[#0f2e22]/30",
-          isLow
-            ? "border-gray-100/60 bg-gray-50/30 hover:bg-gray-50/60"
-            : "border-gray-100 bg-transparent hover:bg-gray-50/40"
+          "bg-white hover:bg-[#f7f6f2]"
         )}
       >
         <div className="min-w-0 flex-1">
-          <h2 className={cn(
-            "font-semibold leading-none tracking-tight",
-            isLow ? "text-xs text-gray-400" : "text-[13px] text-gray-900"
-          )}>
+          <h2 className="text-[13px] font-semibold leading-none tracking-tight text-[#14231c]">
             Imágenes
           </h2>
           {expanded && (
-            <p className="text-xs text-gray-400 mt-1 leading-relaxed">
+            <p className="mt-1 text-[11px] leading-relaxed text-neutral-400">
               La primera marcada como principal es la portada del producto.
             </p>
           )}
         </div>
         <div className="flex items-center gap-1.5 flex-shrink-0">
-          <span className="text-[11px] text-gray-300 tabular-nums font-mono">
+          <span className="font-mono text-[11px] tabular-nums text-neutral-300">
             {gallery.length}/{MAX_IMAGES}
           </span>
           {!expanded && sectionState.status === "success" && (
@@ -202,12 +191,18 @@ export function SectionImagenes({
             </span>
           )}
           {!expanded && sectionState.status === "idle" && (
-            <span className="text-[10px] text-gray-300 font-medium">Pendiente</span>
+            <span
+              className={cn(
+                "text-[10px] font-medium",
+                completionLabel === "Completo" ? "text-emerald-600" : "text-neutral-300"
+              )}
+            >
+              {completionLabel ?? "Pendiente"}
+            </span>
           )}
           <ChevronDown
             className={cn(
-              "w-3.5 h-3.5 transition-transform duration-300 ease-out",
-              isLow ? "text-gray-300" : "text-gray-400",
+              "h-3.5 w-3.5 text-neutral-400 transition-transform duration-300 ease-out",
               expanded && "rotate-180"
             )}
           />
@@ -222,7 +217,7 @@ export function SectionImagenes({
         )}
       >
       <div className="overflow-hidden">
-      <div className="px-4 py-4 space-y-3">
+      <div className="space-y-3 px-5 py-5">
         <SellerEducationHint title="Imagen">
           <p>Usa una foto clara, con buena luz y fondo simple.</p>
         </SellerEducationHint>

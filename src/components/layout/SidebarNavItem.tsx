@@ -48,13 +48,11 @@ export function SidebarNavItem({
       onClick={onClick}
       className={cn(
         // base — shared across all variants
-        "group flex items-center gap-2.5 px-3 py-2 rounded-lg",
-        "text-sm font-medium transition-colors duration-150",
-        // left accent border — subtle active indicator
-        "border-l-2",
+        "group flex items-center gap-2.5 rounded-xl px-3 py-2.5",
+        "border text-sm font-medium transition-all duration-150",
         isActive
-          ? "bg-primary/10 text-primary font-semibold border-primary"
-          : "text-muted-foreground hover:bg-muted hover:text-foreground border-transparent",
+          ? "border-primary/25 bg-primary/10 text-primary font-semibold shadow-[0_10px_24px_-20px_rgba(15,23,42,0.35)]"
+          : "border-transparent text-muted-foreground hover:bg-muted hover:text-foreground",
         className,
       )}
     >

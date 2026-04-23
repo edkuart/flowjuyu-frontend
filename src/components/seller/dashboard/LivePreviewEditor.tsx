@@ -11,8 +11,13 @@ import {
   Sparkles,
 } from "lucide-react";
 
+import {
+  SellerActionButton,
+  SellerIconBadge,
+  SellerPill,
+} from "@/components/seller/ui/SellerPrimitives";
+import { sellerFieldClassName } from "@/components/seller/ui/sellerFormStyles";
 import { BaseCard } from "@/components/ui/BaseCard";
-import { Button } from "@/components/ui/button";
 import { updateSellerLiveConfig } from "@/services/sellerLive";
 
 type SellerPreviewProduct = {
@@ -202,7 +207,7 @@ export default function LivePreviewEditor({
       {!hideHeader ? (
         <div className="flex items-start justify-between gap-4">
           <div className="space-y-2">
-            <div className="inline-flex items-center gap-2 rounded-full bg-[#0F3D3A]/6 px-3 py-1 text-[11px] font-semibold uppercase tracking-[0.16em] text-[#0F3D3A]/80 ring-1 ring-[#0F3D3A]/10">
+            <div className="inline-flex items-center gap-2 rounded-full border border-[var(--seller-line)] bg-[color:color-mix(in_srgb,var(--seller-accent)_6%,white)] px-3 py-1 text-[11px] font-semibold uppercase tracking-[0.16em] text-[var(--seller-accent)]">
               <MessageSquareText className="h-3.5 w-3.5" />
               Live preview
             </div>
@@ -217,9 +222,9 @@ export default function LivePreviewEditor({
             </div>
           </div>
 
-          <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-[#0F3D3A]/8 text-[#0F3D3A]">
+          <SellerIconBadge className="h-11 w-11 shrink-0">
             <Sparkles className="h-5 w-5" />
-          </div>
+          </SellerIconBadge>
         </div>
       ) : null}
 
@@ -245,7 +250,7 @@ export default function LivePreviewEditor({
           }}
           rows={3}
           placeholder="Ej. Hoy estoy mostrando piezas nuevas y respondiendo preguntas en tiempo real."
-          className="w-full rounded-xl border border-neutral-200 bg-[#fcfbf8] px-4 py-3 text-sm text-neutral-800 outline-none transition focus:border-[#0F3D3A]/30 focus:ring-2 focus:ring-[#0F3D3A]/10"
+          className={sellerFieldClassName}
         />
       </div>
 
@@ -271,10 +276,10 @@ export default function LivePreviewEditor({
           </div>
         ) : (
           <div className="space-y-3">
-            <div className="rounded-xl border border-neutral-200 bg-white px-3 py-3">
+            <div className="seller-panel-subtle rounded-xl px-3 py-3">
               <div className="flex items-center justify-between gap-3">
                 <div>
-                  <p className="text-xs font-semibold uppercase tracking-[0.16em] text-[#0F3D3A]/70">
+                  <p className="text-xs font-semibold uppercase tracking-[0.16em] text-[var(--seller-accent)]/70">
                     Seleccionados ahora
                   </p>
                   <p className="mt-1 text-sm text-neutral-600">
@@ -284,10 +289,11 @@ export default function LivePreviewEditor({
                   </p>
                 </div>
 
-                <button
+                <SellerActionButton
                   type="button"
                   onClick={() => setIsProductPickerOpen((current) => !current)}
-                  className="inline-flex min-h-10 items-center gap-2 rounded-xl border border-neutral-200 bg-[#faf8f4] px-3 text-sm font-medium text-neutral-700 transition hover:border-[#0F3D3A]/15 hover:text-[#0F3D3A]"
+                  tone="neutral"
+                  className="min-h-10 px-3"
                 >
                   {isProductPickerOpen ? "Ocultar lista" : "Ver lista"}
                   {isProductPickerOpen ? (
@@ -295,7 +301,7 @@ export default function LivePreviewEditor({
                   ) : (
                     <ChevronDown className="h-4 w-4" />
                   )}
-                </button>
+                </SellerActionButton>
               </div>
 
               {selectedProducts.length > 0 ? (
@@ -383,7 +389,7 @@ export default function LivePreviewEditor({
                           className={[
                             "flex h-6 w-6 shrink-0 items-center justify-center rounded-full border",
                             selected
-                              ? "border-[#0F3D3A] bg-[#0F3D3A] text-white"
+                              ? "border-[var(--seller-accent)] bg-[var(--seller-accent)] text-white"
                               : "border-neutral-300 bg-white text-transparent",
                           ].join(" ")}
                         >
@@ -412,11 +418,11 @@ export default function LivePreviewEditor({
       ) : null}
 
       {!hideSaveButton ? (
-        <Button
+        <SellerActionButton
           type="button"
           onClick={handleSave}
           disabled={isSaving}
-          className="min-h-11 w-full rounded-xl bg-[#0F3D3A] text-white hover:bg-[#0c312f]"
+          className="min-h-11 w-full"
         >
           {isSaving ? (
             <>
@@ -424,9 +430,9 @@ export default function LivePreviewEditor({
               Guardando...
             </>
           ) : (
-            "Guardar preview del live"
-          )}
-        </Button>
+          "Guardar preview del live"
+        )}
+        </SellerActionButton>
       ) : null}
     </div>
   );
@@ -437,7 +443,7 @@ export default function LivePreviewEditor({
 
   return (
     <BaseCard
-      className="rounded-xl border-[#0F3D3A]/10 bg-white"
+      className="rounded-xl border-[var(--seller-line-strong)] bg-white"
       contentClassName="space-y-5"
     >
       {content}

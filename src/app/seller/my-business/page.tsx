@@ -18,6 +18,14 @@ import {
 } from 'lucide-react'
 
 import { Button } from '@/components/ui/button'
+import { SellerSectionCard } from '@/components/seller/ui/SellerProfileSection'
+import {
+  sellerGlassButtonClassName,
+  sellerOptionCardActiveClassName,
+  sellerOptionCardClassName,
+  sellerPillClassName,
+  sellerPrimarySoftButtonClassName,
+} from '@/components/seller/ui/sellerFormStyles'
 
 import { apiGetVendedorPerfil } from '@/services/vendedorPerfil'
 import { SellerLogo } from '@/components/seller/SellerLogo'
@@ -231,16 +239,16 @@ export default function MyBusinessPage() {
                 <div className="space-y-2">
                   <div className="flex flex-wrap items-center gap-2 justify-center md:justify-start">
                     {perfil.estado_validacion === 'aprobado' && (
-                      <span className="inline-flex items-center gap-1 px-3 py-0.5 bg-blue-600/80 backdrop-blur text-white text-[10px] font-bold rounded-full border border-blue-400/30">
+                      <span className={`${sellerPillClassName} border-blue-400/30 bg-blue-600/80 px-3 py-0.5 text-[10px] font-bold text-white`}>
                         ✔ Verificado
                       </span>
                     )}
                     {perfil.plan === 'founder' && perfil.plan_activo && (
-                      <span className="inline-flex items-center gap-1 px-3 py-0.5 bg-amber-500/90 text-black text-[10px] font-bold rounded-full">
+                      <span className="inline-flex items-center gap-1 rounded-full bg-amber-500/90 px-3 py-0.5 text-[10px] font-bold text-black shadow-sm">
                         ⭐ Founder
                       </span>
                     )}
-                    <span className="inline-flex items-center gap-1 px-3 py-0.5 bg-white/15 backdrop-blur text-white/80 text-[10px] font-semibold rounded-full border border-white/20">
+                    <span className={`${sellerPillClassName} border-white/20 bg-white/15 px-3 py-0.5 text-[10px] text-white/80`}>
                       🧵 Hecho a mano
                     </span>
                   </div>
@@ -269,7 +277,7 @@ export default function MyBusinessPage() {
                     {perfil.identidad_tags.slice(0, 4).map((tag, i) => (
                       <span
                         key={i}
-                        className="px-3 py-1 bg-white/10 backdrop-blur border border-white/20 rounded-full text-xs font-medium"
+                        className={`${sellerPillClassName} border-white/20 bg-white/10 px-3 py-1 text-xs font-medium text-white`}
                       >
                         {tag}
                       </span>
@@ -284,7 +292,7 @@ export default function MyBusinessPage() {
                       href={phoneToWaUrl(perfil.whatsapp_numero) ?? '#'}
                       target="_blank"
                       rel="noopener noreferrer"
-                      className="inline-flex items-center gap-2.5 px-6 py-2.5 bg-green-500 hover:bg-green-600 text-white rounded-full text-sm font-semibold transition-all duration-200 shadow-lg hover:shadow-xl active:scale-95"
+                      className="inline-flex items-center gap-2.5 rounded-full bg-green-500 px-6 py-2.5 text-sm font-semibold text-white shadow-lg transition-all duration-200 hover:bg-green-600 hover:shadow-xl active:scale-95"
                     >
                       <MessageCircle className="w-4 h-4" />
                       Contactar por WhatsApp
@@ -306,7 +314,7 @@ export default function MyBusinessPage() {
                 <Link href="/seller/profile">
                   <Button
                     variant="secondary"
-                    className="w-full bg-white/15 hover:bg-white/25 text-white border-white/20 border backdrop-blur gap-1.5"
+                    className={`w-full gap-1.5 ${sellerGlassButtonClassName}`}
                   >
                     <Pencil className="w-3.5 h-3.5" />
                     Editar perfil
@@ -314,7 +322,7 @@ export default function MyBusinessPage() {
                 </Link>
 
                 <Link href={`/store/${perfil.user_id}`}>
-                  <Button className="w-full bg-white text-emerald-900 hover:bg-neutral-100 gap-1.5">
+                  <Button className={`w-full gap-1.5 text-emerald-900 ${sellerPrimarySoftButtonClassName} bg-white hover:bg-[#f6f4ef]`}>
                     <Eye className="w-3.5 h-3.5" />
                     Ver tienda
                   </Button>
@@ -326,7 +334,7 @@ export default function MyBusinessPage() {
                     markSellerStoreShared()
                     setQrOpen(true)
                   }}
-                  className="w-full bg-white/15 hover:bg-white/25 text-white border-white/20 border backdrop-blur gap-1.5"
+                  className={`w-full gap-1.5 ${sellerGlassButtonClassName}`}
                 >
                   <QrCode className="w-3.5 h-3.5" />
                   Ver QR de mi tienda
@@ -339,16 +347,16 @@ export default function MyBusinessPage() {
         {/* ══════════════════════════════════════════════════
             2. PROFILE OPTIMIZATION HUB (collapsible)
         ══════════════════════════════════════════════════ */}
-        <section className="bg-white rounded-2xl border border-neutral-100 shadow-sm overflow-hidden">
+        <SellerSectionCard title="Optimización de perfil" bodyClassName="p-0">
 
           {/* Clickable header — always visible */}
           <button
             type="button"
             onClick={() => setOptimOpen((v) => !v)}
-            className="w-full px-6 py-5 flex items-center justify-between gap-4 hover:bg-neutral-50/60 transition-colors cursor-pointer"
+            className="flex w-full items-center justify-between gap-4 px-6 py-5 text-left transition-colors hover:bg-[#faf8f3]"
           >
             <div className="text-left">
-              <p className="text-[10px] font-bold uppercase tracking-widest text-neutral-400 mb-0.5">
+              <p className="mb-0.5 text-[10px] font-semibold uppercase tracking-[0.16em] text-[#8c9892]">
                 Optimización de perfil
               </p>
               <h2 className="text-base font-bold text-neutral-900">{progressLabel}</h2>
@@ -356,10 +364,10 @@ export default function MyBusinessPage() {
             <div className="flex items-center gap-3 shrink-0">
               <div className="text-right">
                 <p className="text-2xl font-black text-[#0F3D3A]">{progressPct}%</p>
-                <p className="text-[10px] text-neutral-400">{completedSteps}/{totalSteps} pasos</p>
+                <p className="text-[10px] text-[#97a19b]">{completedSteps}/{totalSteps} pasos</p>
               </div>
               <ChevronDown
-                className={`w-4 h-4 text-neutral-400 transition-transform duration-300 ${
+                className={`h-4 w-4 text-[#97a19b] transition-transform duration-300 ${
                   optimOpen ? 'rotate-180' : 'rotate-0'
                 }`}
               />
@@ -373,7 +381,7 @@ export default function MyBusinessPage() {
             }`}
           >
             {/* Progress bar */}
-            <div className="h-1.5 w-full bg-neutral-100">
+            <div className="h-1.5 w-full bg-[#eef1ec]">
               <div
                 className={`h-full transition-all duration-700 ${progressColor}`}
                 style={{ width: `${progressPct}%` }}
@@ -381,36 +389,36 @@ export default function MyBusinessPage() {
             </div>
 
             {/* Checklist */}
-            <div className="divide-y divide-neutral-50">
+            <div className="divide-y divide-[#f2f4f0]">
               {setupSteps.map((step) => (
                 <Link
                   key={step.id}
                   href={step.href}
-                  className={`flex items-center gap-4 px-6 py-4 hover:bg-neutral-50 transition-colors group ${
+                  className={`group flex items-center gap-4 px-6 py-4 transition-colors hover:bg-[#faf8f3] ${
                     step.done ? 'opacity-50' : ''
                   }`}
                 >
                   {step.done ? (
                     <CheckCircle2 className="w-5 h-5 text-emerald-500 shrink-0" />
                   ) : (
-                    <Circle className="w-5 h-5 text-neutral-300 shrink-0" />
+                    <Circle className="h-5 w-5 shrink-0 text-neutral-300" />
                   )}
                   <div className="flex-1 min-w-0">
-                    <p className={`text-sm font-semibold ${step.done ? 'line-through text-neutral-400' : 'text-neutral-800'}`}>
+                    <p className={`text-sm font-semibold ${step.done ? 'text-neutral-400 line-through' : 'text-neutral-800'}`}>
                       {step.label}
                     </p>
                     {!step.done && (
-                      <p className="text-xs text-neutral-400 mt-0.5">{step.hint}</p>
+                      <p className="mt-0.5 text-xs text-[#8a968f]">{step.hint}</p>
                     )}
                   </div>
                   {!step.done && (
-                    <ChevronRight className="w-4 h-4 text-neutral-300 group-hover:text-neutral-500 transition-colors shrink-0" />
+                    <ChevronRight className="h-4 w-4 shrink-0 text-neutral-300 transition-colors group-hover:text-neutral-500" />
                   )}
                 </Link>
               ))}
             </div>
           </div>
-        </section>
+        </SellerSectionCard>
 
         {/* ══════════════════════════════════════════════════
             3. QUICK ACTIONS — PERSONALIZATION + CATALOG
@@ -418,16 +426,16 @@ export default function MyBusinessPage() {
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
 
           {/* Mensaje destacado */}
-          <section className="bg-white rounded-2xl border border-neutral-100 shadow-sm p-6 space-y-3">
+          <SellerSectionCard title="Personalización" bodyClassName="space-y-3 p-6">
             <div className="flex items-start justify-between gap-4">
               <div>
-                <p className="text-[10px] font-bold uppercase tracking-widest text-neutral-400 mb-0.5">
+                <p className="mb-0.5 text-[10px] font-semibold uppercase tracking-[0.16em] text-[#8c9892]">
                   Personalización
                 </p>
                 <h3 className="text-sm font-bold text-neutral-900">Mensaje público</h3>
               </div>
               <Link href="/seller/profile">
-                <Button variant="outline" size="sm" className="gap-1 shrink-0 text-xs h-7 px-2.5">
+                <Button variant="outline" size="sm" className="h-8 shrink-0 gap-1 rounded-xl border-[#0f2e22]/10 px-3 text-xs hover:bg-[#faf8f3]">
                   <Pencil className="w-3 h-3" />
                   Editar
                 </Button>
@@ -442,19 +450,19 @@ export default function MyBusinessPage() {
                 Sin mensaje. Agrégalo desde "Editar perfil".
               </p>
             )}
-          </section>
+          </SellerSectionCard>
 
           {/* Catalog shortcuts */}
-          <section className="bg-white rounded-2xl border border-neutral-100 shadow-sm p-6 space-y-3">
+          <SellerSectionCard title="Catálogo" bodyClassName="space-y-3 p-6">
             <div className="flex items-start justify-between gap-4">
               <div>
-                <p className="text-[10px] font-bold uppercase tracking-widest text-neutral-400 mb-0.5">
+                <p className="mb-0.5 text-[10px] font-semibold uppercase tracking-[0.16em] text-[#8c9892]">
                   Catálogo
                 </p>
                 <h3 className="text-sm font-bold text-neutral-900">Tus productos</h3>
               </div>
               <Link href="/seller/products">
-                <Button variant="outline" size="sm" className="gap-1 shrink-0 text-xs h-7 px-2.5">
+                <Button variant="outline" size="sm" className="h-8 shrink-0 gap-1 rounded-xl border-[#0f2e22]/10 px-3 text-xs hover:bg-[#faf8f3]">
                   <Package className="w-3 h-3" />
                   Gestionar
                 </Button>
@@ -463,27 +471,27 @@ export default function MyBusinessPage() {
             <div className="space-y-2.5">
               <Link
                 href="/seller/products/new"
-                className="flex items-center gap-2.5 text-sm text-[#0F3D3A] font-medium hover:underline"
+                className={`flex items-center gap-2.5 px-3 py-2 text-sm font-medium text-[#0F3D3A] ${sellerOptionCardClassName} ${sellerOptionCardActiveClassName}`}
               >
                 <ArrowRight className="w-3.5 h-3.5 shrink-0" />
                 Agregar nuevo producto
               </Link>
               <Link
                 href="/seller/products"
-                className="flex items-center gap-2.5 text-sm text-neutral-600 hover:text-neutral-900 hover:underline"
+                className={`flex items-center gap-2.5 px-3 py-2 text-sm text-neutral-700 ${sellerOptionCardClassName}`}
               >
                 <ArrowRight className="w-3.5 h-3.5 shrink-0" />
                 Ver todos mis productos
               </Link>
               <Link
                 href={`/store/${perfil.user_id}`}
-                className="flex items-center gap-2.5 text-sm text-neutral-600 hover:text-neutral-900 hover:underline"
+                className={`flex items-center gap-2.5 px-3 py-2 text-sm text-neutral-700 ${sellerOptionCardClassName}`}
               >
                 <ArrowRight className="w-3.5 h-3.5 shrink-0" />
                 Ver tienda pública
               </Link>
             </div>
-          </section>
+          </SellerSectionCard>
         </div>
 
         <WhatsAppLinkSection />

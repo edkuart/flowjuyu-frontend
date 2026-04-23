@@ -11,9 +11,19 @@ import {
   Sparkles,
 } from "lucide-react";
 
-import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Switch } from "@/components/ui/switch";
+import {
+  SellerActionButton,
+  SellerIconBadge,
+  SellerPanelHeader,
+  SellerPill,
+  SellerSurfaceCard,
+} from "@/components/seller/ui/SellerPrimitives";
+import {
+  sellerHelperTextClassName,
+  sellerPanelSubtleClassName,
+  sellerSurfaceSoftClassName,
+} from "@/components/seller/ui/sellerFormStyles";
 import { apiFetch } from "@/lib/api";
 import { track } from "@/lib/analytics";
 import {
@@ -179,17 +189,18 @@ export function CommunicationPreferencesPanel({
   const bodyPadding = compact ? "p-5" : "p-6 md:p-7";
 
   return (
-    <Card className="border-neutral-200 bg-white shadow-sm">
-      <CardHeader className={compact ? "px-5 pt-5" : undefined}>
-        <CardTitle className="text-lg text-neutral-900">{title}</CardTitle>
-        <CardDescription className="max-w-2xl leading-6">
-          {description}
-        </CardDescription>
-      </CardHeader>
+    <SellerSurfaceCard>
+      <SellerPanelHeader
+        className={compact ? "px-5 pb-0 pt-5" : undefined}
+        eyebrow="Comunicación"
+        icon={<MessageCircle className="h-5 w-5" />}
+        title={title}
+        description={description}
+      />
 
-      <CardContent className={bodyPadding}>
+      <div className={bodyPadding}>
         {loading ? (
-          <div className="flex items-center gap-3 rounded-2xl border border-neutral-200 bg-neutral-50 px-4 py-4 text-sm text-neutral-600">
+          <div className={`flex items-center gap-3 rounded-[var(--seller-radius-xl)] px-4 py-4 text-sm text-[var(--seller-muted)] ${sellerPanelSubtleClassName}`}>
             <Loader2 className="h-4 w-4 animate-spin" />
             Cargando preferencias...
           </div>
@@ -223,18 +234,18 @@ export function CommunicationPreferencesPanel({
               }
               badge={
                 draft.operationalWhatsapp ? (
-                  <span className="rounded-full bg-emerald-100 px-2.5 py-1 text-xs font-semibold text-emerald-700">
+                  <SellerPill tone="success">
                     Canal operativo disponible
-                  </span>
+                  </SellerPill>
                 ) : (
-                  <span className="rounded-full bg-neutral-100 px-2.5 py-1 text-xs font-semibold text-neutral-600">
+                  <SellerPill tone="neutral">
                     Canal operativo no activo
-                  </span>
+                  </SellerPill>
                 )
               }
             />
 
-            <div className="rounded-2xl border border-dashed border-neutral-200 bg-neutral-50 px-4 py-4 text-sm text-neutral-600">
+            <div className={`${sellerSurfaceSoftClassName} border-dashed px-4 py-4 text-sm text-[var(--seller-muted)]`}>
               <div className="flex items-start gap-3">
                 <Sparkles className="mt-0.5 h-4 w-4 text-neutral-500" />
                 <p>
@@ -259,16 +270,15 @@ export function CommunicationPreferencesPanel({
               </div>
             )}
 
-            <div className="flex flex-col gap-3 border-t border-neutral-200 pt-4 md:flex-row md:items-center md:justify-between">
-              <p className="text-sm text-neutral-500">
+            <div className="flex flex-col gap-3 border-t border-[var(--seller-line)] pt-4 md:flex-row md:items-center md:justify-between">
+              <p className={sellerHelperTextClassName}>
                 Los cambios se registran como consentimiento revocable en tu cuenta.
               </p>
 
-              <Button
-                type="button"
+              <SellerActionButton
                 onClick={handleSave}
                 disabled={!hasChanges || saving}
-                className="h-11 rounded-xl bg-[#0F3D3A] px-6 text-white hover:bg-[#0c322f]"
+                className="h-11 px-6"
               >
                 {saving ? (
                   <>
@@ -278,12 +288,12 @@ export function CommunicationPreferencesPanel({
                 ) : (
                   "Guardar preferencias"
                 )}
-              </Button>
+              </SellerActionButton>
             </div>
           </div>
         )}
-      </CardContent>
-    </Card>
+      </div>
+    </SellerSurfaceCard>
   );
 }
 
@@ -305,31 +315,31 @@ function PreferenceRow({
   badge?: React.ReactNode;
 }) {
   return (
-    <div className="rounded-2xl border border-neutral-200 bg-white px-4 py-4">
+    <div className="seller-surface-card px-4 py-4">
       <div className="flex flex-col gap-4 md:flex-row md:items-start md:justify-between">
         <div className="flex gap-3">
-          <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-2xl bg-neutral-100">
+          <SellerIconBadge className="h-10 w-10 shrink-0">
             {icon}
-          </div>
+          </SellerIconBadge>
 
           <div className="space-y-1">
             <div className="flex flex-wrap items-center gap-2">
-              <h3 className="font-medium text-neutral-900">{title}</h3>
+              <h3 className="font-medium text-[var(--seller-ink)]">{title}</h3>
               {badge}
             </div>
-            <p className="max-w-2xl text-sm leading-6 text-neutral-600">
+            <p className="max-w-2xl text-sm leading-6 text-[var(--seller-muted)]">
               {description}
             </p>
           </div>
         </div>
 
         {readOnly ? (
-          <span className="inline-flex items-center rounded-full bg-[#0F3D3A]/8 px-3 py-1.5 text-xs font-semibold text-[#0F3D3A]">
+          <SellerPill className="px-3 py-1.5">
             Siempre activo
-          </span>
+          </SellerPill>
         ) : (
           <div className="flex items-center gap-3 md:pl-4">
-            <span className="text-sm text-neutral-500">
+            <span className="text-sm text-[var(--seller-muted)]">
               {enabled ? "Activo" : "Inactivo"}
             </span>
             <Switch

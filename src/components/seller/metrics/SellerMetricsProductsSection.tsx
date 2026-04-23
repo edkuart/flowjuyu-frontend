@@ -3,6 +3,7 @@
 import { Package, Sparkles } from "lucide-react";
 
 import { BaseExpandableCard } from "@/components/ui/BaseExpandableCard";
+import { SellerDetailPanel } from "@/components/seller/ui/SellerPrimitives";
 import {
   MetricsMiniCard,
   MetricsSectionIntro,
@@ -52,41 +53,25 @@ export function SellerMetricsProductsSection({
       </div>
 
       <div className="grid grid-cols-1 gap-4 xl:grid-cols-2">
-        <div className="rounded-3xl border border-neutral-200 bg-white p-5 shadow-sm">
-          <div className="flex items-center gap-3">
-            <span className="flex h-10 w-10 items-center justify-center rounded-2xl bg-[#0F3D3A]/8">
-              <Package className="h-5 w-5 text-[#0F3D3A]" />
-            </span>
-            <div className="space-y-1">
-              <p className="text-sm font-semibold text-neutral-900">
-                Producto con mas vistas
-              </p>
-              <p className="text-sm text-neutral-600">
-                {topViewedProduct
-                  ? `${topViewedProduct.nombre} · ${topViewedProduct.total_views} vistas`
-                  : "Todavia no hay un producto destacado por trafico."}
-              </p>
-            </div>
-          </div>
-        </div>
+        <SellerDetailPanel
+          icon={<Package className="h-5 w-5" />}
+          title="Producto con mas vistas"
+          description={
+            topViewedProduct
+              ? `${topViewedProduct.nombre} · ${topViewedProduct.total_views} vistas`
+              : "Todavia no hay un producto destacado por trafico."
+          }
+        />
 
-        <div className="rounded-3xl border border-neutral-200 bg-white p-5 shadow-sm">
-          <div className="flex items-center gap-3">
-            <span className="flex h-10 w-10 items-center justify-center rounded-2xl bg-[#0F3D3A]/8">
-              <Sparkles className="h-5 w-5 text-[#0F3D3A]" />
-            </span>
-            <div className="space-y-1">
-              <p className="text-sm font-semibold text-neutral-900">
-                Producto con mas intencion
-              </p>
-              <p className="text-sm text-neutral-600">
-                {topIntentProduct
-                  ? `${topIntentProduct.nombre} · ${topIntentProduct.total_intentions} intenciones`
-                  : "Todavia no hay un producto destacado por interes comercial."}
-              </p>
-            </div>
-          </div>
-        </div>
+        <SellerDetailPanel
+          icon={<Sparkles className="h-5 w-5" />}
+          title="Producto con mas intencion"
+          description={
+            topIntentProduct
+              ? `${topIntentProduct.nombre} · ${topIntentProduct.total_intentions} intenciones`
+              : "Todavia no hay un producto destacado por interes comercial."
+          }
+        />
       </div>
 
       <BaseExpandableCard

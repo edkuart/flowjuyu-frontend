@@ -15,6 +15,14 @@ import {
 } from "lucide-react";
 import { apiFetch, invalidateCache } from "@/lib/api";
 import { useAuth } from "@/context/AuthContext";
+import {
+  SellerActionButton,
+  SellerPill,
+  SellerSurfaceCard,
+} from "@/components/seller/ui/SellerPrimitives";
+import CollectionArtworkPreview from "@/components/seller/CollectionArtworkPreview";
+import { PageBackNav } from "@/components/ui/PageBackNav";
+import { FloatingActionDock } from "@/components/ui/FloatingActionDock";
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -94,6 +102,15 @@ type ContentImage = {
 };
 
 type ContentProduct = {
+  objectFit?: "cover" | "contain";
+  borderRadius?: number;
+  opacity?: number;
+  shadowEnabled?: boolean;
+  shadowX?: number;
+  shadowY?: number;
+  shadowBlur?: number;
+  shadowSpread?: number;
+  shadowColor?: string;
   flipX?: boolean;
   flipY?: boolean;
   rotation?: number;
@@ -133,6 +150,7 @@ type Product = { id: string; nombre: string; imagen_url: string | null; precio: 
 type ActiveTool = "select" | "text" | "shape" | "image" | "decor";
 type SelectSidebarTab = "products" | "templates";
 type MobilePanel = "tools" | "library" | "properties" | null;
+type TemplateScopeFilter = "all" | "mine" | "system";
 
 type CollectionTemplate = {
   id: number;
@@ -146,6 +164,7 @@ type CollectionTemplate = {
   background_image_url: string | null;
   item_count: number;
   created_at: string;
+  owner_scope?: "mine" | "system";
 };
 
 type GraphicPreset = {
@@ -285,12 +304,12 @@ const GRID_OPTIONS = [
   { label: "32px", value: 32 },
 ];
 
-const PREVIEW_ZOOM_OPTIONS = [
-  { label: "Ajustar", value: "fit" as const },
-  { label: "75%", value: 0.75 as const },
-  { label: "100%", value: 1 as const },
-  { label: "125%", value: 1.25 as const },
-];
+type BackgroundGradientState = {
+  enabled: boolean;
+  color2: string;
+  angle: number;
+  type: "linear" | "radial";
+};
 
 function svgToDataUrl(svg: string): string {
   return `data:image/svg+xml;utf8,${encodeURIComponent(svg)}`;
@@ -776,9 +795,10 @@ const GRAPHIC_PRESETS: GraphicPreset[] = [
   },
 ];
 
-const EDITOR_ZOOM_MIN = 0.5;
+const EDITOR_ZOOM_MIN = 0.25;
 const EDITOR_ZOOM_MAX = 2;
 const EDITOR_ZOOM_STEP = 0.25;
+const VIEWPORT_ZOOM_STEP = 0.1;
 
 const SHAPE_TYPES: { value: ContentShape["shapeType"]; label: string }[] = [
   { value: "rectangle", label: "Rect." },
@@ -849,8 +869,8 @@ function snapToGrid(v: number, grid: number): number {
   return Math.round(v / grid) * grid;
 }
 
-function buildBoxShadow(c: { shadowEnabled?: boolean; shadowX?: number; shadowY?: number; shadowBlur?: number; shadowSpread?: number; shadowColor?: string }): string | undefined {
-  if (!c.shadowEnabled) return undefined;
+function buildBoxShadow(c: { shadowEnabled?: boolean; shadowX?: number; shadowY?: number; shadowBlur?: number; shadowSpread?: number; shadowColor?: string } | null | undefined): string | undefined {
+  if (!c?.shadowEnabled) return undefined;
   return `${c.shadowX ?? 4}px ${c.shadowY ?? 4}px ${c.shadowBlur ?? 8}px ${c.shadowSpread ?? 0}px ${c.shadowColor ?? "rgba(0,0,0,0.3)"}`;
 }
 
@@ -865,6 +885,14 @@ function getCanvasFormatLabel(width: number, height: number): string {
   if (width === height) return "Cuadrado";
   if (height > width) return "Vertical";
   return "Horizontal";
+}
+
+function getCanvasSnapshotKey(width: number, height: number): string {
+  return `${width}x${height}`;
+}
+
+function cloneCanvasItems(items: CanvasItem[]): CanvasItem[] {
+  return JSON.parse(JSON.stringify(items));
 }
 
 function getTemplateMeta(name: string) {
@@ -919,18 +947,20 @@ export default function CollectionEditorPage() {
   const [previewScale, setPreviewScale] = useState(1);
   const [editorCanvasScale, setEditorCanvasScale] = useState(1);
   const [editorZoom, setEditorZoom] = useState(1);
-  const [previewZoom, setPreviewZoom] = useState<"fit" | 0.75 | 1 | 1.25>("fit");
+  const [previewZoom, setPreviewZoom] = useState(1);
   const [selectedItemId, setSelectedItemId] = useState<number | null>(null);
   const [search, setSearch]                 = useState("");
   const [activeTool, setActiveTool]         = useState<ActiveTool>("select");
   const [selectSidebarTab, setSelectSidebarTab] = useState<SelectSidebarTab>("products");
+  const [templateScopeFilter, setTemplateScopeFilter] = useState<TemplateScopeFilter>("all");
   const [name, setName]                     = useState("");
   const [templateName, setTemplateName]     = useState("");
   const [templateIsPublic, setTemplateIsPublic] = useState(true);
   const [showTemplateModal, setShowTemplateModal] = useState(false);
   const [templateError, setTemplateError]   = useState<string | null>(null);
+  const [originalCanvasSize, setOriginalCanvasSize] = useState<{ width: number; height: number } | null>(null);
   const [bgColor, setBgColor]               = useState("#FFFFFF");
-  const [bgGradient, setBgGradient]         = useState({
+  const [bgGradient, setBgGradient]         = useState<BackgroundGradientState>({
     enabled: false, color2: "#AADDCC", angle: 135, type: "linear" as "linear" | "radial",
   });
   const [textDefaults, setTextDefaults]     = useState<ContentText>({ ...DEFAULT_TEXT });
@@ -946,6 +976,8 @@ export default function CollectionEditorPage() {
   const [canRedo, setCanRedo] = useState(false);
   const [mobilePanel, setMobilePanel] = useState<MobilePanel>(null);
   const [mobileCanvasControlsOpen, setMobileCanvasControlsOpen] = useState(false);
+  const [isMobileViewport, setIsMobileViewport] = useState(false);
+  const [mobileViewportWidth, setMobileViewportWidth] = useState(0);
 
   const canvasRef       = useRef<HTMLDivElement>(null);
   const canvasAreaRef = useRef<HTMLDivElement>(null);
@@ -954,6 +986,8 @@ export default function CollectionEditorPage() {
   const rightPanelRef = useRef<HTMLDivElement>(null);
   const imageInputRef   = useRef<HTMLInputElement>(null);
   const bgImageInputRef = useRef<HTMLInputElement>(null);
+  const canvasSettingsSaveTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const canvasLayoutSnapshotsRef = useRef<Record<string, CanvasItem[]>>({});
   const dragState      = useRef<{ itemId: number; startPX: number; startPY: number; origX: number; origY: number } | null>(null);
   const resizeState    = useRef<{ itemId: number; corner: "nw"|"ne"|"sw"|"se"; startPX: number; startPY: number; origX: number; origY: number; origW: number; origH: number } | null>(null);
   const debounceTimers = useRef<Record<string, ReturnType<typeof setTimeout>>>({});
@@ -982,15 +1016,62 @@ export default function CollectionEditorPage() {
     : computedBg;
   const displayBackgroundImageUrl = previewTemplate?.background_image_url ?? collection?.background_image_url ?? null;
   const displayItems = previewTemplate?.items_snapshot ?? items;
+  const runtimeViewportWidth =
+    mobileViewportWidth || (typeof window !== "undefined" ? window.innerWidth : 0);
+  const isCompactPreviewViewport = isPreviewingTemplate && runtimeViewportWidth > 0 && runtimeViewportWidth < 768;
+  const mobilePreviewFitScale =
+    isCompactPreviewViewport
+      ? Math.min(
+          Math.max(
+            (Math.min(runtimeViewportWidth, canvasAreaRef.current?.clientWidth || runtimeViewportWidth) - 56) /
+              displayCanvasWidth,
+            0.12,
+          ),
+          1,
+        )
+      : null;
+  const previewBaseScale = isPreviewingTemplate
+    ? (mobilePreviewFitScale ?? previewScale)
+    : 1;
   const effectivePreviewScale = isPreviewingTemplate
-    ? (previewZoom === "fit" ? previewScale : previewZoom)
+    ? previewBaseScale * previewZoom
     : 1;
   const effectiveCanvasScale = isPreviewingTemplate ? effectivePreviewScale : editorCanvasScale * editorZoom;
-  const previewStageWidth = (displayCanvasWidth * effectivePreviewScale) + 52;
-  const previewStageHeight = (displayCanvasHeight * effectivePreviewScale) + 52;
+  const previewChromePadding = isPreviewingTemplate ? (isCompactPreviewViewport ? 20 : 52) : 0;
+  const previewStageWidth = (displayCanvasWidth * effectivePreviewScale) + previewChromePadding;
+  const previewStageHeight = (displayCanvasHeight * effectivePreviewScale) + previewChromePadding;
+  const compactPreviewCanvasWidth = Math.max(160, Math.round(displayCanvasWidth * effectivePreviewScale));
+  const compactPreviewCanvasHeight = Math.max(90, Math.round(displayCanvasHeight * effectivePreviewScale));
   const isEditorFitMode = !isPreviewingTemplate && editorZoom === 1 && editorCanvasScale < 0.999;
   const isMobileToolsPanelOpen = mobilePanel === "tools" || mobilePanel === "library";
+  const editorZoomMax = Math.max(EDITOR_ZOOM_MAX, Number((1 / Math.max(editorCanvasScale, 0.01)).toFixed(2)));
+  const previewZoomMax = Math.max(EDITOR_ZOOM_MAX, Number((1 / Math.max(previewBaseScale, 0.01)).toFixed(2)));
+  const minEffectiveEditorScale = Math.max(EDITOR_ZOOM_MIN, editorCanvasScale * EDITOR_ZOOM_MIN);
+  const minEffectivePreviewScale = Math.max(EDITOR_ZOOM_MIN, previewBaseScale * EDITOR_ZOOM_MIN);
+  const maxEffectiveEditorScale = Math.max(1, editorCanvasScale * editorZoomMax);
+  const maxEffectivePreviewScale = Math.max(1, previewBaseScale * previewZoomMax);
   const displayEditorZoomLabel = `${Math.round((editorCanvasScale * editorZoom) * 100)}%`;
+  const displayPreviewZoomLabel = `${Math.round(effectivePreviewScale * 100)}%`;
+  const activeZoomLabel = isPreviewingTemplate ? displayPreviewZoomLabel : displayEditorZoomLabel;
+  const canZoomOut = isPreviewingTemplate
+    ? effectivePreviewScale > minEffectivePreviewScale
+    : (editorCanvasScale * editorZoom) > minEffectiveEditorScale;
+  const canZoomIn = isPreviewingTemplate
+    ? effectivePreviewScale < maxEffectivePreviewScale
+    : (editorCanvasScale * editorZoom) < maxEffectiveEditorScale;
+  const canvasPresetOptions = [
+    ...(originalCanvasSize
+      ? [{
+          label: "Orig.",
+          w: originalCanvasSize.width,
+          h: originalCanvasSize.height,
+        }]
+      : []),
+    { label: "800²", w: 800, h: 800 },
+    { label: "8×12", w: 800, h: 1200 },
+    { label: "12×8", w: 1200, h: 800 },
+    { label: "1×1", w: 1080, h: 1080 },
+  ];
 
   const scrollSectionIntoView = useCallback((ref: React.RefObject<HTMLElement | HTMLDivElement | null>) => {
     ref.current?.scrollIntoView({ behavior: "smooth", block: "start" });
@@ -1008,6 +1089,132 @@ export default function CollectionEditorPage() {
     });
   }, []);
 
+  const persistCollectionCanvasSettings = useCallback(async (overrides?: {
+    name?: string;
+    backgroundColor?: string;
+    backgroundGradient?: BackgroundGradientState;
+    backgroundImageUrl?: string | null;
+    canvasWidth?: number;
+    canvasHeight?: number;
+  }) => {
+    if (!collection) return;
+
+    const nextName = overrides?.name ?? name;
+    const nextBackgroundColor = overrides?.backgroundColor ?? bgColor;
+    const nextBackgroundGradient = overrides?.backgroundGradient ?? bgGradient;
+    const nextBackgroundStyle = nextBackgroundGradient.enabled
+      ? nextBackgroundGradient.type === "radial"
+        ? `radial-gradient(circle, ${nextBackgroundColor}, ${nextBackgroundGradient.color2})`
+        : `linear-gradient(${nextBackgroundGradient.angle}deg, ${nextBackgroundColor}, ${nextBackgroundGradient.color2})`
+      : null;
+    const nextBackgroundImageUrl =
+      overrides && "backgroundImageUrl" in overrides
+        ? overrides.backgroundImageUrl ?? null
+        : collection.background_image_url;
+    const nextCanvasWidth = overrides?.canvasWidth ?? collection.canvas_width;
+    const nextCanvasHeight = overrides?.canvasHeight ?? collection.canvas_height;
+
+    setSaving(true);
+    try {
+      await apiFetch(`/api/collections/${collectionId}`, {
+        method: "PUT",
+        body: JSON.stringify({
+          name: nextName,
+          background_color: nextBackgroundColor,
+          background_style: nextBackgroundStyle,
+          background_image_url: nextBackgroundImageUrl,
+          canvas_width: nextCanvasWidth,
+          canvas_height: nextCanvasHeight,
+        }),
+      });
+
+      setCollection((prev) => prev ? {
+        ...prev,
+        name: nextName,
+        background_color: nextBackgroundColor,
+        background_style: nextBackgroundStyle,
+        background_image_url: nextBackgroundImageUrl,
+        canvas_width: nextCanvasWidth,
+        canvas_height: nextCanvasHeight,
+      } : prev);
+      setSaved(true);
+      setTimeout(() => setSaved(false), 2000);
+    } finally {
+      setSaving(false);
+    }
+  }, [bgColor, bgGradient, collection, collectionId, name]);
+
+  const queueCanvasSettingsSave = useCallback((overrides?: Parameters<typeof persistCollectionCanvasSettings>[0]) => {
+    if (canvasSettingsSaveTimerRef.current) {
+      clearTimeout(canvasSettingsSaveTimerRef.current);
+    }
+
+    canvasSettingsSaveTimerRef.current = setTimeout(() => {
+      void persistCollectionCanvasSettings(overrides);
+    }, 300);
+  }, [persistCollectionCanvasSettings]);
+
+  useEffect(() => () => {
+    if (canvasSettingsSaveTimerRef.current) {
+      clearTimeout(canvasSettingsSaveTimerRef.current);
+    }
+  }, []);
+
+  const flushPendingCanvasSettingsSave = useCallback(async () => {
+    if (canvasSettingsSaveTimerRef.current) {
+      clearTimeout(canvasSettingsSaveTimerRef.current);
+      canvasSettingsSaveTimerRef.current = null;
+    }
+
+    await persistCollectionCanvasSettings();
+  }, [persistCollectionCanvasSettings]);
+
+  const flushPendingItemContentSaves = useCallback(async () => {
+    const pendingItemIds = Object.keys(debounceTimers.current)
+      .map((key) => Number(key))
+      .filter((value) => Number.isFinite(value));
+
+    pendingItemIds.forEach((itemId) => {
+      const key = String(itemId);
+      const timer = debounceTimers.current[key];
+      if (timer) {
+        clearTimeout(timer);
+        delete debounceTimers.current[key];
+      }
+    });
+
+    if (pendingItemIds.length === 0) return;
+
+    const uniqueItemIds = Array.from(new Set(pendingItemIds));
+    await Promise.all(uniqueItemIds.map((itemId) => {
+      const item = itemsRef.current.find((candidate) => candidate.id === itemId);
+      if (!item) return Promise.resolve();
+
+      return apiFetch(`/api/collections/${collectionId}/items/${itemId}`, {
+        method: "PUT",
+        body: JSON.stringify({ content: item.content }),
+      });
+    }));
+  }, [collectionId]);
+
+  useEffect(() => {
+    if (!collection || isPreviewingTemplate) return;
+    canvasLayoutSnapshotsRef.current[getCanvasSnapshotKey(collection.canvas_width, collection.canvas_height)] = cloneCanvasItems(items);
+  }, [collection, isPreviewingTemplate, items]);
+
+  const handleBackgroundColorChange = useCallback((nextColor: string) => {
+    setBgColor(nextColor);
+    queueCanvasSettingsSave({ backgroundColor: nextColor });
+  }, [queueCanvasSettingsSave]);
+
+  const handleBackgroundGradientChange = useCallback((updater: (current: BackgroundGradientState) => BackgroundGradientState) => {
+    setBgGradient((current) => {
+      const nextGradient = updater(current);
+      queueCanvasSettingsSave({ backgroundGradient: nextGradient });
+      return nextGradient;
+    });
+  }, [queueCanvasSettingsSave]);
+
   const clientPointToCanvasPoint = useCallback((clientX: number, clientY: number) => {
     if (!canvasRef.current) return null;
     const rect = canvasRef.current.getBoundingClientRect();
@@ -1023,20 +1230,48 @@ export default function CollectionEditorPage() {
       return;
     }
 
+    let frameA = 0;
+    let frameB = 0;
     const updatePreviewScale = () => {
       const viewport = canvasViewportRef.current;
       if (!viewport) return;
 
-      const widthRatio = (viewport.clientWidth - 116) / displayCanvasWidth;
-      const heightRatio = (viewport.clientHeight - 116) / displayCanvasHeight;
+      const mobileViewport = window.innerWidth < 768 || viewport.clientWidth < 768;
+      const viewportPadding = mobileViewport ? 28 : 116;
+      const widthRatio = (viewport.clientWidth - viewportPadding) / displayCanvasWidth;
+      const heightRatio = (viewport.clientHeight - viewportPadding) / displayCanvasHeight;
       const nextScale = Math.min(widthRatio, heightRatio, 1);
       setPreviewScale(Number.isFinite(nextScale) && nextScale > 0 ? nextScale : 1);
       viewport.scrollTo({ left: 0, top: 0 });
     };
 
-    updatePreviewScale();
-    window.addEventListener("resize", updatePreviewScale);
-    return () => window.removeEventListener("resize", updatePreviewScale);
+    const schedulePreviewScaleUpdate = () => {
+      window.cancelAnimationFrame(frameA);
+      window.cancelAnimationFrame(frameB);
+      frameA = window.requestAnimationFrame(() => {
+        frameB = window.requestAnimationFrame(updatePreviewScale);
+      });
+    };
+
+    schedulePreviewScaleUpdate();
+    window.addEventListener("resize", schedulePreviewScaleUpdate);
+
+    const viewport = canvasViewportRef.current;
+    const resizeObserver =
+      viewport && typeof ResizeObserver !== "undefined"
+        ? new ResizeObserver(() => schedulePreviewScaleUpdate())
+        : null;
+
+    if (viewport && resizeObserver) {
+      resizeObserver.observe(viewport);
+    }
+
+    return () => {
+      window.cancelAnimationFrame(frameA);
+      window.cancelAnimationFrame(frameB);
+      window.removeEventListener("resize", schedulePreviewScaleUpdate);
+      resizeObserver?.disconnect();
+    };
   }, [displayCanvasHeight, displayCanvasWidth, isPreviewingTemplate]);
 
   useEffect(() => {
@@ -1048,18 +1283,20 @@ export default function CollectionEditorPage() {
     const updateEditorScale = () => {
       const viewport = canvasViewportRef.current;
       if (!viewport) return;
+      const mobileViewport = window.innerWidth < 768 || viewport.clientWidth < 768;
 
-      if (window.innerWidth >= 768) {
+      if (mobileViewport) {
+        const availableWidth = Math.max(180, viewport.clientWidth - 18);
+        const availableHeight = Math.max(180, viewport.clientHeight - 24);
+        const widthRatio = availableWidth / displayCanvasWidth;
+        const heightRatio = availableHeight / displayCanvasHeight;
+        const fitScale = Math.min(widthRatio, heightRatio, 1);
+
+        setEditorCanvasScale(Math.max(0.18, fitScale));
+      } else {
         setEditorCanvasScale(1);
-        return;
       }
 
-      const availableWidth = Math.max(viewport.clientWidth - 24, 120);
-      const availableHeight = Math.max(viewport.clientHeight - 24, 120);
-      const widthRatio = availableWidth / displayCanvasWidth;
-      const heightRatio = availableHeight / displayCanvasHeight;
-      const nextScale = Math.min(widthRatio, heightRatio, 1);
-      setEditorCanvasScale(Number.isFinite(nextScale) && nextScale > 0 ? nextScale : 1);
       viewport.scrollTo({ left: 0, top: 0 });
     };
 
@@ -1076,6 +1313,8 @@ export default function CollectionEditorPage() {
 
   useEffect(() => {
     const syncResponsiveEditorState = () => {
+      setIsMobileViewport(window.innerWidth < 768);
+      setMobileViewportWidth(window.innerWidth);
       if (window.innerWidth >= 768) {
         setMobilePanel(null);
         setMobileCanvasControlsOpen(false);
@@ -1088,12 +1327,24 @@ export default function CollectionEditorPage() {
   }, []);
 
   const handleEditorZoomChange = useCallback((nextZoom: number) => {
-    const clamped = Math.min(EDITOR_ZOOM_MAX, Math.max(EDITOR_ZOOM_MIN, Number(nextZoom.toFixed(2))));
+    const maxZoom = Math.max(EDITOR_ZOOM_MAX, Number((1 / Math.max(editorCanvasScale, 0.01)).toFixed(2)));
+    const clamped = Math.min(maxZoom, Math.max(EDITOR_ZOOM_MIN, Number(nextZoom.toFixed(2))));
     setEditorZoom(clamped);
-  }, []);
+  }, [editorCanvasScale]);
+
+  const handlePreviewZoomChange = useCallback((nextZoom: number) => {
+    const maxZoom = Math.max(EDITOR_ZOOM_MAX, Number((1 / Math.max(previewBaseScale, 0.01)).toFixed(2)));
+    const clamped = Math.min(maxZoom, Math.max(EDITOR_ZOOM_MIN, Number(nextZoom.toFixed(2))));
+    setPreviewZoom(clamped);
+  }, [previewBaseScale]);
 
   const handleResetEditorZoom = useCallback(() => {
     setEditorZoom(1);
+    resetCanvasViewport();
+  }, [resetCanvasViewport]);
+
+  const handleResetPreviewZoom = useCallback(() => {
+    setPreviewZoom(1);
     resetCanvasViewport();
   }, [resetCanvasViewport]);
 
@@ -1104,6 +1355,52 @@ export default function CollectionEditorPage() {
   const handleZoomIn = useCallback(() => {
     handleEditorZoomChange(editorZoom + EDITOR_ZOOM_STEP);
   }, [editorZoom, handleEditorZoomChange]);
+
+  const handlePreviewZoomOut = useCallback(() => {
+    handlePreviewZoomChange(previewZoom - EDITOR_ZOOM_STEP);
+  }, [handlePreviewZoomChange, previewZoom]);
+
+  const handlePreviewZoomIn = useCallback(() => {
+    handlePreviewZoomChange(previewZoom + EDITOR_ZOOM_STEP);
+  }, [handlePreviewZoomChange, previewZoom]);
+
+  const handleViewportZoomChange = useCallback((nextScale: number) => {
+    if (isPreviewingTemplate) {
+      const clampedEffectiveScale = Math.min(maxEffectivePreviewScale, Math.max(minEffectivePreviewScale, Number(nextScale.toFixed(2))));
+      setPreviewZoom(Number((clampedEffectiveScale / Math.max(previewBaseScale, 0.01)).toFixed(2)));
+      return;
+    }
+
+    const clampedEffectiveScale = Math.min(maxEffectiveEditorScale, Math.max(minEffectiveEditorScale, Number(nextScale.toFixed(2))));
+    setEditorZoom(Number((clampedEffectiveScale / Math.max(editorCanvasScale, 0.01)).toFixed(2)));
+  }, [
+    editorCanvasScale,
+    isPreviewingTemplate,
+    minEffectiveEditorScale,
+    minEffectivePreviewScale,
+    maxEffectiveEditorScale,
+    maxEffectivePreviewScale,
+    previewBaseScale,
+  ]);
+
+  const handleViewportZoomOut = useCallback(() => {
+    const currentScale = isPreviewingTemplate ? effectivePreviewScale : (editorCanvasScale * editorZoom);
+    handleViewportZoomChange(currentScale - VIEWPORT_ZOOM_STEP);
+  }, [editorCanvasScale, editorZoom, effectivePreviewScale, handleViewportZoomChange, isPreviewingTemplate]);
+
+  const handleViewportZoomIn = useCallback(() => {
+    const currentScale = isPreviewingTemplate ? effectivePreviewScale : (editorCanvasScale * editorZoom);
+    handleViewportZoomChange(currentScale + VIEWPORT_ZOOM_STEP);
+  }, [editorCanvasScale, editorZoom, effectivePreviewScale, handleViewportZoomChange, isPreviewingTemplate]);
+
+  const handleViewportZoomReset = useCallback(() => {
+    if (isPreviewingTemplate) {
+      handleResetPreviewZoom();
+      return;
+    }
+
+    handleResetEditorZoom();
+  }, [handleResetEditorZoom, handleResetPreviewZoom, isPreviewingTemplate]);
 
   // ── Undo/redo core ────────────────────────────────────────────────────────
 
@@ -1188,6 +1485,7 @@ export default function CollectionEditorPage() {
 
     setCollection(col);
     setItems(col.items ?? []);
+    setOriginalCanvasSize((prev) => prev ?? { width: col.canvas_width, height: col.canvas_height });
     setName(col.name);
     setBgColor(col.background_color ?? "#FFFFFF");
 
@@ -1262,30 +1560,9 @@ export default function CollectionEditorPage() {
   // ── Save ──────────────────────────────────────────────────────────────────
 
   const handleSave = useCallback(async () => {
-    if (!collection) return;
-    setSaving(true);
-    try {
-      await apiFetch(`/api/collections/${collectionId}`, {
-        method: "PUT",
-        body: JSON.stringify({
-          name,
-          background_color: bgColor,
-          background_style: bgGradient.enabled ? computedBg : null,
-          background_image_url: collection.background_image_url,
-        }),
-      });
-      setCollection((prev) => prev ? {
-        ...prev,
-        name,
-        background_color: bgColor,
-        background_style: bgGradient.enabled ? computedBg : null,
-      } : prev);
-      setSaved(true);
-      setTimeout(() => setSaved(false), 2000);
-    } finally {
-      setSaving(false);
-    }
-  }, [collectionId, name, bgColor, bgGradient, computedBg, collection]);
+    await flushPendingItemContentSaves();
+    await flushPendingCanvasSettingsSave();
+  }, [flushPendingCanvasSettingsSave, flushPendingItemContentSaves]);
 
   // ── Publish ────────────────────────────────────────────────────────────────
 
@@ -1353,46 +1630,27 @@ export default function CollectionEditorPage() {
       if (!uploadData.ok) throw new Error(uploadData.message);
 
       const nextUrl = uploadData.url as string;
-      await apiFetch(`/api/collections/${collectionId}`, {
-        method: "PUT",
-        body: JSON.stringify({
-          name,
-          background_color: bgColor,
-          background_style: bgGradient.enabled ? computedBg : null,
-          background_image_url: nextUrl,
-        }),
-      });
-
-      setCollection((prev) => prev ? { ...prev, background_image_url: nextUrl } : prev);
+      await persistCollectionCanvasSettings({ backgroundImageUrl: nextUrl });
     } catch (err) {
       console.error("[background image upload]", err);
       alert("Error al subir el fondo");
     } finally {
       setBgImageUploading(false);
     }
-  }, [bgColor, bgGradient.enabled, collection, collectionId, computedBg, name]);
+  }, [collection, collectionId, persistCollectionCanvasSettings]);
 
   const handleRemoveBackgroundImage = useCallback(async () => {
     if (!collection?.background_image_url) return;
     setBgImageUploading(true);
     try {
-      await apiFetch(`/api/collections/${collectionId}`, {
-        method: "PUT",
-        body: JSON.stringify({
-          name,
-          background_color: bgColor,
-          background_style: bgGradient.enabled ? computedBg : null,
-          background_image_url: null,
-        }),
-      });
-      setCollection((prev) => prev ? { ...prev, background_image_url: null } : prev);
+      await persistCollectionCanvasSettings({ backgroundImageUrl: null });
     } catch (err) {
       console.error("[background image remove]", err);
       alert("Error al quitar el fondo");
     } finally {
       setBgImageUploading(false);
     }
-  }, [bgColor, bgGradient.enabled, collection?.background_image_url, collectionId, computedBg, name]);
+  }, [collection?.background_image_url, persistCollectionCanvasSettings]);
 
   const handleSaveTemplate = useCallback(async () => {
     if (!collection || !templateName.trim()) return;
@@ -1431,7 +1689,7 @@ export default function CollectionEditorPage() {
 
   const handlePreviewTemplate = useCallback(async (template: CollectionTemplate) => {
     setTemplatePreviewLoadingId(template.id);
-    setPreviewZoom("fit");
+    setPreviewZoom(1);
     setTemplateError(null);
     try {
       const res = await apiFetch(`/api/collections/templates/${template.id}`);
@@ -1465,7 +1723,7 @@ export default function CollectionEditorPage() {
     setPreviewTemplate(null);
     setTemplatePreviewLoadingId(null);
     setTemplateApplyingId(null);
-    setPreviewZoom("fit");
+    setPreviewZoom(1);
     setMobilePanel(null);
     setTemplateError(null);
     resetCanvasViewport();
@@ -1673,7 +1931,6 @@ export default function CollectionEditorPage() {
     if (!item) return;
     dragState.current = { itemId, startPX: e.clientX, startPY: e.clientY, origX: item.pos_x, origY: item.pos_y };
     setSelectedItemId(itemId);
-    setItems((prev) => prev.map((i) => i.id === itemId ? { ...i, z_index: Math.max(...prev.map((x) => x.z_index)) + 1 } : i));
   };
 
   const handleCanvasPointerMove = (e: React.PointerEvent) => {
@@ -1809,23 +2066,33 @@ export default function CollectionEditorPage() {
 
   // ── Z-order ───────────────────────────────────────────────────────────────
 
-  const handleBringToFront = useCallback((itemId: number) => {
-    const maxZ = Math.max(...itemsRef.current.map((i) => i.z_index), 0);
-    const newZ = maxZ + 1;
-    setItems((prev) => prev.map((i) => i.id === itemId ? { ...i, z_index: newZ } : i));
-    apiFetch(`/api/collections/${collectionId}/items/${itemId}`, {
-      method: "PUT", body: JSON.stringify({ z_index: newZ }),
-    });
-  }, [collectionId]);
+  const normalizeCanvasZOrder = useCallback((list: CanvasItem[]) => {
+    return [...list]
+      .sort((a, b) => (a.z_index ?? 0) - (b.z_index ?? 0) || a.id - b.id)
+      .map((item, index) => ({ ...item, z_index: index + 1 }));
+  }, []);
 
-  const handleSendToBack = useCallback((itemId: number) => {
-    const minZ = Math.min(...itemsRef.current.map((i) => i.z_index), 0);
-    const newZ = minZ - 1;
-    setItems((prev) => prev.map((i) => i.id === itemId ? { ...i, z_index: newZ } : i));
-    apiFetch(`/api/collections/${collectionId}/items/${itemId}`, {
-      method: "PUT", body: JSON.stringify({ z_index: newZ }),
+  const handleMoveLayer = useCallback((itemId: number, direction: "forward" | "backward") => {
+    const ordered = normalizeCanvasZOrder(itemsRef.current);
+    const currentIndex = ordered.findIndex((item) => item.id === itemId);
+    if (currentIndex === -1) return;
+
+    const targetIndex = direction === "forward" ? currentIndex + 1 : currentIndex - 1;
+    if (targetIndex < 0 || targetIndex >= ordered.length) return;
+
+    const reordered = [...ordered];
+    const [movedItem] = reordered.splice(currentIndex, 1);
+    reordered.splice(targetIndex, 0, movedItem);
+    const normalized = reordered.map((item, index) => ({ ...item, z_index: index + 1 }));
+
+    setItems(normalized);
+    normalized.forEach((item) => {
+      apiFetch(`/api/collections/${collectionId}/items/${item.id}`, {
+        method: "PUT",
+        body: JSON.stringify({ z_index: item.z_index }),
+      });
     });
-  }, [collectionId]);
+  }, [collectionId, normalizeCanvasZOrder]);
 
   // ── Align to canvas ───────────────────────────────────────────────────────
 
@@ -1864,12 +2131,50 @@ export default function CollectionEditorPage() {
   // ── Canvas resize ─────────────────────────────────────────────────────────
 
   const handleCanvasResize = useCallback(async (width: number, height: number) => {
+    if (!collection) return;
+    if (collection.canvas_width === width && collection.canvas_height === height) return;
+
+    const currentWidth = collection.canvas_width;
+    const currentHeight = collection.canvas_height;
+    const currentKey = getCanvasSnapshotKey(currentWidth, currentHeight);
+    const nextKey = getCanvasSnapshotKey(width, height);
+    canvasLayoutSnapshotsRef.current[currentKey] = cloneCanvasItems(itemsRef.current);
+
+    const savedSnapshot = canvasLayoutSnapshotsRef.current[nextKey];
+    const resizedItems = savedSnapshot
+      ? cloneCanvasItems(savedSnapshot)
+      : itemsRef.current.map((item) => {
+          const nextPosX = Math.round((item.pos_x / Math.max(currentWidth, 1)) * width);
+          const nextPosY = Math.round((item.pos_y / Math.max(currentHeight, 1)) * height);
+          const nextItemWidth = Math.max(24, Math.round((item.width / Math.max(currentWidth, 1)) * width));
+          const nextItemHeight = Math.max(24, Math.round((item.height / Math.max(currentHeight, 1)) * height));
+
+          return {
+            ...item,
+            pos_x: Math.max(0, Math.min(width - nextItemWidth, nextPosX)),
+            pos_y: Math.max(0, Math.min(height - nextItemHeight, nextPosY)),
+            width: nextItemWidth,
+            height: nextItemHeight,
+          };
+        });
+
+    canvasLayoutSnapshotsRef.current[nextKey] = cloneCanvasItems(resizedItems);
+    setItems(resizedItems);
     setCollection((prev) => prev ? { ...prev, canvas_width: width, canvas_height: height } : prev);
-    await apiFetch(`/api/collections/${collectionId}`, {
-      method: "PUT",
-      body: JSON.stringify({ canvas_width: width, canvas_height: height }),
-    });
-  }, [collectionId]);
+
+    await persistCollectionCanvasSettings({ canvasWidth: width, canvasHeight: height });
+    await Promise.all(resizedItems.map((item) =>
+      apiFetch(`/api/collections/${collectionId}/items/${item.id}`, {
+        method: "PUT",
+        body: JSON.stringify({
+          pos_x: item.pos_x,
+          pos_y: item.pos_y,
+          width: item.width,
+          height: item.height,
+        }),
+      }),
+    ));
+  }, [collection, collectionId, persistCollectionCanvasSettings]);
 
   // ── Keyboard shortcuts ─────────────────────────────────────────────────────
 
@@ -1895,10 +2200,44 @@ export default function CollectionEditorPage() {
 
   const selectedItem     = items.find((i) => i.id === selectedItemId) ?? null;
   const filteredProducts = products.filter((p) => p.nombre.toLowerCase().includes(search.toLowerCase()));
-  const sortedTemplates = [...templates].sort((a, b) => {
+  const currentCanvasWidth = collection?.canvas_width ?? 800;
+  const currentCanvasHeight = collection?.canvas_height ?? 600;
+  const currentCanvasFormat = getCanvasFormatLabel(currentCanvasWidth, currentCanvasHeight);
+  const templatePriority: Record<string, number> = {
+    "Crafted Heritage": 0,
+    "Lookbook Grid": 1,
+  };
+  const mineTemplatesCount = templates.filter((template) => template.owner_scope === "mine").length;
+  const systemTemplatesCount = templates.filter((template) => template.owner_scope !== "mine").length;
+  const visibleTemplates = templates.filter((template) => {
+    if (templateScopeFilter === "mine") return template.owner_scope === "mine";
+    if (templateScopeFilter === "system") return template.owner_scope !== "mine";
+    return true;
+  });
+  const sortedTemplates = [...visibleTemplates].sort((a, b) => {
     const metaA = getTemplateMeta(a.name);
     const metaB = getTemplateMeta(b.name);
-    return metaA.family.localeCompare(metaB.family) || metaA.variant.localeCompare(metaB.variant);
+    const exactSizeA = a.canvas_width === currentCanvasWidth && a.canvas_height === currentCanvasHeight ? 0 : 1;
+    const exactSizeB = b.canvas_width === currentCanvasWidth && b.canvas_height === currentCanvasHeight ? 0 : 1;
+    const formatA = getCanvasFormatLabel(a.canvas_width, a.canvas_height) === currentCanvasFormat ? 0 : 1;
+    const formatB = getCanvasFormatLabel(b.canvas_width, b.canvas_height) === currentCanvasFormat ? 0 : 1;
+    const priorityA = templatePriority[metaA.family] ?? 99;
+    const priorityB = templatePriority[metaB.family] ?? 99;
+    return (
+      exactSizeA - exactSizeB ||
+      formatA - formatB ||
+      priorityA - priorityB ||
+      metaA.family.localeCompare(metaB.family) ||
+      metaA.variant.localeCompare(metaB.variant)
+    );
+  });
+  const featuredTemplates = sortedTemplates.filter((template) => {
+    const family = getTemplateMeta(template.name).family;
+    return family in templatePriority;
+  });
+  const regularTemplates = sortedTemplates.filter((template) => {
+    const family = getTemplateMeta(template.name).family;
+    return !(family in templatePriority);
   });
 
   function getItemTransform(item: CanvasItem): string | undefined {
@@ -1914,12 +2253,24 @@ export default function CollectionEditorPage() {
     return { animation: `canvas-${m} ${MOTION_DURATION[m]}` };
   }
 
+  const effectiveGridScale = Math.max(effectiveCanvasScale, 0.01);
+  const gridLineThickness = Math.min(4, Math.max(1, Math.ceil(1 / effectiveGridScale)));
+  const majorGridStep = gridSnap > 0 ? gridSnap * 4 : 0;
+  const showMajorGrid = gridSnap >= 8;
+  const minorGridOpacity = effectiveGridScale < 0.75 ? 0.18 : 0.12;
+  const majorGridOpacity = effectiveGridScale < 0.75 ? 0.34 : 0.22;
   const gridOverlayStyle: React.CSSProperties = gridSnap > 0 ? {
     backgroundImage: `
-      linear-gradient(to right,  rgba(99,102,241,0.12) 1px, transparent 1px),
-      linear-gradient(to bottom, rgba(99,102,241,0.12) 1px, transparent 1px)
+      linear-gradient(to right, rgba(99,102,241,${minorGridOpacity}) ${gridLineThickness}px, transparent ${gridLineThickness}px),
+      linear-gradient(to bottom, rgba(99,102,241,${minorGridOpacity}) ${gridLineThickness}px, transparent ${gridLineThickness}px)
+      ${showMajorGrid ? `,
+      linear-gradient(to right, rgba(99,102,241,${majorGridOpacity}) ${gridLineThickness}px, transparent ${gridLineThickness}px),
+      linear-gradient(to bottom, rgba(99,102,241,${majorGridOpacity}) ${gridLineThickness}px, transparent ${gridLineThickness}px)` : ""}
     `,
-    backgroundSize: `${gridSnap}px ${gridSnap}px`,
+    backgroundSize: showMajorGrid
+      ? `${gridSnap}px ${gridSnap}px, ${gridSnap}px ${gridSnap}px, ${majorGridStep}px ${majorGridStep}px, ${majorGridStep}px ${majorGridStep}px`
+      : `${gridSnap}px ${gridSnap}px, ${gridSnap}px ${gridSnap}px`,
+    backgroundPosition: "top left",
   } : {};
 
   // ─── Loading guards ───────────────────────────────────────────────────────
@@ -1957,10 +2308,13 @@ export default function CollectionEditorPage() {
       />
 
       {/* ── Topbar ── */}
-      <div className="flex flex-wrap items-center gap-2 rounded-xl border border-neutral-200 bg-white px-3 py-3 sm:gap-3 sm:px-4">
-        <Link href="/seller/collections" className="flex items-center gap-1.5 text-sm text-neutral-500 transition hover:text-neutral-800">
-          <ArrowLeft className="h-4 w-4" /> <span className="hidden sm:inline">Colecciones</span>
-        </Link>
+      <SellerSurfaceCard className="flex flex-wrap items-center gap-2 rounded-xl px-3 py-3 sm:gap-3 sm:px-4">
+        <PageBackNav
+          onClick={() => {
+            window.location.href = "/seller/collections"
+          }}
+          label="Colecciones"
+        />
         <div className="hidden h-5 w-px bg-neutral-200 sm:block" />
         <input value={name} onChange={(e) => setName(e.target.value)} placeholder="Nombre" maxLength={120}
           className="order-last w-full min-w-0 bg-transparent text-base font-semibold text-neutral-800 outline-none placeholder:text-neutral-400 sm:order-none sm:flex-1" />
@@ -1977,9 +2331,9 @@ export default function CollectionEditorPage() {
           </button>
         </div>
 
-        <span className={`shrink-0 rounded-full px-2.5 py-0.5 text-[11px] font-semibold uppercase tracking-wide ${collection.status === "published" ? "bg-green-100 text-green-700" : "bg-amber-100 text-amber-700"}`}>
+        <SellerPill tone={collection.status === "published" ? "success" : "warning"} className="shrink-0 px-2.5 py-0.5 text-[11px] uppercase tracking-wide">
           {collection.status === "published" ? "Publicada" : "Borrador"}
-        </span>
+        </SellerPill>
         <button onClick={handleTogglePublish}
           className="flex items-center gap-1.5 rounded-lg border border-neutral-200 px-3 py-1.5 text-xs font-medium text-neutral-600 transition hover:bg-neutral-50">
           {collection.status === "published" ? <><EyeOff className="h-3.5 w-3.5" /> <span className="hidden sm:inline">Despublicar</span><span className="sm:hidden">Estado</span></> : <><Eye className="h-3.5 w-3.5" /> <span className="hidden sm:inline">Publicar</span><span className="sm:hidden">Estado</span></>}
@@ -1998,50 +2352,35 @@ export default function CollectionEditorPage() {
           <span className="hidden sm:inline">Guardar plantilla</span>
           <span className="sm:hidden">Guardar temp.</span>
         </button>
-        <button onClick={handleSave} disabled={saving}
-          className="flex items-center gap-1.5 rounded-lg bg-[#0F3D3A] px-4 py-1.5 text-xs font-medium text-white transition hover:bg-[#14544f] disabled:opacity-60">
+        <SellerActionButton onClick={handleSave} disabled={saving}
+          className="px-4 py-1.5 text-xs font-medium disabled:opacity-60">
           {saving ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : saved ? <Check className="h-3.5 w-3.5" /> : <Save className="h-3.5 w-3.5" />}
           {saved ? "Guardado" : "Guardar"}
-        </button>
-      </div>
+        </SellerActionButton>
+      </SellerSurfaceCard>
 
       {isPreviewingTemplate && previewTemplate && (
-        <div className="flex flex-col gap-3 rounded-xl border border-[#0F3D3A]/20 bg-[#ECF6F3] px-4 py-3 sm:flex-row sm:flex-wrap sm:items-center sm:justify-between">
+        <div className="flex flex-col gap-3 rounded-xl border border-[var(--seller-line-strong)] bg-[color:color-mix(in_srgb,var(--seller-accent)_8%,white)] px-4 py-3 sm:flex-row sm:flex-wrap sm:items-center sm:justify-between">
           <div className="min-w-0">
-            <p className="text-sm font-semibold text-[#0F3D3A]">Vista previa de plantilla</p>
-            <p className="text-xs text-[#2E5D57]">
+            <p className="text-sm font-semibold text-[var(--seller-accent)]">Vista previa de plantilla</p>
+            <p className="text-xs text-[var(--seller-text)]">
               Estás viendo <span className="font-semibold">{previewTemplate.name}</span>. Tu canvas actual sigue intacto hasta que pulses aplicar.
             </p>
           </div>
           <div className="flex flex-col gap-2 sm:flex-row sm:items-center">
-            <div className="hidden items-center gap-1 rounded-lg border border-[#0F3D3A]/15 bg-white p-1 sm:flex">
-              {PREVIEW_ZOOM_OPTIONS.map((option) => (
-                <button
-                  key={option.label}
-                  onClick={() => setPreviewZoom(option.value)}
-                  className={`rounded-md px-2.5 py-1 text-[11px] font-medium transition ${
-                    previewZoom === option.value
-                      ? "bg-[#0F3D3A] text-white"
-                      : "text-[#2E5D57] hover:bg-[#F3FBF8]"
-                  }`}
-                >
-                  {option.label}
-                </button>
-              ))}
-            </div>
             <button
               onClick={handleCancelTemplatePreview}
-              className="rounded-lg border border-neutral-200 bg-white px-3 py-2 text-xs font-medium text-neutral-600 transition hover:bg-neutral-50"
+              className="rounded-xl border border-neutral-200 bg-white px-4 py-2.5 text-sm font-medium text-neutral-700 transition hover:bg-neutral-50"
             >
-              Cancelar preview
+              Seguir editando
             </button>
             <button
               onClick={() => handleApplyTemplate(previewTemplate.id)}
               disabled={templateApplyingId === previewTemplate.id}
-              className="flex items-center justify-center gap-1.5 rounded-lg bg-[#0F3D3A] px-3 py-2 text-xs font-medium text-white transition hover:bg-[#14544f] disabled:opacity-60"
+              className="seller-button-primary flex items-center justify-center gap-1.5 rounded-xl px-4 py-2.5 text-sm font-medium text-white transition disabled:opacity-60"
             >
               {templateApplyingId === previewTemplate.id ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Copy className="h-3.5 w-3.5" />}
-              Aplicar plantilla
+              Usar plantilla
             </button>
           </div>
         </div>
@@ -2055,16 +2394,18 @@ export default function CollectionEditorPage() {
         />
       )}
 
-      <div className="grid grid-cols-4 gap-2 md:hidden">
-        <button
-          onClick={() => {
-            setSelectedItemId(null);
-            setMobilePanel((prev) => prev === "tools" ? null : "tools");
-          }}
-          className={`rounded-xl border px-3 py-2 text-xs font-medium transition ${mobilePanel === "tools" ? "border-[#0F3D3A] bg-[#0F3D3A] text-white" : "border-neutral-200 bg-white text-neutral-700 hover:bg-neutral-50"}`}
-        >
-          Herram.
-        </button>
+      <div className={`grid gap-1.5 md:hidden ${isPreviewingTemplate ? "grid-cols-2" : "grid-cols-4"}`}>
+        {!isPreviewingTemplate && (
+          <button
+            onClick={() => {
+              setSelectedItemId(null);
+              setMobilePanel((prev) => prev === "tools" ? null : "tools");
+            }}
+            className={`min-w-0 rounded-xl border px-2 py-2 text-[11px] font-medium leading-none transition ${mobilePanel === "tools" ? "border-[var(--seller-accent)] bg-[var(--seller-accent)] text-white" : "border-[var(--seller-line-strong)] bg-white text-[var(--seller-text)] hover:bg-[var(--seller-panel)]"}`}
+          >
+            Herram.
+          </button>
+        )}
         <button
           onClick={() => {
             setActiveTool("select");
@@ -2073,33 +2414,39 @@ export default function CollectionEditorPage() {
             setMobileCanvasControlsOpen(false);
             setMobilePanel((prev) => prev === "library" ? null : "library");
           }}
-          className={`rounded-xl border px-3 py-2 text-xs font-medium transition ${mobilePanel === "library" ? "border-[#0F3D3A] bg-[#0F3D3A] text-white" : "border-neutral-200 bg-white text-neutral-700 hover:bg-neutral-50"}`}
+          className={`min-w-0 rounded-xl border px-2 py-2 text-[11px] font-medium leading-none transition ${mobilePanel === "library" ? "border-[var(--seller-accent)] bg-[var(--seller-accent)] text-white" : "border-[var(--seller-line-strong)] bg-white text-[var(--seller-text)] hover:bg-[var(--seller-panel)]"}`}
         >
           Plantillas
         </button>
-        <button
-          onClick={() => {
-            setMobilePanel(null);
-            setMobileCanvasControlsOpen(false);
-            scrollSectionIntoView(canvasAreaRef);
-          }}
-          className="rounded-xl border border-neutral-200 bg-white px-3 py-2 text-xs font-medium text-neutral-700 transition hover:bg-neutral-50"
-        >
-          Canvas
-        </button>
+        {!isPreviewingTemplate && (
+          <button
+            onClick={() => {
+              setMobilePanel(null);
+              setMobileCanvasControlsOpen(false);
+              scrollSectionIntoView(canvasAreaRef);
+            }}
+            className="min-w-0 rounded-xl border border-neutral-200 bg-white px-2 py-2 text-[11px] font-medium leading-none text-neutral-700 transition hover:bg-neutral-50"
+          >
+            Canvas
+          </button>
+        )}
         <button
           onClick={() => setMobilePanel("properties")}
-          className="rounded-xl border border-neutral-200 bg-white px-3 py-2 text-xs font-medium text-neutral-700 transition hover:bg-neutral-50"
+          className="min-w-0 rounded-xl border border-neutral-200 bg-white px-2 py-2 text-[11px] font-medium leading-none text-neutral-700 transition hover:bg-neutral-50"
         >
           Propiedades
         </button>
       </div>
 
       {/* ── Editor body ── */}
-      <div className="flex flex-col gap-3 overflow-visible rounded-xl pb-24 md:h-[calc(100vh-260px)] md:flex-row md:overflow-hidden md:pb-0">
+      <div
+        className={`flex flex-col gap-3 overflow-visible rounded-xl pb-24 md:h-[calc(100vh-260px)] md:flex-row md:overflow-hidden md:pb-0 ${
+          isPreviewingTemplate && isCompactPreviewViewport ? "pb-6" : ""
+        }`}
+      >
 
         {/* ── Left sidebar ── */}
-        <aside ref={leftPanelRef} className={`${isMobileToolsPanelOpen ? "fixed inset-x-3 bottom-24 top-20 z-40 flex" : "hidden"} order-2 max-h-[48vh] w-full shrink-0 flex-col overflow-hidden rounded-2xl border border-neutral-200 bg-white shadow-[0_24px_60px_rgba(15,61,58,0.18)] md:static md:inset-auto md:order-none md:flex md:max-h-none md:w-56 md:rounded-xl md:shadow-none md:z-auto`}>
+        <aside ref={leftPanelRef} className={`${isMobileToolsPanelOpen ? "fixed inset-x-3 bottom-24 top-20 z-40 flex" : "hidden"} order-2 h-auto w-full shrink-0 flex-col overflow-hidden rounded-2xl border border-[var(--seller-line-strong)] bg-white shadow-[0_24px_60px_rgba(15,61,58,0.18)] md:static md:inset-auto md:order-none md:flex md:max-h-none md:w-56 md:rounded-xl md:shadow-none md:z-auto`}>
           <div className="border-b border-neutral-100 p-3">
             <div className="mb-2 flex items-center justify-between gap-2">
               <p className="text-[11px] font-semibold uppercase tracking-widest text-neutral-400">
@@ -2112,20 +2459,22 @@ export default function CollectionEditorPage() {
                 <X className="h-4 w-4" />
               </button>
             </div>
-            <div className="grid grid-cols-4 gap-1">
-              {([
-                { tool: "select" as ActiveTool, icon: MousePointer2, label: "Mover" },
-                { tool: "text"   as ActiveTool, icon: Type,           label: "Texto" },
-                { tool: "shape"  as ActiveTool, icon: Square,         label: "Forma" },
-                { tool: "image"  as ActiveTool, icon: ImageIcon,      label: "Imagen" },
-                { tool: "decor"  as ActiveTool, icon: Sparkles,       label: "Decor" },
-              ] as const).map(({ tool, icon: Icon, label }) => (
-                <button key={tool} onClick={() => { setActiveTool(tool); setSelectedItemId(null); setMobilePanel("tools"); }}
-                  className={`flex flex-col items-center gap-1 rounded-lg py-2 text-[10px] font-medium transition ${activeTool === tool ? "bg-[#0F3D3A] text-white" : "bg-neutral-50 text-neutral-500 hover:bg-neutral-100"}`}>
-                  <Icon className="h-3.5 w-3.5" />{label}
-                </button>
-              ))}
-        </div>
+            {mobilePanel !== "library" && (
+              <div className="grid grid-cols-4 gap-1">
+                {([
+                  { tool: "select" as ActiveTool, icon: MousePointer2, label: "Mover" },
+                  { tool: "text"   as ActiveTool, icon: Type,           label: "Texto" },
+                  { tool: "shape"  as ActiveTool, icon: Square,         label: "Forma" },
+                  { tool: "image"  as ActiveTool, icon: ImageIcon,      label: "Imagen" },
+                  { tool: "decor"  as ActiveTool, icon: Sparkles,       label: "Decor" },
+                ] as const).map(({ tool, icon: Icon, label }) => (
+                  <button key={tool} onClick={() => { setActiveTool(tool); setSelectedItemId(null); setMobilePanel("tools"); }}
+                    className={`flex flex-col items-center gap-1 rounded-lg py-2 text-[10px] font-medium transition ${activeTool === tool ? "bg-[var(--seller-accent)] text-white" : "bg-[var(--seller-panel)] text-[var(--seller-muted)] hover:bg-[var(--seller-panel-soft)]"}`}>
+                    <Icon className="h-3.5 w-3.5" />{label}
+                  </button>
+                ))}
+              </div>
+            )}
       </div>
 
       {showTemplateModal && (
@@ -2214,13 +2563,13 @@ export default function CollectionEditorPage() {
                 <div className="mb-2 grid grid-cols-2 gap-1">
                   <button
                     onClick={() => setSelectSidebarTab("products")}
-                    className={`rounded-lg px-2 py-1.5 text-[11px] font-medium transition ${selectSidebarTab === "products" ? "bg-[#0F3D3A] text-white" : "bg-neutral-50 text-neutral-500 hover:bg-neutral-100"}`}
+                    className={`rounded-lg px-2 py-1.5 text-[11px] font-medium transition ${selectSidebarTab === "products" ? "bg-[var(--seller-accent)] text-white" : "bg-[var(--seller-panel)] text-[var(--seller-muted)] hover:bg-[var(--seller-panel-soft)]"}`}
                   >
                     Productos
                   </button>
                   <button
                     onClick={() => setSelectSidebarTab("templates")}
-                    className={`rounded-lg px-2 py-1.5 text-[11px] font-medium transition ${selectSidebarTab === "templates" ? "bg-[#0F3D3A] text-white" : "bg-neutral-50 text-neutral-500 hover:bg-neutral-100"}`}
+                    className={`rounded-lg px-2 py-1.5 text-[11px] font-medium transition ${selectSidebarTab === "templates" ? "bg-[var(--seller-accent)] text-white" : "bg-[var(--seller-panel)] text-[var(--seller-muted)] hover:bg-[var(--seller-panel-soft)]"}`}
                   >
                     Plantillas
                   </button>
@@ -2249,7 +2598,28 @@ export default function CollectionEditorPage() {
                         Guardar
                       </button>
                     </div>
-                    <p className="mt-1 text-[11px] leading-relaxed text-neutral-400">Sistema premium por familia visual: editorial, drop, heritage, atelier y oferta.</p>
+                    <p className="mt-1 text-[11px] leading-relaxed text-neutral-400">
+                      {sortedTemplates.length} visibles · {mineTemplatesCount} mias · {systemTemplatesCount} sistema
+                    </p>
+                    <div className="mt-2 grid grid-cols-3 gap-1">
+                      {([
+                        { value: "all", label: "Todas" },
+                        { value: "mine", label: "Mias" },
+                        { value: "system", label: "Sistema" },
+                      ] as const).map((option) => (
+                        <button
+                          key={option.value}
+                          onClick={() => setTemplateScopeFilter(option.value)}
+                          className={`rounded-lg px-2 py-1.5 text-[11px] font-medium transition ${
+                            templateScopeFilter === option.value
+                              ? "bg-[var(--seller-accent)] text-white"
+                              : "bg-[var(--seller-panel)] text-[var(--seller-muted)] hover:bg-[var(--seller-panel-soft)]"
+                          }`}
+                        >
+                          {option.label}
+                        </button>
+                      ))}
+                    </div>
                   </>
                 )}
               </div>
@@ -2276,19 +2646,220 @@ export default function CollectionEditorPage() {
                         {templateError}
                       </div>
                     )}
-                    {templates.length === 0 && (
-                      <p className="py-8 text-center text-xs text-neutral-400">Todavía no hay plantillas públicas.</p>
+                    {sortedTemplates.length === 0 && (
+                      <p className="py-8 text-center text-xs text-neutral-400">
+                        {templateScopeFilter === "mine"
+                          ? "Todavia no has guardado plantillas tuyas."
+                          : templateScopeFilter === "system"
+                            ? "No hay plantillas del sistema disponibles."
+                            : "Todavia no hay plantillas disponibles."}
+                      </p>
                     )}
-                    {sortedTemplates.map((template) => {
+                    {featuredTemplates.length > 0 && (
+                      <div className="space-y-2 pb-1">
+                        <div className="flex items-center justify-between gap-2 px-1">
+                          <p className="text-[11px] font-semibold uppercase tracking-widest text-[#0F3D3A]">Nuevas</p>
+                          <span className="text-[10px] text-neutral-400">recientes</span>
+                        </div>
+                        {featuredTemplates.map((template) => {
+                          const templateMeta = getTemplateMeta(template.name);
+                          const ownerScope = template.owner_scope === "mine" ? "mine" : "system";
+                          const miniScale = Math.min(148 / template.canvas_width, 112 / template.canvas_height);
+                          const miniWidth = Math.max(98, template.canvas_width * miniScale);
+                          const miniHeight = Math.max(74, template.canvas_height * miniScale);
+
+                          return (
+                            <div key={`featured-${template.id}`} className="overflow-hidden rounded-2xl border border-[#0F3D3A]/15 bg-[color:color-mix(in_srgb,#0F3D3A_3%,white)] shadow-[0_8px_30px_rgba(15,61,58,0.06)]">
+                              <div className="relative h-24 w-full overflow-hidden border-b border-neutral-100 bg-[linear-gradient(180deg,#FAF8F4_0%,#F2EEE6_100%)] md:h-32">
+                                <div className="absolute inset-x-3 bottom-2 top-2 rounded-[18px] border border-white/80 bg-white/45 shadow-[inset_0_1px_0_rgba(255,255,255,0.8)] backdrop-blur-[2px] md:inset-x-4 md:bottom-3 md:top-3 md:rounded-[20px]" />
+                                <div
+                                  className="absolute left-1/2 top-1/2 overflow-hidden rounded-xl border border-white/80 shadow-[0_18px_40px_rgba(15,61,58,0.18)]"
+                                  style={{
+                                    width: miniWidth,
+                                    height: miniHeight,
+                                    transform: "translate(-50%, -50%)",
+                                    background: template.background_style || template.background_color || "#FFFFFF",
+                                  }}
+                                >
+                                  {template.background_image_url && (
+                                    <img
+                                      src={template.background_image_url}
+                                      alt=""
+                                      className="absolute inset-0 h-full w-full object-cover"
+                                    />
+                                  )}
+                                  {(template.items_snapshot ?? []).slice(0, 10).map((item, index) => {
+                                    const scale = miniScale;
+                                    const left = (Number(item.pos_x ?? 0) * scale);
+                                    const top = (Number(item.pos_y ?? 0) * scale);
+                                    const width = Math.max(8, Number(item.width ?? 60) * scale);
+                                    const height = Math.max(8, Number(item.height ?? 40) * scale);
+                                    const content = item.content as any;
+
+                                    if (item.element_type === "text") {
+                                      return (
+                                        <div
+                                          key={`${template.id}-featured-text-${index}`}
+                                          style={{
+                                            position: "absolute",
+                                            left,
+                                            top,
+                                            width,
+                                            height,
+                                            color: content?.color ?? "#1a1a1a",
+                                            fontSize: Math.max(4, Number(content?.fontSize ?? 16) * scale * 0.7),
+                                            fontWeight: content?.fontWeight ?? "bold",
+                                            lineHeight: content?.lineHeight ?? 1,
+                                            letterSpacing: `${(content?.letterSpacing ?? 0) * scale}px`,
+                                            overflow: "hidden",
+                                            whiteSpace: "pre-wrap",
+                                            wordBreak: "break-word",
+                                            opacity: 0.95,
+                                          }}
+                                        >
+                                          {String(content?.text ?? "").slice(0, 30)}
+                                        </div>
+                                      );
+                                    }
+
+                                    if (item.element_type === "shape") {
+                                      return (
+                                        <div
+                                          key={`${template.id}-featured-shape-${index}`}
+                                          style={{
+                                            position: "absolute",
+                                            left,
+                                            top,
+                                            width,
+                                            height,
+                                            background: content?.gradientEnabled && content?.gradientColor2
+                                              ? `linear-gradient(${content?.gradientAngle ?? 135}deg, ${content?.fillColor}, ${content?.gradientColor2})`
+                                              : (content?.fillColor ?? "#0F3D3A"),
+                                            borderRadius: content?.shapeType === "circle" ? "999px" : `${Math.max(0, Number(content?.borderRadius ?? 8) * scale)}px`,
+                                            opacity: content?.opacity ?? 1,
+                                            boxShadow: buildBoxShadow({
+                                              shadowEnabled: content?.shadowEnabled,
+                                              shadowX: (content?.shadowX ?? 0) * scale,
+                                              shadowY: (content?.shadowY ?? 0) * scale,
+                                              shadowBlur: (content?.shadowBlur ?? 0) * scale,
+                                              shadowSpread: (content?.shadowSpread ?? 0) * scale,
+                                              shadowColor: content?.shadowColor,
+                                            }),
+                                          }}
+                                        />
+                                      );
+                                    }
+
+                                    if (item.element_type === "image" || item.element_type === "product") {
+                                      const imageUrl = content?.url || item.product_image;
+                                      return imageUrl ? (
+                                        <img
+                                          key={`${template.id}-featured-image-${index}`}
+                                          src={imageUrl}
+                                          alt=""
+                                          style={{
+                                            position: "absolute",
+                                            left,
+                                            top,
+                                            width,
+                                            height,
+                                            objectFit: content?.objectFit ?? "cover",
+                                            borderRadius: `${Math.max(2, Number(content?.borderRadius ?? 8) * scale)}px`,
+                                            boxShadow: buildBoxShadow({
+                                              shadowEnabled: content?.shadowEnabled,
+                                              shadowX: (content?.shadowX ?? 0) * scale,
+                                              shadowY: (content?.shadowY ?? 0) * scale,
+                                              shadowBlur: (content?.shadowBlur ?? 0) * scale,
+                                              shadowSpread: (content?.shadowSpread ?? 0) * scale,
+                                              shadowColor: content?.shadowColor,
+                                            }),
+                                          }}
+                                        />
+                                      ) : (
+                                        <div
+                                          key={`${template.id}-featured-placeholder-${index}`}
+                                          style={{
+                                            position: "absolute",
+                                            left,
+                                            top,
+                                            width,
+                                            height,
+                                            background: item.element_type === "product" ? "#dbe4ea" : "#e5e7eb",
+                                            borderRadius: "4px",
+                                          }}
+                                        />
+                                      );
+                                    }
+
+                                    return null;
+                                  })}
+                                </div>
+                                <div className="pointer-events-none absolute left-2 top-2 rounded-full border border-white/70 bg-white/85 px-2 py-1 text-[9px] font-semibold uppercase tracking-[0.16em] text-neutral-500 shadow-sm md:left-3 md:top-3 md:text-[10px] md:tracking-[0.18em]">
+                                  {getCanvasFormatLabel(template.canvas_width, template.canvas_height)}
+                                </div>
+                                <div className="pointer-events-none absolute bottom-2 right-2 rounded-full bg-[#0F3D3A] px-2 py-1 text-[9px] font-medium text-white shadow-sm md:text-[10px]">
+                                  Nuevo
+                                </div>
+                              </div>
+                              <div className="space-y-2 p-2.5 md:space-y-2.5 md:p-3">
+                                <div>
+                                  <div className="mb-1.5 flex flex-wrap gap-1.5 md:mb-2">
+                                    <span className="rounded-full bg-[#EAF3F1] px-2 py-1 text-[9px] font-semibold uppercase tracking-[0.14em] text-[#0F3D3A] md:text-[10px]">
+                                      {templateMeta.tone}
+                                    </span>
+                                    <span className="rounded-full bg-neutral-100 px-2 py-1 text-[9px] font-semibold uppercase tracking-[0.14em] text-neutral-500 md:text-[10px]">
+                                      {templateMeta.variant}
+                                    </span>
+                                    <span className={`rounded-full px-2 py-1 text-[9px] font-semibold uppercase tracking-[0.14em] md:text-[10px] ${
+                                      ownerScope === "mine"
+                                        ? "bg-[#EEF6FF] text-[#1D4ED8]"
+                                        : "bg-[#FFF5E8] text-[#9A5B13]"
+                                    }`}>
+                                      {ownerScope === "mine" ? "Mia" : "Sistema"}
+                                    </span>
+                                  </div>
+                                  <p className="line-clamp-1 text-xs font-semibold text-neutral-800">{templateMeta.family}</p>
+                                  <p className="mt-1 text-[10px] text-neutral-400 md:mt-2 md:text-[11px]">{template.item_count} elementos</p>
+                                </div>
+                                <div className="grid grid-cols-2 gap-2">
+                                  <button
+                                    onClick={() => handlePreviewTemplate(template)}
+                                    disabled={templatePreviewLoadingId === template.id || templateApplyingId === template.id}
+                                    className={`flex items-center justify-center gap-1.5 rounded-lg border py-1.5 text-[11px] font-medium transition disabled:opacity-60 md:text-xs ${
+                                      previewTemplate?.id === template.id
+                                        ? "border-[#0F3D3A] bg-[#0F3D3A] text-white"
+                                        : "border-neutral-200 text-neutral-700 hover:bg-neutral-50"
+                                    }`}
+                                  >
+                                    {templatePreviewLoadingId === template.id ? <Loader2 className="h-3 w-3 animate-spin" /> : <Eye className="h-3 w-3" />}
+                                    {previewTemplate?.id === template.id ? "Viendo" : "Preview"}
+                                  </button>
+                                  <button
+                                    onClick={() => handleApplyTemplate(template.id)}
+                                    disabled={templatePreviewLoadingId === template.id || templateApplyingId === template.id}
+                                    className="flex items-center justify-center gap-1.5 rounded-lg border border-neutral-200 py-1.5 text-[11px] font-medium text-neutral-700 transition hover:bg-neutral-50 disabled:opacity-60 md:text-xs"
+                                  >
+                                    {templateApplyingId === template.id ? <Loader2 className="h-3 w-3 animate-spin" /> : <Copy className="h-3 w-3" />}
+                                    Aplicar
+                                  </button>
+                                </div>
+                              </div>
+                            </div>
+                          );
+                        })}
+                      </div>
+                    )}
+                    {regularTemplates.map((template) => {
                       const templateMeta = getTemplateMeta(template.name);
+                      const ownerScope = template.owner_scope === "mine" ? "mine" : "system";
                       const miniScale = Math.min(148 / template.canvas_width, 112 / template.canvas_height);
                       const miniWidth = Math.max(98, template.canvas_width * miniScale);
                       const miniHeight = Math.max(74, template.canvas_height * miniScale);
 
                       return (
                         <div key={template.id} className="overflow-hidden rounded-2xl border border-neutral-200 bg-white shadow-[0_8px_30px_rgba(15,61,58,0.06)]">
-                          <div className="relative h-32 w-full overflow-hidden border-b border-neutral-100 bg-[linear-gradient(180deg,#FAF8F4_0%,#F2EEE6_100%)]">
-                            <div className="absolute inset-x-4 bottom-3 top-3 rounded-[20px] border border-white/80 bg-white/45 shadow-[inset_0_1px_0_rgba(255,255,255,0.8)] backdrop-blur-[2px]" />
+                          <div className="relative h-24 w-full overflow-hidden border-b border-neutral-100 bg-[linear-gradient(180deg,#FAF8F4_0%,#F2EEE6_100%)] md:h-32">
+                            <div className="absolute inset-x-3 bottom-2 top-2 rounded-[18px] border border-white/80 bg-white/45 shadow-[inset_0_1px_0_rgba(255,255,255,0.8)] backdrop-blur-[2px] md:inset-x-4 md:bottom-3 md:top-3 md:rounded-[20px]" />
                             <div
                               className="absolute left-1/2 top-1/2 overflow-hidden rounded-xl border border-white/80 shadow-[0_18px_40px_rgba(15,61,58,0.18)]"
                               style={{
@@ -2380,7 +2951,7 @@ export default function CollectionEditorPage() {
                                         top,
                                         width,
                                         height,
-                                        objectFit: "cover",
+                                        objectFit: content?.objectFit ?? "cover",
                                         borderRadius: `${Math.max(2, Number(content?.borderRadius ?? 8) * scale)}px`,
                                         boxShadow: buildBoxShadow({
                                           shadowEnabled: content?.shadowEnabled,
@@ -2411,32 +2982,39 @@ export default function CollectionEditorPage() {
                                 return null;
                               })}
                             </div>
-                            <div className="pointer-events-none absolute left-3 top-3 rounded-full border border-white/70 bg-white/85 px-2 py-1 text-[10px] font-semibold uppercase tracking-[0.18em] text-neutral-500 shadow-sm">
+                            <div className="pointer-events-none absolute left-2 top-2 rounded-full border border-white/70 bg-white/85 px-2 py-1 text-[9px] font-semibold uppercase tracking-[0.16em] text-neutral-500 shadow-sm md:left-3 md:top-3 md:text-[10px] md:tracking-[0.18em]">
                               {getCanvasFormatLabel(template.canvas_width, template.canvas_height)}
                             </div>
-                            <div className="pointer-events-none absolute bottom-2 right-2 rounded-full bg-black/65 px-2 py-1 text-[10px] font-medium text-white shadow-sm">
+                            <div className="pointer-events-none absolute bottom-2 right-2 rounded-full bg-black/65 px-2 py-1 text-[9px] font-medium text-white shadow-sm md:text-[10px]">
                               {template.canvas_width}×{template.canvas_height}
                             </div>
                           </div>
-                          <div className="space-y-2.5 p-3">
+                          <div className="space-y-2 p-2.5 md:space-y-2.5 md:p-3">
                             <div>
-                              <div className="mb-2 flex flex-wrap gap-1.5">
-                                <span className="rounded-full bg-[#F3F7F6] px-2 py-1 text-[10px] font-semibold uppercase tracking-[0.14em] text-[#0F3D3A]">
+                              <div className="mb-1.5 flex flex-wrap gap-1.5 md:mb-2">
+                                <span className="rounded-full bg-[#F3F7F6] px-2 py-1 text-[9px] font-semibold uppercase tracking-[0.14em] text-[#0F3D3A] md:text-[10px]">
                                   {templateMeta.tone}
                                 </span>
-                                <span className="rounded-full bg-neutral-100 px-2 py-1 text-[10px] font-semibold uppercase tracking-[0.14em] text-neutral-500">
+                                <span className="rounded-full bg-neutral-100 px-2 py-1 text-[9px] font-semibold uppercase tracking-[0.14em] text-neutral-500 md:text-[10px]">
                                   {templateMeta.variant}
+                                </span>
+                                <span className={`rounded-full px-2 py-1 text-[9px] font-semibold uppercase tracking-[0.14em] md:text-[10px] ${
+                                  ownerScope === "mine"
+                                    ? "bg-[#EEF6FF] text-[#1D4ED8]"
+                                    : "bg-[#FFF5E8] text-[#9A5B13]"
+                                }`}>
+                                  {ownerScope === "mine" ? "Mia" : "Sistema"}
                                 </span>
                               </div>
                               <p className="line-clamp-1 text-xs font-semibold text-neutral-800">{templateMeta.family}</p>
-                              <p className="mt-1 line-clamp-2 text-[11px] leading-relaxed text-neutral-500">{templateMeta.description}</p>
-                              <p className="mt-2 text-[11px] text-neutral-400">{template.item_count} elementos</p>
+                              <p className="mt-1 hidden line-clamp-2 text-[11px] leading-relaxed text-neutral-500 md:block">{templateMeta.description}</p>
+                              <p className="mt-1 text-[10px] text-neutral-400 md:mt-2 md:text-[11px]">{template.item_count} elementos</p>
                             </div>
                             <div className="grid grid-cols-2 gap-2">
                               <button
                                 onClick={() => handlePreviewTemplate(template)}
                                 disabled={templatePreviewLoadingId === template.id || templateApplyingId === template.id}
-                                className={`flex items-center justify-center gap-1.5 rounded-lg border py-1.5 text-xs font-medium transition disabled:opacity-60 ${
+                                className={`flex items-center justify-center gap-1.5 rounded-lg border py-1.5 text-[11px] font-medium transition disabled:opacity-60 md:text-xs ${
                                   previewTemplate?.id === template.id
                                     ? "border-[#0F3D3A] bg-[#0F3D3A] text-white"
                                     : "border-neutral-200 text-neutral-700 hover:bg-neutral-50"
@@ -2448,7 +3026,7 @@ export default function CollectionEditorPage() {
                               <button
                                 onClick={() => handleApplyTemplate(template.id)}
                                 disabled={templatePreviewLoadingId === template.id || templateApplyingId === template.id}
-                                className="flex items-center justify-center gap-1.5 rounded-lg border border-neutral-200 py-1.5 text-xs font-medium text-neutral-700 transition hover:bg-neutral-50 disabled:opacity-60"
+                                className="flex items-center justify-center gap-1.5 rounded-lg border border-neutral-200 py-1.5 text-[11px] font-medium text-neutral-700 transition hover:bg-neutral-50 disabled:opacity-60 md:text-xs"
                               >
                                 {templateApplyingId === template.id ? <Loader2 className="h-3 w-3 animate-spin" /> : <Copy className="h-3 w-3" />}
                                 Aplicar
@@ -2589,160 +3167,231 @@ export default function CollectionEditorPage() {
         </aside>
 
         {/* ── Canvas area ── */}
-        <div ref={canvasAreaRef} className="order-1 flex min-h-[64vh] flex-1 flex-col overflow-hidden rounded-xl border border-neutral-200 bg-neutral-100 md:order-none md:min-h-0">
+        <div
+          ref={canvasAreaRef}
+          className={`order-1 flex flex-col overflow-hidden rounded-xl border border-[var(--seller-line-strong)] bg-neutral-100 md:order-none ${
+            isPreviewingTemplate && isCompactPreviewViewport ? "min-h-0 flex-none" : "min-h-0 flex-1 md:min-h-[64vh]"
+          }`}
+        >
           {/* Toolbar */}
-          <div className="flex flex-wrap items-center gap-2 border-b border-neutral-200 bg-white px-3 py-2.5 sm:gap-3 sm:px-4">
+          <div className="flex flex-wrap items-center gap-2 border-b border-[var(--seller-line)] bg-white px-3 py-2.5 sm:gap-3 sm:px-4">
             <div className="flex w-full items-center justify-between gap-2 sm:hidden">
               <div className="min-w-0">
                 <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-neutral-400">Canvas</p>
                 <p className="mt-1 text-xs text-neutral-500">{displayCanvasWidth} × {displayCanvasHeight} · {bgGradient.enabled ? "degradado" : "color plano"}</p>
               </div>
-              <button
-                onClick={() => setMobileCanvasControlsOpen((prev) => !prev)}
-                className="rounded-lg border border-neutral-200 px-3 py-1.5 text-xs font-medium text-neutral-700 transition hover:bg-neutral-50"
-              >
-                {mobileCanvasControlsOpen ? "Ocultar" : "Canvas"}
-              </button>
-            </div>
-
-            <div className={`${mobileCanvasControlsOpen ? "flex" : "hidden"} w-full flex-wrap items-center gap-2 sm:flex sm:w-auto sm:gap-3`}>
-            <label className="flex items-center gap-1.5 text-xs text-neutral-500">
-              Fondo:
-              <input type="color" value={bgColor} onChange={(e) => setBgColor(e.target.value)}
-                className="h-6 w-10 cursor-pointer rounded border border-neutral-200" />
-            </label>
-            <label className="flex cursor-pointer items-center gap-1.5 text-xs text-neutral-500">
-              <input type="checkbox" checked={bgGradient.enabled}
-                onChange={(e) => setBgGradient((p) => ({ ...p, enabled: e.target.checked }))}
-                className="rounded" />
-              Degradado
-            </label>
-            {bgGradient.enabled && (
-              <>
-                <input type="color" value={bgGradient.color2}
-                  onChange={(e) => setBgGradient((p) => ({ ...p, color2: e.target.value }))}
-                  className="h-6 w-10 cursor-pointer rounded border border-neutral-200" title="Color 2" />
-                <select value={bgGradient.type}
-                  onChange={(e) => setBgGradient((p) => ({ ...p, type: e.target.value as "linear" | "radial" }))}
-                  className="rounded-lg border border-neutral-200 px-2 py-1 text-xs outline-none">
-                  <option value="linear">Lineal</option>
-                  <option value="radial">Radial</option>
-                </select>
-                {bgGradient.type === "linear" && (
-                  <label className="flex items-center gap-1.5 text-xs text-neutral-500">
-                    {bgGradient.angle}°
-                    <input type="range" min={0} max={359} value={bgGradient.angle}
-                      onChange={(e) => setBgGradient((p) => ({ ...p, angle: Number(e.target.value) }))}
-                      className="w-20" />
-                  </label>
-                )}
-              </>
-            )}
-            <div className="flex items-center gap-1 border-l border-neutral-200 pl-3">
-              <button
-                onClick={() => bgImageInputRef.current?.click()}
-                disabled={bgImageUploading}
-                className="flex items-center gap-1.5 rounded-lg border border-neutral-200 px-2 py-1 text-xs text-neutral-600 transition hover:bg-neutral-50 disabled:opacity-60"
-              >
-                {bgImageUploading ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <ImageIcon className="h-3.5 w-3.5" />}
-                {collection.background_image_url ? "Cambiar fondo" : "Subir fondo"}
-              </button>
-              {collection.background_image_url && (
+              {!isPreviewingTemplate && (
                 <button
-                  onClick={handleRemoveBackgroundImage}
-                  disabled={bgImageUploading}
-                  className="rounded-lg border border-neutral-200 px-2 py-1 text-xs text-neutral-600 transition hover:bg-neutral-50 disabled:opacity-60"
+                  onClick={() => setMobileCanvasControlsOpen((prev) => !prev)}
+                  className="rounded-lg border border-[var(--seller-line-strong)] px-3 py-1.5 text-xs font-medium text-[var(--seller-text)] transition hover:bg-[var(--seller-panel)]"
                 >
-                  Quitar fondo
+                  {mobileCanvasControlsOpen ? "Ocultar" : "Canvas"}
                 </button>
               )}
             </div>
-            <div className="flex items-center gap-1 border-l border-neutral-200 pl-3">
-              <Grid3x3 className="h-3.5 w-3.5 text-neutral-400" />
-              <div className="flex gap-0.5">
-                {GRID_OPTIONS.map((g) => (
-                  <button key={g.value} onClick={() => setGridSnap(g.value)}
-                    className={`rounded px-1.5 py-0.5 text-[10px] font-medium transition ${gridSnap === g.value ? "bg-indigo-600 text-white" : "bg-neutral-100 text-neutral-500 hover:bg-neutral-200"}`}>
-                    {g.label}
+
+            <div className={`${isPreviewingTemplate || mobileCanvasControlsOpen ? "flex" : "hidden"} w-full flex-wrap items-center gap-2 sm:flex sm:w-auto sm:gap-3`}>
+            {isPreviewingTemplate ? (
+              <>
+                <div className="flex items-center gap-1">
+                  <span className="text-[10px] text-neutral-400">Zoom:</span>
+                  <button
+                    onClick={handleViewportZoomOut}
+                    disabled={!canZoomOut}
+                    className="flex h-6 w-6 items-center justify-center rounded border border-neutral-200 text-neutral-500 transition hover:bg-neutral-50 disabled:opacity-40"
+                    title="Alejar"
+                  >
+                    <Minus className="h-3 w-3" />
                   </button>
-                ))}
-              </div>
-            </div>
-            {/* Canvas size presets */}
-            <div className="flex items-center gap-1 border-l border-neutral-200 pl-3">
-              <span className="text-[10px] text-neutral-400">Canvas:</span>
-              {([
-                { label: "800²",   w: 800,  h: 800  },
-                { label: "8×12",   w: 800,  h: 1200 },
-                { label: "12×8",   w: 1200, h: 800  },
-                { label: "1×1",    w: 1080, h: 1080 },
-              ] as const).map((p) => {
-                const active = collection.canvas_width === p.w && collection.canvas_height === p.h;
-                return (
-                  <button key={p.label} onClick={() => handleCanvasResize(p.w, p.h)}
-                    className={`rounded px-1.5 py-0.5 text-[10px] font-medium transition ${active ? "bg-[#0F3D3A] text-white" : "bg-neutral-100 text-neutral-500 hover:bg-neutral-200"}`}>
-                    {p.label}
+                  <button
+                    onClick={handleViewportZoomReset}
+                    className="rounded px-2 py-0.5 text-[10px] font-medium text-neutral-500 transition hover:bg-neutral-100"
+                    title="Restablecer zoom"
+                  >
+                    {activeZoomLabel}
                   </button>
-                );
-              })}
-            </div>
-            {!isPreviewingTemplate && (
-              <div className="flex items-center gap-1 border-l border-neutral-200 pl-3">
-                <span className="text-[10px] text-neutral-400">Zoom:</span>
-                <button
-                  onClick={handleZoomOut}
-                  disabled={editorZoom <= EDITOR_ZOOM_MIN}
-                  className="flex h-6 w-6 items-center justify-center rounded border border-neutral-200 text-neutral-500 transition hover:bg-neutral-50 disabled:opacity-40"
-                  title="Alejar"
-                >
-                  <Minus className="h-3 w-3" />
-                </button>
-                <button
-                  onClick={handleResetEditorZoom}
-                  className="rounded px-2 py-0.5 text-[10px] font-medium text-neutral-500 transition hover:bg-neutral-100"
-                  title="Restablecer zoom"
-                >
-                  {displayEditorZoomLabel}
-                </button>
-                <button
-                  onClick={handleZoomIn}
-                  disabled={editorZoom >= EDITOR_ZOOM_MAX}
-                  className="flex h-6 w-6 items-center justify-center rounded border border-neutral-200 text-neutral-500 transition hover:bg-neutral-50 disabled:opacity-40"
-                  title="Acercar"
-                >
-                  <Plus className="h-3 w-3" />
-                </button>
-              </div>
-            )}
-            <span className="w-full text-xs text-neutral-400 sm:w-auto">{displayCanvasWidth} × {displayCanvasHeight}</span>
-            {!isPreviewingTemplate && activeTool !== "select" && activeTool !== "image" && (
-              <span className="text-xs font-medium text-[#0F3D3A] sm:ml-auto">
-                {activeTool === "text" ? "✏ Clic para texto" : "■ Clic para forma"}
-              </span>
-            )}
-            {!isPreviewingTemplate && selectedItemId && activeTool === "select" && (
-              <span className="flex w-full items-center gap-2 text-xs text-neutral-400 sm:ml-auto sm:w-auto">
-                <kbd className="rounded border border-neutral-200 bg-neutral-50 px-1.5 py-0.5 font-mono text-[10px]">Ctrl+Z</kbd> deshacer
-                <kbd className="rounded border border-neutral-200 bg-neutral-50 px-1.5 py-0.5 font-mono text-[10px]">Delete</kbd> eliminar
-              </span>
+                  <button
+                    onClick={handleViewportZoomIn}
+                    disabled={!canZoomIn}
+                    className="flex h-6 w-6 items-center justify-center rounded border border-neutral-200 text-neutral-500 transition hover:bg-neutral-50 disabled:opacity-40"
+                    title="Acercar"
+                  >
+                    <Plus className="h-3 w-3" />
+                  </button>
+                </div>
+                <span className="w-full text-xs text-neutral-400 sm:w-auto">{displayCanvasWidth} × {displayCanvasHeight}</span>
+              </>
+            ) : (
+              <>
+                <label className="flex items-center gap-1.5 text-xs text-neutral-500">
+                  Fondo:
+                  <input type="color" value={bgColor} onChange={(e) => handleBackgroundColorChange(e.target.value)}
+                    className="h-6 w-10 cursor-pointer rounded border border-neutral-200" />
+                </label>
+                <label className="flex cursor-pointer items-center gap-1.5 text-xs text-neutral-500">
+                  <input type="checkbox" checked={bgGradient.enabled}
+                    onChange={(e) => handleBackgroundGradientChange((current) => ({ ...current, enabled: e.target.checked }))}
+                    className="rounded" />
+                  Degradado
+                </label>
+                {bgGradient.enabled && (
+                  <>
+                    <input type="color" value={bgGradient.color2}
+                      onChange={(e) => handleBackgroundGradientChange((current) => ({ ...current, color2: e.target.value }))}
+                      className="h-6 w-10 cursor-pointer rounded border border-neutral-200" title="Color 2" />
+                    <select value={bgGradient.type}
+                      onChange={(e) => handleBackgroundGradientChange((current) => ({ ...current, type: e.target.value as "linear" | "radial" }))}
+                      className="rounded-lg border border-neutral-200 px-2 py-1 text-xs outline-none">
+                      <option value="linear">Lineal</option>
+                      <option value="radial">Radial</option>
+                    </select>
+                    {bgGradient.type === "linear" && (
+                      <label className="flex items-center gap-1.5 text-xs text-neutral-500">
+                        {bgGradient.angle}°
+                        <input type="range" min={0} max={359} value={bgGradient.angle}
+                          onChange={(e) => handleBackgroundGradientChange((current) => ({ ...current, angle: Number(e.target.value) }))}
+                          className="w-20" />
+                      </label>
+                    )}
+                  </>
+                )}
+                <div className="flex items-center gap-1 border-l border-neutral-200 pl-3">
+                  <button
+                    onClick={() => bgImageInputRef.current?.click()}
+                    disabled={bgImageUploading}
+                    className="flex items-center gap-1.5 rounded-lg border border-neutral-200 px-2 py-1 text-xs text-neutral-600 transition hover:bg-neutral-50 disabled:opacity-60"
+                  >
+                    {bgImageUploading ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <ImageIcon className="h-3.5 w-3.5" />}
+                    {collection.background_image_url ? "Cambiar fondo" : "Subir fondo"}
+                  </button>
+                  {collection.background_image_url && (
+                    <button
+                      onClick={handleRemoveBackgroundImage}
+                      disabled={bgImageUploading}
+                      className="rounded-lg border border-neutral-200 px-2 py-1 text-xs text-neutral-600 transition hover:bg-neutral-50 disabled:opacity-60"
+                    >
+                      Quitar fondo
+                    </button>
+                  )}
+                </div>
+                <div className="flex items-center gap-1 border-l border-neutral-200 pl-3">
+                  <Grid3x3 className="h-3.5 w-3.5 text-neutral-400" />
+                  <div className="flex gap-0.5">
+                    {GRID_OPTIONS.map((g) => (
+                      <button key={g.value} onClick={() => setGridSnap(g.value)}
+                        className={`rounded px-1.5 py-0.5 text-[10px] font-medium transition ${gridSnap === g.value ? "bg-[var(--seller-accent)] text-white" : "bg-neutral-100 text-neutral-500 hover:bg-neutral-200"}`}>
+                        {g.label}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+                <div className="flex items-center gap-1 border-l border-neutral-200 pl-3">
+                  <span className="text-[10px] text-neutral-400">Canvas:</span>
+                  {canvasPresetOptions.map((p, index) => {
+                    const active = collection.canvas_width === p.w && collection.canvas_height === p.h;
+                    return (
+                      <button key={`${p.label}-${p.w}-${p.h}-${index}`} onClick={() => handleCanvasResize(p.w, p.h)}
+                        className={`rounded px-1.5 py-0.5 text-[10px] font-medium transition ${active ? "bg-[var(--seller-accent)] text-white" : "bg-neutral-100 text-neutral-500 hover:bg-neutral-200"}`}>
+                        {p.label}
+                      </button>
+                    );
+                  })}
+                </div>
+                <div className="flex items-center gap-1 border-l border-neutral-200 pl-3">
+                  <span className="text-[10px] text-neutral-400">Zoom:</span>
+                  <button
+                    onClick={handleViewportZoomOut}
+                    disabled={!canZoomOut}
+                    className="flex h-6 w-6 items-center justify-center rounded border border-neutral-200 text-neutral-500 transition hover:bg-neutral-50 disabled:opacity-40"
+                    title="Alejar"
+                  >
+                    <Minus className="h-3 w-3" />
+                  </button>
+                  <button
+                    onClick={handleViewportZoomReset}
+                    className="rounded px-2 py-0.5 text-[10px] font-medium text-neutral-500 transition hover:bg-neutral-100"
+                    title="Restablecer zoom"
+                  >
+                    {activeZoomLabel}
+                  </button>
+                  <button
+                    onClick={handleViewportZoomIn}
+                    disabled={!canZoomIn}
+                    className="flex h-6 w-6 items-center justify-center rounded border border-neutral-200 text-neutral-500 transition hover:bg-neutral-50 disabled:opacity-40"
+                    title="Acercar"
+                  >
+                    <Plus className="h-3 w-3" />
+                  </button>
+                </div>
+                <span className="w-full text-xs text-neutral-400 sm:w-auto">{displayCanvasWidth} × {displayCanvasHeight}</span>
+                {activeTool !== "select" && activeTool !== "image" && (
+                  <span className="text-xs font-medium text-[#0F3D3A] sm:ml-auto">
+                    {activeTool === "text" ? "✏ Clic para texto" : "■ Clic para forma"}
+                  </span>
+                )}
+                {selectedItemId && activeTool === "select" && (
+                  <span className="flex w-full items-center gap-2 text-xs text-neutral-400 sm:ml-auto sm:w-auto">
+                    <kbd className="rounded border border-neutral-200 bg-neutral-50 px-1.5 py-0.5 font-mono text-[10px]">Ctrl+Z</kbd> deshacer
+                    <kbd className="rounded border border-neutral-200 bg-neutral-50 px-1.5 py-0.5 font-mono text-[10px]">Delete</kbd> eliminar
+                  </span>
+                )}
+              </>
             )}
             </div>
           </div>
 
           {/* Canvas */}
+          {isPreviewingTemplate && isCompactPreviewViewport ? (
+            <div
+              ref={canvasViewportRef}
+              className="relative flex-none overflow-auto bg-[radial-gradient(circle_at_top,#F9F6EE_0%,#EFE6D8_48%,#E7DDD0_100%)] px-2 py-3"
+            >
+              <div
+                className="mx-auto shrink-0"
+                style={{
+                  width: compactPreviewCanvasWidth,
+                }}
+              >
+                <div
+                  className="overflow-hidden rounded-[22px] border border-white/80 bg-white shadow-[0_18px_40px_rgba(15,61,58,0.18)]"
+                  style={{
+                    width: compactPreviewCanvasWidth,
+                    height: compactPreviewCanvasHeight,
+                  }}
+                >
+                  <CollectionArtworkPreview
+                    name={previewTemplate?.name ?? "Vista previa"}
+                    items={displayItems}
+                    backgroundColor={previewTemplate?.background_color ?? null}
+                    backgroundStyle={displayBackground}
+                    canvasWidth={displayCanvasWidth}
+                    canvasHeight={displayCanvasHeight}
+                    imageFit="contain"
+                    className="h-full w-full"
+                    emptyTitle="Vista previa"
+                    emptyDescription="La plantilla se mostrará aquí antes de aplicarla."
+                  />
+                </div>
+              </div>
+            </div>
+          ) : (
           <div
             ref={canvasViewportRef}
-            className={`relative flex flex-1 items-center justify-center p-3 sm:p-5 lg:p-8 ${
+            className={`relative flex flex-1 items-center justify-center ${
+              isPreviewingTemplate ? "p-1.5 sm:p-5 lg:p-8" : "p-3 sm:p-5 lg:p-8"
+            } ${
               isPreviewingTemplate
-                ? "overflow-hidden bg-[radial-gradient(circle_at_top,#F9F6EE_0%,#EFE6D8_48%,#E7DDD0_100%)]"
+                ? `${isCompactPreviewViewport ? "overflow-hidden" : "overflow-auto"} bg-[radial-gradient(circle_at_top,#F9F6EE_0%,#EFE6D8_48%,#E7DDD0_100%)]`
                 : isEditorFitMode
                   ? "overflow-hidden"
                   : "overflow-auto"
             }`}
             style={
-              !isPreviewingTemplate && !isEditorFitMode
-                ? { alignItems: "flex-start", justifyContent: "flex-start" }
-                : undefined
+              isPreviewingTemplate
+                ? { alignItems: isCompactPreviewViewport ? "center" : "flex-start", justifyContent: isCompactPreviewViewport ? "center" : "flex-start" }
+                : !isEditorFitMode
+                  ? { alignItems: "flex-start", justifyContent: "flex-start" }
+                  : undefined
             }
             onClick={() => { if (!isPreviewingTemplate && activeTool === "select") { setSelectedItemId(null); setEditingTextId(null); } }}>
             <div
@@ -2752,8 +3401,8 @@ export default function CollectionEditorPage() {
                       width: isPreviewingTemplate ? previewStageWidth : isEditorFitMode ? "100%" : displayCanvasWidth * effectiveCanvasScale,
                       height: isPreviewingTemplate ? previewStageHeight : displayCanvasHeight * effectiveCanvasScale,
                       display: "flex",
-                      alignItems: "center",
-                      justifyContent: "center",
+                      alignItems: isPreviewingTemplate ? (isCompactPreviewViewport ? "center" : "flex-start") : isEditorFitMode ? "center" : "flex-start",
+                      justifyContent: isPreviewingTemplate ? (isCompactPreviewViewport ? "center" : "flex-start") : isEditorFitMode ? "center" : "flex-start",
                       maxWidth: "100%",
                     }
                   : undefined
@@ -2761,7 +3410,11 @@ export default function CollectionEditorPage() {
             >
               {isPreviewingTemplate && (
                 <div
-                  className="pointer-events-none absolute rounded-[36px] border border-white/80 bg-white/40 shadow-[0_28px_90px_rgba(15,61,58,0.12)] backdrop-blur-[3px]"
+                  className={`pointer-events-none absolute border border-white/80 bg-white/40 backdrop-blur-[3px] ${
+                    isCompactPreviewViewport
+                      ? "rounded-[20px] shadow-[0_18px_48px_rgba(15,61,58,0.12)]"
+                      : "rounded-[36px] shadow-[0_28px_90px_rgba(15,61,58,0.12)]"
+                  }`}
                   style={{ width: previewStageWidth, height: previewStageHeight }}
                 />
               )}
@@ -2787,7 +3440,6 @@ export default function CollectionEditorPage() {
                     transformOrigin: "top left",
                     ...(isPreviewingTemplate ? { borderRadius: 24 } : {}),
                   } : {}),
-                  ...(!isPreviewingTemplate ? gridOverlayStyle : {}),
                 }}
                 onDragOver={isPreviewingTemplate ? undefined : handleCanvasDragOver}
                 onDrop={isPreviewingTemplate ? undefined : handleCanvasDrop}
@@ -2805,6 +3457,12 @@ export default function CollectionEditorPage() {
                   draggable={false}
                 />
               )}
+              {!isPreviewingTemplate && gridSnap > 0 && (
+                <div
+                  className="pointer-events-none absolute inset-0"
+                  style={{ ...gridOverlayStyle, zIndex: 1 }}
+                />
+              )}
               {displayItems.length === 0 && activeTool === "select" && (
                 <div className="pointer-events-none absolute inset-0 flex flex-col items-center justify-center gap-2 text-center">
                   <p className="text-sm font-medium text-neutral-400">Canvas vacío</p>
@@ -2818,6 +3476,7 @@ export default function CollectionEditorPage() {
                 const tc            = item.content as ContentText;
                 const sc            = item.content as ContentShape;
                 const ic            = item.content as ContentImage;
+                const pc            = item.content as ContentProduct;
                 const motionStyle   = getMotionStyle(item);
                 const isEditingText = editingTextId === item.id;
 
@@ -2850,7 +3509,20 @@ export default function CollectionEditorPage() {
                     <div style={{ width: "100%", height: "100%", position: "relative", ...motionStyle }}>
                       {item.element_type === "product" && (
                         item.product_image
-                          ? <img src={item.product_image} alt={item.product_name ?? ""} className="h-full w-full rounded-lg object-cover" draggable={false} />
+                          ? <img
+                              src={item.product_image}
+                              alt={item.product_name ?? ""}
+                              draggable={false}
+                              style={{
+                                width: "100%",
+                                height: "100%",
+                                objectFit: pc?.objectFit ?? "cover",
+                                borderRadius: pc?.borderRadius ?? 8,
+                                opacity: pc?.opacity ?? 1,
+                                boxShadow: buildBoxShadow(pc),
+                                display: "block",
+                              }}
+                            />
                           : <div className="flex h-full w-full items-center justify-center rounded-lg bg-neutral-200"><span className="text-xs text-neutral-400">Sin imagen</span></div>
                       )}
 
@@ -2946,7 +3618,13 @@ export default function CollectionEditorPage() {
                       )}
 
                       {item.element_type === "product" && (
-                        <div className="pointer-events-none absolute inset-x-0 bottom-0 rounded-b-lg bg-gradient-to-t from-black/60 to-transparent p-2 opacity-0 transition-opacity group-hover:opacity-100">
+                        <div
+                          className="pointer-events-none absolute inset-x-0 bottom-0 bg-gradient-to-t from-black/60 to-transparent p-2 opacity-0 transition-opacity group-hover:opacity-100"
+                          style={{
+                            borderBottomLeftRadius: pc?.borderRadius ?? 8,
+                            borderBottomRightRadius: pc?.borderRadius ?? 8,
+                          }}
+                        >
                           <p className="truncate text-[11px] font-medium text-white">{item.product_name}</p>
                           <p className="text-[10px] text-white/80">Q{Number(item.product_price ?? 0).toFixed(2)}</p>
                         </div>
@@ -3001,10 +3679,11 @@ export default function CollectionEditorPage() {
               </div>
             </div>
           </div>
+          )}
         </div>
 
         {/* ── Right properties panel ── */}
-        <aside ref={rightPanelRef} className={`${mobilePanel === "properties" ? "fixed inset-x-3 bottom-24 top-20 z-40 flex" : "hidden"} order-3 max-h-[52vh] w-full shrink-0 flex-col overflow-hidden rounded-2xl border border-neutral-200 bg-white shadow-[0_24px_60px_rgba(15,61,58,0.18)] md:static md:inset-auto md:order-none md:flex md:max-h-none md:w-60 md:rounded-xl md:shadow-none md:z-auto`}>
+        <aside ref={rightPanelRef} className={`${mobilePanel === "properties" ? "fixed inset-x-3 bottom-24 top-20 z-40 flex" : "hidden"} order-3 h-auto w-full shrink-0 flex-col overflow-hidden rounded-2xl border border-neutral-200 bg-white shadow-[0_24px_60px_rgba(15,61,58,0.18)] md:static md:inset-auto md:order-none md:flex md:max-h-none md:w-60 md:rounded-xl md:shadow-none md:z-auto`}>
           <div className="border-b border-neutral-100 p-3">
             <div className="flex items-center justify-between gap-2">
               <p className="text-[11px] font-semibold uppercase tracking-widest text-neutral-400">Propiedades</p>
@@ -3018,8 +3697,8 @@ export default function CollectionEditorPage() {
           </div>
 
           {isPreviewingTemplate ? (
-            <div className="flex flex-1 flex-col justify-between p-4">
-              <div>
+            <div className="flex flex-1 flex-col overflow-y-auto">
+              <div className="p-4">
                 <p className="text-sm font-semibold text-neutral-800">Preview activa</p>
                 <p className="mt-2 text-xs leading-relaxed text-neutral-500">
                   Estás viendo la plantilla sobre el canvas sin reemplazar tu diseño actual. Puedes inspeccionar composición, colores y proporciones antes de aplicarla.
@@ -3043,7 +3722,7 @@ export default function CollectionEditorPage() {
                   </div>
                 )}
               </div>
-              <div className="space-y-2">
+              <div className="space-y-2 border-t border-neutral-100 px-4 py-3">
                 <button
                   onClick={() => previewTemplate && handleApplyTemplate(previewTemplate.id)}
                   disabled={!previewTemplate || templateApplyingId === previewTemplate.id}
@@ -3553,13 +4232,13 @@ export default function CollectionEditorPage() {
               <div className="border-t border-neutral-100 pt-3">
                 <p className="mb-2 text-[11px] font-semibold uppercase tracking-widest text-neutral-400">Capas</p>
                 <div className="flex gap-1.5">
-                  <button onClick={() => handleBringToFront(selectedItem.id)}
+                  <button onClick={() => handleMoveLayer(selectedItem.id, "forward")}
                     className="flex flex-1 items-center justify-center gap-1 rounded-lg border border-neutral-200 py-1.5 text-xs text-neutral-600 transition hover:bg-neutral-50">
-                    <ChevronUp className="h-3 w-3" /> Al frente
+                    <ChevronUp className="h-3 w-3" /> Subir capa
                   </button>
-                  <button onClick={() => handleSendToBack(selectedItem.id)}
+                  <button onClick={() => handleMoveLayer(selectedItem.id, "backward")}
                     className="flex flex-1 items-center justify-center gap-1 rounded-lg border border-neutral-200 py-1.5 text-xs text-neutral-600 transition hover:bg-neutral-50">
-                    <ChevronDown className="h-3 w-3" /> Al fondo
+                    <ChevronDown className="h-3 w-3" /> Bajar capa
                   </button>
                 </div>
                 <div className="mt-1.5 flex gap-1.5">
@@ -3618,32 +4297,68 @@ export default function CollectionEditorPage() {
         </aside>
 
         <div className="fixed inset-x-3 bottom-3 z-40 md:hidden">
-          <div className="grid grid-cols-6 gap-2 rounded-2xl border border-[#0F3D3A]/10 bg-white/95 p-2 shadow-[0_16px_40px_rgba(15,61,58,0.16)] backdrop-blur">
-            {([
-              { key: "select", label: "Mover", icon: MousePointer2, onClick: () => { setActiveTool("select"); setMobilePanel("tools"); } },
-              { key: "text", label: "Texto", icon: Type, onClick: () => { setActiveTool("text"); setMobilePanel("tools"); } },
-              { key: "shape", label: "Forma", icon: Square, onClick: () => { setActiveTool("shape"); setMobilePanel("tools"); } },
-              { key: "image", label: "Imagen", icon: ImageIcon, onClick: () => { setActiveTool("image"); setMobilePanel("tools"); } },
-              { key: "decor", label: "Decor", icon: Sparkles, onClick: () => { setActiveTool("decor"); setMobilePanel("tools"); } },
-              { key: "props", label: "Editar", icon: selectedItem ? AlignHorizontalJustifyCenter : Grid3x3, onClick: () => setMobilePanel("properties") },
-            ] as const).map(({ key, label, icon: Icon, onClick }) => {
-              const isActive = key === activeTool || (key === "props" && mobilePanel === "properties");
-              return (
-                <button
-                  key={key}
-                  onClick={onClick}
-                  className={`flex flex-col items-center justify-center gap-1 rounded-xl px-2 py-2 text-[10px] font-semibold transition ${
-                    isActive
-                      ? "bg-[#0F3D3A] text-white"
-                      : "text-neutral-500 hover:bg-neutral-100"
-                  }`}
-                >
-                  <Icon className="h-4 w-4" />
-                  {label}
-                </button>
-              );
-            })}
-          </div>
+          <FloatingActionDock
+            variant="editorial"
+            actions={[
+              {
+                key: "select",
+                label: "Mover",
+                icon: MousePointer2,
+                active: activeTool === "select" && mobilePanel !== "properties",
+                onClick: () => {
+                  setActiveTool("select");
+                  setMobilePanel("tools");
+                },
+              },
+              {
+                key: "text",
+                label: "Texto",
+                icon: Type,
+                active: activeTool === "text",
+                onClick: () => {
+                  setActiveTool("text");
+                  setMobilePanel("tools");
+                },
+              },
+              {
+                key: "shape",
+                label: "Forma",
+                icon: Square,
+                active: activeTool === "shape",
+                onClick: () => {
+                  setActiveTool("shape");
+                  setMobilePanel("tools");
+                },
+              },
+              {
+                key: "image",
+                label: "Imagen",
+                icon: ImageIcon,
+                active: activeTool === "image",
+                onClick: () => {
+                  setActiveTool("image");
+                  setMobilePanel("tools");
+                },
+              },
+              {
+                key: "decor",
+                label: "Decor",
+                icon: Sparkles,
+                active: activeTool === "decor",
+                onClick: () => {
+                  setActiveTool("decor");
+                  setMobilePanel("tools");
+                },
+              },
+              {
+                key: "props",
+                label: "Editar",
+                icon: selectedItem ? AlignHorizontalJustifyCenter : Grid3x3,
+                active: mobilePanel === "properties",
+                onClick: () => setMobilePanel("properties"),
+              },
+            ]}
+          />
         </div>
       </div>
     </div>

@@ -122,7 +122,7 @@ function LanguageSwitcher({ className }: { className: string }) {
         aria-label={tr("language.label")}
         aria-expanded={open}
         aria-haspopup="listbox"
-        className="inline-flex items-center gap-1.5 rounded-full border border-white/20 px-2.5 py-1.5 text-[11px] tracking-[0.14em] uppercase transition-colors hover:bg-white/10 focus-visible:outline focus-visible:outline-2 focus-visible:outline-[#d4a853]"
+        className="inline-flex items-center gap-1.5 rounded-full border border-white/20 px-2.5 py-1.5 text-[11px] tracking-[0.14em] uppercase transition-colors hover:bg-white/10 focus-visible:outline focus-visible:outline-2 focus-visible:outline-[var(--brand-accent)]"
       >
         <Globe className="h-4 w-4" />
         {meta.shortCode}
@@ -148,12 +148,12 @@ function LanguageSwitcher({ className }: { className: string }) {
                     setOpen(false);
                   }}
                   className={`flex w-full items-center gap-2.5 px-4 py-2 text-left transition-colors hover:bg-neutral-50 ${
-                    active ? "font-semibold text-[#0f2e22]" : "text-neutral-700"
+                    active ? "font-semibold text-[var(--brand-deep)]" : "text-neutral-700"
                   }`}
                 >
                   <span
                     className={`h-1.5 w-1.5 shrink-0 rounded-full ${
-                      active ? "bg-[#0f2e22]" : "bg-transparent"
+                      active ? "bg-[var(--brand-deep)]" : "bg-transparent"
                     }`}
                   />
                   {LANGUAGES[lang].nativeLabel}
@@ -584,9 +584,9 @@ export default function Header() {
   if (isSellerPanel) return null;
 
   return (
-    <header className="sticky top-0 z-50 w-full shadow-md" ref={headerRef}>
+    <header className="sticky top-0 z-50 w-full shadow-[0_14px_38px_rgba(5,18,14,0.14)]" ref={headerRef}>
       {/* ── Top bar ──────────────────────────────────────────── */}
-      <div className="bg-gradient-to-r from-[#0f2e22] to-[#184c37] text-white">
+      <div className="brand-shell border-b border-[var(--brand-line)] text-white">
         <div className="mx-auto flex h-14 max-w-screen-xl items-center gap-2 px-4 md:h-16 md:gap-4 md:px-8">
           {/* Mobile: sidebar trigger */}
           <div className="shrink-0 md:hidden">
@@ -669,7 +669,7 @@ export default function Header() {
                     aria-expanded={openCreate}
                     aria-haspopup="true"
                     aria-label={tr("nav.account")}
-                    className="inline-flex h-10 w-10 items-center justify-center rounded-full border border-white/20 bg-white/10 text-white shadow-sm transition-all duration-150 hover:bg-white/15 focus-visible:outline focus-visible:outline-2 focus-visible:outline-[#d4a853] active:scale-95"
+                    className="inline-flex h-10 w-10 items-center justify-center rounded-full border border-white/20 bg-white/10 text-white shadow-sm transition-all duration-150 hover:bg-white/15 focus-visible:outline focus-visible:outline-2 focus-visible:outline-[var(--brand-accent)] active:scale-95"
                   >
                     <User className="h-5 w-5 shrink-0" />
                   </button>
@@ -731,7 +731,7 @@ export default function Header() {
                         ? tr("nav.sellerPanel")
                         : tr("nav.account")
                   }
-                  className="inline-flex h-10 w-10 items-center justify-center rounded-full transition-all duration-150 hover:bg-white/10 focus-visible:outline focus-visible:outline-2 focus-visible:outline-[#d4a853] active:scale-95 md:hidden"
+                  className="inline-flex h-10 w-10 items-center justify-center rounded-full transition-all duration-150 hover:bg-white/10 focus-visible:outline focus-visible:outline-2 focus-visible:outline-[var(--brand-accent)] active:scale-95 md:hidden"
                 >
                   {isAdmin ? (
                     <ShieldCheck className="h-5 w-5" />
@@ -751,7 +751,7 @@ export default function Header() {
                   }}
                   aria-expanded={openAccount}
                   aria-haspopup="true"
-                  className="hidden items-center gap-1.5 rounded-full border border-white/20 px-3.5 py-1.5 text-[12px] tracking-[0.12em] transition-colors hover:bg-white/10 focus-visible:outline focus-visible:outline-2 focus-visible:outline-[#d4a853] md:inline-flex"
+                  className="hidden items-center gap-1.5 rounded-full border border-white/20 px-3.5 py-1.5 text-[12px] tracking-[0.12em] transition-colors hover:bg-white/10 focus-visible:outline focus-visible:outline-2 focus-visible:outline-[var(--brand-accent)] md:inline-flex"
                 >
                   {isAdmin ? (
                     <ShieldCheck className="h-4 w-4 shrink-0" />
@@ -880,7 +880,7 @@ export default function Header() {
               <>
                 <Link
                   href={loginHref}
-                  className="hidden items-center px-2 py-2 text-sm transition-colors hover:text-[#d4a853] sm:inline-flex"
+                className="hidden items-center px-2 py-2 text-sm transition-colors hover:text-[var(--brand-ink)] sm:inline-flex"
                 >
                   {tr("nav.login")}
                 </Link>
@@ -898,7 +898,7 @@ export default function Header() {
                     aria-expanded={openCreate}
                     aria-haspopup="true"
                     aria-label={tr("nav.account")}
-                    className="inline-flex h-10 w-10 items-center justify-center rounded-full border border-white/20 bg-white/10 text-white shadow-sm transition-all duration-150 hover:bg-white/15 focus-visible:outline focus-visible:outline-2 focus-visible:outline-[#d4a853] active:scale-95 sm:hidden"
+                    className="inline-flex h-10 w-10 items-center justify-center rounded-full border border-white/20 bg-white/10 text-white shadow-sm transition-all duration-150 hover:bg-white/15 focus-visible:outline focus-visible:outline-2 focus-visible:outline-[var(--brand-accent)] active:scale-95 sm:hidden"
                   >
                     <User className="h-5 w-5 shrink-0" />
                   </button>
@@ -914,7 +914,7 @@ export default function Header() {
                     }}
                     aria-expanded={openCreate}
                     aria-haspopup="true"
-                    className="hidden items-center gap-1.5 rounded-full border border-white/20 px-3.5 py-1.5 text-[12px] tracking-[0.12em] transition-colors hover:bg-white/10 focus-visible:outline focus-visible:outline-2 focus-visible:outline-[#d4a853] sm:inline-flex"
+                    className="hidden items-center gap-1.5 rounded-full border border-white/20 px-3.5 py-1.5 text-[12px] tracking-[0.12em] transition-colors hover:bg-white/10 focus-visible:outline focus-visible:outline-2 focus-visible:outline-[var(--brand-accent)] sm:inline-flex"
                   >
                     <User className="h-4 w-4 shrink-0" />
                     {tr("nav.createAccount")}
@@ -983,7 +983,7 @@ export default function Header() {
               {count > 0 && (
                 <span
                   aria-hidden="true"
-                  className="absolute top-0.5 right-0.5 flex h-[18px] min-w-[18px] items-center justify-center rounded-full bg-[#d4a853] px-1 text-[10px] leading-none font-medium text-[#0d2d20]"
+                  className="absolute top-0.5 right-0.5 flex h-[18px] min-w-[18px] items-center justify-center rounded-full bg-[var(--brand-accent)] px-1 text-[10px] leading-none font-medium text-[#0d2d20]"
                 >
                   {count > 99 ? "99+" : count}
                 </span>
@@ -1007,14 +1007,14 @@ export default function Header() {
       {/* ── Bottom nav ───────────────────────────────────────── */}
       <nav
         aria-label="Navegación secundaria"
-        className="border-t border-white/10 bg-[#081a13] text-white/80"
+        className="brand-shell-subtle border-t border-[var(--brand-line)]"
       >
         <div className="mx-auto flex h-10 max-w-screen-xl items-center justify-between px-4 text-sm md:px-8">
           <ul className="flex items-center gap-6" role="list">
             <li>
               <Link
                 href="/new-arrivals"
-                className="transition-colors hover:text-[#d4a853]"
+                className="brand-link-soft"
               >
                 {tr("nav.newArrivals")}
               </Link>
@@ -1023,7 +1023,7 @@ export default function Header() {
             <li>
               <Link
                 href="/sell"
-                className="transition-colors hover:text-[#d4a853]"
+                className="brand-link-soft"
               >
                 {tr("nav.sellOn")}
               </Link>
@@ -1040,7 +1040,7 @@ export default function Header() {
                 }}
                 aria-expanded={helpOpen}
                 aria-haspopup="true"
-                className="inline-flex items-center gap-1 transition-colors hover:text-[#d4a853]"
+                className="brand-link-soft inline-flex items-center gap-1"
               >
                 {tr("nav.help")}
                 <ChevronDown
@@ -1080,7 +1080,7 @@ export default function Header() {
             </li>
           </ul>
 
-          <span className="hidden text-xs tracking-wide text-white/50 md:block">
+          <span className="hidden text-xs tracking-wide text-[var(--brand-faint)] md:block">
             100% chapines
           </span>
         </div>

@@ -17,6 +17,7 @@ import {
 
 import { BaseCard } from "@/components/ui/BaseCard";
 import { Button } from "@/components/ui/button";
+import { SellerDetailPanel, SellerIconBadge, SellerPill, SellerSurfaceCard } from "@/components/seller/ui/SellerPrimitives";
 import {
   interpretMetric,
   type MetricInterpretation,
@@ -105,17 +106,17 @@ export function MetricsSectionIntro({
   description: string;
 }) {
   return (
-    <BaseCard tone="subtle">
+    <SellerSurfaceCard tone="soft" className="p-5">
       <div className="space-y-1.5">
-        <p className="text-[11px] font-semibold tracking-[0.14em] text-neutral-500 uppercase">
+        <p className="text-[11px] font-semibold tracking-[0.14em] text-[var(--seller-muted)] uppercase">
           {eyebrow}
         </p>
-        <h2 className="text-lg font-semibold text-neutral-900">{title}</h2>
-        <p className="text-sm leading-relaxed text-neutral-600">
+        <h2 className="text-lg font-semibold text-[var(--seller-ink)]">{title}</h2>
+        <p className="text-sm leading-relaxed text-[var(--seller-text)]">
           {description}
         </p>
       </div>
-    </BaseCard>
+    </SellerSurfaceCard>
   );
 }
 
@@ -463,18 +464,18 @@ export function MetricsMiniCard({
 }) {
   const toneClass =
     tone === "success"
-      ? "bg-emerald-50 border-emerald-100"
+      ? "border-emerald-100 bg-emerald-50"
       : tone === "warning"
-        ? "bg-amber-50 border-amber-100"
-        : "bg-neutral-50 border-neutral-100";
+        ? "border-amber-100 bg-amber-50"
+        : "border-[var(--seller-line)] bg-[var(--seller-panel-soft)]";
 
   return (
-    <div className={`rounded-2xl border px-4 py-4 ${toneClass}`}>
-      <p className="text-[11px] font-semibold tracking-[0.12em] text-neutral-500 uppercase">
+    <div className={`rounded-[var(--seller-radius-xl)] border px-4 py-4 ${toneClass}`}>
+      <p className="text-[11px] font-semibold tracking-[0.12em] text-[var(--seller-muted)] uppercase">
         {label}
       </p>
-      <p className="mt-2 text-2xl font-semibold text-neutral-900">{value}</p>
-      <p className="mt-1 text-xs leading-relaxed text-neutral-600">{detail}</p>
+      <p className="mt-2 text-2xl font-semibold text-[var(--seller-ink)]">{value}</p>
+      <p className="mt-1 text-xs leading-relaxed text-[var(--seller-text)]">{detail}</p>
     </div>
   );
 }
@@ -508,9 +509,9 @@ export function SellerNextStepsPanel({
               Acciones para mejorar tu tienda ordenadas por prioridad e impacto.
             </p>
           </div>
-          <span className="rounded-full border border-neutral-200 bg-neutral-50 px-2.5 py-1 text-[11px] font-semibold text-neutral-600">
+          <SellerPill tone="neutral" className="px-2.5 py-1 text-[11px]">
             {visibleActions.length} pasos
-          </span>
+          </SellerPill>
         </div>
 
         <div className="space-y-2.5">
@@ -556,7 +557,7 @@ export function SellerNextStepsPanel({
                       : "Abre el panel para ver contexto y prioridad."}
                 </p>
               </div>
-              <span className="rounded-full bg-white px-2 py-1 text-[11px] font-semibold text-[#0F3D3A]">
+              <span className="rounded-full bg-white px-2 py-1 text-[11px] font-semibold text-[var(--seller-accent)]">
                 {expanded ? "Menos" : "Abrir"}
               </span>
             </button>
@@ -621,13 +622,11 @@ export function DashboardActionCard({
       className="h-full"
       contentClassName="flex h-full flex-col gap-4"
     >
-      <div className="flex h-10 w-10 items-center justify-center rounded-2xl bg-[#0F3D3A]/6 md:h-11 md:w-11">
-        <ArrowRight className="h-4 w-4 text-[#0F3D3A] md:h-5 md:w-5" />
-      </div>
+      <SellerIconBadge className="md:h-11 md:w-11">
+        <ArrowRight className="h-4 w-4 md:h-5 md:w-5" />
+      </SellerIconBadge>
       <div className="space-y-2.5">
-        <span
-          className={`inline-flex rounded-full border px-2.5 py-1 text-[11px] font-semibold ${badgeClass}`}
-        >
+        <span className={`inline-flex rounded-full border px-2.5 py-1 text-[11px] font-semibold ${badgeClass}`}>
           {action.priority === "high"
             ? "Alta prioridad"
             : action.priority === "medium"

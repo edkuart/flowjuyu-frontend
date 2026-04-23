@@ -10,6 +10,12 @@ import {
   Trash2,
 } from "lucide-react";
 
+import {
+  SellerActionButton,
+  SellerPill,
+  SellerSurfaceCard,
+} from "@/components/seller/ui/SellerPrimitives";
+import { sellerFieldClassName } from "@/components/seller/ui/sellerFormStyles";
 import { BaseCard } from "@/components/ui/BaseCard";
 import { trackEvent } from "@/lib/analytics";
 import {
@@ -162,7 +168,7 @@ export default function SellerLiveChatInbox({ enabled }: Props) {
 
   return (
     <BaseCard
-      className="rounded-xl border-[#0F3D3A]/10 bg-white"
+      className="rounded-xl border-[var(--seller-line-strong)] bg-white"
       contentClassName="space-y-5"
     >
       <div className="flex items-start justify-between gap-4">
@@ -179,11 +185,11 @@ export default function SellerLiveChatInbox({ enabled }: Props) {
           </p>
         </div>
 
-        <div className="inline-flex min-w-[112px] flex-col rounded-2xl border border-[#0F3D3A]/10 bg-[#0F3D3A]/5 px-4 py-3 text-right">
-          <span className="text-[11px] font-semibold uppercase tracking-[0.14em] text-[#0F3D3A]/70">
+        <div className="inline-flex min-w-[112px] flex-col rounded-2xl border border-[var(--seller-line-strong)] bg-[color:color-mix(in_srgb,var(--seller-accent)_6%,white)] px-4 py-3 text-right">
+          <span className="text-[11px] font-semibold uppercase tracking-[0.14em] text-[var(--seller-accent)]/70">
             Visibles
           </span>
-          <span className="pt-1 text-2xl font-semibold tracking-tight text-[#0F3D3A]">
+          <span className="pt-1 text-2xl font-semibold tracking-tight text-[var(--seller-accent)]">
             {visibleCount}
           </span>
         </div>
@@ -196,7 +202,7 @@ export default function SellerLiveChatInbox({ enabled }: Props) {
         </div>
       ) : null}
 
-      <div className="rounded-2xl border border-neutral-200 bg-[#fcfbf8] px-4 py-4">
+      <SellerSurfaceCard tone="soft" className="px-4 py-4">
         <div className="flex flex-col gap-3 md:flex-row md:items-end md:justify-between">
           <div className="space-y-1">
             <p className="text-sm font-medium text-neutral-900">
@@ -208,11 +214,11 @@ export default function SellerLiveChatInbox({ enabled }: Props) {
             </p>
           </div>
 
-          <div className="inline-flex min-w-[112px] flex-col rounded-2xl border border-[#0F3D3A]/10 bg-white px-4 py-3 text-right">
-            <span className="text-[11px] font-semibold uppercase tracking-[0.14em] text-[#0F3D3A]/70">
+          <div className="inline-flex min-w-[112px] flex-col rounded-2xl border border-[var(--seller-line-strong)] bg-white px-4 py-3 text-right">
+            <span className="text-[11px] font-semibold uppercase tracking-[0.14em] text-[var(--seller-accent)]/70">
               Respuestas
             </span>
-            <span className="pt-1 text-2xl font-semibold tracking-tight text-[#0F3D3A]">
+            <span className="pt-1 text-2xl font-semibold tracking-tight text-[var(--seller-accent)]">
               {sellerReplyCount}
             </span>
           </div>
@@ -229,7 +235,7 @@ export default function SellerLiveChatInbox({ enabled }: Props) {
                 ? "Ej. Estoy mostrando la pieza verde primero. Si te interesa, escríbeme y te comparto medidas."
                 : "Activa tu live para responder en tiempo real."
             }
-            className="w-full resize-none rounded-2xl border border-neutral-200 bg-white px-4 py-3 text-sm text-neutral-800 outline-none transition focus:border-[#0F3D3A]/30 disabled:cursor-not-allowed disabled:bg-neutral-50 disabled:text-neutral-400"
+            className={sellerFieldClassName}
           />
 
           <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
@@ -237,11 +243,11 @@ export default function SellerLiveChatInbox({ enabled }: Props) {
               {240 - replyMessage.length} caracteres disponibles
             </p>
 
-            <button
+            <SellerActionButton
               type="button"
               onClick={() => void handleSendReply()}
               disabled={!enabled || !replyMessage.trim() || sendingReply}
-              className="inline-flex min-h-11 items-center justify-center gap-2 rounded-2xl bg-[#0F3D3A] px-5 text-sm font-semibold text-white transition hover:bg-[#0c312f] disabled:cursor-not-allowed disabled:opacity-50"
+              className="min-h-11 px-5"
             >
               {sendingReply ? (
                 <Loader2 className="h-4 w-4 animate-spin" />
@@ -249,12 +255,12 @@ export default function SellerLiveChatInbox({ enabled }: Props) {
                 <SendHorizonal className="h-4 w-4" />
               )}
               {sendingReply ? "Enviando…" : "Responder en la sala"}
-            </button>
+            </SellerActionButton>
           </div>
         </div>
-      </div>
+      </SellerSurfaceCard>
 
-      <div className="rounded-2xl border border-neutral-200 bg-[#fcfbf8] px-4 py-4">
+      <SellerSurfaceCard tone="soft" className="px-4 py-4">
         <div className="space-y-4">
           <div className="flex flex-col gap-3 md:flex-row md:items-end md:justify-between">
             <div className="space-y-1">
@@ -271,7 +277,7 @@ export default function SellerLiveChatInbox({ enabled }: Props) {
                 onChange={(event) =>
                   setDraftSlowModeSeconds(Number(event.target.value))
                 }
-                className="min-h-11 rounded-2xl border border-neutral-200 bg-white px-4 text-sm text-neutral-800 outline-none transition focus:border-[#0F3D3A]/30"
+                className={sellerFieldClassName}
               >
                 <option value={0}>Sin slow mode</option>
                 <option value={15}>15 segundos</option>
@@ -296,7 +302,7 @@ export default function SellerLiveChatInbox({ enabled }: Props) {
               }
               rows={3}
               placeholder="Ej. Estoy mostrando piezas recién terminadas. Pregunta por colores, medidas o disponibilidad."
-              className="w-full resize-none rounded-2xl border border-neutral-200 bg-white px-4 py-3 text-sm text-neutral-800 outline-none transition focus:border-[#0F3D3A]/30"
+              className={sellerFieldClassName}
             />
             <p className="text-xs text-neutral-400">
               {240 - pinnedMessage.length} caracteres disponibles
@@ -304,7 +310,7 @@ export default function SellerLiveChatInbox({ enabled }: Props) {
           </div>
 
           <div className="flex flex-col gap-3 sm:flex-row sm:items-center">
-            <button
+            <SellerActionButton
               type="button"
               onClick={() => void handleSaveSlowMode()}
               disabled={
@@ -312,13 +318,13 @@ export default function SellerLiveChatInbox({ enabled }: Props) {
                 (draftSlowModeSeconds === slowModeSeconds &&
                   pinnedMessage === savedPinnedMessage)
               }
-              className="inline-flex min-h-11 items-center justify-center rounded-2xl bg-[#0F3D3A] px-5 text-sm font-semibold text-white transition hover:bg-[#0c312f] disabled:cursor-not-allowed disabled:opacity-50"
+              className="min-h-11 px-5"
             >
               {savingSettings ? "Guardando…" : "Guardar ajustes del chat"}
-            </button>
+            </SellerActionButton>
           </div>
         </div>
-      </div>
+      </SellerSurfaceCard>
 
       {loading ? (
         <div className="flex items-center gap-3 rounded-2xl border border-neutral-200 bg-[#fcfbf8] px-4 py-4 text-sm text-neutral-600">
@@ -356,9 +362,9 @@ export default function SellerLiveChatInbox({ enabled }: Props) {
                         {item.buyer_name}
                       </p>
                       {item.sender_role === "seller" ? (
-                        <span className="rounded-full bg-[#0F3D3A] px-2 py-1 text-[10px] font-semibold uppercase tracking-[0.14em] text-white">
+                        <SellerPill tone="default" className="px-2 py-1 text-[10px] uppercase tracking-[0.14em] text-white bg-[var(--seller-accent)] border-[var(--seller-accent)]">
                           Seller
-                        </span>
+                        </SellerPill>
                       ) : null}
                       <span className="text-xs text-neutral-400">
                         {formatMessageTime(item.created_at)}
@@ -387,25 +393,27 @@ export default function SellerLiveChatInbox({ enabled }: Props) {
 
                   <div className="flex shrink-0 items-center gap-2">
                     {item.status === "visible" ? (
-                      <button
+                      <SellerActionButton
                         type="button"
                         disabled={isBusy || isDeleted}
                         onClick={() => void handleModerate(item.id, "hidden")}
-                        className="inline-flex min-h-10 items-center gap-2 rounded-xl border border-neutral-200 px-3 text-sm font-medium text-neutral-700 transition hover:border-[#0F3D3A]/15 hover:text-[#0F3D3A] disabled:cursor-not-allowed disabled:opacity-50"
+                        tone="neutral"
+                        className="min-h-10 px-3 text-sm"
                       >
                         <EyeOff className="h-4 w-4" />
                         Ocultar
-                      </button>
+                      </SellerActionButton>
                     ) : (
-                      <button
+                      <SellerActionButton
                         type="button"
                         disabled={isBusy || isDeleted}
                         onClick={() => void handleModerate(item.id, "visible")}
-                        className="inline-flex min-h-10 items-center gap-2 rounded-xl border border-neutral-200 px-3 text-sm font-medium text-neutral-700 transition hover:border-[#0F3D3A]/15 hover:text-[#0F3D3A] disabled:cursor-not-allowed disabled:opacity-50"
+                        tone="neutral"
+                        className="min-h-10 px-3 text-sm"
                       >
                         <Eye className="h-4 w-4" />
                         Mostrar
-                      </button>
+                      </SellerActionButton>
                     )}
 
                     <button

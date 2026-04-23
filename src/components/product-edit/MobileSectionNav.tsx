@@ -70,10 +70,10 @@ export function MobileSectionNav() {
   }
 
   return (
-    <div className="lg:hidden sticky top-[48px] z-[8] -mx-3 px-3 py-2 bg-[#f5f4f2]/90 backdrop-blur-md border-b border-gray-200/50">
+    <div className="sticky top-[61px] z-[18] -mx-3 border-b border-[#0f2e22]/6 bg-[#f5f4f2]/78 px-3 py-2 backdrop-blur-xl lg:hidden">
       <div
         ref={barRef}
-        className="flex gap-1.5 overflow-x-auto scrollbar-none"
+        className="flex gap-2 overflow-x-auto scrollbar-none"
         role="navigation"
         aria-label="Secciones del producto"
       >
@@ -87,13 +87,10 @@ export function MobileSectionNav() {
               type="button"
               onClick={() => scrollToSection(id)}
               className={cn(
-                "flex-shrink-0 rounded-full px-3.5 py-1.5 text-[11px] font-semibold whitespace-nowrap",
-                "transition-all duration-150 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#0f2e22] focus-visible:ring-offset-1",
+                "whitespace-nowrap rounded-full border px-3.5 py-1.5 text-[11px] font-semibold shadow-sm transition-all duration-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#0f2e22] focus-visible:ring-offset-1",
                 isActive
-                  ? "bg-[#0f2e22] text-white shadow-sm scale-[1.02]"
-                  : priority === "high"
-                  ? "bg-white text-gray-600 border border-gray-200/80 hover:border-gray-300 hover:text-gray-900"
-                  : "bg-white/60 text-gray-400 border border-gray-200/50 hover:text-gray-600"
+                  ? "scale-[1.02] border-[#0f2e22] bg-[#0f2e22] text-white shadow-[0_12px_20px_-16px_rgba(15,46,34,0.6)]"
+                  : "border-[#0f2e22]/8 bg-white/92 text-neutral-500 hover:border-[#0f2e22]/18 hover:text-[#14231c]"
               )}
             >
               {label}

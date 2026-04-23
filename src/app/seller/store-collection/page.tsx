@@ -2,11 +2,19 @@
 
 import { useEffect, useMemo, useState } from "react";
 import Link from "next/link";
-import { ArrowLeft, Eye, Layers2, Loader2, Sparkles, Store } from "lucide-react";
+import { Eye, Layers2, Loader2, Sparkles, Store } from "lucide-react";
+import {
+  SellerActionButton,
+  SellerPill,
+  SellerSurfaceCard,
+} from "@/components/seller/ui/SellerPrimitives";
+import { PageBackNav } from "@/components/ui/PageBackNav";
 import { apiFetch } from "@/lib/api";
 import { apiGetVendedorPerfil } from "@/services/vendedorPerfil";
 import { updateSellerLiveConfig } from "@/services/sellerLive";
-import CollectionArtworkPreview from "@/components/seller/CollectionArtworkPreview";
+import CollectionArtworkPreview, {
+  CollectionPreviewBox,
+} from "@/components/seller/CollectionArtworkPreview";
 
 type CollectionItem = {
   id?: number | null;
@@ -97,6 +105,16 @@ export default function SellerStoreCollectionPage() {
     () => collections.find((collection) => collection.id === selectedCollectionId) ?? null,
     [collections, selectedCollectionId],
   );
+  const fallbackPublishedCollection = useMemo(
+    () => publishedCollections[0] ?? null,
+    [publishedCollections],
+  );
+  const previewCollection = selectedCollection ?? fallbackPublishedCollection;
+  const hasPublishedCollections = publishedCollections.length > 0;
+  const previewWidth = Math.max(1, Number(previewCollection?.canvas_width ?? 1080));
+  const previewHeight = Math.max(1, Number(previewCollection?.canvas_height ?? 1080));
+  const previewProductCount =
+    previewCollection?.product_count ?? previewCollection?.item_count ?? previewCollection?.products?.length ?? 0;
 
   async function handleSave() {
     try {
@@ -123,28 +141,29 @@ export default function SellerStoreCollectionPage() {
 
   return (
     <div className="space-y-8 pb-12">
-      <div className="flex items-center justify-between gap-4">
-        <div>
-          <Link href="/seller/collections" className="flex items-center gap-1.5 text-sm text-neutral-500 transition hover:text-neutral-800">
-            <ArrowLeft className="h-4 w-4" />
-            Volver a colecciones
-          </Link>
+      <div className="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
+        <div className="min-w-0">
+          <PageBackNav
+            variant="panel"
+            onClick={() => (window.location.href = "/seller/collections")}
+            label="Volver a colecciones"
+            meta="Colecciones"
+            title={<p className="truncate text-[15px] font-semibold text-[var(--seller-ink)]">Colección en tienda</p>}
+            className="mb-3"
+          />
           <h1 className="mt-3 text-3xl font-bold text-neutral-900">Colección en tienda</h1>
-          <p className="mt-2 max-w-3xl text-sm leading-6 text-neutral-500">
-            Elige qué colección publicada quieres destacar dentro de tu tienda pública. Esta selección se mostrará como bloque principal antes del resto de colecciones.
-          </p>
         </div>
-        <div className="flex items-center gap-2">
-          <Link href="/seller/my-business" className="rounded-lg border border-neutral-200 px-4 py-2 text-sm font-medium text-neutral-700 transition hover:bg-neutral-50">
+        <div className="flex w-full flex-col gap-2 sm:flex-row lg:w-auto lg:justify-end">
+          <Link href="/seller/my-business" className="inline-flex items-center justify-center rounded-lg border border-[var(--seller-line-strong)] px-4 py-2 text-sm font-medium text-[var(--seller-text)] transition hover:bg-[var(--seller-panel)]">
             Ver tienda
           </Link>
-          <button
+          <SellerActionButton
             onClick={handleSave}
             disabled={saving}
-            className="rounded-lg bg-[#0F3D3A] px-4 py-2 text-sm font-medium text-white transition hover:bg-[#14544f] disabled:opacity-60"
+            className="px-4 py-2 text-sm font-medium"
           >
             {saving ? "Guardando..." : "Guardar en tienda"}
-          </button>
+          </SellerActionButton>
         </div>
       </div>
 
@@ -152,64 +171,72 @@ export default function SellerStoreCollectionPage() {
       {success ? <div className="rounded-xl border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm text-emerald-700">{success}</div> : null}
 
       <section className="grid gap-6 xl:grid-cols-[0.92fr_1.08fr]">
-        <div className="space-y-6 rounded-[28px] border border-neutral-200 bg-white p-6 shadow-sm">
+        <SellerSurfaceCard className="space-y-6 p-6">
           <div>
-            <p className="text-xs font-semibold uppercase tracking-[0.24em] text-[#0F3D3A]">Publicación</p>
-            <h2 className="mt-1 text-xl font-semibold text-neutral-900">Así quedará en tu storefront</h2>
+            <p className="text-xs font-semibold uppercase tracking-[0.24em] text-[var(--seller-accent)]">Publicación</p>
+            <h2 className="mt-1 text-xl font-semibold text-neutral-900">Estado actual</h2>
           </div>
 
-          <div className="overflow-hidden rounded-[28px] border border-neutral-200 bg-[linear-gradient(180deg,#FBF8F1_0%,#F4EFE7_100%)] p-4">
-            <div className="rounded-[24px] border border-white/80 bg-white/85 p-4 shadow-[0_18px_44px_rgba(15,61,58,0.08)] backdrop-blur">
-              <div className="aspect-[4/5] overflow-hidden rounded-[22px] border border-neutral-100 bg-[linear-gradient(135deg,#FFF8F0_0%,#F5EEE5_42%,#E9DFD2_100%)]">
-                {selectedCollection ? (
-                  <CollectionArtworkPreview
-                    name={selectedCollection.name}
-                    imageUrl={selectedCollection.promo_image_url ?? selectedCollection.background_image_url ?? null}
-                    items={selectedCollection.items}
-                    backgroundColor={selectedCollection.background_color}
-                    backgroundStyle={selectedCollection.background_style}
-                    canvasWidth={selectedCollection.canvas_width}
-                    canvasHeight={selectedCollection.canvas_height}
-                  />
-                ) : (
-                  <div className="flex h-full flex-col items-center justify-center gap-3 px-6 text-center text-neutral-500">
-                    <Store className="h-10 w-10 opacity-50" />
-                    <div>
-                      <p className="text-sm font-semibold text-neutral-800">Aún no hay colección destacada</p>
-                      <p className="mt-1 text-xs leading-5 text-neutral-500">Selecciona una colección publicada para darle una sección propia en tu tienda.</p>
-                    </div>
-                  </div>
-                )}
+          <div className="grid gap-5 lg:grid-cols-[minmax(0,1fr)_auto] lg:items-start">
+            <div className="grid grid-cols-2 gap-3">
+              <div className="seller-panel-subtle rounded-2xl px-3 py-3 sm:px-4 sm:py-4">
+                <p className="text-[11px] font-semibold uppercase tracking-[0.22em] text-neutral-400">Estado</p>
+                <p className="mt-1.5 text-sm font-semibold text-neutral-900 sm:mt-2 sm:text-base">
+                  {selectedCollection ? "Activa" : hasPublishedCollections ? "Pendiente" : "Vacía"}
+                </p>
               </div>
-              {selectedCollection ? (
-                <div className="mt-4 space-y-2">
-                  <p className="text-xs font-semibold uppercase tracking-[0.24em] text-neutral-400">Destacada en tienda</p>
-                  <h3 className="text-lg font-semibold text-neutral-900">{selectedCollection.name}</h3>
-                  <p className="text-sm text-neutral-500">
-                    {selectedCollection.product_count ?? selectedCollection.item_count ?? selectedCollection.products?.length ?? 0} productos vinculados
-                  </p>
-                </div>
-              ) : null}
+              <div className="seller-panel-subtle rounded-2xl px-3 py-3 sm:px-4 sm:py-4">
+                <p className="text-[11px] font-semibold uppercase tracking-[0.22em] text-neutral-400">Colección actual</p>
+                <p className="mt-1.5 line-clamp-2 text-sm font-semibold text-neutral-900 sm:mt-2 sm:text-base">
+                  {previewCollection ? previewCollection.name : "Sin selección"}
+                </p>
+              </div>
+              <div className="seller-panel-subtle rounded-2xl px-3 py-3 sm:px-4 sm:py-4">
+                <p className="text-[11px] font-semibold uppercase tracking-[0.22em] text-neutral-400">Formato</p>
+                <p className="mt-1.5 text-sm font-semibold text-neutral-900 sm:mt-2 sm:text-base">
+                  {previewCollection ? `${previewWidth} × ${previewHeight}` : "Sin formato"}
+                </p>
+              </div>
+              <div className="seller-panel-subtle rounded-2xl px-3 py-3 sm:px-4 sm:py-4">
+                <p className="text-[11px] font-semibold uppercase tracking-[0.22em] text-neutral-400">Publicadas</p>
+                <p className="mt-1.5 text-sm font-semibold text-neutral-900 sm:mt-2 sm:text-base">{publishedCollections.length}</p>
+              </div>
             </div>
-          </div>
 
-          <div className="rounded-2xl border border-neutral-100 bg-neutral-50 p-4 text-sm text-neutral-600">
-            <p className="font-semibold text-neutral-800">Qué hace esta sección</p>
-            <p className="mt-2">La colección elegida se fija arriba en tu tienda pública como conjunto protagonista. Las demás colecciones siguen apareciendo debajo.</p>
+            {previewCollection ? (
+              <CollectionPreviewBox
+                name={previewCollection.name}
+                imageUrl={previewCollection.promo_image_url ?? previewCollection.background_image_url ?? null}
+                items={previewCollection.items}
+                backgroundColor={previewCollection.background_color}
+                backgroundStyle={previewCollection.background_style}
+                canvasWidth={previewCollection.canvas_width}
+                canvasHeight={previewCollection.canvas_height}
+                maxWidth={360}
+                maxHeight={360}
+                imageFit="contain"
+                className="rounded-[22px] border border-neutral-200 shadow-[0_14px_32px_rgba(15,61,58,0.08)]"
+              />
+            ) : (
+              <div className="flex aspect-square w-full max-w-[360px] flex-col items-center justify-center gap-3 rounded-[22px] border border-neutral-200 bg-[radial-gradient(circle_at_top,#F7E8D7_0%,#EAD3BB_48%,#E4D9CC_100%)] px-6 text-center text-neutral-500 shadow-[0_14px_32px_rgba(15,61,58,0.08)]">
+                <Store className="h-10 w-10 opacity-50" />
+                <p className="text-sm font-semibold text-neutral-800">Sin colección</p>
+              </div>
+            )}
           </div>
-        </div>
+        </SellerSurfaceCard>
 
-        <div className="space-y-6 rounded-[28px] border border-neutral-200 bg-white p-6 shadow-sm">
+        <SellerSurfaceCard className="space-y-6 p-6">
           <div className="flex items-start justify-between gap-4">
             <div>
-              <p className="text-xs font-semibold uppercase tracking-[0.24em] text-[#0F3D3A]">Colecciones publicadas</p>
-              <h2 className="mt-1 text-xl font-semibold text-neutral-900">Selecciona la colección que vive en tienda</h2>
-              <p className="mt-1 text-sm text-neutral-500">Solo las colecciones publicadas pueden destacarse en el storefront del vendedor.</p>
+              <p className="text-xs font-semibold uppercase tracking-[0.24em] text-[var(--seller-accent)]">Colecciones publicadas</p>
+              <h2 className="mt-1 text-xl font-semibold text-neutral-900">Elige la colección</h2>
             </div>
             <button
               type="button"
               onClick={() => setSelectedCollectionId(null)}
-              className="rounded-lg border border-neutral-200 px-3 py-2 text-sm text-neutral-600 transition hover:bg-neutral-50"
+              disabled={!selectedCollectionId}
+              className="rounded-lg border border-[var(--seller-line-strong)] px-3 py-2 text-sm text-[var(--seller-muted)] transition hover:bg-[var(--seller-panel)]"
             >
               Quitar selección
             </button>
@@ -217,7 +244,7 @@ export default function SellerStoreCollectionPage() {
 
           {publishedCollections.length === 0 ? (
             <div className="rounded-2xl border border-dashed border-neutral-200 bg-neutral-50 px-6 py-10 text-center text-sm text-neutral-500">
-              Aún no tienes colecciones publicadas. Publica una colección primero para enlazarla a tu tienda.
+              No hay colecciones publicadas.
             </div>
           ) : (
             <div className="grid gap-4 md:grid-cols-2">
@@ -229,7 +256,7 @@ export default function SellerStoreCollectionPage() {
                     key={collection.id}
                     type="button"
                     onClick={() => setSelectedCollectionId(collection.id)}
-                    className={`overflow-hidden rounded-[24px] border text-left transition ${isSelected ? "border-[#0F3D3A] bg-[#0F3D3A]/5 shadow-[0_16px_36px_rgba(15,61,58,0.10)]" : "border-neutral-200 bg-white hover:border-neutral-300 hover:shadow-sm"}`}
+                    className={`overflow-hidden rounded-[24px] border text-left transition ${isSelected ? "border-[var(--seller-accent)] bg-[color:color-mix(in_srgb,var(--seller-accent)_5%,white)] shadow-[0_16px_36px_rgba(15,61,58,0.10)]" : "border-[var(--seller-line-strong)] bg-white hover:border-[var(--seller-line-strong)] hover:shadow-sm"}`}
                   >
                     <div className="h-52 overflow-hidden border-b border-neutral-100 bg-[linear-gradient(135deg,#FFF8F0_0%,#F5EEE5_42%,#E9DFD2_100%)]">
                       <CollectionArtworkPreview
@@ -246,13 +273,10 @@ export default function SellerStoreCollectionPage() {
                       <div className="flex items-start justify-between gap-3">
                         <div>
                           <p className="text-base font-semibold text-neutral-900">{collection.name}</p>
-                          <p className="mt-1 text-sm text-neutral-500">{totalProducts} productos en el conjunto</p>
+                          <p className="mt-1 text-sm text-neutral-500">{totalProducts} productos</p>
                         </div>
-                        {isSelected ? <span className="rounded-full bg-[#0F3D3A] px-2.5 py-1 text-[11px] font-semibold uppercase tracking-wide text-white">En tienda</span> : null}
+                        {isSelected ? <SellerPill tone="default" className="bg-[var(--seller-accent)] px-2.5 py-1 text-[11px] uppercase tracking-wide text-white border-[var(--seller-accent)]">En tienda</SellerPill> : null}
                       </div>
-                      <p className="line-clamp-2 text-sm text-neutral-500">
-                        {collection.description || "Colección publicada lista para aparecer en el storefront de tu tienda."}
-                      </p>
                       <div className="flex items-center gap-2 text-xs text-neutral-500">
                         <Layers2 className="h-3.5 w-3.5" />
                         <span>{collection.canvas_width ?? 1080} × {collection.canvas_height ?? 1080}</span>
@@ -268,19 +292,18 @@ export default function SellerStoreCollectionPage() {
 
           {draftCollections.length > 0 ? (
             <div className="rounded-2xl border border-amber-200 bg-amber-50 px-4 py-4 text-sm text-amber-800">
-              <p className="font-semibold">Tienes {draftCollections.length} colecciones aún en borrador.</p>
-              <p className="mt-1">Esas no pueden mostrarse en la tienda hasta que las publiques desde su editor.</p>
+              <p className="font-semibold">{draftCollections.length} en borrador.</p>
             </div>
           ) : null}
-        </div>
+        </SellerSurfaceCard>
       </section>
 
       <div className="flex flex-wrap gap-3">
-        <Link href="/seller/collections" className="inline-flex items-center gap-2 rounded-lg border border-neutral-200 px-4 py-2 text-sm font-medium text-neutral-700 transition hover:bg-neutral-50">
+        <Link href="/seller/collections" className="inline-flex items-center gap-2 rounded-lg border border-[var(--seller-line-strong)] px-4 py-2 text-sm font-medium text-[var(--seller-text)] transition hover:bg-[var(--seller-panel)]">
           <Layers2 className="h-4 w-4" />
           Ir a mis colecciones
         </Link>
-        <Link href="/seller/my-business" className="inline-flex items-center gap-2 rounded-lg border border-neutral-200 px-4 py-2 text-sm font-medium text-neutral-700 transition hover:bg-neutral-50">
+        <Link href="/seller/my-business" className="inline-flex items-center gap-2 rounded-lg border border-[var(--seller-line-strong)] px-4 py-2 text-sm font-medium text-[var(--seller-text)] transition hover:bg-[var(--seller-panel)]">
           <Eye className="h-4 w-4" />
           Revisar tienda pública
         </Link>

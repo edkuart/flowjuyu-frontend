@@ -6,6 +6,7 @@ import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Textarea } from "@/components/ui/textarea"
 import { Label } from "@/components/ui/label"
+import { PageBackNav } from "@/components/ui/PageBackNav"
 import { authFetch } from "@/lib/authFetch"
 import { toast } from "sonner"
 
@@ -91,12 +92,13 @@ export default function NewSellerTicketPage() {
       <div className="max-w-2xl mx-auto space-y-5">
 
         {/* ── Back ──────────────────────────────────────────────────────────── */}
-        <button
+        <PageBackNav
+          variant="panel"
           onClick={() => router.push("/seller/tickets")}
-          className="text-xs text-muted-foreground hover:text-foreground flex items-center gap-1 transition"
-        >
-          ← Volver a mis tickets
-        </button>
+          label="Volver a mis tickets"
+          meta="Soporte"
+          title={<p className="truncate text-[15px] font-semibold text-[#14231c]">Crear nuevo ticket</p>}
+        />
 
         {/* ── Header ────────────────────────────────────────────────────────── */}
         <div className="bg-white rounded-3xl shadow-sm p-6">
