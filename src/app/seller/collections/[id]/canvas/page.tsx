@@ -23,6 +23,14 @@ import {
 import CollectionArtworkPreview from "@/components/seller/CollectionArtworkPreview";
 import { PageBackNav } from "@/components/ui/PageBackNav";
 import { FloatingActionDock } from "@/components/ui/FloatingActionDock";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -799,6 +807,8 @@ const EDITOR_ZOOM_MIN = 0.25;
 const EDITOR_ZOOM_MAX = 2;
 const EDITOR_ZOOM_STEP = 0.25;
 const VIEWPORT_ZOOM_STEP = 0.1;
+const MOBILE_EDITOR_BASE_SCALE_MIN = 0.3;
+const MOBILE_EDITOR_EFFECTIVE_SCALE_MIN = 0.35;
 
 const SHAPE_TYPES: { value: ContentShape["shapeType"]; label: string }[] = [
   { value: "rectangle", label: "Rect." },
@@ -969,6 +979,7 @@ export default function CollectionEditorPage() {
   const [imageUploading, setImageUploading]     = useState(false);
   const [bgImageUploading, setBgImageUploading] = useState(false);
   const [editingTextId, setEditingTextId]       = useState<number | null>(null);
+  const [mobileTextEditorDraft, setMobileTextEditorDraft] = useState("");
   const [lockedItemIds, setLockedItemIds]       = useState<Set<number>>(new Set());
 
   // Undo/redo state (buttons only; logic is all in refs)
@@ -1044,10 +1055,12 @@ export default function CollectionEditorPage() {
   const compactPreviewCanvasHeight = Math.max(90, Math.round(displayCanvasHeight * effectivePreviewScale));
   const isEditorFitMode = !isPreviewingTemplate && editorZoom === 1 && editorCanvasScale < 0.999;
   const isMobileToolsPanelOpen = mobilePanel === "tools" || mobilePanel === "library";
+  const minEditorEffectiveScale = isMobileViewport ? MOBILE_EDITOR_EFFECTIVE_SCALE_MIN : EDITOR_ZOOM_MIN;
+  const minPreviewEffectiveScale = isMobileViewport ? MOBILE_EDITOR_EFFECTIVE_SCALE_MIN : EDITOR_ZOOM_MIN;
   const editorZoomMax = Math.max(EDITOR_ZOOM_MAX, Number((1 / Math.max(editorCanvasScale, 0.01)).toFixed(2)));
   const previewZoomMax = Math.max(EDITOR_ZOOM_MAX, Number((1 / Math.max(previewBaseScale, 0.01)).toFixed(2)));
-  const minEffectiveEditorScale = Math.max(EDITOR_ZOOM_MIN, editorCanvasScale * EDITOR_ZOOM_MIN);
-  const minEffectivePreviewScale = Math.max(EDITOR_ZOOM_MIN, previewBaseScale * EDITOR_ZOOM_MIN);
+  const minEffectiveEditorScale = Math.max(minEditorEffectiveScale, editorCanvasScale * EDITOR_ZOOM_MIN);
+  const minEffectivePreviewScale = Math.max(minPreviewEffectiveScale, previewBaseScale * EDITOR_ZOOM_MIN);
   const maxEffectiveEditorScale = Math.max(1, editorCanvasScale * editorZoomMax);
   const maxEffectivePreviewScale = Math.max(1, previewBaseScale * previewZoomMax);
   const displayEditorZoomLabel = `${Math.round((editorCanvasScale * editorZoom) * 100)}%`;
@@ -1072,6 +1085,11 @@ export default function CollectionEditorPage() {
     { label: "12×8", w: 1200, h: 800 },
     { label: "1×1", w: 1080, h: 1080 },
   ];
+  const mobileEditingTextItem =
+    isMobileViewport && editingTextId !== null
+      ? items.find((item) => item.id === editingTextId && item.element_type === "text") ?? null
+      : null;
+  const mobileEditingTextContent = mobileEditingTextItem?.content as ContentText | null;
 
   const scrollSectionIntoView = useCallback((ref: React.RefObject<HTMLElement | HTMLDivElement | null>) => {
     ref.current?.scrollIntoView({ behavior: "smooth", block: "start" });
@@ -1160,6 +1178,15 @@ export default function CollectionEditorPage() {
     }
   }, []);
 
+  useEffect(() => {
+    if (!mobileEditingTextItem) {
+      setMobileTextEditorDraft("");
+      return;
+    }
+
+    setMobileTextEditorDraft((mobileEditingTextItem.content as ContentText)?.text ?? "");
+  }, [mobileEditingTextItem]);
+
   const flushPendingCanvasSettingsSave = useCallback(async () => {
     if (canvasSettingsSaveTimerRef.current) {
       clearTimeout(canvasSettingsSaveTimerRef.current);
@@ -1195,6 +1222,23 @@ export default function CollectionEditorPage() {
         body: JSON.stringify({ content: item.content }),
       });
     }));
+  }, [collectionId]);
+
+  const persistItemContentImmediately = useCallback(async (
+    itemId: number,
+    newContent: ContentText | ContentShape | ContentImage | ContentProduct,
+  ) => {
+    const key = String(itemId);
+    if (debounceTimers.current[key]) {
+      clearTimeout(debounceTimers.current[key]);
+      delete debounceTimers.current[key];
+    }
+
+    setItems((prev) => prev.map((item) => item.id === itemId ? { ...item, content: newContent } : item));
+    await apiFetch(`/api/collections/${collectionId}/items/${itemId}`, {
+      method: "PUT",
+      body: JSON.stringify({ content: newContent }),
+    });
   }, [collectionId]);
 
   useEffect(() => {
@@ -1287,12 +1331,10 @@ export default function CollectionEditorPage() {
 
       if (mobileViewport) {
         const availableWidth = Math.max(180, viewport.clientWidth - 18);
-        const availableHeight = Math.max(180, viewport.clientHeight - 24);
         const widthRatio = availableWidth / displayCanvasWidth;
-        const heightRatio = availableHeight / displayCanvasHeight;
-        const fitScale = Math.min(widthRatio, heightRatio, 1);
+        const fitScale = Math.min(widthRatio, 1);
 
-        setEditorCanvasScale(Math.max(0.18, fitScale));
+        setEditorCanvasScale(Math.max(MOBILE_EDITOR_BASE_SCALE_MIN, fitScale));
       } else {
         setEditorCanvasScale(1);
       }
@@ -1318,6 +1360,7 @@ export default function CollectionEditorPage() {
       if (window.innerWidth >= 768) {
         setMobilePanel(null);
         setMobileCanvasControlsOpen(false);
+        setEditingTextId(null);
       }
     };
 
@@ -1834,6 +1877,34 @@ export default function CollectionEditorPage() {
       delete debounceTimers.current[key];
     }, 600);
   }, [collectionId]);
+
+  const openTextEditor = useCallback((itemId: number) => {
+    const item = itemsRef.current.find((candidate) => candidate.id === itemId);
+    if (!item || item.element_type !== "text") return;
+
+    setSelectedItemId(itemId);
+    if (isMobileViewport) {
+      setMobilePanel("properties");
+      setMobileTextEditorDraft(((item.content as ContentText)?.text) ?? "");
+    }
+    setEditingTextId(itemId);
+  }, [isMobileViewport]);
+
+  const handleMobileTextEditorConfirm = useCallback(async () => {
+    if (!mobileEditingTextItem || !mobileEditingTextContent) {
+      setEditingTextId(null);
+      return;
+    }
+
+    const nextContent: ContentText = { ...mobileEditingTextContent, text: mobileTextEditorDraft };
+    await persistItemContentImmediately(mobileEditingTextItem.id, nextContent);
+    setEditingTextId(null);
+  }, [mobileEditingTextContent, mobileEditingTextItem, mobileTextEditorDraft, persistItemContentImmediately]);
+
+  const handleMobileTextEditorOpenChange = useCallback((open: boolean) => {
+    if (open) return;
+    setEditingTextId(null);
+  }, []);
 
   // ── Position/size change from X/Y/W/H inputs ─────────────────────────────
 
@@ -3496,12 +3567,19 @@ export default function CollectionEditorPage() {
                     }}
                     className={`group rounded-lg ${!isPreviewingTemplate && isSelected ? "ring-2 ring-[#0F3D3A] ring-offset-1 shadow-lg" : !isPreviewingTemplate ? "hover:shadow-md" : ""}`}
                     onPointerDown={isPreviewingTemplate ? undefined : (e) => handleItemPointerDown(e, item.id)}
-                    onClick={isPreviewingTemplate ? undefined : (e) => { e.stopPropagation(); if (activeTool === "select") setSelectedItemId(item.id); }}
+                    onClick={isPreviewingTemplate ? undefined : (e) => {
+                      e.stopPropagation();
+                      if (activeTool !== "select") return;
+                      if (isMobileViewport && item.element_type === "text" && selectedItemId === item.id) {
+                        openTextEditor(item.id);
+                        return;
+                      }
+                      setSelectedItemId(item.id);
+                    }}
                     onDoubleClick={isPreviewingTemplate ? undefined : (e) => {
                       e.stopPropagation();
                       if (item.element_type === "text" && activeTool === "select") {
-                        setSelectedItemId(item.id);
-                        setEditingTextId(item.id);
+                        openTextEditor(item.id);
                       }
                     }}
                   >
@@ -3553,7 +3631,7 @@ export default function CollectionEditorPage() {
                               {tc?.text || "Texto"}
                             </div>
                             {/* Inline text editor overlay */}
-                            {isEditingText && (
+                            {!isMobileViewport && isEditingText && (
                               <textarea
                                 autoFocus
                                 value={tc?.text ?? ""}
@@ -3773,9 +3851,28 @@ export default function CollectionEditorPage() {
                 return (
                   <>
                     <div className="border-t border-neutral-100 pt-2">
-                      <label className="text-[11px] font-medium text-neutral-500">Texto</label>
-                      <textarea value={c?.text ?? ""} onChange={(e) => upd({ text: e.target.value })}
-                        rows={3} className="mt-1 w-full resize-none rounded-lg border border-neutral-200 p-2 text-xs outline-none focus:border-[#0F3D3A]" />
+                      <div className="flex items-center justify-between gap-2">
+                        <label className="text-[11px] font-medium text-neutral-500">Texto</label>
+                        {isMobileViewport && (
+                          <button
+                            onClick={() => openTextEditor(selectedItem.id)}
+                            className="rounded-lg border border-[#0F3D3A]/15 px-2 py-1 text-[11px] font-medium text-[#0F3D3A] transition hover:bg-[#0F3D3A]/5"
+                          >
+                            Editar cómodo
+                          </button>
+                        )}
+                      </div>
+                      {isMobileViewport ? (
+                        <button
+                          onClick={() => openTextEditor(selectedItem.id)}
+                          className="mt-1 w-full rounded-lg border border-neutral-200 bg-neutral-50 px-3 py-2 text-left text-xs text-neutral-600 transition hover:border-[#0F3D3A]/25 hover:bg-[#0F3D3A]/[0.04]"
+                        >
+                          {c?.text?.trim() ? c.text : "Tocar para escribir en una caja más cómoda"}
+                        </button>
+                      ) : (
+                        <textarea value={c?.text ?? ""} onChange={(e) => upd({ text: e.target.value })}
+                          rows={3} className="mt-1 w-full resize-none rounded-lg border border-neutral-200 p-2 text-xs outline-none focus:border-[#0F3D3A]" />
+                      )}
                     </div>
                     <div>
                       <label className="text-[11px] font-medium text-neutral-500">Fuente</label>
@@ -4295,6 +4392,67 @@ export default function CollectionEditorPage() {
             </div>
           )}
         </aside>
+
+        <Dialog open={Boolean(mobileEditingTextItem)} onOpenChange={handleMobileTextEditorOpenChange}>
+          <DialogContent className="max-w-[calc(100%-1.5rem)] rounded-[24px] p-0 sm:max-w-lg" showCloseButton={false}>
+            <div className="overflow-hidden rounded-[24px]">
+              <DialogHeader className="border-b border-neutral-100 px-4 py-4 text-left">
+                <DialogTitle className="text-base text-neutral-900">Editar texto</DialogTitle>
+                <DialogDescription className="text-xs leading-relaxed text-neutral-500">
+                  Escribe con comodidad en esta caja y confirma cuando quieras ver el resultado final en el canvas.
+                </DialogDescription>
+              </DialogHeader>
+
+              <div className="space-y-4 px-4 py-4">
+                <div>
+                  <label className="mb-1 block text-[11px] font-medium text-neutral-500">Contenido</label>
+                  <textarea
+                    autoFocus
+                    value={mobileTextEditorDraft}
+                    onChange={(e) => setMobileTextEditorDraft(e.target.value)}
+                    rows={7}
+                    className="min-h-[180px] w-full resize-none rounded-2xl border border-neutral-200 px-3 py-3 text-sm leading-relaxed outline-none focus:border-[#0F3D3A]"
+                    placeholder="Escribe aquí tu texto..."
+                  />
+                </div>
+
+                <div className="rounded-[22px] border border-[#0F3D3A]/10 bg-[linear-gradient(180deg,#fffdf9_0%,#f7f3ec_100%)] p-4">
+                  <p className="mb-2 text-[11px] font-semibold uppercase tracking-[0.16em] text-neutral-400">Vista previa</p>
+                  <div
+                    className="min-h-[120px] whitespace-pre-wrap break-words rounded-[18px] border border-white/80 bg-white/90 p-3 shadow-[0_10px_30px_rgba(15,61,58,0.08)]"
+                    style={{
+                      color: mobileEditingTextContent?.color || "#1a1a1a",
+                      fontSize: Math.max(16, mobileEditingTextContent?.fontSize ?? 24),
+                      fontFamily: mobileEditingTextContent?.fontFamily || "inherit",
+                      fontWeight: mobileEditingTextContent?.fontWeight || "bold",
+                      fontStyle: mobileEditingTextContent?.fontStyle || "normal",
+                      letterSpacing: `${mobileEditingTextContent?.letterSpacing ?? 0}px`,
+                      lineHeight: mobileEditingTextContent?.lineHeight ?? 1.2,
+                      textAlign: mobileEditingTextContent?.textAlign || "left",
+                    }}
+                  >
+                    {mobileTextEditorDraft.trim() || "La vista previa de tu texto aparecerá aquí."}
+                  </div>
+                </div>
+              </div>
+
+              <DialogFooter className="border-t border-neutral-100 px-4 py-4">
+                <button
+                  onClick={() => setEditingTextId(null)}
+                  className="rounded-xl border border-neutral-200 px-4 py-2 text-sm font-medium text-neutral-600 transition hover:bg-neutral-50"
+                >
+                  Cancelar
+                </button>
+                <button
+                  onClick={() => void handleMobileTextEditorConfirm()}
+                  className="rounded-xl bg-[#0F3D3A] px-4 py-2 text-sm font-semibold text-white transition hover:bg-[#14544f]"
+                >
+                  Confirmar texto
+                </button>
+              </DialogFooter>
+            </div>
+          </DialogContent>
+        </Dialog>
 
         <div className="fixed inset-x-3 bottom-3 z-40 md:hidden">
           <FloatingActionDock
