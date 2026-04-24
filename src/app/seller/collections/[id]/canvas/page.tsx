@@ -39,6 +39,7 @@ type MotionAnim   = "none" | "float" | "pulse" | "spin" | "shake" | "bounce";
 type HistoryEntry = { undo: () => void; redo: () => void };
 
 type ContentText = {
+  group_id?: string | null;
   text: string;
   fontSize: number;
   fontFamily?: string;
@@ -68,6 +69,7 @@ type ContentText = {
 };
 
 type ContentShape = {
+  group_id?: string | null;
   shapeType: "rectangle" | "circle" | "triangle" | "star" | "line" | "capsule" | "arch" | "blob" | "sparkle" | "wave" | "diamond";
   fillColor: string;
   gradientEnabled?: boolean;
@@ -92,6 +94,7 @@ type ContentShape = {
 };
 
 type ContentImage = {
+  group_id?: string | null;
   url: string;
   objectFit?: "cover" | "contain";
   borderRadius?: number;
@@ -110,6 +113,7 @@ type ContentImage = {
 };
 
 type ContentProduct = {
+  group_id?: string | null;
   objectFit?: "cover" | "contain";
   borderRadius?: number;
   opacity?: number;
@@ -977,6 +981,7 @@ export default function CollectionEditorPage() {
   const [search, setSearch]                 = useState("");
   const [activeTool, setActiveTool]         = useState<ActiveTool>("select");
   const [isSpacePanning, setIsSpacePanning] = useState(false);
+  const [selectedItemIds, setSelectedItemIds] = useState<Set<number>>(new Set());
   const [selectSidebarTab, setSelectSidebarTab] = useState<SelectSidebarTab>("products");
   const [templateScopeFilter, setTemplateScopeFilter] = useState<TemplateScopeFilter>("all");
   const [name, setName]                     = useState("");
@@ -1018,7 +1023,7 @@ export default function CollectionEditorPage() {
   const bgImageInputRef = useRef<HTMLInputElement>(null);
   const canvasSettingsSaveTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const canvasLayoutSnapshotsRef = useRef<Record<string, CanvasItem[]>>({});
-  const dragState      = useRef<{ itemId: number; startPX: number; startPY: number; origX: number; origY: number } | null>(null);
+  const dragState      = useRef<{ itemId: number; startPX: number; startPY: number; origX: number; origY: number; groupMembers?: { id: number; origX: number; origY: number }[] } | null>(null);
   const resizeState    = useRef<{ itemId: number; corner: "nw"|"ne"|"sw"|"se"; startPX: number; startPY: number; origX: number; origY: number; origW: number; origH: number } | null>(null);
   const debounceTimers = useRef<Record<string, ReturnType<typeof setTimeout>>>({});
   const itemsRef       = useRef<CanvasItem[]>([]);
@@ -2051,8 +2056,28 @@ export default function CollectionEditorPage() {
     (e.currentTarget as HTMLElement).setPointerCapture(e.pointerId);
     const item = itemsRef.current.find((i) => i.id === itemId);
     if (!item) return;
-    dragState.current = { itemId, startPX: e.clientX, startPY: e.clientY, origX: item.pos_x, origY: item.pos_y };
+
+    if (e.shiftKey) {
+      setSelectedItemIds((prev) => {
+        const next = new Set(prev);
+        if (next.has(itemId)) next.delete(itemId); else next.add(itemId);
+        return next;
+      });
+      setSelectedItemId(itemId);
+      return;
+    }
+
+    // Determine group members: items sharing the same group_id
+    const groupId = (item.content as ContentText)?.group_id;
+    const groupMembers = groupId
+      ? itemsRef.current
+          .filter((i) => i.id !== itemId && (i.content as ContentText)?.group_id === groupId && !lockedItemIds.has(i.id))
+          .map((i) => ({ id: i.id, origX: i.pos_x, origY: i.pos_y }))
+      : undefined;
+
+    dragState.current = { itemId, startPX: e.clientX, startPY: e.clientY, origX: item.pos_x, origY: item.pos_y, groupMembers };
     setSelectedItemId(itemId);
+    setSelectedItemIds(new Set([itemId, ...(groupMembers?.map((m) => m.id) ?? [])]));
   };
 
   const handleCanvasPointerMove = (e: React.PointerEvent) => {
@@ -2076,13 +2101,22 @@ export default function CollectionEditorPage() {
       return;
     }
     if (!dragState.current) return;
-    const { itemId, startPX, startPY, origX, origY } = dragState.current;
+    const { itemId, startPX, startPY, origX, origY, groupMembers } = dragState.current;
     const dx = (e.clientX - startPX) / effectiveCanvasScale;
     const dy = (e.clientY - startPY) / effectiveCanvasScale;
-    setItems((prev) => prev.map((item) => item.id !== itemId ? item : {
-      ...item,
-      pos_x: Math.max(0, Math.min(collection.canvas_width - item.width, origX + dx)),
-      pos_y: Math.max(0, Math.min(collection.canvas_height - item.height, origY + dy)),
+    setItems((prev) => prev.map((item) => {
+      if (item.id === itemId) return {
+        ...item,
+        pos_x: Math.max(0, Math.min(collection.canvas_width - item.width, origX + dx)),
+        pos_y: Math.max(0, Math.min(collection.canvas_height - item.height, origY + dy)),
+      };
+      const gm = groupMembers?.find((m) => m.id === item.id);
+      if (gm) return {
+        ...item,
+        pos_x: Math.max(0, Math.min(collection.canvas_width - item.width, gm.origX + dx)),
+        pos_y: Math.max(0, Math.min(collection.canvas_height - item.height, gm.origY + dy)),
+      };
+      return item;
     }));
   };
 
@@ -2116,7 +2150,7 @@ export default function CollectionEditorPage() {
       return;
     }
     if (!dragState.current) return;
-    const { itemId, origX, origY } = dragState.current;
+    const { itemId, origX, origY, groupMembers } = dragState.current;
     dragState.current = null;
     const item = itemsRef.current.find((i) => i.id === itemId);
     if (item) {
@@ -2128,6 +2162,21 @@ export default function CollectionEditorPage() {
       apiFetch(`/api/collections/${collectionId}/items/${itemId}`, {
         method: "PUT", body: JSON.stringify({ pos_x: snX, pos_y: snY, z_index: item.z_index }),
       });
+      // Persist group members' new positions
+      if (groupMembers?.length) {
+        groupMembers.forEach((gm) => {
+          const gmItem = itemsRef.current.find((i) => i.id === gm.id);
+          if (!gmItem) return;
+          const gmSnX = snapToGrid(gmItem.pos_x, gridSnap);
+          const gmSnY = snapToGrid(gmItem.pos_y, gridSnap);
+          if (gmSnX !== gmItem.pos_x || gmSnY !== gmItem.pos_y) {
+            setItems((prev) => prev.map((i) => i.id === gm.id ? { ...i, pos_x: gmSnX, pos_y: gmSnY } : i));
+          }
+          apiFetch(`/api/collections/${collectionId}/items/${gm.id}`, {
+            method: "PUT", body: JSON.stringify({ pos_x: gmSnX, pos_y: gmSnY }),
+          });
+        });
+      }
       if (snX !== origX || snY !== origY) {
         const prev = { pos_x: origX, pos_y: origY };
         const curr = { pos_x: snX, pos_y: snY };
@@ -2215,6 +2264,37 @@ export default function CollectionEditorPage() {
       });
     });
   }, [collectionId, normalizeCanvasZOrder]);
+
+  // ── Group / ungroup ───────────────────────────────────────────────────────
+
+  const handleGroup = useCallback(() => {
+    if (selectedItemIds.size < 2) return;
+    const groupId = crypto.randomUUID();
+    setItems((prev) => prev.map((item) => {
+      if (!selectedItemIds.has(item.id)) return item;
+      const newContent = { ...(item.content ?? {}), group_id: groupId };
+      apiFetch(`/api/collections/${collectionId}/items/${item.id}`, {
+        method: "PUT",
+        body: JSON.stringify({ content: newContent }),
+      });
+      return { ...item, content: newContent as typeof item.content };
+    }));
+  }, [collectionId, selectedItemIds]);
+
+  const handleUngroup = useCallback((groupId: string) => {
+    setItems((prev) => prev.map((item) => {
+      if ((item.content as ContentText)?.group_id !== groupId) return item;
+      const { group_id: _removed, ...rest } = (item.content ?? {}) as Record<string, unknown>;
+      void _removed;
+      const newContent = Object.keys(rest).length > 0 ? rest : null;
+      apiFetch(`/api/collections/${collectionId}/items/${item.id}`, {
+        method: "PUT",
+        body: JSON.stringify({ content: newContent }),
+      });
+      return { ...item, content: newContent as typeof item.content };
+    }));
+    setSelectedItemIds(new Set());
+  }, [collectionId]);
 
   // ── Align to canvas ───────────────────────────────────────────────────────
 
@@ -2308,6 +2388,7 @@ export default function CollectionEditorPage() {
       if (e.key === "Escape") {
         setEditingTextId(null);
         setSelectedItemId(null);
+        setSelectedItemIds(new Set());
         setActiveTool("select");
       }
       if (e.ctrlKey && e.key === "d") { e.preventDefault(); if (selectedItemId !== null) handleDuplicate(selectedItemId); }
@@ -2967,10 +3048,29 @@ export default function CollectionEditorPage() {
                   </>
                 ) : (
                   <>
-                    <div className="mb-1 flex items-center justify-between px-1">
+                    <div className="mb-2 flex items-center justify-between px-1">
                       <p className="text-[11px] font-semibold uppercase tracking-widest text-neutral-400">
                         {items.length} {items.length === 1 ? "capa" : "capas"}
                       </p>
+                      {selectedItemIds.size >= 2 ? (
+                        <button
+                          onClick={() => handleGroup()}
+                          className="rounded-lg border border-[var(--seller-accent)] px-2 py-0.5 text-[10px] font-semibold text-[var(--seller-accent)] transition hover:bg-[color:color-mix(in_srgb,var(--seller-accent)_8%,white)]"
+                        >
+                          Agrupar {selectedItemIds.size}
+                        </button>
+                      ) : selectedItemId !== null && (() => {
+                        const sel = items.find((i) => i.id === selectedItemId);
+                        const gid = (sel?.content as ContentText)?.group_id;
+                        return gid ? (
+                          <button
+                            onClick={() => handleUngroup(gid)}
+                            className="rounded-lg border border-neutral-300 px-2 py-0.5 text-[10px] font-medium text-neutral-500 transition hover:bg-neutral-50"
+                          >
+                            Desagrupar
+                          </button>
+                        ) : null;
+                      })()}
                     </div>
                     {items.length === 0 && (
                       <p className="py-6 text-center text-xs text-neutral-400">Canvas vacío</p>
@@ -2994,10 +3094,11 @@ export default function CollectionEditorPage() {
                               : item.element_type === "shape"
                                 ? ((item.content as ContentShape)?.shapeType ?? "Forma")
                                 : "Imagen";
+                          const itemGroupId = (item.content as ContentText)?.group_id;
                           return (
                             <div
                               key={item.id}
-                              onClick={() => { setSelectedItemId(item.id); setActiveTool("select"); }}
+                              onClick={() => { setSelectedItemId(item.id); setActiveTool("select"); setSelectedItemIds(new Set([item.id])); }}
                               className={`flex cursor-pointer items-center gap-1.5 rounded-lg px-2 py-1.5 text-xs transition ${
                                 isItemSelected
                                   ? "bg-[color:color-mix(in_srgb,var(--seller-accent)_10%,white)] text-[var(--seller-accent)]"
@@ -3006,6 +3107,9 @@ export default function CollectionEditorPage() {
                             >
                               <LayerIcon className="h-3 w-3 shrink-0 opacity-60" />
                               <span className="flex-1 truncate font-medium">{layerLabel}</span>
+                              {itemGroupId && (
+                                <span className="shrink-0 rounded-full bg-violet-100 px-1.5 py-0.5 text-[9px] font-semibold text-violet-600" title="Agrupado">G</span>
+                              )}
                               <button
                                 onClick={(e) => {
                                   e.stopPropagation();
@@ -3418,7 +3522,7 @@ export default function CollectionEditorPage() {
               const viewport = canvasViewportRef.current;
               if (viewport) viewport.style.cursor = (activeTool === "hand" || isSpacePanning) ? "grab" : "";
             }}
-            onClick={() => { if (!isPreviewingTemplate && activeTool === "select") { setSelectedItemId(null); setEditingTextId(null); } }}>
+            onClick={() => { if (!isPreviewingTemplate && activeTool === "select") { setSelectedItemId(null); setEditingTextId(null); setSelectedItemIds(new Set()); } }}>
             <div
               style={
                 isPreviewingTemplate || editorCanvasScale !== 1 || editorZoom !== 1
@@ -3496,7 +3600,7 @@ export default function CollectionEditorPage() {
               )}
 
               {displayItems.map((item, itemIndex) => {
-                const isSelected    = selectedItemId === item.id;
+                const isSelected    = selectedItemId === item.id || (selectedItemIds.size > 1 && selectedItemIds.has(item.id));
                 const isLocked      = lockedItemIds.has(item.id);
                 const tc            = item.content as ContentText;
                 const sc            = item.content as ContentShape;
@@ -3524,11 +3628,21 @@ export default function CollectionEditorPage() {
                     onClick={isPreviewingTemplate ? undefined : (e) => {
                       e.stopPropagation();
                       if (activeTool !== "select") return;
+                      if (e.shiftKey) {
+                        setSelectedItemIds((prev) => {
+                          const next = new Set(prev);
+                          if (next.has(item.id)) next.delete(item.id); else next.add(item.id);
+                          return next;
+                        });
+                        setSelectedItemId(item.id);
+                        return;
+                      }
                       if (isMobileViewport && item.element_type === "text" && selectedItemId === item.id) {
                         openTextEditor(item.id);
                         return;
                       }
                       setSelectedItemId(item.id);
+                      setSelectedItemIds(new Set([item.id]));
                     }}
                     onDoubleClick={isPreviewingTemplate ? undefined : (e) => {
                       e.stopPropagation();
@@ -3785,6 +3899,23 @@ export default function CollectionEditorPage() {
                   Volver a mi canvas
                 </button>
               </div>
+            </div>
+          ) : !selectedItem && selectedItemIds.size >= 2 ? (
+            <div className="flex flex-1 flex-col gap-3 p-4">
+              <p className="text-xs font-semibold text-neutral-700">{selectedItemIds.size} elementos seleccionados</p>
+              <p className="text-[11px] leading-relaxed text-neutral-400">Shift+clic para agregar o quitar de la selección.</p>
+              <button
+                onClick={() => handleGroup()}
+                className="flex w-full items-center justify-center gap-1.5 rounded-xl bg-[#0F3D3A] py-2 text-xs font-semibold text-white transition hover:bg-[#14544f]"
+              >
+                Agrupar selección
+              </button>
+              <button
+                onClick={() => { setSelectedItemIds(new Set()); setSelectedItemId(null); }}
+                className="w-full rounded-xl border border-neutral-200 py-2 text-xs text-neutral-600 transition hover:bg-neutral-50"
+              >
+                Deseleccionar todo
+              </button>
             </div>
           ) : !selectedItem ? (
             <div className="flex flex-1 items-center justify-center p-4 text-center">
