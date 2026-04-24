@@ -982,6 +982,7 @@ export default function CollectionEditorPage() {
   const [activeTool, setActiveTool]         = useState<ActiveTool>("select");
   const [isSpacePanning, setIsSpacePanning] = useState(false);
   const [selectedItemIds, setSelectedItemIds] = useState<Set<number>>(new Set());
+  const [isBackgroundSelected, setIsBackgroundSelected] = useState(false);
   const [selectSidebarTab, setSelectSidebarTab] = useState<SelectSidebarTab>("products");
   const [templateScopeFilter, setTemplateScopeFilter] = useState<TemplateScopeFilter>("all");
   const [name, setName]                     = useState("");
@@ -2078,6 +2079,7 @@ export default function CollectionEditorPage() {
     dragState.current = { itemId, startPX: e.clientX, startPY: e.clientY, origX: item.pos_x, origY: item.pos_y, groupMembers };
     setSelectedItemId(itemId);
     setSelectedItemIds(new Set([itemId, ...(groupMembers?.map((m) => m.id) ?? [])]));
+    setIsBackgroundSelected(false);
   };
 
   const handleCanvasPointerMove = (e: React.PointerEvent) => {
@@ -2389,6 +2391,7 @@ export default function CollectionEditorPage() {
         setEditingTextId(null);
         setSelectedItemId(null);
         setSelectedItemIds(new Set());
+        setIsBackgroundSelected(false);
         setActiveTool("select");
       }
       if (e.ctrlKey && e.key === "d") { e.preventDefault(); if (selectedItemId !== null) handleDuplicate(selectedItemId); }
@@ -3098,7 +3101,7 @@ export default function CollectionEditorPage() {
                           return (
                             <div
                               key={item.id}
-                              onClick={() => { setSelectedItemId(item.id); setActiveTool("select"); setSelectedItemIds(new Set([item.id])); }}
+                              onClick={() => { setSelectedItemId(item.id); setActiveTool("select"); setSelectedItemIds(new Set([item.id])); setIsBackgroundSelected(false); }}
                               className={`flex cursor-pointer items-center gap-1.5 rounded-lg px-2 py-1.5 text-xs transition ${
                                 isItemSelected
                                   ? "bg-[color:color-mix(in_srgb,var(--seller-accent)_10%,white)] text-[var(--seller-accent)]"
@@ -3142,6 +3145,22 @@ export default function CollectionEditorPage() {
                           );
                         });
                     })()}
+                    {/* ── Fondo virtual layer ── */}
+                    <div
+                      onClick={() => { setIsBackgroundSelected(true); setSelectedItemId(null); setSelectedItemIds(new Set()); }}
+                      className={`mt-1 flex cursor-pointer items-center gap-1.5 rounded-lg border px-2 py-1.5 text-xs transition ${
+                        isBackgroundSelected
+                          ? "border-[var(--seller-accent)] bg-[color:color-mix(in_srgb,var(--seller-accent)_10%,white)] text-[var(--seller-accent)]"
+                          : "border-neutral-100 text-neutral-500 hover:bg-neutral-50"
+                      }`}
+                    >
+                      <div
+                        className="h-3 w-3 shrink-0 rounded-sm border border-neutral-200"
+                        style={{ background: computedBg }}
+                      />
+                      <span className="flex-1 font-medium">Fondo</span>
+                      <span className="shrink-0 text-[9px] text-neutral-400">base</span>
+                    </div>
                   </>
                 )}
               </div>
@@ -3522,7 +3541,7 @@ export default function CollectionEditorPage() {
               const viewport = canvasViewportRef.current;
               if (viewport) viewport.style.cursor = (activeTool === "hand" || isSpacePanning) ? "grab" : "";
             }}
-            onClick={() => { if (!isPreviewingTemplate && activeTool === "select") { setSelectedItemId(null); setEditingTextId(null); setSelectedItemIds(new Set()); } }}>
+            onClick={() => { if (!isPreviewingTemplate && activeTool === "select") { setSelectedItemId(null); setEditingTextId(null); setSelectedItemIds(new Set()); setIsBackgroundSelected(false); } }}>
             <div
               style={
                 isPreviewingTemplate || editorCanvasScale !== 1 || editorZoom !== 1
@@ -3643,6 +3662,7 @@ export default function CollectionEditorPage() {
                       }
                       setSelectedItemId(item.id);
                       setSelectedItemIds(new Set([item.id]));
+                      setIsBackgroundSelected(false);
                     }}
                     onDoubleClick={isPreviewingTemplate ? undefined : (e) => {
                       e.stopPropagation();
@@ -3916,6 +3936,103 @@ export default function CollectionEditorPage() {
               >
                 Deseleccionar todo
               </button>
+            </div>
+          ) : isBackgroundSelected ? (
+            <div className="flex-1 space-y-4 overflow-y-auto p-3">
+              <div>
+                <p className="mb-2 text-[11px] font-semibold uppercase tracking-widest text-neutral-400">Fondo</p>
+                <div className="space-y-3">
+                  <div>
+                    <label className="mb-1 block text-[11px] font-medium text-neutral-500">Color base</label>
+                    <input
+                      type="color"
+                      value={bgColor}
+                      onChange={(e) => handleBackgroundColorChange(e.target.value)}
+                      className="h-9 w-full cursor-pointer rounded-lg border border-neutral-200"
+                    />
+                  </div>
+                  <label className="flex cursor-pointer items-center gap-2 rounded-lg border border-neutral-200 px-3 py-2">
+                    <input
+                      type="checkbox"
+                      checked={bgGradient.enabled}
+                      onChange={(e) => handleBackgroundGradientChange((c) => ({ ...c, enabled: e.target.checked }))}
+                      className="rounded"
+                    />
+                    <span className="text-xs text-neutral-600">Degradado</span>
+                  </label>
+                  {bgGradient.enabled && (
+                    <>
+                      <div>
+                        <label className="mb-1 block text-[11px] font-medium text-neutral-500">Color 2</label>
+                        <input
+                          type="color"
+                          value={bgGradient.color2}
+                          onChange={(e) => handleBackgroundGradientChange((c) => ({ ...c, color2: e.target.value }))}
+                          className="h-9 w-full cursor-pointer rounded-lg border border-neutral-200"
+                        />
+                      </div>
+                      <div>
+                        <label className="mb-1 block text-[11px] font-medium text-neutral-500">Tipo</label>
+                        <select
+                          value={bgGradient.type}
+                          onChange={(e) => handleBackgroundGradientChange((c) => ({ ...c, type: e.target.value as "linear" | "radial" }))}
+                          className="w-full rounded-lg border border-neutral-200 px-2 py-1.5 text-xs outline-none"
+                        >
+                          <option value="linear">Lineal</option>
+                          <option value="radial">Radial</option>
+                        </select>
+                      </div>
+                      {bgGradient.type === "linear" && (
+                        <div>
+                          <label className="mb-1 block text-[11px] font-medium text-neutral-500">Ángulo: {bgGradient.angle}°</label>
+                          <input
+                            type="range"
+                            min={0}
+                            max={359}
+                            value={bgGradient.angle}
+                            onChange={(e) => handleBackgroundGradientChange((c) => ({ ...c, angle: Number(e.target.value) }))}
+                            className="w-full"
+                          />
+                        </div>
+                      )}
+                    </>
+                  )}
+                  <div
+                    className="h-16 w-full rounded-xl border border-neutral-200"
+                    style={{ background: computedBg }}
+                  />
+                </div>
+              </div>
+              <div className="border-t border-neutral-100 pt-3">
+                <p className="mb-2 text-[11px] font-semibold uppercase tracking-widest text-neutral-400">Imagen de fondo</p>
+                <div className="space-y-2">
+                  <button
+                    onClick={() => bgImageInputRef.current?.click()}
+                    disabled={bgImageUploading}
+                    className="flex w-full items-center justify-center gap-1.5 rounded-xl border border-neutral-200 py-2 text-xs text-neutral-600 transition hover:bg-neutral-50 disabled:opacity-60"
+                  >
+                    {bgImageUploading ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <ImageIcon className="h-3.5 w-3.5" />}
+                    {collection?.background_image_url ? "Cambiar imagen" : "Subir imagen"}
+                  </button>
+                  {collection?.background_image_url && (
+                    <>
+                      <img
+                        src={collection.background_image_url}
+                        alt="Fondo actual"
+                        className="w-full rounded-xl border border-neutral-200 object-cover"
+                        style={{ maxHeight: 80 }}
+                      />
+                      <button
+                        onClick={handleRemoveBackgroundImage}
+                        disabled={bgImageUploading}
+                        className="w-full rounded-xl border border-red-200 py-1.5 text-xs text-red-500 transition hover:bg-red-50 disabled:opacity-60"
+                      >
+                        Quitar imagen
+                      </button>
+                    </>
+                  )}
+                </div>
+              </div>
             </div>
           ) : !selectedItem ? (
             <div className="flex flex-1 items-center justify-center p-4 text-center">
