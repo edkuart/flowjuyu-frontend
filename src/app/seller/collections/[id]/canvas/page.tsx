@@ -11,7 +11,7 @@ import {
   Grid3x3, Undo2, Redo2, Lock, Unlock,
   AlignHorizontalJustifyStart, AlignHorizontalJustifyCenter, AlignHorizontalJustifyEnd,
   AlignVerticalJustifyStart, AlignVerticalJustifyCenter, AlignVerticalJustifyEnd,
-  Minus, Plus, Sparkles, RefreshCw,
+  Minus, Plus, Sparkles, RefreshCw, Hand, Package,
 } from "lucide-react";
 import { apiFetch, invalidateCache } from "@/lib/api";
 import { useAuth } from "@/context/AuthContext";
@@ -155,8 +155,8 @@ type CollectionData = {
 };
 
 type Product = { id: string; nombre: string; imagen_url: string | null; precio: number; };
-type ActiveTool = "select" | "text" | "shape" | "image" | "decor";
-type SelectSidebarTab = "products" | "templates";
+type ActiveTool = "select" | "text" | "shape" | "image" | "decor" | "hand";
+type SelectSidebarTab = "products" | "templates" | "layers";
 type MobilePanel = "tools" | "library" | "properties" | null;
 type TemplateScopeFilter = "all" | "mine" | "system";
 
@@ -976,6 +976,7 @@ export default function CollectionEditorPage() {
   const [selectedItemId, setSelectedItemId] = useState<number | null>(null);
   const [search, setSearch]                 = useState("");
   const [activeTool, setActiveTool]         = useState<ActiveTool>("select");
+  const [isSpacePanning, setIsSpacePanning] = useState(false);
   const [selectSidebarTab, setSelectSidebarTab] = useState<SelectSidebarTab>("products");
   const [templateScopeFilter, setTemplateScopeFilter] = useState<TemplateScopeFilter>("all");
   const [name, setName]                     = useState("");
@@ -1010,6 +1011,7 @@ export default function CollectionEditorPage() {
   const canvasRef       = useRef<HTMLDivElement>(null);
   const canvasAreaRef = useRef<HTMLDivElement>(null);
   const canvasViewportRef = useRef<HTMLDivElement>(null);
+  const panStartRef = useRef<{ x: number; y: number; scrollLeft: number; scrollTop: number } | null>(null);
   const leftPanelRef = useRef<HTMLDivElement>(null);
   const rightPanelRef = useRef<HTMLDivElement>(null);
   const imageInputRef   = useRef<HTMLInputElement>(null);
@@ -1860,7 +1862,7 @@ export default function CollectionEditorPage() {
   // ── Canvas click → place text / shape ─────────────────────────────────────
 
   const handleCanvasClick = async (e: React.MouseEvent) => {
-    if (activeTool === "select" || activeTool === "image" || activeTool === "decor") return;
+    if (activeTool === "select" || activeTool === "image" || activeTool === "decor" || activeTool === "hand") return;
     if ((e.target as HTMLElement).closest("[data-canvas-item]")) return;
     const point = clientPointToCanvasPoint(e.clientX, e.clientY);
     if (!point) return;
@@ -2311,9 +2313,18 @@ export default function CollectionEditorPage() {
       if (e.ctrlKey && e.key === "d") { e.preventDefault(); if (selectedItemId !== null) handleDuplicate(selectedItemId); }
       if (e.ctrlKey && e.key === "z") { e.preventDefault(); doUndo(); }
       if (e.ctrlKey && (e.key === "y" || e.key === "Y")) { e.preventDefault(); doRedo(); }
+      if ((e.key === "h" || e.key === "H") && !e.ctrlKey) { setActiveTool("hand"); setSelectedItemId(null); }
+      if (e.key === " " && !e.repeat) { e.preventDefault(); setIsSpacePanning(true); }
+    };
+    const onKeyUp = (e: KeyboardEvent) => {
+      if (e.key === " ") { setIsSpacePanning(false); panStartRef.current = null; }
     };
     window.addEventListener("keydown", onKey);
-    return () => window.removeEventListener("keydown", onKey);
+    window.addEventListener("keyup", onKeyUp);
+    return () => {
+      window.removeEventListener("keydown", onKey);
+      window.removeEventListener("keyup", onKeyUp);
+    };
   }, [selectedItemId, doUndo, doRedo]); // eslint-disable-line react-hooks/exhaustive-deps
 
   // ─── Computed shortcuts ───────────────────────────────────────────────────
@@ -2636,9 +2647,10 @@ export default function CollectionEditorPage() {
               </button>
             </div>
             {mobilePanel !== "library" && (
-              <div className="grid grid-cols-4 gap-1">
+              <div className="grid grid-cols-3 gap-1">
                 {([
                   { tool: "select" as ActiveTool, icon: MousePointer2, label: "Mover" },
+                  { tool: "hand"   as ActiveTool, icon: Hand,           label: "Mano" },
                   { tool: "text"   as ActiveTool, icon: Type,           label: "Texto" },
                   { tool: "shape"  as ActiveTool, icon: Square,         label: "Forma" },
                   { tool: "image"  as ActiveTool, icon: ImageIcon,      label: "Imagen" },
@@ -2733,21 +2745,27 @@ export default function CollectionEditorPage() {
         </div>
       )}
 
-          {activeTool === "select" ? (
+          {activeTool === "select" || activeTool === "hand" ? (
             <>
               <div className="border-b border-neutral-100 px-3 pt-3 pb-2">
-                <div className="mb-2 grid grid-cols-2 gap-1">
+                <div className="mb-2 grid grid-cols-3 gap-1">
                   <button
                     onClick={() => setSelectSidebarTab("products")}
-                    className={`rounded-lg px-2 py-1.5 text-[11px] font-medium transition ${selectSidebarTab === "products" ? "bg-[var(--seller-accent)] text-white" : "bg-[var(--seller-panel)] text-[var(--seller-muted)] hover:bg-[var(--seller-panel-soft)]"}`}
+                    className={`rounded-lg px-1 py-1.5 text-[10px] font-medium transition ${selectSidebarTab === "products" ? "bg-[var(--seller-accent)] text-white" : "bg-[var(--seller-panel)] text-[var(--seller-muted)] hover:bg-[var(--seller-panel-soft)]"}`}
                   >
                     Productos
                   </button>
                   <button
                     onClick={() => setSelectSidebarTab("templates")}
-                    className={`rounded-lg px-2 py-1.5 text-[11px] font-medium transition ${selectSidebarTab === "templates" ? "bg-[var(--seller-accent)] text-white" : "bg-[var(--seller-panel)] text-[var(--seller-muted)] hover:bg-[var(--seller-panel-soft)]"}`}
+                    className={`rounded-lg px-1 py-1.5 text-[10px] font-medium transition ${selectSidebarTab === "templates" ? "bg-[var(--seller-accent)] text-white" : "bg-[var(--seller-panel)] text-[var(--seller-muted)] hover:bg-[var(--seller-panel-soft)]"}`}
                   >
                     Plantillas
+                  </button>
+                  <button
+                    onClick={() => setSelectSidebarTab("layers")}
+                    className={`rounded-lg px-1 py-1.5 text-[10px] font-medium transition ${selectSidebarTab === "layers" ? "bg-[var(--seller-accent)] text-white" : "bg-[var(--seller-panel)] text-[var(--seller-muted)] hover:bg-[var(--seller-panel-soft)]"}`}
+                  >
+                    Capas
                   </button>
                 </div>
                 {selectSidebarTab === "products" ? (
@@ -2815,7 +2833,7 @@ export default function CollectionEditorPage() {
                       </div>
                     ))}
                   </>
-                ) : (
+                ) : selectSidebarTab === "templates" ? (
                   <>
                     {templateError && (
                       <div className="rounded-lg border border-red-200 bg-red-50 px-2.5 py-2 text-[11px] text-red-700">
@@ -2946,6 +2964,80 @@ export default function CollectionEditorPage() {
                         </div>
                       );
                     })}
+                  </>
+                ) : (
+                  <>
+                    <div className="mb-1 flex items-center justify-between px-1">
+                      <p className="text-[11px] font-semibold uppercase tracking-widest text-neutral-400">
+                        {items.length} {items.length === 1 ? "capa" : "capas"}
+                      </p>
+                    </div>
+                    {items.length === 0 && (
+                      <p className="py-6 text-center text-xs text-neutral-400">Canvas vacío</p>
+                    )}
+                    {(() => {
+                      const maxZ = items.length > 0 ? Math.max(...items.map((i) => i.z_index)) : 0;
+                      const minZ = items.length > 0 ? Math.min(...items.map((i) => i.z_index)) : 0;
+                      return [...items]
+                        .sort((a, b) => b.z_index - a.z_index)
+                        .map((item) => {
+                          const isItemSelected = selectedItemId === item.id;
+                          const isItemLocked = lockedItemIds.has(item.id);
+                          const LayerIcon = item.element_type === "text" ? Type
+                            : item.element_type === "shape" ? Square
+                            : item.element_type === "product" ? Package
+                            : ImageIcon;
+                          const layerLabel = item.element_type === "product"
+                            ? (item.product_name ?? "Producto")
+                            : item.element_type === "text"
+                              ? ((item.content as ContentText)?.text?.slice(0, 16) || "Texto vacío")
+                              : item.element_type === "shape"
+                                ? ((item.content as ContentShape)?.shapeType ?? "Forma")
+                                : "Imagen";
+                          return (
+                            <div
+                              key={item.id}
+                              onClick={() => { setSelectedItemId(item.id); setActiveTool("select"); }}
+                              className={`flex cursor-pointer items-center gap-1.5 rounded-lg px-2 py-1.5 text-xs transition ${
+                                isItemSelected
+                                  ? "bg-[color:color-mix(in_srgb,var(--seller-accent)_10%,white)] text-[var(--seller-accent)]"
+                                  : "text-neutral-600 hover:bg-neutral-50"
+                              }`}
+                            >
+                              <LayerIcon className="h-3 w-3 shrink-0 opacity-60" />
+                              <span className="flex-1 truncate font-medium">{layerLabel}</span>
+                              <button
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  setLockedItemIds((prev) => {
+                                    const next = new Set(prev);
+                                    if (next.has(item.id)) next.delete(item.id); else next.add(item.id);
+                                    return next;
+                                  });
+                                }}
+                                className="shrink-0 rounded p-0.5 hover:bg-neutral-100"
+                                title={isItemLocked ? "Desbloquear" : "Bloquear"}
+                              >
+                                {isItemLocked
+                                  ? <Lock className="h-3 w-3 text-amber-500" />
+                                  : <Unlock className="h-3 w-3 text-neutral-300" />}
+                              </button>
+                              <button
+                                onClick={(e) => { e.stopPropagation(); handleMoveLayer(item.id, "forward"); }}
+                                disabled={item.z_index >= maxZ}
+                                className="shrink-0 rounded p-0.5 hover:bg-neutral-100 disabled:opacity-30"
+                                title="Subir capa"
+                              ><ChevronUp className="h-3 w-3" /></button>
+                              <button
+                                onClick={(e) => { e.stopPropagation(); handleMoveLayer(item.id, "backward"); }}
+                                disabled={item.z_index <= minZ}
+                                className="shrink-0 rounded p-0.5 hover:bg-neutral-100 disabled:opacity-30"
+                                title="Bajar capa"
+                              ><ChevronDown className="h-3 w-3" /></button>
+                            </div>
+                          );
+                        });
+                    })()}
                   </>
                 )}
               </div>
@@ -3234,9 +3326,9 @@ export default function CollectionEditorPage() {
                   </button>
                 </div>
                 <span className="w-full text-xs text-neutral-400 sm:w-auto">{displayCanvasWidth} × {displayCanvasHeight}</span>
-                {activeTool !== "select" && activeTool !== "image" && (
+                {activeTool !== "select" && activeTool !== "image" && activeTool !== "decor" && (
                   <span className="text-xs font-medium text-[#0F3D3A] sm:ml-auto">
-                    {activeTool === "text" ? "✏ Clic para texto" : "■ Clic para forma"}
+                    {activeTool === "text" ? "✏ Clic para texto" : activeTool === "hand" ? "☚ Arrastra para desplazar · Esc para volver" : "■ Clic para forma"}
                   </span>
                 )}
                 {selectedItemId && activeTool === "select" && (
@@ -3299,10 +3391,33 @@ export default function CollectionEditorPage() {
             style={
               isPreviewingTemplate
                 ? { alignItems: isCompactPreviewViewport ? "center" : "flex-start", justifyContent: isCompactPreviewViewport ? "center" : "flex-start" }
-                : !isEditorFitMode
-                  ? { alignItems: "flex-start", justifyContent: "flex-start" }
-                  : undefined
+                : {
+                    ...(!isEditorFitMode ? { alignItems: "flex-start", justifyContent: "flex-start" } : {}),
+                    cursor: (activeTool === "hand" || isSpacePanning) ? "grab" : undefined,
+                  }
             }
+            onPointerDown={(e) => {
+              if (isPreviewingTemplate) return;
+              if (activeTool !== "hand" && !isSpacePanning) return;
+              const viewport = canvasViewportRef.current;
+              if (!viewport) return;
+              panStartRef.current = { x: e.clientX, y: e.clientY, scrollLeft: viewport.scrollLeft, scrollTop: viewport.scrollTop };
+              viewport.setPointerCapture(e.pointerId);
+              viewport.style.cursor = "grabbing";
+              e.preventDefault();
+            }}
+            onPointerMove={(e) => {
+              if (!panStartRef.current) return;
+              const viewport = canvasViewportRef.current;
+              if (!viewport) return;
+              viewport.scrollLeft = panStartRef.current.scrollLeft - (e.clientX - panStartRef.current.x);
+              viewport.scrollTop = panStartRef.current.scrollTop - (e.clientY - panStartRef.current.y);
+            }}
+            onPointerUp={() => {
+              panStartRef.current = null;
+              const viewport = canvasViewportRef.current;
+              if (viewport) viewport.style.cursor = (activeTool === "hand" || isSpacePanning) ? "grab" : "";
+            }}
             onClick={() => { if (!isPreviewingTemplate && activeTool === "select") { setSelectedItemId(null); setEditingTextId(null); } }}>
             <div
               style={
@@ -3344,7 +3459,7 @@ export default function CollectionEditorPage() {
                 style={{
                   width: displayCanvasWidth, height: displayCanvasHeight,
                   background: displayBackground,
-                  cursor: !isPreviewingTemplate && (activeTool === "text" || activeTool === "shape") ? "crosshair" : "default",
+                  cursor: !isPreviewingTemplate && (activeTool === "text" || activeTool === "shape") ? "crosshair" : !isPreviewingTemplate && (activeTool === "hand" || isSpacePanning) ? "grab" : "default",
                   ...((isPreviewingTemplate || editorCanvasScale !== 1 || editorZoom !== 1) ? {
                     transform: `scale(${effectiveCanvasScale})`,
                     transformOrigin: "top left",
