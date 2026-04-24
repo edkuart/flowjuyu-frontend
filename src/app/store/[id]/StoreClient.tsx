@@ -146,6 +146,7 @@ type PublicCollectionProduct = {
 
 type PublicCollection = {
   id: number;
+  public_id?: string | null;
   name: string;
   description: string | null;
   promo_image_url?: string | null;
@@ -1838,58 +1839,84 @@ export default function StoreClient({
                   {storefrontCollections.map((col) => {
                     const linkedProducts = (col.products ?? []).slice(0, 4);
                     const totalProducts = col.product_count ?? col.item_count ?? col.products?.length ?? col.items.length;
+                    const collectionHref = col.public_id ? `/c/${col.public_id}` : null;
 
                     return (
                       <article
                         key={col.id}
                         className="overflow-hidden rounded-2xl border border-neutral-100 bg-white shadow-sm transition-all hover:-translate-y-1 hover:shadow-lg"
                       >
-                        <CollectionPreviewBox
-                          name={col.name}
-                          imageUrl={col.promo_image_url ?? col.background_image_url ?? null}
-                          items={col.items}
-                          backgroundColor={col.background_color}
-                          backgroundStyle={col.background_style}
-                          canvasWidth={col.canvas_width}
-                          canvasHeight={col.canvas_height}
-                          maxWidth={480}
-                          maxHeight={480}
-                          className="w-full"
-                        >
-                          <div className="absolute inset-x-0 bottom-0 bg-gradient-to-t from-black/60 via-black/15 to-transparent px-5 py-5 text-white">
-                            <p className="text-[11px] font-semibold uppercase tracking-[0.28em] text-white/75">Colección</p>
-                            <h3 className="mt-1 text-xl font-semibold">{col.name}</h3>
-                            <p className="mt-1 text-sm text-white/82">{totalProducts} {totalProducts === 1 ? "pieza dentro del conjunto" : "piezas dentro del conjunto"}</p>
-                          </div>
-                        </CollectionPreviewBox>
+                        {/* Preview image — no text overlay so the canvas artwork shows cleanly */}
+                        {collectionHref ? (
+                          <a href={collectionHref} className="block">
+                            <CollectionPreviewBox
+                              name={col.name}
+                              imageUrl={col.promo_image_url ?? col.background_image_url ?? null}
+                              items={col.items}
+                              backgroundColor={col.background_color}
+                              backgroundStyle={col.background_style}
+                              canvasWidth={col.canvas_width}
+                              canvasHeight={col.canvas_height}
+                              maxWidth={480}
+                              maxHeight={480}
+                              className="w-full"
+                            />
+                          </a>
+                        ) : (
+                          <CollectionPreviewBox
+                            name={col.name}
+                            imageUrl={col.promo_image_url ?? col.background_image_url ?? null}
+                            items={col.items}
+                            backgroundColor={col.background_color}
+                            backgroundStyle={col.background_style}
+                            canvasWidth={col.canvas_width}
+                            canvasHeight={col.canvas_height}
+                            maxWidth={480}
+                            maxHeight={480}
+                            className="w-full"
+                          />
+                        )}
 
                         <div className="space-y-4 p-5">
+                          <div>
+                            <p className="text-[10px] font-semibold uppercase tracking-[0.22em] text-neutral-400">Colección</p>
+                            <h3 className="mt-0.5 text-base font-semibold text-neutral-900">{col.name}</h3>
+                            <p className="mt-0.5 text-xs text-neutral-400">{totalProducts} {totalProducts === 1 ? "pieza" : "piezas"}</p>
+                          </div>
+
                           {col.description ? (
-                            <p className="line-clamp-3 text-sm leading-6 text-neutral-600">{col.description}</p>
-                          ) : (
-                            <p className="text-sm leading-6 text-neutral-400">Esta colección se comparte como un conjunto visual de productos seleccionados.</p>
-                          )}
+                            <p className="line-clamp-2 text-sm leading-6 text-neutral-500">{col.description}</p>
+                          ) : null}
 
                           {linkedProducts.length > 0 ? (
-                            <div className="grid gap-3 sm:grid-cols-2">
+                            <div className="grid grid-cols-2 gap-2">
                               {linkedProducts.map((product) => (
-                                <div key={product.id} className="flex items-center gap-3 rounded-2xl border border-neutral-100 bg-neutral-50 p-2.5">
-                                  <div className="h-14 w-14 overflow-hidden rounded-xl bg-white">
+                                <div key={product.id} className="flex items-center gap-2.5 rounded-xl border border-neutral-100 bg-neutral-50 p-2">
+                                  <div className="h-10 w-10 shrink-0 overflow-hidden rounded-lg bg-white">
                                     {product.imagen_url ? (
                                       <img src={product.imagen_url} alt={product.nombre} className="h-full w-full object-cover" />
                                     ) : (
-                                      <div className="flex h-full w-full items-center justify-center text-neutral-300">•</div>
+                                      <div className="flex h-full w-full items-center justify-center text-neutral-300 text-xs">•</div>
                                     )}
                                   </div>
                                   <div className="min-w-0">
-                                    <p className="truncate text-sm font-medium text-neutral-800">{product.nombre}</p>
+                                    <p className="truncate text-xs font-medium text-neutral-800">{product.nombre}</p>
                                     {product.precio != null ? (
-                                      <p className="text-xs text-neutral-500">Q{Number(product.precio).toFixed(2)}</p>
+                                      <p className="text-[11px] text-neutral-500">Q{Number(product.precio).toFixed(2)}</p>
                                     ) : null}
                                   </div>
                                 </div>
                               ))}
                             </div>
+                          ) : null}
+
+                          {collectionHref ? (
+                            <a
+                              href={collectionHref}
+                              className="flex w-full items-center justify-center rounded-xl border border-neutral-200 py-2.5 text-xs font-semibold text-neutral-700 transition hover:border-neutral-400 hover:text-neutral-900"
+                            >
+                              Ver colección completa →
+                            </a>
                           ) : null}
                         </div>
                       </article>

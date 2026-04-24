@@ -1626,11 +1626,6 @@ export default function CollectionEditorPage() {
 
   // ── Save ──────────────────────────────────────────────────────────────────
 
-  const handleSave = useCallback(async () => {
-    await flushPendingItemContentSaves();
-    await flushPendingCanvasSettingsSave();
-  }, [flushPendingCanvasSettingsSave, flushPendingItemContentSaves]);
-
   // ── Publish ────────────────────────────────────────────────────────────────
 
   const handleTogglePublish = useCallback(async () => {
@@ -1945,6 +1940,16 @@ export default function CollectionEditorPage() {
     if (open) return;
     setEditingTextId(null);
   }, []);
+
+  const handleSave = useCallback(async () => {
+    // Flush mobile text editor draft before anything else — the draft lives in
+    // mobileTextEditorDraft state and never goes through the debounce queue.
+    if (mobileEditingTextItem) {
+      await handleMobileTextEditorConfirm();
+    }
+    await flushPendingItemContentSaves();
+    await flushPendingCanvasSettingsSave();
+  }, [flushPendingCanvasSettingsSave, flushPendingItemContentSaves, handleMobileTextEditorConfirm, mobileEditingTextItem]);
 
   // ── Position/size change from X/Y/W/H inputs ─────────────────────────────
 
@@ -4299,37 +4304,16 @@ export default function CollectionEditorPage() {
                 </DialogDescription>
               </DialogHeader>
 
-              <div className="space-y-4 px-4 py-4">
-                <div>
-                  <label className="mb-1 block text-[11px] font-medium text-neutral-500">Contenido</label>
-                  <textarea
-                    autoFocus
-                    value={mobileTextEditorDraft}
-                    onChange={(e) => setMobileTextEditorDraft(e.target.value)}
-                    rows={7}
-                    className="min-h-[180px] w-full resize-none rounded-2xl border border-neutral-200 px-3 py-3 text-sm leading-relaxed outline-none focus:border-[#0F3D3A]"
-                    placeholder="Escribe aquí tu texto..."
-                  />
-                </div>
-
-                <div className="rounded-[22px] border border-[#0F3D3A]/10 bg-[linear-gradient(180deg,#fffdf9_0%,#f7f3ec_100%)] p-4">
-                  <p className="mb-2 text-[11px] font-semibold uppercase tracking-[0.16em] text-neutral-400">Vista previa</p>
-                  <div
-                    className="min-h-[120px] whitespace-pre-wrap break-words rounded-[18px] border border-white/80 bg-white/90 p-3 shadow-[0_10px_30px_rgba(15,61,58,0.08)]"
-                    style={{
-                      color: mobileEditingTextContent?.color || "#1a1a1a",
-                      fontSize: Math.max(16, mobileEditingTextContent?.fontSize ?? 24),
-                      fontFamily: mobileEditingTextContent?.fontFamily || "inherit",
-                      fontWeight: mobileEditingTextContent?.fontWeight || "bold",
-                      fontStyle: mobileEditingTextContent?.fontStyle || "normal",
-                      letterSpacing: `${mobileEditingTextContent?.letterSpacing ?? 0}px`,
-                      lineHeight: mobileEditingTextContent?.lineHeight ?? 1.2,
-                      textAlign: mobileEditingTextContent?.textAlign || "left",
-                    }}
-                  >
-                    {mobileTextEditorDraft.trim() || "La vista previa de tu texto aparecerá aquí."}
-                  </div>
-                </div>
+              <div className="px-4 py-4">
+                <label className="mb-1 block text-[11px] font-medium text-neutral-500">Contenido</label>
+                <textarea
+                  autoFocus
+                  value={mobileTextEditorDraft}
+                  onChange={(e) => setMobileTextEditorDraft(e.target.value)}
+                  rows={9}
+                  className="min-h-[200px] w-full resize-none rounded-2xl border border-neutral-200 px-3 py-3 text-sm leading-relaxed outline-none focus:border-[#0F3D3A]"
+                  placeholder="Escribe aquí tu texto..."
+                />
               </div>
 
               <DialogFooter className="border-t border-neutral-100 px-4 py-4">
