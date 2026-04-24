@@ -1072,7 +1072,7 @@ export default function CollectionEditorPage() {
   const previewStageHeight = (displayCanvasHeight * effectivePreviewScale) + previewChromePadding;
   const compactPreviewCanvasWidth = Math.max(160, Math.round(displayCanvasWidth * effectivePreviewScale));
   const compactPreviewCanvasHeight = Math.max(90, Math.round(displayCanvasHeight * effectivePreviewScale));
-  const isEditorFitMode = !isPreviewingTemplate && editorZoom === 1 && editorCanvasScale < 0.999;
+  const isEditorFitMode = !isPreviewingTemplate && editorZoom === 1;
   const isMobileToolsPanelOpen = mobilePanel === "tools" || mobilePanel === "library";
   const minEditorEffectiveScale = isMobileViewport ? MOBILE_EDITOR_EFFECTIVE_SCALE_MIN : EDITOR_ZOOM_MIN;
   const minPreviewEffectiveScale = isMobileViewport ? MOBILE_EDITOR_EFFECTIVE_SCALE_MIN : EDITOR_ZOOM_MIN;
@@ -1355,7 +1355,11 @@ export default function CollectionEditorPage() {
 
         setEditorCanvasScale(Math.max(MOBILE_EDITOR_BASE_SCALE_MIN, fitScale));
       } else {
-        setEditorCanvasScale(1);
+        const pad = 64; // p-8 = 32px each side at lg breakpoint
+        const availW = Math.max(400, viewport.clientWidth - pad);
+        const availH = Math.max(300, viewport.clientHeight - pad);
+        const fitScale = Math.min(availW / displayCanvasWidth, availH / displayCanvasHeight, 1);
+        setEditorCanvasScale(Math.max(EDITOR_ZOOM_MIN, fitScale));
       }
 
       viewport.scrollTo({ left: 0, top: 0 });

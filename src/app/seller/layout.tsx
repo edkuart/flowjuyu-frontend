@@ -284,7 +284,11 @@ export default function SellerLayout({ children }: { children: ReactNode }) {
 
             {/* ================= MAIN ================= */}
             <div className="pt-[81px] md:pt-[92px]">
-              <PageShell>{children}</PageShell>
+              {/^\/seller\/collections\/[^/]+\/canvas/.test(pathname) ? (
+                <div className="p-3 md:p-4">{children}</div>
+              ) : (
+                <PageShell>{children}</PageShell>
+              )}
             </div>
 
             <WhatsAppFloatingButton />
