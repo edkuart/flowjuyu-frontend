@@ -166,6 +166,37 @@ function LanguageSwitcher({ className }: { className: string }) {
     </div>
   );
 }
+
+const accountMenuCardClassName =
+  "w-64 rounded-[24px] border border-[var(--seller-line-strong)] bg-[rgba(255,255,255,0.96)] p-2 text-sm text-[var(--seller-text)] shadow-[0_24px_60px_rgba(15,61,58,0.18)] backdrop-blur-xl";
+
+const accountMenuIdentityClassName =
+  "mb-2 flex items-center gap-3 border-b border-[var(--seller-line)] px-3 pb-3";
+
+const accountMenuIdentityIconClassName =
+  "flex h-10 w-10 shrink-0 items-center justify-center rounded-[16px] border border-[color:color-mix(in_srgb,var(--seller-accent)_14%,transparent)] bg-[color:color-mix(in_srgb,var(--seller-accent)_10%,white)] text-[var(--seller-accent)]";
+
+const accountMenuMetaPillClassName =
+  "mt-1 inline-flex items-center rounded-full border border-[color:color-mix(in_srgb,var(--seller-accent)_12%,transparent)] bg-[var(--seller-panel-soft)] px-2 py-0.5 text-[10px] font-semibold tracking-[0.12em] uppercase text-[var(--seller-faint-text)]";
+
+const accountMenuSectionLabelClassName =
+  "px-3 pb-1 pt-1 text-[10px] font-semibold uppercase tracking-[0.16em] text-[var(--seller-faint-text)]";
+
+const accountMenuItemClassName =
+  "flex items-center gap-2.5 rounded-xl px-3 py-2.5 text-[var(--seller-text)] transition-colors hover:bg-[var(--seller-panel)] hover:text-[var(--seller-ink)]";
+
+const accountMenuItemIconClassName = "h-3.5 w-3.5 shrink-0 text-[var(--seller-soft-text)]";
+
+const accountMenuStatCardClassName =
+  "flex flex-col gap-1 rounded-[16px] border border-[var(--seller-line)] bg-[var(--seller-panel-soft)] px-2.5 py-2 transition-all hover:border-[var(--seller-line-strong)] hover:bg-[var(--seller-panel)]";
+
+const accountMenuDividerClassName = "my-1.5 border-t border-[var(--seller-line)]";
+
+const accountMenuLogoutClassName =
+  "flex w-full items-center gap-2.5 rounded-xl px-3 py-2.5 text-left text-red-600 transition-colors hover:bg-red-50/70";
+
+const accountTriggerClassName =
+  "hidden items-center gap-1.5 rounded-full border border-white/18 bg-white/9 px-3.5 py-1.5 text-[12px] tracking-[0.12em] shadow-[0_10px_24px_rgba(5,18,14,0.12)] backdrop-blur-md transition-all hover:bg-white/14 focus-visible:outline focus-visible:outline-2 focus-visible:outline-[var(--brand-accent)] md:inline-flex";
 // ── Buyer dropdown ──────────────────────────────────────────────────────────
 
 function BuyerDropdown({
@@ -186,49 +217,49 @@ function BuyerDropdown({
   const recentActivity = notifications.slice(0, 2);
 
   return (
-    <div className="w-60 rounded-xl border border-neutral-100 bg-white py-1.5 text-sm text-neutral-800 shadow-2xl">
+    <div className={accountMenuCardClassName}>
       {/* Identity header */}
-      <div className="mb-1 flex items-center gap-2.5 border-b border-neutral-100 px-4 pb-2">
-        <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-orange-100 text-sm font-bold text-orange-600 uppercase">
+      <div className={accountMenuIdentityClassName}>
+        <div className={`${accountMenuIdentityIconClassName} text-sm font-bold uppercase text-[var(--brand-deep)]`}>
           {user.name?.charAt(0) ?? "?"}
         </div>
         <div className="min-w-0">
-          <p className="truncate text-xs leading-none font-semibold">
+          <p className="truncate text-sm leading-none font-semibold text-[var(--seller-ink)]">
             {user.name ?? "Usuario"}
           </p>
-          <p className="mt-0.5 text-[10px] text-neutral-400">Flowjuyu Buyer</p>
+          <span className={accountMenuMetaPillClassName}>Flowjuyu Buyer</span>
         </div>
       </div>
 
       {/* ACTIVIDAD */}
-      <p className="px-4 pt-1 pb-1 text-[10px] font-semibold tracking-widest text-neutral-400 uppercase">
+      <p className={accountMenuSectionLabelClassName}>
         {tr("nav.activity")}
       </p>
       <Link
         href="/buyer/dashboard"
         onClick={onClose}
-        className="flex items-center gap-2.5 px-4 py-2 transition-colors hover:bg-neutral-50"
+        className={accountMenuItemClassName}
       >
-        <LayoutDashboard className="h-3.5 w-3.5 shrink-0 text-zinc-500" />
+        <LayoutDashboard className={accountMenuItemIconClassName} />
         <span className="flex-1">Dashboard</span>
       </Link>
       <Link
         href="/buyer/orders"
         onClick={onClose}
-        className="flex items-center gap-2.5 px-4 py-2 transition-colors hover:bg-neutral-50"
+        className={accountMenuItemClassName}
       >
-        <Package className="h-3.5 w-3.5 shrink-0 text-zinc-500" />
+        <Package className={accountMenuItemIconClassName} />
         <span className="flex-1">{tr("nav.myOrders")}</span>
       </Link>
       <Link
         href="/buyer/favorites"
         onClick={onClose}
-        className="flex items-center gap-2.5 px-4 py-2 transition-colors hover:bg-neutral-50"
+        className={accountMenuItemClassName}
       >
-        <Heart className="h-3.5 w-3.5 shrink-0 text-zinc-500" />
+        <Heart className={accountMenuItemIconClassName} />
         <span className="flex-1">{tr("nav.myFavorites")}</span>
         {favCount > 0 && (
-          <span className="rounded-full bg-orange-100 px-1.5 py-0.5 text-[10px] leading-tight font-semibold text-orange-600 tabular-nums">
+          <span className="rounded-full bg-[color:color-mix(in_srgb,var(--brand-accent)_18%,white)] px-1.5 py-0.5 text-[10px] leading-tight font-semibold text-[var(--brand-deep)] tabular-nums">
             {favCount}
           </span>
         )}
@@ -236,9 +267,9 @@ function BuyerDropdown({
       <Link
         href="/buyer/notifications"
         onClick={onClose}
-        className="flex items-center gap-2.5 px-4 py-2 transition-colors hover:bg-neutral-50"
+        className={accountMenuItemClassName}
       >
-        <Bell className="h-3.5 w-3.5 shrink-0 text-zinc-500" />
+        <Bell className={accountMenuItemIconClassName} />
         <span className="flex-1">{tr("nav.notifications")}</span>
         {unread > 0 && (
           <span className="rounded-full bg-red-100 px-1.5 py-0.5 text-[10px] leading-tight font-semibold text-red-600 tabular-nums">
@@ -248,38 +279,38 @@ function BuyerDropdown({
       </Link>
 
       {/* MI CUENTA */}
-      <div className="my-1.5 border-t border-neutral-100" />
-      <p className="px-4 pb-1 text-[10px] font-semibold tracking-widest text-neutral-400 uppercase">
+      <div className={accountMenuDividerClassName} />
+      <p className={accountMenuSectionLabelClassName}>
         {tr("nav.account")}
       </p>
       <Link
         href="/buyer/profile"
         onClick={onClose}
-        className="flex items-center gap-2.5 px-4 py-2 transition-colors hover:bg-neutral-50"
+        className={accountMenuItemClassName}
       >
-        <User className="h-3.5 w-3.5 shrink-0 text-zinc-500" />
+        <User className={accountMenuItemIconClassName} />
         {tr("nav.myProfile")}
       </Link>
       <Link
         href="/buyer/addresses"
         onClick={onClose}
-        className="flex items-center gap-2.5 px-4 py-2 transition-colors hover:bg-neutral-50"
+        className={accountMenuItemClassName}
       >
-        <MapPin className="h-3.5 w-3.5 shrink-0 text-zinc-500" />
+        <MapPin className={accountMenuItemIconClassName} />
         {tr("nav.addresses")}
       </Link>
 
       {/* ACTIVIDAD RECIENTE */}
-      <div className="my-1.5 border-t border-neutral-100" />
-      <div className="flex items-center justify-between px-4 pt-1 pb-1">
-        <p className="text-[10px] font-semibold tracking-widest text-neutral-400 uppercase">
+      <div className={accountMenuDividerClassName} />
+      <div className="flex items-center justify-between px-3 pt-1 pb-1">
+        <p className="text-[10px] font-semibold tracking-[0.16em] text-[var(--seller-faint-text)] uppercase">
           {tr("nav.recentActivity")}
         </p>
         {recentActivity.length > 0 && (
           <Link
             href="/buyer/notifications"
             onClick={onClose}
-            className="text-[10px] text-neutral-400 transition-colors hover:text-neutral-600"
+            className="text-[10px] text-[var(--seller-faint-text)] transition-colors hover:text-[var(--seller-text)]"
           >
             {tr("nav.seeAll")}
           </Link>
@@ -287,29 +318,29 @@ function BuyerDropdown({
       </div>
 
       {recentActivity.length === 0 ? (
-        <p className="px-4 py-2 text-xs text-neutral-400 italic">
+        <p className="px-3 py-2 text-xs italic text-[var(--seller-faint-text)]">
           {tr("nav.noActivity")}
         </p>
       ) : (
-        <div className="space-y-0.5 px-2 pb-1">
+        <div className="space-y-1 px-1 pb-1">
           {recentActivity.map((n) => {
             const inner = (
               <div
-                className={`cursor-pointer rounded-lg px-2 py-2 transition-colors hover:bg-neutral-50 ${
-                  !n.is_read ? "bg-orange-50/60" : ""
+                className={`cursor-pointer rounded-xl px-3 py-2.5 transition-colors hover:bg-[var(--seller-panel)] ${
+                  !n.is_read ? "bg-[color:color-mix(in_srgb,var(--brand-accent)_14%,white)]" : ""
                 }`}
                 onClick={() => {
                   markAsRead(n.id);
                   onClose();
                 }}
               >
-                <p className="truncate text-xs leading-snug font-semibold text-neutral-800">
+                <p className="truncate text-xs leading-snug font-semibold text-[var(--seller-ink)]">
                   {n.title}
                 </p>
-                <p className="mt-0.5 truncate text-[11px] leading-snug text-neutral-500">
+                <p className="mt-0.5 truncate text-[11px] leading-snug text-[var(--seller-muted)]">
                   {n.message}
                 </p>
-                <p className="mt-1 text-[10px] text-neutral-400">
+                <p className="mt-1 text-[10px] text-[var(--seller-faint-text)]">
                   {timeAgo(n.created_at)}
                 </p>
               </div>
@@ -327,13 +358,13 @@ function BuyerDropdown({
       )}
 
       {/* Logout */}
-      <div className="mt-1.5 border-t border-neutral-100" />
+      <div className={accountMenuDividerClassName} />
       <button
         onClick={() => {
           onClose();
           onLogout();
         }}
-        className="flex w-full items-center gap-2.5 px-4 py-2.5 text-left text-red-600 transition-colors hover:bg-neutral-50"
+        className={accountMenuLogoutClassName}
       >
         <LogOut className="h-3.5 w-3.5 shrink-0" />
         {tr("nav.logout")}
@@ -360,28 +391,28 @@ function AdminDropdown({
   const ls = leadStyle(stats.leads);
 
   return (
-    <div className="w-64 rounded-xl border border-neutral-100 bg-white py-2 text-sm text-neutral-800 shadow-2xl">
+    <div className={accountMenuCardClassName}>
       {/* Header pill */}
-      <div className="mb-1 flex items-center gap-2 border-b border-neutral-100 px-4 pb-2">
-        <div className="flex h-6 w-6 shrink-0 items-center justify-center rounded-md bg-zinc-900">
-          <span className="text-[10px] font-bold text-white">A</span>
+      <div className={accountMenuIdentityClassName}>
+        <div className={accountMenuIdentityIconClassName}>
+          <span className="text-[10px] font-bold text-[var(--seller-accent)]">A</span>
         </div>
         <div>
-          <p className="text-xs leading-none font-semibold">Atlas Control</p>
-          <p className="mt-0.5 text-[10px] text-neutral-400">Flowjuyu Admin</p>
+          <p className="text-sm leading-none font-semibold text-[var(--seller-ink)]">Atlas Control</p>
+          <span className={accountMenuMetaPillClassName}>Flowjuyu Admin</span>
         </div>
       </div>
 
       {/* Quick stats */}
       <div className="px-3 pt-1 pb-2">
-        <p className="px-1 pb-1.5 text-[10px] font-semibold tracking-widest text-neutral-400 uppercase">
+        <p className="px-1 pb-1.5 text-[10px] font-semibold tracking-[0.16em] text-[var(--seller-faint-text)] uppercase">
           Quick Stats
         </p>
         <div className="grid grid-cols-3 gap-1.5">
           <Link
             href="/admin/tickets"
             onClick={onClose}
-            className={`${ts.tile} flex flex-col gap-0.5 rounded-lg px-2 py-2 transition-all hover:brightness-95`}
+            className={`${accountMenuStatCardClassName} ${ts.tile}`}
           >
             <span
               className={`text-base leading-none font-bold tabular-nums ${ts.value}`}
@@ -398,7 +429,7 @@ function AdminDropdown({
           <Link
             href="/admin/sellers"
             onClick={onClose}
-            className={`${ss.tile} flex flex-col gap-0.5 rounded-lg px-2 py-2 transition-all hover:brightness-95`}
+            className={`${accountMenuStatCardClassName} ${ss.tile}`}
           >
             <span
               className={`text-base leading-none font-bold tabular-nums ${ss.value}`}
@@ -415,7 +446,7 @@ function AdminDropdown({
           <Link
             href="/admin/leads"
             onClick={onClose}
-            className={`${ls.tile} flex flex-col gap-0.5 rounded-lg px-2 py-2 transition-all hover:brightness-95`}
+            className={`${accountMenuStatCardClassName} ${ls.tile}`}
           >
             <span
               className={`text-base leading-none font-bold tabular-nums ${ls.value}`}
@@ -432,80 +463,80 @@ function AdminDropdown({
       </div>
 
       {/* MAIN */}
-      <div className="border-t border-neutral-100 pt-1">
-        <p className="px-4 pt-1 pb-1 text-[10px] font-semibold tracking-widest text-neutral-400 uppercase">
+      <div className="border-t border-[var(--seller-line)] pt-1">
+        <p className={accountMenuSectionLabelClassName}>
           Main
         </p>
         <Link
           href="/admin"
           onClick={onClose}
-          className="flex items-center gap-2.5 px-4 py-2 transition-colors hover:bg-neutral-50"
+          className={accountMenuItemClassName}
         >
-          <LayoutDashboard className="h-3.5 w-3.5 shrink-0 text-zinc-500" />
+          <LayoutDashboard className={accountMenuItemIconClassName} />
           Dashboard
         </Link>
         <Link
           href="/admin/leads"
           onClick={onClose}
-          className="flex items-center gap-2.5 px-4 py-2 transition-colors hover:bg-neutral-50"
+          className={accountMenuItemClassName}
         >
-          <Users className="h-3.5 w-3.5 shrink-0 text-zinc-500" />
+          <Users className={accountMenuItemIconClassName} />
           Leads
         </Link>
       </div>
 
       {/* OPERATIONS */}
-      <div className="my-1.5 border-t border-neutral-100" />
-      <p className="px-4 pb-1 text-[10px] font-semibold tracking-widest text-neutral-400 uppercase">
+      <div className={accountMenuDividerClassName} />
+      <p className={accountMenuSectionLabelClassName}>
         Operations
       </p>
       <Link
         href="/admin/sellers"
         onClick={onClose}
-        className="flex items-center gap-2.5 px-4 py-2 transition-colors hover:bg-neutral-50"
-      >
-        <Store className="h-3.5 w-3.5 shrink-0 text-zinc-500" />
-        Sellers
-      </Link>
+        className={accountMenuItemClassName}
+        >
+          <Store className={accountMenuItemIconClassName} />
+          Sellers
+        </Link>
       <Link
         href="/admin/products"
         onClick={onClose}
-        className="flex items-center gap-2.5 px-4 py-2 transition-colors hover:bg-neutral-50"
-      >
-        <Package className="h-3.5 w-3.5 shrink-0 text-zinc-500" />
-        Products
-      </Link>
+        className={accountMenuItemClassName}
+        >
+          <Package className={accountMenuItemIconClassName} />
+          Products
+        </Link>
       <Link
         href="/admin/tickets"
         onClick={onClose}
-        className="flex items-center gap-2.5 px-4 py-2 transition-colors hover:bg-neutral-50"
-      >
-        <Ticket className="h-3.5 w-3.5 shrink-0 text-zinc-500" />
-        Tickets
-      </Link>
+        className={accountMenuItemClassName}
+        >
+          <Ticket className={accountMenuItemIconClassName} />
+          Tickets
+        </Link>
 
       {/* INTELLIGENCE */}
-      <div className="my-1.5 border-t border-neutral-100" />
-      <p className="px-4 pb-1 text-[10px] font-semibold tracking-widest text-neutral-400 uppercase">
+      <div className={accountMenuDividerClassName} />
+      <p className={accountMenuSectionLabelClassName}>
         Intelligence
       </p>
       <Link
         href="/admin/ai"
         onClick={onClose}
-        className="flex items-center gap-2.5 px-4 py-2 transition-colors hover:bg-neutral-50"
-      >
-        <Brain className="h-3.5 w-3.5 shrink-0 text-zinc-500" />
-        AI Control
-      </Link>
+        className={accountMenuItemClassName}
+        >
+          <Brain className={accountMenuItemIconClassName} />
+          AI Control
+        </Link>
 
       {/* Logout */}
-      <div className="mt-1.5 border-t border-neutral-100" />
+      <div className={accountMenuDividerClassName} />
       <button
         onClick={() => {
           onClose();
           onLogout();
         }}
-        className="flex w-full items-center gap-2.5 px-4 py-2.5 text-left text-red-600 transition-colors hover:bg-neutral-50"
+        className={accountMenuLogoutClassName}
       >
         <LogOut className="h-3.5 w-3.5 shrink-0" />
         {tr("nav.logout")}
@@ -530,11 +561,13 @@ export default function Header() {
   const [openAccount, setOpenAccount] = useState(false);
   const [helpOpen, setHelpOpen] = useState(false);
   const [mobileSearchOpen, setMobileSearchOpen] = useState(false);
+  const [headerVisible, setHeaderVisible] = useState(true);
 
   const helpRef = useRef<HTMLLIElement>(null);
   const accountRef = useRef<HTMLDivElement>(null);
   const createRef = useRef<HTMLDivElement>(null);
   const headerRef = useRef<HTMLElement>(null);
+  const lastScrollYRef = useRef(0);
 
   const isSellerPanel = pathname.startsWith("/seller");
   const normalizedRole = user?.role ?? null;
@@ -581,10 +614,41 @@ export default function Header() {
     setMobileSearchOpen(false);
   }, [pathname]);
 
+  useEffect(() => {
+    if (isSellerPanel || typeof window === "undefined") return;
+
+    lastScrollYRef.current = window.scrollY;
+
+    const handleScroll = () => {
+      const currentY = window.scrollY;
+      const delta = currentY - lastScrollYRef.current;
+
+      if (currentY <= 24) {
+        setHeaderVisible(true);
+      } else if (delta > 8) {
+        setHeaderVisible(false);
+      } else if (delta < -8) {
+        setHeaderVisible(true);
+      }
+
+      lastScrollYRef.current = currentY;
+    };
+
+    window.addEventListener("scroll", handleScroll, { passive: true });
+    return () => window.removeEventListener("scroll", handleScroll);
+  }, [isSellerPanel]);
+
   if (isSellerPanel) return null;
 
   return (
-    <header className="sticky top-0 z-50 w-full shadow-[0_14px_38px_rgba(5,18,14,0.14)]" ref={headerRef}>
+    <>
+      <div aria-hidden="true" className="h-[var(--header-height)]" />
+      <header
+        className={`fixed inset-x-0 top-0 z-50 w-full shadow-[0_14px_38px_rgba(5,18,14,0.14)] transition-transform duration-300 ${
+          headerVisible ? "translate-y-0" : "-translate-y-full"
+        }`}
+        ref={headerRef}
+      >
       {/* ── Top bar ──────────────────────────────────────────── */}
       <div className="brand-shell border-b border-[var(--brand-line)] text-white">
         <div className="mx-auto flex h-14 max-w-screen-xl items-center gap-2 px-4 md:h-16 md:gap-4 md:px-8">
@@ -751,7 +815,7 @@ export default function Header() {
                   }}
                   aria-expanded={openAccount}
                   aria-haspopup="true"
-                  className="hidden items-center gap-1.5 rounded-full border border-white/20 px-3.5 py-1.5 text-[12px] tracking-[0.12em] transition-colors hover:bg-white/10 focus-visible:outline focus-visible:outline-2 focus-visible:outline-[var(--brand-accent)] md:inline-flex"
+                  className={accountTriggerClassName}
                 >
                   {isAdmin ? (
                     <ShieldCheck className="h-4 w-4 shrink-0" />
@@ -788,85 +852,83 @@ export default function Header() {
                     )}
 
                     {!isAdmin && isSeller && (
-                      <div className="w-60 rounded-xl border border-neutral-100 bg-white py-1.5 text-sm text-neutral-800 shadow-2xl">
-                        <div className="mb-1 flex items-center gap-2 border-b border-neutral-100 px-4 pb-2">
-                          <div className="flex h-6 w-6 shrink-0 items-center justify-center rounded-md bg-[#0f2e22]">
-                            <Store className="h-3.5 w-3.5 text-white" />
+                      <div className={accountMenuCardClassName}>
+                        <div className={accountMenuIdentityClassName}>
+                          <div className={accountMenuIdentityIconClassName}>
+                            <Store className="h-4 w-4" />
                           </div>
-                          <div>
-                            <p className="text-xs leading-none font-semibold">
-                              {tr("nav.sellerPanel")}
+                          <div className="min-w-0">
+                            <p className="text-sm leading-none font-semibold text-[var(--seller-ink)]">
+                              {user.name ?? tr("nav.sellerPanel")}
                             </p>
-                            <p className="mt-0.5 text-[10px] text-neutral-400">
-                              Flowjuyu Seller
-                            </p>
+                            <span className={accountMenuMetaPillClassName}>Flowjuyu Seller</span>
                           </div>
                         </div>
 
-                        <p className="px-4 pt-1 pb-1 text-[10px] font-semibold tracking-widest text-neutral-400 uppercase">
+                        <p className={accountMenuSectionLabelClassName}>
                           {tr("nav.activity")}
                         </p>
                         <Link
                           href="/seller/dashboard"
                           onClick={() => setOpenAccount(false)}
-                          className="flex items-center gap-2.5 px-4 py-2 transition-colors hover:bg-neutral-50"
+                          className={accountMenuItemClassName}
                         >
-                          <LayoutDashboard className="h-3.5 w-3.5 shrink-0 text-zinc-500" />
+                          <LayoutDashboard className={accountMenuItemIconClassName} />
                           Resumen
                         </Link>
                         <Link
                           href="/seller/metrics"
                           onClick={() => setOpenAccount(false)}
-                          className="flex items-center gap-2.5 px-4 py-2 transition-colors hover:bg-neutral-50"
+                          className={accountMenuItemClassName}
                         >
-                          <LayoutDashboard className="h-3.5 w-3.5 shrink-0 text-zinc-500" />
+                          <LayoutDashboard className={accountMenuItemIconClassName} />
                           {tr("nav.metrics")}
                         </Link>
                         <Link
                           href="/seller/orders"
                           onClick={() => setOpenAccount(false)}
-                          className="flex items-center gap-2.5 px-4 py-2 transition-colors hover:bg-neutral-50"
+                          className={accountMenuItemClassName}
                         >
-                          <ShoppingBag className="h-3.5 w-3.5 shrink-0 text-zinc-500" />
+                          <ShoppingBag className={accountMenuItemIconClassName} />
                           {tr("nav.orders")}
                         </Link>
                         <Link
                           href="/seller/products"
                           onClick={() => setOpenAccount(false)}
-                          className="flex items-center gap-2.5 px-4 py-2 transition-colors hover:bg-neutral-50"
+                          className={accountMenuItemClassName}
                         >
-                          <Package className="h-3.5 w-3.5 shrink-0 text-zinc-500" />
+                          <Package className={accountMenuItemIconClassName} />
                           {tr("nav.products")}
                         </Link>
 
-                        <div className="my-1.5 border-t border-neutral-100" />
-                        <p className="px-4 pb-1 text-[10px] font-semibold tracking-widest text-neutral-400 uppercase">
+                        <div className={accountMenuDividerClassName} />
+                        <p className={accountMenuSectionLabelClassName}>
                           {tr("nav.myBusiness")}
                         </p>
                         <Link
                           href="/seller/my-business"
                           onClick={() => setOpenAccount(false)}
-                          className="flex items-center gap-2.5 px-4 py-2 transition-colors hover:bg-neutral-50"
+                          className={accountMenuItemClassName}
                         >
-                          <Store className="h-3.5 w-3.5 shrink-0 text-zinc-500" />
+                          <Store className={accountMenuItemIconClassName} />
                           {tr("nav.myStore")}
                         </Link>
                         <Link
                           href="/seller/account"
                           onClick={() => setOpenAccount(false)}
-                          className="flex items-center gap-2.5 px-4 py-2 transition-colors hover:bg-neutral-50"
+                          className={accountMenuItemClassName}
                         >
-                          <Settings className="h-3.5 w-3.5 shrink-0 text-zinc-500" />
+                          <Settings className={accountMenuItemIconClassName} />
                           {tr("nav.accountSecurity")}
                         </Link>
 
-                        <div className="my-1 border-t border-neutral-100" />
+                        <div className={accountMenuDividerClassName} />
                         <button
                           onClick={() => {
                             setOpenAccount(false);
                             logout();
                           }}
-                          className="flex w-full items-center gap-2.5 px-4 py-2.5 text-left text-red-600 transition-colors hover:bg-neutral-50"
+                          className={accountMenuLogoutClassName}
                         >
                           <LogOut className="h-4 w-4 shrink-0" />
                           {tr("nav.logout")}
@@ -1085,6 +1147,7 @@ export default function Header() {
           </span>
         </div>
       </nav>
-    </header>
+      </header>
+    </>
   );
 }

@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, type CSSProperties, type ReactNode } from "react";
+import { useEffect, useRef, useState, type CSSProperties, type ReactNode } from "react";
 import { ImageIcon } from "lucide-react";
 
 type CanvasItem = {
@@ -23,16 +23,21 @@ type CollectionArtworkPreviewProps = {
   items?: CanvasItem[] | null;
   backgroundColor?: string | null;
   backgroundStyle?: string | null;
+  backgroundImageUrl?: string | null;
   canvasWidth?: number | null;
   canvasHeight?: number | null;
   className?: string;
   imageFit?: "cover" | "contain";
   emptyTitle?: string;
   emptyDescription?: string;
+  /** Actual rendered pixel width — used to scale canvas elements proportionally. */
+  renderedWidth?: number | null;
 };
 
 const GOOGLE_FONTS_URL =
   "https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,400;0,700;1,400&family=Montserrat:wght@400;600;700&family=Lato:ital,wght@0,400;0,700;1,400&family=Raleway:wght@400;600;700&family=Oswald:wght@400;600;700&family=Pacifico&family=Dancing+Script:wght@400;700&family=Nunito:wght@400;600;700&family=Bebas+Neue&family=Satisfy&family=Abril+Fatface&family=Josefin+Sans:ital,wght@0,400;0,700&display=swap";
+
+const FALLBACK_BACKGROUND = "linear-gradient(135deg, #FFF8F0 0%, #F5EEE5 42%, #E9DFD2 100%)";
 
 function buildTransform(rotation: number, flipX: boolean, flipY: boolean): string | undefined {
   const parts: string[] = [];
@@ -100,7 +105,19 @@ function getShapeBackground(content: Record<string, unknown> | null | undefined)
   return color1;
 }
 
-function buildTextStyle(content: Record<string, unknown> | null | undefined): CSSProperties {
+// scale = renderedWidth / canvasWidth  (e.g. 300px preview of a 1080px canvas → 0.278)
+function buildTextStyle(content: Record<string, unknown> | null | undefined, scale: number): CSSProperties {
+  const rawFontWeight = content?.fontWeight;
+  const fontWeight =
+    typeof rawFontWeight === "number"
+      ? rawFontWeight
+      : rawFontWeight === "normal"
+        ? 400
+        : rawFontWeight === "bold"
+          ? 700
+          : rawFontWeight === "500" || rawFontWeight === "600" || rawFontWeight === "700"
+            ? Number(rawFontWeight)
+            : 700;
   const hasBackground = typeof content?.bgColor === "string" && content.bgColor.length > 0;
   const textAlign =
     content?.textAlign === "left" ||
@@ -113,24 +130,24 @@ function buildTextStyle(content: Record<string, unknown> | null | undefined): CS
     alignItems: "center",
     justifyContent: textAlign === "right" ? "flex-end" : textAlign === "center" ? "center" : "flex-start",
     color: typeof content?.color === "string" ? content.color : "#2f2a25",
-    fontSize: Math.max(7, Number(content?.fontSize ?? 20) * 0.18),
-    fontWeight: content?.fontWeight === "normal" ? 400 : 700,
+    fontSize: Math.max(6, Number(content?.fontSize ?? 20) * scale),
+    fontWeight,
     fontStyle: content?.fontStyle === "italic" ? "italic" : "normal",
     textAlign,
     lineHeight: Number(content?.lineHeight ?? 1.1),
-    letterSpacing: Number(content?.letterSpacing ?? 0) * 0.12,
-    padding: `${Math.max(1, Number(content?.paddingY ?? 8) * 0.18)}px ${Math.max(1, Number(content?.paddingX ?? 10) * 0.18)}px`,
+    letterSpacing: `${Number(content?.letterSpacing ?? 0) * scale}px`,
+    padding: `${Math.max(1, Number(content?.paddingY ?? 8) * scale)}px ${Math.max(1, Number(content?.paddingX ?? 10) * scale)}px`,
     whiteSpace: "pre-wrap",
     wordBreak: "break-word",
     fontFamily: typeof content?.fontFamily === "string" ? content.fontFamily : "inherit",
     textShadow: content?.shadow
-      ? `${Number(content?.shadowX ?? 2) * 0.18}px ${Number(content?.shadowY ?? 2) * 0.18}px ${Math.max(1, Number(content?.shadowBlur ?? 4) * 0.18)}px ${typeof content?.shadowColor === "string" ? content.shadowColor : "#000000"}`
+      ? `${Number(content?.shadowX ?? 2) * scale}px ${Number(content?.shadowY ?? 2) * scale}px ${Math.max(0.5, Number(content?.shadowBlur ?? 4) * scale)}px ${typeof content?.shadowColor === "string" ? content.shadowColor : "#000000"}`
       : undefined,
     WebkitTextStroke: content?.outline
-      ? `${Math.max(0.5, Number(content?.outlineWidth ?? 1) * 0.18)}px ${typeof content?.outlineColor === "string" ? content.outlineColor : "#000000"}`
+      ? `${Math.max(0.3, Number(content?.outlineWidth ?? 1) * scale)}px ${typeof content?.outlineColor === "string" ? content.outlineColor : "#000000"}`
       : undefined,
     background: hasBackground ? hexToRgba(String(content.bgColor), Number(content?.bgOpacity ?? 0.6)) : undefined,
-    borderRadius: hasBackground ? 8 : undefined,
+    borderRadius: hasBackground ? Math.max(2, 8 * scale) : undefined,
   };
 }
 
@@ -147,7 +164,7 @@ function buildShapeStyle(content: Record<string, unknown> | null | undefined, sc
       ? `${strokeWidth}px solid ${typeof content?.strokeColor === "string" ? content.strokeColor : "#000000"}`
       : undefined,
     boxSizing: "border-box",
-    ...(shapeType === "line" ? { minHeight: Math.max(2, 3 * scale), borderRadius: 999 } : {}),
+    ...(shapeType === "line" ? { minHeight: Math.max(1, 3 * scale), borderRadius: 999 } : {}),
   };
 }
 
@@ -157,19 +174,24 @@ export default function CollectionArtworkPreview({
   items,
   backgroundColor,
   backgroundStyle,
+  backgroundImageUrl,
   canvasWidth,
   canvasHeight,
   className = "",
   imageFit = "cover",
   emptyTitle = "Aún no hay imagen promocional",
   emptyDescription = "Puedes subir una portada ya editada o diseñarla en canvas si quieres una imagen nueva.",
+  renderedWidth,
 }: CollectionArtworkPreviewProps) {
   const width = Math.max(1, Number(canvasWidth ?? 1080));
   const height = Math.max(1, Number(canvasHeight ?? 1080));
   const safeItems = Array.isArray(items) ? items : [];
   const hasCanvasArtwork = safeItems.length > 0;
-  const background = backgroundStyle || backgroundColor || "linear-gradient(135deg,#FFF8F0_0%,#F5EEE5_42%,#E9DFD2_100%)";
-  const previewScale = 0.18;
+  const background = backgroundStyle || backgroundColor || FALLBACK_BACKGROUND;
+
+  // Scale all pixel-based values relative to how large the preview actually renders.
+  // Fallback 0.18 keeps backward compat when renderedWidth is not provided.
+  const previewScale = renderedWidth ? renderedWidth / width : 0.18;
 
   useEffect(() => {
     const needsFontSheet = safeItems.some((item) => {
@@ -193,6 +215,8 @@ export default function CollectionArtworkPreview({
       <img
         src={imageUrl}
         alt={name}
+        draggable={false}
+        loading="lazy"
         className={`h-full w-full ${imageFit === "contain" ? "object-contain" : "object-cover"} ${className}`.trim()}
       />
     );
@@ -201,6 +225,16 @@ export default function CollectionArtworkPreview({
   if (hasCanvasArtwork) {
     return (
       <div className={`relative h-full w-full overflow-hidden ${className}`.trim()} style={{ background }}>
+        {backgroundImageUrl ? (
+          <img
+            src={backgroundImageUrl}
+            alt=""
+            aria-hidden="true"
+            draggable={false}
+            loading="lazy"
+            className="pointer-events-none absolute inset-0 h-full w-full object-cover"
+          />
+        ) : null}
         {safeItems.slice().sort((a, b) => Number(a.z_index ?? 0) - Number(b.z_index ?? 0)).map((item, index) => {
           const left = `${(Number(item.pos_x ?? 0) / width) * 100}%`;
           const top = `${(Number(item.pos_y ?? 0) / height) * 100}%`;
@@ -225,7 +259,7 @@ export default function CollectionArtworkPreview({
 
           if (item.element_type === "text") {
             return (
-              <div key={key} style={{ ...commonStyle, ...buildTextStyle(content) }}>
+              <div key={key} style={{ ...commonStyle, ...buildTextStyle(content, previewScale) }}>
                 {typeof content?.text === "string" ? content.text : "Texto"}
               </div>
             );
@@ -243,10 +277,12 @@ export default function CollectionArtworkPreview({
                 key={key}
                 src={imageSrc}
                 alt=""
+                draggable={false}
+                loading="lazy"
                 style={{
                   ...commonStyle,
                   objectFit: content?.objectFit === "contain" ? "contain" : "cover",
-                  borderRadius: `${Math.max(2, Number(content?.borderRadius ?? 8) * previewScale)}px`,
+                  borderRadius: `${Math.max(1, Number(content?.borderRadius ?? 8) * previewScale)}px`,
                   opacity: Number(content?.opacity ?? 1),
                   boxShadow: buildBoxShadow(content, previewScale),
                   display: "block",
@@ -262,12 +298,31 @@ export default function CollectionArtworkPreview({
                   key={key}
                   src={item.product_image}
                   alt={item.product_name ?? ""}
-                  style={{ ...commonStyle, borderRadius: 8 * previewScale }}
-                  className="object-cover"
+                  draggable={false}
+                  loading="lazy"
+                  style={{
+                    ...commonStyle,
+                    objectFit: content?.objectFit === "contain" ? "contain" : "cover",
+                    borderRadius: `${Math.max(0, Number(content?.borderRadius ?? 0) * previewScale)}px`,
+                    opacity: Number(content?.opacity ?? 1),
+                    boxShadow: buildBoxShadow(content, previewScale),
+                    display: "block",
+                  }}
                 />
               );
             }
-            return <div key={key} style={{ ...commonStyle, background: "#dbe4ea", borderRadius: 10 }} />;
+            return (
+              <div
+                key={key}
+                style={{
+                  ...commonStyle,
+                  background: "#dbe4ea",
+                  borderRadius: `${Math.max(0, Number(content?.borderRadius ?? 0) * previewScale)}px`,
+                  opacity: Number(content?.opacity ?? 1),
+                  boxShadow: buildBoxShadow(content, previewScale),
+                }}
+              />
+            );
           }
 
           return null;
@@ -289,12 +344,12 @@ export default function CollectionArtworkPreview({
 
 // ---------------------------------------------------------------------------
 // CollectionPreviewBox
-// A sizing wrapper that adapts to the canvas aspect ratio while clamping to
-// configurable maxWidth / maxHeight bounds. When one side hits its maximum,
-// the other side scales proportionally — no hardcoded square boxes.
+// Sizes itself to the canvas aspect ratio, clamped by maxWidth / maxHeight.
+// Measures its own rendered width via ResizeObserver and passes it to
+// CollectionArtworkPreview so pixel-based canvas values scale correctly.
 // ---------------------------------------------------------------------------
 
-export type CollectionPreviewBoxProps = Omit<CollectionArtworkPreviewProps, "className"> & {
+export type CollectionPreviewBoxProps = Omit<CollectionArtworkPreviewProps, "className" | "renderedWidth"> & {
   /** Max pixel width. Default 360. */
   maxWidth?: number;
   /** Max pixel height. Default 360. */
@@ -316,12 +371,27 @@ export function CollectionPreviewBox({
 }: CollectionPreviewBoxProps) {
   const w = Math.max(1, Number(canvasWidth ?? 1080));
   const h = Math.max(1, Number(canvasHeight ?? 1080));
-  // Largest width that keeps both dimensions within their respective maxima
+  // Largest width where neither dimension exceeds its maximum
   const effectiveMaxWidth = Math.min(maxWidth, Math.round(maxHeight * (w / h)));
+
+  const boxRef = useRef<HTMLDivElement>(null);
+  const [renderedWidth, setRenderedWidth] = useState<number | null>(null);
+
+  useEffect(() => {
+    const el = boxRef.current;
+    if (!el) return;
+    const observer = new ResizeObserver((entries) => {
+      const entry = entries[0];
+      if (entry) setRenderedWidth(entry.contentRect.width);
+    });
+    observer.observe(el);
+    return () => observer.disconnect();
+  }, []);
 
   return (
     <div
-      className={`relative overflow-hidden ${className}`.trim()}
+      ref={boxRef}
+      className={`relative mx-auto overflow-hidden ${className}`.trim()}
       style={{
         aspectRatio: `${w} / ${h}`,
         width: "100%",
@@ -331,6 +401,7 @@ export function CollectionPreviewBox({
       <CollectionArtworkPreview
         canvasWidth={canvasWidth}
         canvasHeight={canvasHeight}
+        renderedWidth={renderedWidth}
         {...artworkProps}
       />
       {children}

@@ -1,8 +1,8 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useState } from "react";
 import Link from "next/link";
-import { Copy, Loader2, Shuffle } from "lucide-react";
+import { Copy, Loader2 } from "lucide-react";
 import { PageBackNav } from "@/components/ui/PageBackNav";
 import { CollectionPreviewBox } from "@/components/seller/CollectionArtworkPreview";
 import { apiFetch } from "@/lib/api";
@@ -37,12 +37,8 @@ type CollectionTemplate = {
 
 type SellerProduct = {
   id: string;
-  nombre?: string;
-};
-
-type ProductEditPreview = {
-  imagen_principal?: string | null;
-  imagenes?: Array<{ id: number; url: string }>;
+  nombre: string;
+  imagen_url: string | null;
 };
 
 function getCanvasFormatLabel(width: number, height: number) {
@@ -83,96 +79,42 @@ function parseTemplateItems(itemsSnapshot: CollectionTemplate["items_snapshot"])
   }
 }
 
-function buildSampleProductImages(product: ProductEditPreview | null): string[] {
-  if (!product) return [];
-  const gallery = Array.isArray(product.imagenes)
-    ? product.imagenes.map((image) => image?.url).filter((url): url is string => typeof url === "string" && url.length > 0)
-    : [];
-  const merged = [product.imagen_principal, ...gallery].filter((url): url is string => typeof url === "string" && url.length > 0);
-  return [...new Set(merged)].slice(0, 3);
-}
-
-function injectSampleProductImages(items: TemplateCanvasItem[], sampleImages: string[]): TemplateCanvasItem[] {
-  if (sampleImages.length === 0) return items;
-  let sampleIndex = 0;
+function injectSellerProducts(items: TemplateCanvasItem[], products: SellerProduct[]): TemplateCanvasItem[] {
+  if (products.length === 0) return items;
+  let idx = 0;
   return items.map((item) => {
     if (item.element_type !== "product") return item;
-    const nextImage = sampleImages[Math.min(sampleIndex, sampleImages.length - 1)] ?? item.product_image ?? null;
-    sampleIndex += 1;
-    return {
-      ...item,
-      product_image: nextImage,
-    };
+    const product = products[idx % products.length];
+    idx++;
+    return { ...item, product_image: product.imagen_url, product_name: product.nombre };
   });
 }
 
 export default function SellerTemplatesPage() {
   const [templates, setTemplates] = useState<CollectionTemplate[]>([]);
   const [sellerProducts, setSellerProducts] = useState<SellerProduct[]>([]);
-  const [selectedSampleProductId, setSelectedSampleProductId] = useState<string>("");
-  const [sampleProductPreview, setSampleProductPreview] = useState<ProductEditPreview | null>(null);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
     Promise.all([
-      apiFetch("/api/collections/templates").then((r) => r.json()),
-      apiFetch("/api/seller/products").then((r) => r.json()).catch(() => []),
-    ])
-      .then(([templatesRes, sellerProductsRes]) => {
-        setTemplates(Array.isArray(templatesRes?.data) ? templatesRes.data : []);
-
-        const sellerProducts = Array.isArray(sellerProductsRes)
-          ? sellerProductsRes
-          : sellerProductsRes?.data ?? sellerProductsRes?.productos ?? [];
-        const normalizedProducts = Array.isArray(sellerProducts) ? sellerProducts : [];
-        setSellerProducts(normalizedProducts);
-        if (normalizedProducts.length > 0) {
-          const randomIndex = Math.floor(Math.random() * normalizedProducts.length);
-          setSelectedSampleProductId(normalizedProducts[randomIndex]?.id ?? "");
-        }
-      })
-      .finally(() => setLoading(false));
+      apiFetch("/api/collections/templates/mine").then((r) => r.json()),
+      apiFetch("/api/seller/products").then((r) => r.json()),
+    ]).then(([templatesRes, productsRes]) => {
+      setTemplates(Array.isArray(templatesRes?.data) ? templatesRes.data : []);
+      const raw: any[] = productsRes?.data ?? productsRes?.productos ?? (Array.isArray(productsRes) ? productsRes : []);
+      setSellerProducts(
+        raw
+          .filter((p: any) => p.activo !== false && p.imagen_url)
+          .map((p: any) => ({ id: p.id, nombre: p.nombre, imagen_url: p.imagen_url }))
+      );
+    }).finally(() => setLoading(false));
   }, []);
-
-  useEffect(() => {
-    if (!selectedSampleProductId) {
-      setSampleProductPreview(null);
-      return;
-    }
-
-    let cancelled = false;
-
-    apiFetch(`/api/productos/${selectedSampleProductId}/edit`)
-      .then((r) => r.json())
-      .then((data) => {
-        if (!cancelled) setSampleProductPreview(data?.product ?? null);
-      })
-      .catch(() => {
-        if (!cancelled) setSampleProductPreview(null);
-      });
-
-    return () => {
-      cancelled = true;
-    };
-  }, [selectedSampleProductId]);
-
-  const selectedSampleProduct = useMemo(
-    () => sellerProducts.find((product) => product.id === selectedSampleProductId) ?? null,
-    [sellerProducts, selectedSampleProductId],
-  );
 
   const sortedTemplates = [...templates].sort((a, b) => {
     const metaA = getTemplateMeta(a.name);
     const metaB = getTemplateMeta(b.name);
     return metaA.family.localeCompare(metaB.family) || metaA.variant.localeCompare(metaB.variant);
   });
-
-  function pickRandomSampleProduct() {
-    if (sellerProducts.length < 2) return;
-    const availableProducts = sellerProducts.filter((product) => product.id !== selectedSampleProductId);
-    const randomIndex = Math.floor(Math.random() * availableProducts.length);
-    setSelectedSampleProductId(availableProducts[randomIndex]?.id ?? selectedSampleProductId);
-  }
 
   return (
     <div className="space-y-6">
@@ -191,62 +133,7 @@ export default function SellerTemplatesPage() {
             Biblioteca premium para lanzar colecciones con mejor jerarquia, tono y adaptacion por formato.
           </p>
         </div>
-        {sellerProducts.length > 0 ? (
-          <div className="hidden min-w-[240px] items-center gap-2 md:flex">
-            <select
-              value={selectedSampleProductId}
-              onChange={(e) => setSelectedSampleProductId(e.target.value)}
-              className="h-10 w-full rounded-lg border border-neutral-200 bg-white px-3 text-sm text-neutral-700 outline-none focus:border-[#0F3D3A]"
-            >
-              {sellerProducts.map((product, index) => (
-                <option key={product.id} value={product.id}>
-                  {product.nombre || `Producto ${index + 1}`}
-                </option>
-              ))}
-            </select>
-            <button
-              type="button"
-              onClick={pickRandomSampleProduct}
-              className="inline-flex h-10 w-10 items-center justify-center rounded-lg border border-neutral-200 text-neutral-600 transition hover:bg-neutral-50 disabled:opacity-50"
-              disabled={sellerProducts.length < 2}
-              title="Cambiar producto de muestra"
-            >
-              <Shuffle className="h-4 w-4" />
-            </button>
-          </div>
-        ) : null}
       </div>
-
-      {sellerProducts.length > 0 ? (
-        <div className="flex items-center gap-2 md:hidden">
-          <select
-            value={selectedSampleProductId}
-            onChange={(e) => setSelectedSampleProductId(e.target.value)}
-            className="h-10 w-full rounded-lg border border-neutral-200 bg-white px-3 text-sm text-neutral-700 outline-none focus:border-[#0F3D3A]"
-          >
-            {sellerProducts.map((product, index) => (
-              <option key={product.id} value={product.id}>
-                {product.nombre || `Producto ${index + 1}`}
-              </option>
-            ))}
-          </select>
-          <button
-            type="button"
-            onClick={pickRandomSampleProduct}
-            className="inline-flex h-10 w-10 items-center justify-center rounded-lg border border-neutral-200 text-neutral-600 transition hover:bg-neutral-50 disabled:opacity-50"
-            disabled={sellerProducts.length < 2}
-            title="Cambiar producto de muestra"
-          >
-            <Shuffle className="h-4 w-4" />
-          </button>
-        </div>
-      ) : null}
-
-      {selectedSampleProduct ? (
-        <p className="text-xs text-neutral-500">
-          Muestra: {selectedSampleProduct.nombre || "Producto seleccionado"}
-        </p>
-      ) : null}
 
       {loading ? (
         <div className="flex h-48 items-center justify-center">
@@ -260,18 +147,16 @@ export default function SellerTemplatesPage() {
         <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-3">
           {sortedTemplates.map((template) => {
             const templateMeta = getTemplateMeta(template.name);
-            const templateItems = injectSampleProductImages(
-              parseTemplateItems(template.items_snapshot),
-              buildSampleProductImages(sampleProductPreview),
-            );
+            const rawItems = parseTemplateItems(template.items_snapshot);
+            const templateItems = injectSellerProducts(rawItems, sellerProducts);
             return (
             <div key={template.id} className="overflow-hidden rounded-2xl border border-neutral-200 bg-white">
               <CollectionPreviewBox
                 name={template.name}
-                imageUrl={template.thumbnail_url || template.background_image_url || null}
                 items={templateItems}
                 backgroundColor={template.background_color}
                 backgroundStyle={template.background_style}
+                backgroundImageUrl={template.background_image_url}
                 canvasWidth={template.canvas_width}
                 canvasHeight={template.canvas_height}
                 maxWidth={600}

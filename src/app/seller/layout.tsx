@@ -253,7 +253,7 @@ export default function SellerLayout({ children }: { children: ReactNode }) {
 
           <div className="relative z-0 flex min-h-screen min-w-0 flex-1 flex-col">
             {/* ================= MOBILE HEADER ================= */}
-            <div className="flex items-center justify-between border-b border-[var(--seller-line)] bg-[linear-gradient(180deg,rgba(255,255,255,0.96),rgba(252,251,248,0.92))] px-4 py-4 md:hidden">
+            <div className="fixed inset-x-0 top-0 z-30 flex items-center justify-between border-b border-[var(--seller-line)] bg-[linear-gradient(180deg,rgba(255,255,255,0.96),rgba(252,251,248,0.92))] px-4 py-4 md:hidden">
               <div>
                 <p className="text-[10px] font-semibold uppercase tracking-[0.16em] text-[var(--seller-faint-text)]">
                   Flowjuyu Seller
@@ -271,7 +271,7 @@ export default function SellerLayout({ children }: { children: ReactNode }) {
             </div>
 
             {/* ================= TOPBAR DESKTOP ================= */}
-            <div className="hidden md:block">
+            <div className="fixed inset-x-0 top-0 z-30 hidden md:block">
               <SellerTopbar
                 businessName={businessName}
                 status={sellerStatus}
@@ -283,7 +283,9 @@ export default function SellerLayout({ children }: { children: ReactNode }) {
             </div>
 
             {/* ================= MAIN ================= */}
-            <PageShell>{children}</PageShell>
+            <div className="pt-[81px] md:pt-[92px]">
+              <PageShell>{children}</PageShell>
+            </div>
 
             <WhatsAppFloatingButton />
           </div>

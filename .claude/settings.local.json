@@ -41,7 +41,9 @@
       "Bash(grep -E \"\\(^|/\\)layout.tsx$\")",
       "Bash(git commit -m ' *)",
       "Bash(git push *)",
-      "Bash(vercel --prod)"
+      "Bash(vercel --prod)",
+      "Bash(npx --prefix \"C:/Users/Dell/Projects/Flowjuyu-1.0/flowjuyu-backend\" tsc --noEmit)",
+      "Bash(npx --prefix \"C:/Users/Dell/Projects/Flowjuyu-1.0/flowjuyu-frontend\" tsc --noEmit)"
     ],
     "additionalDirectories": [
       "C:\\Users\\Dell\\Projects\\Flowjuyu-1.0\\flowjuyu-backend\\src\\services",
@@ -52,7 +54,8 @@
       "c:\\Users\\Dell\\Projects\\Flowjuyu-1.0\\flowjuyu-backend\\src\\middleware",
       "c:\\Users\\Dell\\Projects\\Flowjuyu-1.0\\flowjuyu-backend\\src\\routes",
       "c:\\Users\\Dell\\Projects\\Flowjuyu-1.0\\flowjuyu-backend\\src",
-      "c:\\Users\\Dell\\Projects\\Flowjuyu-1.0\\flowjuyu-frontend\\.next"
+      "c:\\Users\\Dell\\Projects\\Flowjuyu-1.0\\flowjuyu-frontend\\.next",
+      "C:\\Users\\Dell\\Projects\\Flowjuyu-1.0\\flowjuyu-backend"
     ]
   }
 }

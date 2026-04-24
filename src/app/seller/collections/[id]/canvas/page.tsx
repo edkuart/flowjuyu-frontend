@@ -11,7 +11,7 @@ import {
   Grid3x3, Undo2, Redo2, Lock, Unlock,
   AlignHorizontalJustifyStart, AlignHorizontalJustifyCenter, AlignHorizontalJustifyEnd,
   AlignVerticalJustifyStart, AlignVerticalJustifyCenter, AlignVerticalJustifyEnd,
-  Minus, Plus, Sparkles,
+  Minus, Plus, Sparkles, RefreshCw,
 } from "lucide-react";
 import { apiFetch, invalidateCache } from "@/lib/api";
 import { useAuth } from "@/context/AuthContext";
@@ -897,6 +897,21 @@ function getCanvasFormatLabel(width: number, height: number): string {
   return "Horizontal";
 }
 
+function injectSellerProductsIntoSnapshot(
+  items: CanvasItem[],
+  products: Product[],
+): CanvasItem[] {
+  const withImages = products.filter((p) => p.imagen_url);
+  if (!withImages.length) return items;
+  let idx = 0;
+  return items.map((item) => {
+    if (item.element_type !== "product") return item;
+    const p = withImages[idx % withImages.length];
+    idx++;
+    return { ...item, product_image: p.imagen_url, product_name: p.nombre, product_price: p.precio };
+  });
+}
+
 function getCanvasSnapshotKey(width: number, height: number): string {
   return `${width}x${height}`;
 }
@@ -981,6 +996,8 @@ export default function CollectionEditorPage() {
   const [editingTextId, setEditingTextId]       = useState<number | null>(null);
   const [mobileTextEditorDraft, setMobileTextEditorDraft] = useState("");
   const [lockedItemIds, setLockedItemIds]       = useState<Set<number>>(new Set());
+  const [productSwapOpen, setProductSwapOpen]   = useState(false);
+  const [productSwapSearch, setProductSwapSearch] = useState("");
 
   // Undo/redo state (buttons only; logic is all in refs)
   const [canUndo, setCanUndo] = useState(false);
@@ -1026,7 +1043,9 @@ export default function CollectionEditorPage() {
     ? (previewTemplate.background_style || previewTemplate.background_color || "#FFFFFF")
     : computedBg;
   const displayBackgroundImageUrl = previewTemplate?.background_image_url ?? collection?.background_image_url ?? null;
-  const displayItems = previewTemplate?.items_snapshot ?? items;
+  const displayItems = previewTemplate?.items_snapshot
+    ? injectSellerProductsIntoSnapshot(previewTemplate.items_snapshot, products)
+    : items;
   const runtimeViewportWidth =
     mobileViewportWidth || (typeof window !== "undefined" ? window.innerWidth : 0);
   const isCompactPreviewViewport = isPreviewingTemplate && runtimeViewportWidth > 0 && runtimeViewportWidth < 768;
@@ -1520,6 +1539,11 @@ export default function CollectionEditorPage() {
     }
   }, []);
 
+  useEffect(() => {
+    setProductSwapOpen(false);
+    setProductSwapSearch("");
+  }, [selectedItemId]);
+
   // ── Load data ──────────────────────────────────────────────────────────────
   const loadCollection = useCallback(async () => {
     const colRes = await apiFetch(`/api/collections/${collectionId}`).then((r) => r.json());
@@ -1865,6 +1889,22 @@ export default function CollectionEditorPage() {
   };
 
   // ── Content update (debounced save) ───────────────────────────────────────
+
+  const handleSwapProduct = useCallback(async (itemId: number, product: Product) => {
+    setItems((prev) => prev.map((i) => i.id === itemId ? {
+      ...i,
+      product_id: product.id,
+      product_name: product.nombre,
+      product_image: product.imagen_url,
+      product_price: product.precio,
+    } : i));
+    setProductSwapOpen(false);
+    setProductSwapSearch("");
+    await apiFetch(`/api/collections/${collectionId}/items/${itemId}`, {
+      method: "PUT",
+      body: JSON.stringify({ product_id: product.id }),
+    });
+  }, [collectionId]);
 
   const updateItemContent = useCallback((itemId: number, newContent: ContentText | ContentShape | ContentImage | ContentProduct) => {
     setItems((prev) => prev.map((i) => i.id === itemId ? { ...i, content: newContent } : i));
@@ -2310,6 +2350,62 @@ export default function CollectionEditorPage() {
     const family = getTemplateMeta(template.name).family;
     return !(family in templatePriority);
   });
+  const renderTemplateLibraryArtwork = (template: CollectionTemplate, highlightNew = false) => {
+    const miniScale = Math.min(148 / template.canvas_width, 112 / template.canvas_height);
+    const miniWidth = Math.max(98, template.canvas_width * miniScale);
+    const miniHeight = Math.max(74, template.canvas_height * miniScale);
+    const hasTemplateItems = Array.isArray(template.items_snapshot) && template.items_snapshot.length > 0;
+    const backgroundStyle = template.background_style || template.background_color || "#FFFFFF";
+
+    return (
+      <div className="relative h-24 w-full overflow-hidden border-b border-neutral-100 bg-[linear-gradient(180deg,#FAF8F4_0%,#F2EEE6_100%)] md:h-32">
+        <div className="absolute inset-x-3 bottom-2 top-2 rounded-[18px] border border-white/80 bg-white/45 shadow-[inset_0_1px_0_rgba(255,255,255,0.8)] backdrop-blur-[2px] md:inset-x-4 md:bottom-3 md:top-3 md:rounded-[20px]" />
+        <div
+          className="absolute left-1/2 top-1/2 overflow-hidden rounded-xl border border-white/80 shadow-[0_18px_40px_rgba(15,61,58,0.18)]"
+          style={{
+            width: miniWidth,
+            height: miniHeight,
+            transform: "translate(-50%, -50%)",
+            background: backgroundStyle,
+          }}
+        >
+          {template.background_image_url && (
+            <img
+              src={template.background_image_url}
+              alt=""
+              className="absolute inset-0 h-full w-full object-cover"
+              draggable={false}
+            />
+          )}
+          {hasTemplateItems && (
+            <CollectionArtworkPreview
+              name={template.name}
+              items={injectSellerProductsIntoSnapshot(template.items_snapshot ?? [], products)}
+              backgroundStyle="transparent"
+              canvasWidth={template.canvas_width}
+              canvasHeight={template.canvas_height}
+              renderedWidth={miniWidth}
+              className="absolute inset-0 h-full w-full"
+              emptyTitle=""
+              emptyDescription=""
+            />
+          )}
+        </div>
+        <div className="pointer-events-none absolute left-2 top-2 rounded-full border border-white/70 bg-white/85 px-2 py-1 text-[9px] font-semibold uppercase tracking-[0.16em] text-neutral-500 shadow-sm md:left-3 md:top-3 md:text-[10px] md:tracking-[0.18em]">
+          {getCanvasFormatLabel(template.canvas_width, template.canvas_height)}
+        </div>
+        {highlightNew ? (
+          <div className="pointer-events-none absolute bottom-2 right-2 rounded-full bg-[#0F3D3A] px-2 py-1 text-[9px] font-medium text-white shadow-sm md:text-[10px]">
+            Nuevo
+          </div>
+        ) : (
+          <div className="pointer-events-none absolute bottom-2 right-2 rounded-full bg-black/65 px-2 py-1 text-[9px] font-medium text-white shadow-sm md:text-[10px]">
+            {template.canvas_width}x{template.canvas_height}
+          </div>
+        )}
+      </div>
+    );
+  };
 
   function getItemTransform(item: CanvasItem): string | undefined {
     const rotation = (item.content as any)?.rotation ?? 0;
@@ -2735,143 +2831,10 @@ export default function CollectionEditorPage() {
                         {featuredTemplates.map((template) => {
                           const templateMeta = getTemplateMeta(template.name);
                           const ownerScope = template.owner_scope === "mine" ? "mine" : "system";
-                          const miniScale = Math.min(148 / template.canvas_width, 112 / template.canvas_height);
-                          const miniWidth = Math.max(98, template.canvas_width * miniScale);
-                          const miniHeight = Math.max(74, template.canvas_height * miniScale);
 
                           return (
                             <div key={`featured-${template.id}`} className="overflow-hidden rounded-2xl border border-[#0F3D3A]/15 bg-[color:color-mix(in_srgb,#0F3D3A_3%,white)] shadow-[0_8px_30px_rgba(15,61,58,0.06)]">
-                              <div className="relative h-24 w-full overflow-hidden border-b border-neutral-100 bg-[linear-gradient(180deg,#FAF8F4_0%,#F2EEE6_100%)] md:h-32">
-                                <div className="absolute inset-x-3 bottom-2 top-2 rounded-[18px] border border-white/80 bg-white/45 shadow-[inset_0_1px_0_rgba(255,255,255,0.8)] backdrop-blur-[2px] md:inset-x-4 md:bottom-3 md:top-3 md:rounded-[20px]" />
-                                <div
-                                  className="absolute left-1/2 top-1/2 overflow-hidden rounded-xl border border-white/80 shadow-[0_18px_40px_rgba(15,61,58,0.18)]"
-                                  style={{
-                                    width: miniWidth,
-                                    height: miniHeight,
-                                    transform: "translate(-50%, -50%)",
-                                    background: template.background_style || template.background_color || "#FFFFFF",
-                                  }}
-                                >
-                                  {template.background_image_url && (
-                                    <img
-                                      src={template.background_image_url}
-                                      alt=""
-                                      className="absolute inset-0 h-full w-full object-cover"
-                                    />
-                                  )}
-                                  {(template.items_snapshot ?? []).slice(0, 10).map((item, index) => {
-                                    const scale = miniScale;
-                                    const left = (Number(item.pos_x ?? 0) * scale);
-                                    const top = (Number(item.pos_y ?? 0) * scale);
-                                    const width = Math.max(8, Number(item.width ?? 60) * scale);
-                                    const height = Math.max(8, Number(item.height ?? 40) * scale);
-                                    const content = item.content as any;
-
-                                    if (item.element_type === "text") {
-                                      return (
-                                        <div
-                                          key={`${template.id}-featured-text-${index}`}
-                                          style={{
-                                            position: "absolute",
-                                            left,
-                                            top,
-                                            width,
-                                            height,
-                                            color: content?.color ?? "#1a1a1a",
-                                            fontSize: Math.max(4, Number(content?.fontSize ?? 16) * scale * 0.7),
-                                            fontWeight: content?.fontWeight ?? "bold",
-                                            lineHeight: content?.lineHeight ?? 1,
-                                            letterSpacing: `${(content?.letterSpacing ?? 0) * scale}px`,
-                                            overflow: "hidden",
-                                            whiteSpace: "pre-wrap",
-                                            wordBreak: "break-word",
-                                            opacity: 0.95,
-                                          }}
-                                        >
-                                          {String(content?.text ?? "").slice(0, 30)}
-                                        </div>
-                                      );
-                                    }
-
-                                    if (item.element_type === "shape") {
-                                      return (
-                                        <div
-                                          key={`${template.id}-featured-shape-${index}`}
-                                          style={{
-                                            position: "absolute",
-                                            left,
-                                            top,
-                                            width,
-                                            height,
-                                            background: content?.gradientEnabled && content?.gradientColor2
-                                              ? `linear-gradient(${content?.gradientAngle ?? 135}deg, ${content?.fillColor}, ${content?.gradientColor2})`
-                                              : (content?.fillColor ?? "#0F3D3A"),
-                                            borderRadius: content?.shapeType === "circle" ? "999px" : `${Math.max(0, Number(content?.borderRadius ?? 8) * scale)}px`,
-                                            opacity: content?.opacity ?? 1,
-                                            boxShadow: buildBoxShadow({
-                                              shadowEnabled: content?.shadowEnabled,
-                                              shadowX: (content?.shadowX ?? 0) * scale,
-                                              shadowY: (content?.shadowY ?? 0) * scale,
-                                              shadowBlur: (content?.shadowBlur ?? 0) * scale,
-                                              shadowSpread: (content?.shadowSpread ?? 0) * scale,
-                                              shadowColor: content?.shadowColor,
-                                            }),
-                                          }}
-                                        />
-                                      );
-                                    }
-
-                                    if (item.element_type === "image" || item.element_type === "product") {
-                                      const imageUrl = content?.url || item.product_image;
-                                      return imageUrl ? (
-                                        <img
-                                          key={`${template.id}-featured-image-${index}`}
-                                          src={imageUrl}
-                                          alt=""
-                                          style={{
-                                            position: "absolute",
-                                            left,
-                                            top,
-                                            width,
-                                            height,
-                                            objectFit: content?.objectFit ?? "cover",
-                                            borderRadius: `${Math.max(2, Number(content?.borderRadius ?? 8) * scale)}px`,
-                                            boxShadow: buildBoxShadow({
-                                              shadowEnabled: content?.shadowEnabled,
-                                              shadowX: (content?.shadowX ?? 0) * scale,
-                                              shadowY: (content?.shadowY ?? 0) * scale,
-                                              shadowBlur: (content?.shadowBlur ?? 0) * scale,
-                                              shadowSpread: (content?.shadowSpread ?? 0) * scale,
-                                              shadowColor: content?.shadowColor,
-                                            }),
-                                          }}
-                                        />
-                                      ) : (
-                                        <div
-                                          key={`${template.id}-featured-placeholder-${index}`}
-                                          style={{
-                                            position: "absolute",
-                                            left,
-                                            top,
-                                            width,
-                                            height,
-                                            background: item.element_type === "product" ? "#dbe4ea" : "#e5e7eb",
-                                            borderRadius: "4px",
-                                          }}
-                                        />
-                                      );
-                                    }
-
-                                    return null;
-                                  })}
-                                </div>
-                                <div className="pointer-events-none absolute left-2 top-2 rounded-full border border-white/70 bg-white/85 px-2 py-1 text-[9px] font-semibold uppercase tracking-[0.16em] text-neutral-500 shadow-sm md:left-3 md:top-3 md:text-[10px] md:tracking-[0.18em]">
-                                  {getCanvasFormatLabel(template.canvas_width, template.canvas_height)}
-                                </div>
-                                <div className="pointer-events-none absolute bottom-2 right-2 rounded-full bg-[#0F3D3A] px-2 py-1 text-[9px] font-medium text-white shadow-sm md:text-[10px]">
-                                  Nuevo
-                                </div>
-                              </div>
+                              {renderTemplateLibraryArtwork(template, true)}
                               <div className="space-y-2 p-2.5 md:space-y-2.5 md:p-3">
                                 <div>
                                   <div className="mb-1.5 flex flex-wrap gap-1.5 md:mb-2">
@@ -2923,143 +2886,10 @@ export default function CollectionEditorPage() {
                     {regularTemplates.map((template) => {
                       const templateMeta = getTemplateMeta(template.name);
                       const ownerScope = template.owner_scope === "mine" ? "mine" : "system";
-                      const miniScale = Math.min(148 / template.canvas_width, 112 / template.canvas_height);
-                      const miniWidth = Math.max(98, template.canvas_width * miniScale);
-                      const miniHeight = Math.max(74, template.canvas_height * miniScale);
 
                       return (
                         <div key={template.id} className="overflow-hidden rounded-2xl border border-neutral-200 bg-white shadow-[0_8px_30px_rgba(15,61,58,0.06)]">
-                          <div className="relative h-24 w-full overflow-hidden border-b border-neutral-100 bg-[linear-gradient(180deg,#FAF8F4_0%,#F2EEE6_100%)] md:h-32">
-                            <div className="absolute inset-x-3 bottom-2 top-2 rounded-[18px] border border-white/80 bg-white/45 shadow-[inset_0_1px_0_rgba(255,255,255,0.8)] backdrop-blur-[2px] md:inset-x-4 md:bottom-3 md:top-3 md:rounded-[20px]" />
-                            <div
-                              className="absolute left-1/2 top-1/2 overflow-hidden rounded-xl border border-white/80 shadow-[0_18px_40px_rgba(15,61,58,0.18)]"
-                              style={{
-                                width: miniWidth,
-                                height: miniHeight,
-                                transform: "translate(-50%, -50%)",
-                                background: template.background_style || template.background_color || "#FFFFFF",
-                              }}
-                            >
-                              {template.background_image_url && (
-                                <img
-                                  src={template.background_image_url}
-                                  alt=""
-                                  className="absolute inset-0 h-full w-full object-cover"
-                                />
-                              )}
-                              {(template.items_snapshot ?? []).slice(0, 10).map((item, index) => {
-                                const scale = miniScale;
-                                const left = (Number(item.pos_x ?? 0) * scale);
-                                const top = (Number(item.pos_y ?? 0) * scale);
-                                const width = Math.max(8, Number(item.width ?? 60) * scale);
-                                const height = Math.max(8, Number(item.height ?? 40) * scale);
-                                const content = item.content as any;
-
-                                if (item.element_type === "text") {
-                                  return (
-                                    <div
-                                      key={`${template.id}-mini-text-${index}`}
-                                      style={{
-                                        position: "absolute",
-                                        left,
-                                        top,
-                                        width,
-                                        height,
-                                        color: content?.color ?? "#1a1a1a",
-                                        fontSize: Math.max(4, Number(content?.fontSize ?? 16) * scale * 0.7),
-                                        fontWeight: content?.fontWeight ?? "bold",
-                                        lineHeight: content?.lineHeight ?? 1,
-                                        letterSpacing: `${(content?.letterSpacing ?? 0) * scale}px`,
-                                        overflow: "hidden",
-                                        whiteSpace: "pre-wrap",
-                                        wordBreak: "break-word",
-                                        opacity: 0.95,
-                                      }}
-                                    >
-                                      {String(content?.text ?? "").slice(0, 30)}
-                                    </div>
-                                  );
-                                }
-
-                                if (item.element_type === "shape") {
-                                  return (
-                                    <div
-                                      key={`${template.id}-mini-shape-${index}`}
-                                      style={{
-                                        position: "absolute",
-                                        left,
-                                        top,
-                                        width,
-                                        height,
-                                        background: content?.gradientEnabled && content?.gradientColor2
-                                          ? `linear-gradient(${content?.gradientAngle ?? 135}deg, ${content?.fillColor}, ${content?.gradientColor2})`
-                                          : (content?.fillColor ?? "#0F3D3A"),
-                                        borderRadius: content?.shapeType === "circle" ? "999px" : `${Math.max(0, Number(content?.borderRadius ?? 8) * scale)}px`,
-                                        opacity: content?.opacity ?? 1,
-                                        boxShadow: buildBoxShadow({
-                                          shadowEnabled: content?.shadowEnabled,
-                                          shadowX: (content?.shadowX ?? 0) * scale,
-                                          shadowY: (content?.shadowY ?? 0) * scale,
-                                          shadowBlur: (content?.shadowBlur ?? 0) * scale,
-                                          shadowSpread: (content?.shadowSpread ?? 0) * scale,
-                                          shadowColor: content?.shadowColor,
-                                        }),
-                                      }}
-                                    />
-                                  );
-                                }
-
-                                if (item.element_type === "image" || item.element_type === "product") {
-                                  const imageUrl = content?.url || item.product_image;
-                                  return imageUrl ? (
-                                    <img
-                                      key={`${template.id}-mini-image-${index}`}
-                                      src={imageUrl}
-                                      alt=""
-                                      style={{
-                                        position: "absolute",
-                                        left,
-                                        top,
-                                        width,
-                                        height,
-                                        objectFit: content?.objectFit ?? "cover",
-                                        borderRadius: `${Math.max(2, Number(content?.borderRadius ?? 8) * scale)}px`,
-                                        boxShadow: buildBoxShadow({
-                                          shadowEnabled: content?.shadowEnabled,
-                                          shadowX: (content?.shadowX ?? 0) * scale,
-                                          shadowY: (content?.shadowY ?? 0) * scale,
-                                          shadowBlur: (content?.shadowBlur ?? 0) * scale,
-                                          shadowSpread: (content?.shadowSpread ?? 0) * scale,
-                                          shadowColor: content?.shadowColor,
-                                        }),
-                                      }}
-                                    />
-                                  ) : (
-                                    <div
-                                      key={`${template.id}-mini-placeholder-${index}`}
-                                      style={{
-                                        position: "absolute",
-                                        left,
-                                        top,
-                                        width,
-                                        height,
-                                        background: item.element_type === "product" ? "#dbe4ea" : "#e5e7eb",
-                                        borderRadius: "4px",
-                                      }}
-                                    />
-                                  );
-                                }
-
-                                return null;
-                              })}
-                            </div>
-                            <div className="pointer-events-none absolute left-2 top-2 rounded-full border border-white/70 bg-white/85 px-2 py-1 text-[9px] font-semibold uppercase tracking-[0.16em] text-neutral-500 shadow-sm md:left-3 md:top-3 md:text-[10px] md:tracking-[0.18em]">
-                              {getCanvasFormatLabel(template.canvas_width, template.canvas_height)}
-                            </div>
-                            <div className="pointer-events-none absolute bottom-2 right-2 rounded-full bg-black/65 px-2 py-1 text-[9px] font-medium text-white shadow-sm md:text-[10px]">
-                              {template.canvas_width}×{template.canvas_height}
-                            </div>
-                          </div>
+                          {renderTemplateLibraryArtwork(template)}
                           <div className="space-y-2 p-2.5 md:space-y-2.5 md:p-3">
                             <div>
                               <div className="mb-1.5 flex flex-wrap gap-1.5 md:mb-2">
@@ -3747,6 +3577,21 @@ export default function CollectionEditorPage() {
                               <span className="rounded bg-black/60 px-1.5 py-0.5 text-[9px] text-white">doble clic para editar</span>
                             </div>
                           )}
+                          {item.element_type === "product" && (
+                            <button
+                              onPointerDown={(e) => e.stopPropagation()}
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                setProductSwapOpen((o) => !o);
+                                setMobilePanel("properties");
+                              }}
+                              className="absolute -bottom-5 inset-x-0 flex justify-center"
+                            >
+                              <span className="rounded bg-[#0F3D3A]/80 px-1.5 py-0.5 text-[9px] text-white flex items-center gap-0.5">
+                                <RefreshCw className="h-2.5 w-2.5" /> cambiar producto
+                              </span>
+                            </button>
+                          )}
                         </>)}
                       </>
                     )}
@@ -4254,12 +4099,63 @@ export default function CollectionEditorPage() {
                 );
               })()}
 
-              {/* ── PRODUCT info ── */}
-              {selectedItem.element_type === "product" && selectedItem.product_name && (
-                <div className="rounded-lg bg-neutral-50 p-2">
-                  <p className="text-[11px] text-neutral-400">Producto</p>
-                  <p className="truncate text-xs font-medium text-neutral-700">{selectedItem.product_name}</p>
-                  <p className="text-[11px] text-neutral-400">Q{Number(selectedItem.product_price ?? 0).toFixed(2)}</p>
+              {/* ── PRODUCT swap ── */}
+              {selectedItem.element_type === "product" && (
+                <div className="space-y-2 border-t border-neutral-100 pt-3">
+                  <div className="flex items-center justify-between">
+                    <p className="text-[11px] font-semibold uppercase tracking-widest text-neutral-400">Producto</p>
+                    <button
+                      onClick={() => setProductSwapOpen((o) => !o)}
+                      className={`flex items-center gap-1 rounded-lg border px-2 py-1 text-[10px] font-medium transition ${productSwapOpen ? "border-[#0F3D3A] bg-[#0F3D3A] text-white" : "border-neutral-200 text-neutral-500 hover:bg-neutral-50"}`}
+                    >
+                      <RefreshCw className="h-2.5 w-2.5" /> Cambiar
+                    </button>
+                  </div>
+                  {selectedItem.product_name ? (
+                    <div className="flex items-center gap-2 rounded-lg bg-neutral-50 p-2">
+                      {selectedItem.product_image && (
+                        <img src={selectedItem.product_image} alt="" className="h-9 w-9 shrink-0 rounded object-cover" />
+                      )}
+                      <div className="min-w-0">
+                        <p className="truncate text-xs font-medium text-neutral-700">{selectedItem.product_name}</p>
+                        <p className="text-[11px] text-neutral-400">Q{Number(selectedItem.product_price ?? 0).toFixed(2)}</p>
+                      </div>
+                    </div>
+                  ) : (
+                    <p className="rounded-lg bg-neutral-50 p-2 text-center text-[11px] text-neutral-400">Sin producto asignado</p>
+                  )}
+                  {productSwapOpen && (
+                    <div className="space-y-1.5">
+                      <div className="relative">
+                        <Search className="absolute left-2 top-1/2 h-3 w-3 -translate-y-1/2 text-neutral-400" />
+                        <input
+                          type="text"
+                          placeholder="Buscar producto…"
+                          value={productSwapSearch}
+                          onChange={(e) => setProductSwapSearch(e.target.value)}
+                          className="w-full rounded-lg border border-neutral-200 py-1.5 pl-6 pr-2 text-xs outline-none focus:border-[#0F3D3A]"
+                        />
+                      </div>
+                      <div className="max-h-44 space-y-0.5 overflow-y-auto">
+                        {products
+                          .filter((p) => p.nombre.toLowerCase().includes(productSwapSearch.toLowerCase()))
+                          .map((p) => (
+                            <button
+                              key={p.id}
+                              onClick={() => handleSwapProduct(selectedItem.id, p)}
+                              className={`flex w-full items-center gap-2 rounded-lg px-2 py-1.5 text-left transition hover:bg-neutral-50 ${selectedItem.product_id === p.id ? "bg-[#F3F7F6] ring-1 ring-[#0F3D3A]/20" : ""}`}
+                            >
+                              {p.imagen_url ? (
+                                <img src={p.imagen_url} alt="" className="h-8 w-8 shrink-0 rounded object-cover" />
+                              ) : (
+                                <div className="h-8 w-8 shrink-0 rounded bg-neutral-200" />
+                              )}
+                              <span className="truncate text-xs text-neutral-700">{p.nombre}</span>
+                            </button>
+                          ))}
+                      </div>
+                    </div>
+                  )}
                 </div>
               )}
 
