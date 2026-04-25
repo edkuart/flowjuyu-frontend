@@ -53,13 +53,16 @@ type Collection = {
 };
 
 function CollectionPromoCard({ collection }: { collection: Collection }) {
-  const imageUrl = collection.promo_image_url ?? collection.background_image_url ?? null;
+  const hasItems = (collection.items?.length ?? 0) > 0;
+  // when canvas items exist, always render the canvas — promo_image_url is only a flat fallback for empty canvases
+  const imageUrl = !hasItems ? (collection.promo_image_url ?? collection.background_image_url ?? null) : null;
   const productCount = collection.product_count ?? collection.item_count ?? collection.products?.length ?? 0;
 
   return (
     <CollectionPreviewBox
       name={collection.name}
       imageUrl={imageUrl}
+      backgroundImageUrl={collection.background_image_url ?? undefined}
       items={collection.items}
       backgroundColor={collection.background_color}
       backgroundStyle={collection.background_style}

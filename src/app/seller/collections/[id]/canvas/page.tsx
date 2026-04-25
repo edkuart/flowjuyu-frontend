@@ -11,7 +11,7 @@ import {
   Grid3x3, Undo2, Redo2, Lock, Unlock,
   AlignHorizontalJustifyStart, AlignHorizontalJustifyCenter, AlignHorizontalJustifyEnd,
   AlignVerticalJustifyStart, AlignVerticalJustifyCenter, AlignVerticalJustifyEnd,
-  Minus, Plus, Sparkles, RefreshCw, Hand, Package,
+  Minus, Plus, Sparkles, RefreshCw, Hand, Package, Download,
 } from "lucide-react";
 import { apiFetch, invalidateCache } from "@/lib/api";
 import { useAuth } from "@/context/AuthContext";
@@ -192,22 +192,43 @@ type GraphicPreset = {
 // ─── Google Fonts ──────────────────────────────────────────────────────────────
 
 const GOOGLE_FONTS_URL =
-  "https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,400;0,700;1,400&family=Montserrat:wght@400;600;700&family=Lato:ital,wght@0,400;0,700;1,400&family=Raleway:wght@400;600;700&family=Oswald:wght@400;600;700&family=Pacifico&family=Dancing+Script:wght@400;700&family=Nunito:wght@400;600;700&family=Bebas+Neue&family=Satisfy&family=Abril+Fatface&family=Josefin+Sans:ital,wght@0,400;0,700&display=swap";
+  "https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,400;0,700;1,400&family=Montserrat:wght@400;600;700&family=Lato:ital,wght@0,400;0,700;1,400&family=Raleway:wght@400;600;700&family=Oswald:wght@400;600;700&family=Pacifico&family=Dancing+Script:wght@400;700&family=Nunito:wght@400;600;700&family=Bebas+Neue&family=Satisfy&family=Abril+Fatface&family=Josefin+Sans:ital,wght@0,400;0,700;1,400&family=Inter:wght@400;500;600;700&family=Poppins:ital,wght@0,400;0,600;0,700;1,400&family=Work+Sans:wght@400;600;700&family=DM+Sans:ital,wght@0,400;0,500;0,700&family=Manrope:wght@400;600;700&family=Cormorant+Garamond:ital,wght@0,400;0,600;1,400&family=Lora:ital,wght@0,400;0,600;1,400&family=EB+Garamond:ital,wght@0,400;0,600;1,400&family=Libre+Baskerville:ital,wght@0,400;0,700;1,400&family=Righteous&family=Fredoka+One&family=Russo+One&family=Baloo+2:wght@400;600;700&family=Great+Vibes&family=Sacramento&family=Space+Mono:ital,wght@0,400;0,700&display=swap";
 
 const GOOGLE_FONTS = [
-  { label: "Sistema",           value: "inherit" },
-  { label: "Montserrat",        value: "'Montserrat', sans-serif" },
-  { label: "Lato",              value: "'Lato', sans-serif" },
-  { label: "Nunito",            value: "'Nunito', sans-serif" },
-  { label: "Raleway",           value: "'Raleway', sans-serif" },
-  { label: "Josefin Sans",      value: "'Josefin Sans', sans-serif" },
-  { label: "Oswald",            value: "'Oswald', sans-serif" },
-  { label: "Bebas Neue",        value: "'Bebas Neue', sans-serif" },
-  { label: "Abril Fatface",     value: "'Abril Fatface', serif" },
-  { label: "Playfair Display",  value: "'Playfair Display', serif" },
-  { label: "Pacifico",          value: "'Pacifico', cursive" },
-  { label: "Dancing Script",    value: "'Dancing Script', cursive" },
-  { label: "Satisfy",           value: "'Satisfy', cursive" },
+  { label: "Sistema",             value: "inherit" },
+  // ── Sans-serif moderna ──
+  { label: "Inter",               value: "'Inter', sans-serif" },
+  { label: "Poppins",             value: "'Poppins', sans-serif" },
+  { label: "Montserrat",          value: "'Montserrat', sans-serif" },
+  { label: "DM Sans",             value: "'DM Sans', sans-serif" },
+  { label: "Manrope",             value: "'Manrope', sans-serif" },
+  { label: "Work Sans",           value: "'Work Sans', sans-serif" },
+  { label: "Nunito",              value: "'Nunito', sans-serif" },
+  { label: "Lato",                value: "'Lato', sans-serif" },
+  { label: "Raleway",             value: "'Raleway', sans-serif" },
+  { label: "Josefin Sans",        value: "'Josefin Sans', sans-serif" },
+  // ── Display / impacto ──
+  { label: "Oswald",              value: "'Oswald', sans-serif" },
+  { label: "Bebas Neue",          value: "'Bebas Neue', sans-serif" },
+  { label: "Russo One",           value: "'Russo One', sans-serif" },
+  { label: "Righteous",           value: "'Righteous', sans-serif" },
+  { label: "Fredoka One",         value: "'Fredoka One', sans-serif" },
+  { label: "Baloo 2",             value: "'Baloo 2', sans-serif" },
+  // ── Serif editorial ──
+  { label: "Playfair Display",    value: "'Playfair Display', serif" },
+  { label: "Cormorant Garamond",  value: "'Cormorant Garamond', serif" },
+  { label: "Lora",                value: "'Lora', serif" },
+  { label: "EB Garamond",         value: "'EB Garamond', serif" },
+  { label: "Libre Baskerville",   value: "'Libre Baskerville', serif" },
+  { label: "Abril Fatface",       value: "'Abril Fatface', serif" },
+  // ── Script / caligrafía ──
+  { label: "Great Vibes",         value: "'Great Vibes', cursive" },
+  { label: "Sacramento",          value: "'Sacramento', cursive" },
+  { label: "Dancing Script",      value: "'Dancing Script', cursive" },
+  { label: "Pacifico",            value: "'Pacifico', cursive" },
+  { label: "Satisfy",             value: "'Satisfy', cursive" },
+  // ── Monoespaciada ──
+  { label: "Space Mono",          value: "'Space Mono', monospace" },
 ];
 
 // ─── Constants ────────────────────────────────────────────────────────────────
@@ -322,6 +343,18 @@ type BackgroundGradientState = {
   angle: number;
   type: "linear" | "radial";
 };
+
+type BgTextureId = "none" | "dots" | "grid" | "lines" | "diagonal" | "crosshatch";
+type BgTextureState = { patternId: BgTextureId; scale: number };
+
+const BG_TEXTURES: { id: BgTextureId; label: string }[] = [
+  { id: "none",       label: "Sin textura" },
+  { id: "dots",       label: "Puntos" },
+  { id: "grid",       label: "Cuadrícula" },
+  { id: "lines",      label: "Líneas" },
+  { id: "diagonal",   label: "Diagonal" },
+  { id: "crosshatch", label: "Cruzado" },
+];
 
 function svgToDataUrl(svg: string): string {
   return `data:image/svg+xml;utf8,${encodeURIComponent(svg)}`;
@@ -811,8 +844,8 @@ const EDITOR_ZOOM_MIN = 0.25;
 const EDITOR_ZOOM_MAX = 2;
 const EDITOR_ZOOM_STEP = 0.25;
 const VIEWPORT_ZOOM_STEP = 0.1;
-const MOBILE_EDITOR_BASE_SCALE_MIN = 0.3;
-const MOBILE_EDITOR_EFFECTIVE_SCALE_MIN = 0.35;
+const MOBILE_EDITOR_BASE_SCALE_MIN = 0.1;
+const MOBILE_EDITOR_EFFECTIVE_SCALE_MIN = 0.1;
 
 const SHAPE_TYPES: { value: ContentShape["shapeType"]; label: string }[] = [
   { value: "rectangle", label: "Rect." },
@@ -995,6 +1028,7 @@ export default function CollectionEditorPage() {
   const [bgGradient, setBgGradient]         = useState<BackgroundGradientState>({
     enabled: false, color2: "#AADDCC", angle: 135, type: "linear" as "linear" | "radial",
   });
+  const [bgTexture, setBgTexture]           = useState<BgTextureState>({ patternId: "none", scale: 22 });
   const [textDefaults, setTextDefaults]     = useState<ContentText>({ ...DEFAULT_TEXT });
   const [shapeDefaults, setShapeDefaults]   = useState<ContentShape>({ ...DEFAULT_SHAPE });
   const [gridSnap, setGridSnap]             = useState(0);
@@ -1005,6 +1039,29 @@ export default function CollectionEditorPage() {
   const [lockedItemIds, setLockedItemIds]       = useState<Set<number>>(new Set());
   const [productSwapOpen, setProductSwapOpen]   = useState(false);
   const [productSwapSearch, setProductSwapSearch] = useState("");
+
+  // AI canvas generation
+  const [aiModalOpen, setAiModalOpen]           = useState(false);
+  const [aiStep, setAiStep]                     = useState<1 | 2 | 3>(1);
+  const [aiSelectedProductIds, setAiSelectedProductIds] = useState<Set<string>>(new Set());
+  const [aiProductCount, setAiProductCount]     = useState(3);
+  const [aiTitle, setAiTitle]                   = useState("");
+  const [aiTagline, setAiTagline]               = useState("");
+  const [aiPrompt, setAiPrompt]                 = useState("");
+  const [aiCta, setAiCta]                       = useState("");
+  const [aiStyle, setAiStyle]                   = useState<"minimal" | "bold" | "editorial" | "playful" | "luxury" | "artisanal">("minimal");
+  const [aiPalette, setAiPalette]               = useState<"auto" | "neutral" | "earth" | "dark" | "vibrant">("auto");
+  const [aiLayout, setAiLayout]                 = useState<"hero" | "grid" | "asymmetric" | "collage">("hero");
+  const [aiGenerateBgImage, setAiGenerateBgImage] = useState(false);
+  const [aiLoading, setAiLoading]               = useState(false);
+  const [aiError, setAiError]                   = useState<string | null>(null);
+
+  // Export
+  const [exportOpen, setExportOpen]       = useState(false);
+  const [exportFormat, setExportFormat]   = useState<"png" | "jpeg">("png");
+  const [exportQuality, setExportQuality] = useState(95);
+  const [exporting, setExporting]         = useState(false);
+  const exportBtnRef                      = useRef<HTMLDivElement>(null);
 
   // Undo/redo state (buttons only; logic is all in refs)
   const [canUndo, setCanUndo] = useState(false);
@@ -1038,11 +1095,39 @@ export default function CollectionEditorPage() {
   // Position snapshot for X/Y/W/H input blur
   const posSnapshot = useRef<{ itemId: number; pos_x: number; pos_y: number; width: number; height: number } | null>(null);
 
-  const computedBg = bgGradient.enabled
+  function buildTextureBackground(tex: BgTextureState, baseColor: string, base: string): string {
+    if (tex.patternId === "none") return base;
+    const r = parseInt(baseColor.slice(1, 3), 16) || 0;
+    const g = parseInt(baseColor.slice(3, 5), 16) || 0;
+    const b = parseInt(baseColor.slice(5, 7), 16) || 0;
+    const brightness = (r * 299 + g * 587 + b * 114) / 1000;
+    const c = brightness > 135 ? `rgba(0,0,0,0.10)` : `rgba(255,255,255,0.14)`;
+    const s = tex.scale;
+    switch (tex.patternId) {
+      case "dots":
+        return `radial-gradient(circle, ${c} 1.5px, transparent 1.5px) 0 0 / ${s}px ${s}px, ${base}`;
+      case "grid":
+        return `linear-gradient(${c} 1px, transparent 1px) 0 0 / ${s}px ${s}px, linear-gradient(90deg, ${c} 1px, transparent 1px) 0 0 / ${s}px ${s}px, ${base}`;
+      case "lines":
+        return `repeating-linear-gradient(0deg, transparent 0, transparent ${s - 1}px, ${c} ${s - 1}px, ${c} ${s}px), ${base}`;
+      case "diagonal":
+        return `repeating-linear-gradient(45deg, transparent 0, transparent ${s}px, ${c} ${s}px, ${c} ${s + 1}px), ${base}`;
+      case "crosshatch":
+        return `repeating-linear-gradient(45deg, transparent 0, transparent ${s}px, ${c} ${s}px, ${c} ${s + 1}px), repeating-linear-gradient(-45deg, transparent 0, transparent ${s}px, ${c} ${s}px, ${c} ${s + 1}px), ${base}`;
+      default:
+        return base;
+    }
+  }
+
+  const baseBackground = bgGradient.enabled
     ? bgGradient.type === "radial"
       ? `radial-gradient(circle, ${bgColor}, ${bgGradient.color2})`
       : `linear-gradient(${bgGradient.angle}deg, ${bgColor}, ${bgGradient.color2})`
     : bgColor;
+
+  const computedBg = bgTexture.patternId !== "none"
+    ? buildTextureBackground(bgTexture, bgColor, baseBackground)
+    : baseBackground;
 
   const isPreviewingTemplate = previewTemplate !== null;
   const displayCanvasWidth = previewTemplate?.canvas_width ?? collection?.canvas_width ?? 800;
@@ -1138,6 +1223,7 @@ export default function CollectionEditorPage() {
     name?: string;
     backgroundColor?: string;
     backgroundGradient?: BackgroundGradientState;
+    backgroundTexture?: BgTextureState;
     backgroundImageUrl?: string | null;
     canvasWidth?: number;
     canvasHeight?: number;
@@ -1147,10 +1233,14 @@ export default function CollectionEditorPage() {
     const nextName = overrides?.name ?? name;
     const nextBackgroundColor = overrides?.backgroundColor ?? bgColor;
     const nextBackgroundGradient = overrides?.backgroundGradient ?? bgGradient;
-    const nextBackgroundStyle = nextBackgroundGradient.enabled
+    const nextBackgroundTexture = overrides?.backgroundTexture ?? bgTexture;
+    const nextBase = nextBackgroundGradient.enabled
       ? nextBackgroundGradient.type === "radial"
         ? `radial-gradient(circle, ${nextBackgroundColor}, ${nextBackgroundGradient.color2})`
         : `linear-gradient(${nextBackgroundGradient.angle}deg, ${nextBackgroundColor}, ${nextBackgroundGradient.color2})`
+      : nextBackgroundColor;
+    const nextBackgroundStyle = (nextBackgroundGradient.enabled || nextBackgroundTexture.patternId !== "none")
+      ? buildTextureBackground(nextBackgroundTexture, nextBackgroundColor, nextBase)
       : null;
     const nextBackgroundImageUrl =
       overrides && "backgroundImageUrl" in overrides
@@ -1187,7 +1277,7 @@ export default function CollectionEditorPage() {
     } finally {
       setSaving(false);
     }
-  }, [bgColor, bgGradient, collection, collectionId, name]);
+  }, [bgColor, bgGradient, bgTexture, buildTextureBackground, collection, collectionId, name]);
 
   const queueCanvasSettingsSave = useCallback((overrides?: Parameters<typeof persistCollectionCanvasSettings>[0]) => {
     if (canvasSettingsSaveTimerRef.current) {
@@ -1286,6 +1376,14 @@ export default function CollectionEditorPage() {
     });
   }, [queueCanvasSettingsSave]);
 
+  const handleBgTextureChange = useCallback((update: Partial<BgTextureState>) => {
+    setBgTexture((prev) => {
+      const next = { ...prev, ...update };
+      queueCanvasSettingsSave({ backgroundTexture: next });
+      return next;
+    });
+  }, [queueCanvasSettingsSave]);
+
   const clientPointToCanvasPoint = useCallback((clientX: number, clientY: number) => {
     if (!canvasRef.current) return null;
     const rect = canvasRef.current.getBoundingClientRect();
@@ -1351,31 +1449,50 @@ export default function CollectionEditorPage() {
       return;
     }
 
-    const updateEditorScale = () => {
+    let cancelled = false;
+    let rafId = 0;
+
+    const tryUpdateEditorScale = () => {
+      if (cancelled) return;
       const viewport = canvasViewportRef.current;
-      if (!viewport) return;
-      const mobileViewport = window.innerWidth < 768 || viewport.clientWidth < 768;
+      if (!viewport) { rafId = requestAnimationFrame(tryUpdateEditorScale); return; }
 
+      const vw = viewport.clientWidth;
+      const vh = viewport.clientHeight;
+
+      // Retry until viewport has real dimensions (layout not ready yet)
+      if (vw === 0 || vh === 0) { rafId = requestAnimationFrame(tryUpdateEditorScale); return; }
+
+      const mobileViewport = window.innerWidth < 768 || vw < 768;
       if (mobileViewport) {
-        const availableWidth = Math.max(180, viewport.clientWidth - 18);
-        const widthRatio = availableWidth / displayCanvasWidth;
-        const fitScale = Math.min(widthRatio, 1);
-
+        // vw - 24 accounts for the viewport's own p-3 padding (12px each side)
+        const fitScale = Math.min(Math.max(180, vw - 24) / displayCanvasWidth, 1);
         setEditorCanvasScale(Math.max(MOBILE_EDITOR_BASE_SCALE_MIN, fitScale));
       } else {
-        const pad = 64; // p-8 = 32px each side at lg breakpoint
-        const availW = Math.max(400, viewport.clientWidth - pad);
-        const availH = Math.max(300, viewport.clientHeight - pad);
-        const fitScale = Math.min(availW / displayCanvasWidth, availH / displayCanvasHeight, 1);
+        const pad = 64;
+        const fitScale = Math.min(
+          Math.max(400, vw - pad) / displayCanvasWidth,
+          Math.max(300, vh - pad) / displayCanvasHeight,
+          1,
+        );
         setEditorCanvasScale(Math.max(EDITOR_ZOOM_MIN, fitScale));
       }
-
       viewport.scrollTo({ left: 0, top: 0 });
     };
 
-    updateEditorScale();
-    window.addEventListener("resize", updateEditorScale);
-    return () => window.removeEventListener("resize", updateEditorScale);
+    const scheduleUpdate = () => {
+      cancelAnimationFrame(rafId);
+      rafId = requestAnimationFrame(tryUpdateEditorScale);
+    };
+
+    scheduleUpdate();
+    window.addEventListener("resize", scheduleUpdate);
+
+    return () => {
+      cancelled = true;
+      cancelAnimationFrame(rafId);
+      window.removeEventListener("resize", scheduleUpdate);
+    };
   }, [displayCanvasHeight, displayCanvasWidth, isPreviewingTemplate]);
 
   useEffect(() => {
@@ -1569,22 +1686,42 @@ export default function CollectionEditorPage() {
     setBgColor(col.background_color ?? "#FFFFFF");
 
     const bs = col.background_style;
-    if (bs) {
-      const linMatch = bs.match(/linear-gradient\((\d+)deg,\s*([^,]+),\s*([^)]+)\)/);
-      if (linMatch) {
-        setBgColor(linMatch[2].trim());
-        setBgGradient({ enabled: true, type: "linear", angle: Number(linMatch[1]), color2: linMatch[3].trim() });
+    // Detect a real background gradient (not a texture pattern layer).
+    // Texture patterns use rgba() stops with pixel values; real gradients use hex colors.
+    const hasLinearGradient = bs ? /linear-gradient\(\s*\d+deg\s*,\s*#/.test(bs) : false;
+    const hasRadialGradient = bs ? /radial-gradient\(\s*circle\s*,\s*#/.test(bs) : false;
+    if (bs && (hasLinearGradient || hasRadialGradient)) {
+      const rgbToHex = (c: string): string => {
+        const m = c.match(/rgb\(\s*(\d+)\s*,\s*(\d+)\s*,\s*(\d+)/i);
+        if (!m) return c;
+        return `#${Number(m[1]).toString(16).padStart(2, "0")}${Number(m[2]).toString(16).padStart(2, "0")}${Number(m[3]).toString(16).padStart(2, "0")}`;
+      };
+      // Extract only hex colors (skip rgba texture stops)
+      const hexColors = [...bs.matchAll(/#[0-9a-fA-F]{3,8}\b/g)].map((m) => m[0]);
+      const color2 = hexColors.length >= 2 ? hexColors[hexColors.length - 1] : "#AADDCC";
+      const angleMatch = bs.match(/(\d+)deg/);
+      const angle = angleMatch ? Number(angleMatch[1]) : 135;
+      if (hasLinearGradient) {
+        setBgGradient({ enabled: true, type: "linear", angle, color2 });
       } else {
-        const radMatch = bs.match(/radial-gradient\(circle,\s*([^,]+),\s*([^)]+)\)/);
-        if (radMatch) {
-          setBgColor(radMatch[1].trim());
-          setBgGradient({ enabled: true, type: "radial", angle: 135, color2: radMatch[2].trim() });
-        } else {
-          setBgGradient({ enabled: false, color2: "#AADDCC", angle: 135, type: "linear" });
-        }
+        setBgGradient({ enabled: true, type: "radial", angle: 135, color2 });
       }
     } else {
       setBgGradient({ enabled: false, color2: "#AADDCC", angle: 135, type: "linear" });
+    }
+    // Detect texture pattern (best-effort — restores patternId only)
+    if (bs) {
+      if (bs.startsWith("radial-gradient(circle,") && bs.includes("1.5px")) {
+        setBgTexture((p) => ({ ...p, patternId: "dots" }));
+      } else if (bs.startsWith("linear-gradient(") && bs.includes("/ ") && !hasLinearGradient) {
+        setBgTexture((p) => ({ ...p, patternId: "grid" }));
+      } else if (bs.startsWith("repeating-linear-gradient(0deg")) {
+        setBgTexture((p) => ({ ...p, patternId: "lines" }));
+      } else if (bs.startsWith("repeating-linear-gradient(45deg") && !bs.startsWith("repeating-linear-gradient(45deg, transparent 0, transparent") || bs.includes("repeating-linear-gradient(-45deg")) {
+        setBgTexture((p) => ({ ...p, patternId: bs.includes("-45deg") ? "crosshatch" : "diagonal" }));
+      } else {
+        setBgTexture((p) => ({ ...p, patternId: "none" }));
+      }
     }
   }, [collectionId]);
 
@@ -1741,7 +1878,7 @@ export default function CollectionEditorPage() {
           canvas_width: collection.canvas_width,
           canvas_height: collection.canvas_height,
           background_color: bgColor,
-          background_style: bgGradient.enabled ? computedBg : null,
+          background_style: (bgGradient.enabled || bgTexture.patternId !== "none") ? computedBg : null,
           background_image_url: collection.background_image_url,
         }),
       });
@@ -1760,6 +1897,110 @@ export default function CollectionEditorPage() {
       setTemplateSaving(false);
     }
   }, [bgColor, bgGradient.enabled, collection, collectionId, computedBg, items, loadTemplates, templateIsPublic, templateName]);
+
+  const handleAiGenerate = useCallback(async () => {
+    if (!collection || !aiPrompt.trim()) return;
+    setAiLoading(true);
+    setAiError(null);
+
+    const prevItems      = [...items];
+    const prevBgColor    = bgColor;
+    const prevBgGradient = { ...bgGradient };
+    const prevBgTexture  = { ...bgTexture };
+    const prevBgImageUrl = collection.background_image_url;
+
+    try {
+      const res = await apiFetch(`/api/collections/${collectionId}/ai-generate`, {
+        method: "POST",
+        body: JSON.stringify({
+          prompt: aiPrompt.trim(),
+          title: aiTitle.trim() || name,
+          tagline: aiTagline.trim() || undefined,
+          cta: aiCta.trim() || undefined,
+          style: aiStyle,
+          palette: aiPalette,
+          layout: aiLayout,
+          product_count: aiProductCount,
+          selected_product_ids: aiSelectedProductIds.size > 0 ? [...aiSelectedProductIds] : undefined,
+          generate_bg_image: aiGenerateBgImage,
+        }),
+      });
+      const data = await res.json();
+      if (!data.ok) throw new Error(data.message ?? "No se pudo generar el canvas");
+
+      invalidateCache(`/api/collections/${collectionId}`);
+      await loadCollection();
+
+      record({
+        undo: () => {
+          setItems(prevItems);
+          setBgColor(prevBgColor);
+          setBgGradient(prevBgGradient);
+          setBgTexture(prevBgTexture);
+          setCollection((prev) => prev ? { ...prev, background_image_url: prevBgImageUrl } : prev);
+        },
+        redo: () => { loadCollection(); },
+      });
+
+      setAiModalOpen(false);
+      setSelectedItemId(null);
+      setEditingTextId(null);
+      setActiveTool("select");
+      setMobilePanel(null);
+      resetCanvasViewport();
+    } catch (err: any) {
+      setAiError(err?.message ?? "Error al generar el canvas con IA");
+    } finally {
+      setAiLoading(false);
+    }
+  }, [aiCta, aiGenerateBgImage, aiLayout, aiPalette, aiProductCount, aiPrompt, aiSelectedProductIds, aiStyle, aiTagline, aiTitle, bgColor, bgGradient, bgTexture, collection, collectionId, items, loadCollection, name, record, resetCanvasViewport]);
+
+  const handleExport = useCallback(async () => {
+    if (!canvasRef.current) return;
+    setExporting(true);
+    try {
+      const { default: html2canvas } = await import("html2canvas");
+      const source = canvasRef.current;
+
+      // Clone the canvas node so we can strip the CSS scale transform
+      // and capture at full native resolution regardless of editor zoom level.
+      const clone = source.cloneNode(true) as HTMLDivElement;
+      clone.style.transform = "none";
+      clone.style.transformOrigin = "top left";
+      clone.style.position = "fixed";
+      clone.style.top = "0";
+      clone.style.left = "-99999px";
+      clone.style.zIndex = "-1";
+      clone.style.visibility = "hidden";
+      document.body.appendChild(clone);
+
+      try {
+        const captured = await html2canvas(clone, {
+          useCORS: true,
+          allowTaint: true,
+          backgroundColor: null,
+          logging: false,
+          scale: 1,
+          width: displayCanvasWidth,
+          height: displayCanvasHeight,
+        });
+
+        const mimeType = exportFormat === "jpeg" ? "image/jpeg" : "image/png";
+        const dataUrl = captured.toDataURL(mimeType, exportFormat === "jpeg" ? exportQuality / 100 : undefined);
+        const link = document.createElement("a");
+        link.download = `${(name || "canvas").replace(/\s+/g, "-").toLowerCase()}.${exportFormat}`;
+        link.href = dataUrl;
+        link.click();
+        setExportOpen(false);
+      } finally {
+        document.body.removeChild(clone);
+      }
+    } catch {
+      alert("No se pudo exportar la imagen. Intenta de nuevo.");
+    } finally {
+      setExporting(false);
+    }
+  }, [displayCanvasHeight, displayCanvasWidth, exportFormat, exportQuality, name]);
 
   const handlePreviewTemplate = useCallback(async (template: CollectionTemplate) => {
     setTemplatePreviewLoadingId(template.id);
@@ -2524,6 +2765,20 @@ export default function CollectionEditorPage() {
     return { animation: `canvas-${m} ${MOTION_DURATION[m]}` };
   }
 
+  const ENTRANCE_DURATION: Record<EntranceAnim, string> = {
+    none:      "",
+    fadeIn:    "0.6s ease both",
+    slideUp:   "0.55s cubic-bezier(0.22,1,0.36,1) both",
+    slideLeft: "0.55s cubic-bezier(0.22,1,0.36,1) both",
+    zoomIn:    "0.5s cubic-bezier(0.34,1.56,0.64,1) both",
+  };
+
+  function getEntranceStyle(item: CanvasItem, delayMs: number): React.CSSProperties {
+    const a: EntranceAnim = (item.content as any)?.animation ?? "none";
+    if (!a || a === "none") return {};
+    return { animation: `canvas-${a} ${ENTRANCE_DURATION[a]}`, animationDelay: `${delayMs}ms` };
+  }
+
   const effectiveGridScale = Math.max(effectiveCanvasScale, 0.01);
   const gridLineThickness = Math.min(4, Math.max(1, Math.ceil(1 / effectiveGridScale)));
   const majorGridStep = gridSnap > 0 ? gridSnap * 4 : 0;
@@ -2553,13 +2808,17 @@ export default function CollectionEditorPage() {
 
   return (
     <div className="flex flex-col gap-4">
-      {/* Motion keyframes */}
+      {/* Canvas animation keyframes */}
       <style>{`
-        @keyframes canvas-float  { 0%,100%{transform:translateY(0)}  50%{transform:translateY(-10px)} }
-        @keyframes canvas-pulse  { 0%,100%{transform:scale(1)}       50%{transform:scale(1.06)} }
-        @keyframes canvas-spin   { from{transform:rotate(0deg)}      to{transform:rotate(360deg)} }
-        @keyframes canvas-shake  { 0%,100%{transform:translateX(0)}  25%,75%{transform:translateX(-5px)}  50%{transform:translateX(5px)} }
-        @keyframes canvas-bounce { 0%,100%{transform:translateY(0)}  50%{transform:translateY(-14px)} }
+        @keyframes canvas-float    { 0%,100%{transform:translateY(0)}   50%{transform:translateY(-10px)} }
+        @keyframes canvas-pulse    { 0%,100%{transform:scale(1)}        50%{transform:scale(1.06)} }
+        @keyframes canvas-spin     { from{transform:rotate(0deg)}       to{transform:rotate(360deg)} }
+        @keyframes canvas-shake    { 0%,100%{transform:translateX(0)}   25%,75%{transform:translateX(-5px)} 50%{transform:translateX(5px)} }
+        @keyframes canvas-bounce   { 0%,100%{transform:translateY(0)}   50%{transform:translateY(-14px)} }
+        @keyframes canvas-fadeIn   { from{opacity:0}                    to{opacity:1} }
+        @keyframes canvas-slideUp  { from{opacity:0;transform:translateY(24px)} to{opacity:1;transform:translateY(0)} }
+        @keyframes canvas-slideLeft{ from{opacity:0;transform:translateX(24px)} to{opacity:1;transform:translateX(0)} }
+        @keyframes canvas-zoomIn   { from{opacity:0;transform:scale(0.72)} to{opacity:1;transform:scale(1)} }
       `}</style>
 
       {/* Hidden image input */}
@@ -2602,6 +2861,31 @@ export default function CollectionEditorPage() {
           </button>
         </div>
 
+        <button
+          onClick={() => {
+            // Pre-fill from current canvas state
+            setAiTitle(name);
+            setAiTagline("");
+            setAiPrompt("");
+            setAiCta("");
+            setAiStep(1);
+            setAiError(null);
+            // Pre-select products already on canvas
+            const onCanvasIds = new Set(
+              items.filter((i) => i.element_type === "product" && i.product_id).map((i) => i.product_id as string)
+            );
+            setAiSelectedProductIds(onCanvasIds.size > 0 ? onCanvasIds : new Set(products.slice(0, 3).map((p) => p.id)));
+            setAiProductCount(Math.min(6, Math.max(1, onCanvasIds.size || 3)));
+            setAiModalOpen(true);
+          }}
+          title="Generar canvas con IA"
+          className="flex items-center gap-1.5 rounded-lg border border-[var(--seller-accent)] bg-[color:color-mix(in_srgb,var(--seller-accent)_8%,white)] px-3 py-1.5 text-xs font-semibold text-[var(--seller-accent)] transition hover:bg-[color:color-mix(in_srgb,var(--seller-accent)_15%,white)]"
+        >
+          <Sparkles className="h-3.5 w-3.5" />
+          <span className="hidden sm:inline">Generar con IA</span>
+          <span className="sm:hidden">IA</span>
+        </button>
+
         <SellerPill tone={collection.status === "published" ? "success" : "warning"} className="shrink-0 px-2.5 py-0.5 text-[11px] uppercase tracking-wide">
           {collection.status === "published" ? "Publicada" : "Borrador"}
         </SellerPill>
@@ -2623,6 +2907,69 @@ export default function CollectionEditorPage() {
           <span className="hidden sm:inline">Guardar plantilla</span>
           <span className="sm:hidden">Guardar temp.</span>
         </button>
+        {/* Export button + dropdown */}
+        <div ref={exportBtnRef} className="relative">
+          <button
+            onClick={() => setExportOpen((o) => !o)}
+            title="Exportar canvas como imagen"
+            className="flex items-center gap-1.5 rounded-lg border border-neutral-200 px-3 py-1.5 text-xs font-medium text-neutral-600 transition hover:bg-neutral-50"
+          >
+            <Download className="h-3.5 w-3.5" />
+            <span className="hidden sm:inline">Exportar</span>
+          </button>
+
+          {exportOpen && (
+            <div
+              className="absolute right-0 top-full z-50 mt-1.5 w-56 rounded-2xl border border-neutral-100 bg-white p-4 shadow-xl"
+              onMouseLeave={() => setExportOpen(false)}
+            >
+              <p className="mb-3 text-xs font-semibold text-neutral-700">Exportar imagen</p>
+
+              {/* Format */}
+              <div className="mb-3 grid grid-cols-2 gap-1.5">
+                {(["png", "jpeg"] as const).map((f) => (
+                  <button
+                    key={f}
+                    onClick={() => setExportFormat(f)}
+                    className={`rounded-lg py-1.5 text-xs font-medium transition ${exportFormat === f ? "bg-[var(--seller-accent)] text-white" : "bg-neutral-100 text-neutral-600 hover:bg-neutral-200"}`}
+                  >
+                    {f.toUpperCase()}
+                  </button>
+                ))}
+              </div>
+
+              {/* Quality — only for JPEG */}
+              {exportFormat === "jpeg" && (
+                <div className="mb-3">
+                  <div className="mb-1 flex justify-between text-[10px] text-neutral-500">
+                    <span>Calidad</span>
+                    <span className="font-semibold">{exportQuality}%</span>
+                  </div>
+                  <input
+                    type="range" min={60} max={100} step={5}
+                    value={exportQuality}
+                    onChange={(e) => setExportQuality(Number(e.target.value))}
+                    className="w-full accent-[var(--seller-accent)]"
+                  />
+                </div>
+              )}
+
+              <div className="mb-2 rounded-lg bg-neutral-50 px-2 py-1.5 text-[10px] text-neutral-400">
+                {displayCanvasWidth} × {displayCanvasHeight} px
+              </div>
+
+              <button
+                onClick={handleExport}
+                disabled={exporting}
+                className="flex w-full items-center justify-center gap-1.5 rounded-xl bg-[#0F3D3A] py-2 text-xs font-semibold text-white transition hover:bg-[#14544f] disabled:opacity-60"
+              >
+                {exporting ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Download className="h-3.5 w-3.5" />}
+                {exporting ? "Exportando..." : "Descargar"}
+              </button>
+            </div>
+          )}
+        </div>
+
         <SellerActionButton onClick={handleSave} disabled={saving}
           className="px-4 py-1.5 text-xs font-medium disabled:opacity-60">
           {saving ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : saved ? <Check className="h-3.5 w-3.5" /> : <Save className="h-3.5 w-3.5" />}
@@ -2665,47 +3012,72 @@ export default function CollectionEditorPage() {
         />
       )}
 
-      <div className={`grid gap-1.5 md:hidden ${isPreviewingTemplate ? "grid-cols-2" : "grid-cols-4"}`}>
+      <div className={`grid gap-1.5 md:hidden ${isPreviewingTemplate ? "grid-cols-2" : "grid-cols-5"}`}>
         {!isPreviewingTemplate && (
-          <button
-            onClick={() => {
-              setSelectedItemId(null);
-              setMobilePanel((prev) => prev === "tools" ? null : "tools");
-            }}
-            className={`min-w-0 rounded-xl border px-2 py-2 text-[11px] font-medium leading-none transition ${mobilePanel === "tools" ? "border-[var(--seller-accent)] bg-[var(--seller-accent)] text-white" : "border-[var(--seller-line-strong)] bg-white text-[var(--seller-text)] hover:bg-[var(--seller-panel)]"}`}
-          >
-            Herram.
-          </button>
+          <>
+            <button
+              onClick={() => {
+                setSelectedItemId(null);
+                setMobilePanel((prev) => prev === "tools" ? null : "tools");
+              }}
+              className={`min-w-0 rounded-xl border px-1 py-2 text-[10px] font-medium leading-none transition ${mobilePanel === "tools" ? "border-[var(--seller-accent)] bg-[var(--seller-accent)] text-white" : "border-[var(--seller-line-strong)] bg-white text-[var(--seller-text)] hover:bg-[var(--seller-panel)]"}`}
+            >
+              Herram.
+            </button>
+            <button
+              onClick={() => {
+                const sameTab = mobilePanel === "library" && selectSidebarTab === "products";
+                setActiveTool("select");
+                setSelectSidebarTab("products");
+                setMobileCanvasControlsOpen(false);
+                setMobilePanel(sameTab ? null : "library");
+              }}
+              className={`min-w-0 rounded-xl border px-1 py-2 text-[10px] font-medium leading-none transition ${mobilePanel === "library" && selectSidebarTab === "products" ? "border-[var(--seller-accent)] bg-[var(--seller-accent)] text-white" : "border-[var(--seller-line-strong)] bg-white text-[var(--seller-text)] hover:bg-[var(--seller-panel)]"}`}
+            >
+              Prod.
+            </button>
+          </>
         )}
         <button
           onClick={() => {
+            const sameTab = mobilePanel === "library" && selectSidebarTab === "templates";
             setActiveTool("select");
-            setSelectedItemId(null);
             setSelectSidebarTab("templates");
             setMobileCanvasControlsOpen(false);
-            setMobilePanel((prev) => prev === "library" ? null : "library");
+            setMobilePanel(sameTab ? null : "library");
           }}
-          className={`min-w-0 rounded-xl border px-2 py-2 text-[11px] font-medium leading-none transition ${mobilePanel === "library" ? "border-[var(--seller-accent)] bg-[var(--seller-accent)] text-white" : "border-[var(--seller-line-strong)] bg-white text-[var(--seller-text)] hover:bg-[var(--seller-panel)]"}`}
+          className={`min-w-0 rounded-xl border px-1 py-2 text-[10px] font-medium leading-none transition ${mobilePanel === "library" && selectSidebarTab === "templates" ? "border-[var(--seller-accent)] bg-[var(--seller-accent)] text-white" : "border-[var(--seller-line-strong)] bg-white text-[var(--seller-text)] hover:bg-[var(--seller-panel)]"}`}
         >
-          Plantillas
+          Plant.
         </button>
         {!isPreviewingTemplate && (
           <button
             onClick={() => {
-              setMobilePanel(null);
+              const sameTab = mobilePanel === "library" && selectSidebarTab === "layers";
+              setActiveTool("select");
+              setSelectSidebarTab("layers");
               setMobileCanvasControlsOpen(false);
-              scrollSectionIntoView(canvasAreaRef);
+              setMobilePanel(sameTab ? null : "library");
             }}
-            className="min-w-0 rounded-xl border border-neutral-200 bg-white px-2 py-2 text-[11px] font-medium leading-none text-neutral-700 transition hover:bg-neutral-50"
+            className={`min-w-0 rounded-xl border px-1 py-2 text-[10px] font-medium leading-none transition ${mobilePanel === "library" && selectSidebarTab === "layers" ? "border-[var(--seller-accent)] bg-[var(--seller-accent)] text-white" : "border-[var(--seller-line-strong)] bg-white text-[var(--seller-text)] hover:bg-[var(--seller-panel)]"}`}
           >
-            Canvas
+            Capas
           </button>
         )}
         <button
-          onClick={() => setMobilePanel("properties")}
-          className="min-w-0 rounded-xl border border-neutral-200 bg-white px-2 py-2 text-[11px] font-medium leading-none text-neutral-700 transition hover:bg-neutral-50"
+          onClick={() => setMobilePanel((prev) => prev === "properties" ? null : "properties")}
+          className={`relative min-w-0 rounded-xl border px-1 py-2 text-[10px] font-medium leading-none transition ${
+            mobilePanel === "properties"
+              ? "border-[var(--seller-accent)] bg-[var(--seller-accent)] text-white"
+              : (selectedItemId !== null || isBackgroundSelected)
+                ? "border-[var(--seller-accent)] bg-[color:color-mix(in_srgb,var(--seller-accent)_10%,white)] text-[var(--seller-accent)]"
+                : "border-[var(--seller-line-strong)] bg-white text-[var(--seller-text)] hover:bg-[var(--seller-panel)]"
+          }`}
         >
-          Propiedades
+          Props.
+          {(selectedItemId !== null || isBackgroundSelected) && mobilePanel !== "properties" && (
+            <span className="absolute right-1.5 top-1.5 h-1.5 w-1.5 rounded-full bg-[var(--seller-accent)]" />
+          )}
         </button>
       </div>
 
@@ -2749,87 +3121,7 @@ export default function CollectionEditorPage() {
             )}
       </div>
 
-      {showTemplateModal && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/45 p-4">
-          <div className="w-full max-w-md rounded-2xl bg-white p-6 shadow-2xl">
-            <div className="flex items-start justify-between gap-3">
-              <div>
-                <h2 className="text-lg font-bold text-neutral-900">Guardar como plantilla</h2>
-                <p className="mt-1 text-sm text-neutral-500">
-                  Guarda el canvas actual para reutilizarlo luego desde el editor.
-                </p>
-              </div>
-              <button
-                onClick={() => {
-                  setShowTemplateModal(false);
-                  setTemplateError(null);
-                }}
-                className="rounded-lg border border-neutral-200 p-2 text-neutral-500 transition hover:bg-neutral-50"
-              >
-                <X className="h-4 w-4" />
-              </button>
-            </div>
-
-            <div className="mt-5 space-y-4">
-              <div>
-                <label className="mb-1 block text-sm font-medium text-neutral-700">Nombre</label>
-                <input
-                  autoFocus
-                  type="text"
-                  maxLength={120}
-                  value={templateName}
-                  onChange={(e) => setTemplateName(e.target.value)}
-                  className="w-full rounded-xl border border-neutral-300 px-3 py-2.5 text-sm outline-none focus:border-[#0F3D3A] focus:ring-2 focus:ring-[#0F3D3A]/20"
-                  placeholder="Ej. Plantilla catálogo artesanal"
-                />
-              </div>
-
-              <label className="flex items-start gap-3 rounded-xl border border-neutral-200 p-3 text-sm text-neutral-600">
-                <input
-                  type="checkbox"
-                  checked={templateIsPublic}
-                  onChange={(e) => setTemplateIsPublic(e.target.checked)}
-                  className="mt-0.5 rounded"
-                />
-                <span>
-                  Hacer pública esta plantilla para que aparezca en la galería reutilizable.
-                </span>
-              </label>
-
-              <div className="rounded-xl bg-neutral-50 p-3 text-xs text-neutral-500">
-                Snapshot actual: {items.length} elementos, canvas {collection.canvas_width} × {collection.canvas_height}.
-              </div>
-
-              {templateError && (
-                <div className="rounded-xl border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-700">
-                  {templateError}
-                </div>
-              )}
-            </div>
-
-            <div className="mt-6 flex gap-3">
-              <button
-                onClick={() => {
-                  setShowTemplateModal(false);
-                  setTemplateError(null);
-                }}
-                className="flex-1 rounded-xl border border-neutral-200 py-2.5 text-sm font-medium text-neutral-600 transition hover:bg-neutral-50"
-              >
-                Cancelar
-              </button>
-              <button
-                onClick={handleSaveTemplate}
-                disabled={templateSaving || !templateName.trim()}
-                className="flex-1 rounded-xl bg-[#0F3D3A] py-2.5 text-sm font-medium text-white transition hover:bg-[#14544f] disabled:opacity-60"
-              >
-                {templateSaving ? "Guardando..." : "Guardar plantilla"}
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
-
-          {activeTool === "select" || activeTool === "hand" ? (
+          {(activeTool === "select" || activeTool === "hand") && (!isMobileViewport || mobilePanel === "library") ? (
             <>
               <div className="border-b border-neutral-100 px-3 pt-3 pb-2">
                 <div className="mb-2 grid grid-cols-3 gap-1">
@@ -3381,6 +3673,18 @@ export default function CollectionEditorPage() {
                   </>
                 )}
                 <div className="flex items-center gap-1 border-l border-neutral-200 pl-3">
+                  <select
+                    value={bgTexture.patternId}
+                    onChange={(e) => handleBgTextureChange({ patternId: e.target.value as BgTextureId })}
+                    className="rounded-lg border border-neutral-200 px-2 py-1 text-xs text-neutral-600 outline-none"
+                    title="Textura de fondo"
+                  >
+                    {BG_TEXTURES.map(({ id, label }) => (
+                      <option key={id} value={id}>{label}</option>
+                    ))}
+                  </select>
+                </div>
+                <div className="flex items-center gap-1 border-l border-neutral-200 pl-3">
                   <button
                     onClick={() => bgImageInputRef.current?.click()}
                     disabled={bgImageUploading}
@@ -3625,7 +3929,10 @@ export default function CollectionEditorPage() {
                 const sc            = item.content as ContentShape;
                 const ic            = item.content as ContentImage;
                 const pc            = item.content as ContentProduct;
-                const motionStyle   = getMotionStyle(item);
+                const motionStyle    = getMotionStyle(item);
+                const entranceStyle = isPreviewingTemplate
+                  ? getEntranceStyle(item, (item.z_index ?? 0) * 100)
+                  : {};
                 const isEditingText = editingTextId === item.id;
 
                 return (
@@ -3671,7 +3978,8 @@ export default function CollectionEditorPage() {
                       }
                     }}
                   >
-                    {/* Motion wrapper */}
+                    {/* Entrance → Motion wrapper (separate divs so their transforms don't conflict) */}
+                    <div style={{ width: "100%", height: "100%", position: "relative", ...entranceStyle }}>
                     <div style={{ width: "100%", height: "100%", position: "relative", ...motionStyle }}>
                       {item.element_type === "product" && (
                         item.product_image
@@ -3853,6 +4161,7 @@ export default function CollectionEditorPage() {
                         </>)}
                       </>
                     )}
+                    </div>{/* /entrance wrapper */}
                   </div>
                 );
               })}
@@ -3997,6 +4306,44 @@ export default function CollectionEditorPage() {
                       )}
                     </>
                   )}
+                  {/* ── Textura ── */}
+                  <div>
+                    <label className="mb-1.5 block text-[11px] font-medium text-neutral-500">Textura</label>
+                    <div className="grid grid-cols-3 gap-1">
+                      {BG_TEXTURES.map(({ id, label }) => {
+                        const isActive = bgTexture.patternId === id;
+                        const previewBg = id === "none"
+                          ? bgColor
+                          : buildTextureBackground({ patternId: id, scale: bgTexture.scale }, bgColor, baseBackground);
+                        return (
+                          <button
+                            key={id}
+                            title={label}
+                            onClick={() => handleBgTextureChange({ patternId: id })}
+                            className={`flex flex-col items-center gap-0.5 rounded-lg border p-1 transition ${isActive ? "border-[var(--seller-accent)] ring-1 ring-[var(--seller-accent)]" : "border-neutral-200 hover:border-neutral-300"}`}
+                          >
+                            <div
+                              className="h-8 w-full rounded-md"
+                              style={{ background: previewBg }}
+                            />
+                            <span className="text-[9px] font-medium text-neutral-500 leading-none">{label.split(" ")[0]}</span>
+                          </button>
+                        );
+                      })}
+                    </div>
+                    {bgTexture.patternId !== "none" && (
+                      <div className="mt-2">
+                        <label className="mb-1 block text-[10px] text-neutral-400">Escala: {bgTexture.scale}px</label>
+                        <input
+                          type="range" min={10} max={50} step={2}
+                          value={bgTexture.scale}
+                          onChange={(e) => handleBgTextureChange({ scale: Number(e.target.value) })}
+                          className="w-full"
+                        />
+                      </div>
+                    )}
+                  </div>
+
                   <div
                     className="h-16 w-full rounded-xl border border-neutral-200"
                     style={{ background: computedBg }}
@@ -4766,6 +5113,276 @@ export default function CollectionEditorPage() {
           />
         </div>
       </div>
+
+      {/* ── Modals — rendered at root level so they're never inside a hidden container ── */}
+
+      {showTemplateModal && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/45 p-4">
+          <div className="w-full max-w-md rounded-2xl bg-white p-6 shadow-2xl">
+            <div className="flex items-start justify-between gap-3">
+              <div>
+                <h2 className="text-lg font-bold text-neutral-900">Guardar como plantilla</h2>
+                <p className="mt-1 text-sm text-neutral-500">
+                  Guarda el canvas actual para reutilizarlo luego desde el editor.
+                </p>
+              </div>
+              <button
+                onClick={() => { setShowTemplateModal(false); setTemplateError(null); }}
+                className="rounded-lg border border-neutral-200 p-2 text-neutral-500 transition hover:bg-neutral-50"
+              >
+                <X className="h-4 w-4" />
+              </button>
+            </div>
+
+            <div className="mt-5 space-y-4">
+              <div>
+                <label className="mb-1 block text-sm font-medium text-neutral-700">Nombre</label>
+                <input
+                  autoFocus type="text" maxLength={120} value={templateName}
+                  onChange={(e) => setTemplateName(e.target.value)}
+                  className="w-full rounded-xl border border-neutral-300 px-3 py-2.5 text-sm outline-none focus:border-[#0F3D3A] focus:ring-2 focus:ring-[#0F3D3A]/20"
+                  placeholder="Ej. Plantilla catálogo artesanal"
+                />
+              </div>
+              <label className="flex items-start gap-3 rounded-xl border border-neutral-200 p-3 text-sm text-neutral-600">
+                <input type="checkbox" checked={templateIsPublic} onChange={(e) => setTemplateIsPublic(e.target.checked)} className="mt-0.5 rounded" />
+                <span>Hacer pública esta plantilla para que aparezca en la galería reutilizable.</span>
+              </label>
+              <div className="rounded-xl bg-neutral-50 p-3 text-xs text-neutral-500">
+                Snapshot actual: {items.length} elementos, canvas {collection.canvas_width} × {collection.canvas_height}.
+              </div>
+              {templateError && (
+                <div className="rounded-xl border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-700">{templateError}</div>
+              )}
+            </div>
+
+            <div className="mt-6 flex gap-3">
+              <button
+                onClick={() => { setShowTemplateModal(false); setTemplateError(null); }}
+                className="flex-1 rounded-xl border border-neutral-200 py-2.5 text-sm font-medium text-neutral-600 transition hover:bg-neutral-50"
+              >
+                Cancelar
+              </button>
+              <button
+                onClick={handleSaveTemplate}
+                disabled={templateSaving || !templateName.trim()}
+                className="flex-1 rounded-xl bg-[#0F3D3A] py-2.5 text-sm font-medium text-white transition hover:bg-[#14544f] disabled:opacity-60"
+              >
+                {templateSaving ? "Guardando..." : "Guardar plantilla"}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {aiModalOpen && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4">
+          <div className="flex w-full max-w-xl flex-col rounded-2xl bg-white shadow-2xl" style={{ maxHeight: "90vh" }}>
+
+            <div className="flex items-center justify-between gap-3 border-b border-neutral-100 px-6 py-4">
+              <div className="flex items-center gap-2.5">
+                <Sparkles className="h-5 w-5 text-[var(--seller-accent)]" />
+                <div>
+                  <p className="text-base font-bold text-neutral-900 leading-none">Generar canvas con IA</p>
+                  <p className="mt-0.5 text-[11px] text-neutral-400">Paso {aiStep} de 3</p>
+                </div>
+              </div>
+              <button onClick={() => setAiModalOpen(false)} className="rounded-lg border border-neutral-200 p-1.5 text-neutral-400 transition hover:bg-neutral-50">
+                <X className="h-4 w-4" />
+              </button>
+            </div>
+
+            <div className="flex gap-1 px-6 pt-4">
+              {([1, 2, 3] as const).map((s) => (
+                <div key={s} className={`h-1 flex-1 rounded-full transition-colors ${aiStep >= s ? "bg-[var(--seller-accent)]" : "bg-neutral-100"}`} />
+              ))}
+            </div>
+
+            <div className="flex-1 overflow-y-auto px-6 py-5 space-y-5">
+              {aiStep === 1 && (
+                <>
+                  <div>
+                    <p className="text-sm font-semibold text-neutral-800">Productos a mostrar</p>
+                    <p className="mt-0.5 text-xs text-neutral-500">Selecciona cuáles incluir. Se pre-seleccionaron los que ya están en el canvas.</p>
+                  </div>
+                  <div>
+                    <div className="mb-2 flex items-center justify-between">
+                      <label className="text-xs font-medium text-neutral-600">¿Cuántos productos mostrar?</label>
+                      <span className="text-sm font-bold text-[var(--seller-accent)]">{aiProductCount}</span>
+                    </div>
+                    <input type="range" min={1} max={Math.min(6, aiSelectedProductIds.size || 6)} value={aiProductCount}
+                      onChange={(e) => setAiProductCount(Number(e.target.value))} className="w-full accent-[var(--seller-accent)]" />
+                    <div className="mt-1 flex justify-between text-[10px] text-neutral-400">
+                      <span>1</span><span>Recomendado: 2–4</span><span>6</span>
+                    </div>
+                  </div>
+                  <div>
+                    <div className="mb-2 flex items-center justify-between">
+                      <label className="text-xs font-medium text-neutral-600">Productos disponibles ({products.length})</label>
+                      <span className="text-xs text-neutral-400">{aiSelectedProductIds.size} seleccionados</span>
+                    </div>
+                    {products.length === 0 ? (
+                      <p className="rounded-xl border border-neutral-100 bg-neutral-50 px-4 py-6 text-center text-sm text-neutral-400">No tienes productos activos.</p>
+                    ) : (
+                      <div className="grid grid-cols-3 gap-2 sm:grid-cols-4">
+                        {products.map((p) => {
+                          const selected = aiSelectedProductIds.has(p.id);
+                          return (
+                            <button key={p.id}
+                              onClick={() => setAiSelectedProductIds((prev) => { const n = new Set(prev); selected ? n.delete(p.id) : n.add(p.id); return n; })}
+                              className={`relative overflow-hidden rounded-xl border-2 text-left transition ${selected ? "border-[var(--seller-accent)]" : "border-neutral-100 hover:border-neutral-200"}`}>
+                              <div className="aspect-square w-full overflow-hidden bg-neutral-50">
+                                {p.imagen_url ? <img src={p.imagen_url} alt={p.nombre} className="h-full w-full object-cover" /> : <div className="flex h-full w-full items-center justify-center text-neutral-200 text-2xl">·</div>}
+                              </div>
+                              <div className="p-1.5">
+                                <p className="truncate text-[10px] font-medium text-neutral-700">{p.nombre}</p>
+                                <p className="text-[10px] text-neutral-400">Q{Number(p.precio).toFixed(0)}</p>
+                              </div>
+                              {selected && (
+                                <div className="absolute right-1.5 top-1.5 flex h-4 w-4 items-center justify-center rounded-full bg-[var(--seller-accent)]">
+                                  <Check className="h-2.5 w-2.5 text-white" />
+                                </div>
+                              )}
+                            </button>
+                          );
+                        })}
+                      </div>
+                    )}
+                  </div>
+                </>
+              )}
+
+              {aiStep === 2 && (
+                <>
+                  <div>
+                    <p className="text-sm font-semibold text-neutral-800">Contenido del canvas</p>
+                    <p className="mt-0.5 text-xs text-neutral-500">La IA usará esta información para escribir textos y componer el diseño.</p>
+                  </div>
+                  <div>
+                    <label className="mb-1 block text-xs font-medium text-neutral-600">Título de la colección</label>
+                    <input type="text" maxLength={80} value={aiTitle} onChange={(e) => setAiTitle(e.target.value)}
+                      placeholder="Ej. Colección Verano 2025"
+                      className="w-full rounded-xl border border-neutral-300 px-3 py-2.5 text-sm outline-none focus:border-[#0F3D3A] focus:ring-2 focus:ring-[#0F3D3A]/20" />
+                  </div>
+                  <div>
+                    <label className="mb-1 block text-xs font-medium text-neutral-600">Tagline / slogan <span className="font-normal text-neutral-400">(opcional)</span></label>
+                    <input type="text" maxLength={100} value={aiTagline} onChange={(e) => setAiTagline(e.target.value)}
+                      placeholder="Ej. Piezas frescas para la nueva temporada"
+                      className="w-full rounded-xl border border-neutral-300 px-3 py-2.5 text-sm outline-none focus:border-[#0F3D3A] focus:ring-2 focus:ring-[#0F3D3A]/20" />
+                  </div>
+                  <div>
+                    <label className="mb-1 block text-xs font-medium text-neutral-600">Descripción creativa <span className="font-normal text-neutral-400">(mood, contexto, audiencia)</span></label>
+                    <textarea autoFocus rows={3} maxLength={500} value={aiPrompt} onChange={(e) => setAiPrompt(e.target.value)}
+                      placeholder="Ej. Colección playera con colores vibrantes para mujeres jóvenes, ambiente tropical, fresco y alegre"
+                      className="w-full resize-none rounded-xl border border-neutral-300 px-3 py-2.5 text-sm outline-none focus:border-[#0F3D3A] focus:ring-2 focus:ring-[#0F3D3A]/20" />
+                  </div>
+                  <div>
+                    <label className="mb-1 block text-xs font-medium text-neutral-600">Llamada a la acción <span className="font-normal text-neutral-400">(opcional)</span></label>
+                    <input type="text" maxLength={60} value={aiCta} onChange={(e) => setAiCta(e.target.value)}
+                      placeholder="Ej. Ver colección · Disponible ahora · Compra aquí"
+                      className="w-full rounded-xl border border-neutral-300 px-3 py-2.5 text-sm outline-none focus:border-[#0F3D3A] focus:ring-2 focus:ring-[#0F3D3A]/20" />
+                  </div>
+                </>
+              )}
+
+              {aiStep === 3 && (
+                <>
+                  <div>
+                    <p className="text-sm font-semibold text-neutral-800">Estilo visual</p>
+                    <p className="mt-0.5 text-xs text-neutral-500">Define la estética, paleta y estructura del canvas.</p>
+                  </div>
+                  <div>
+                    <label className="mb-2 block text-xs font-medium text-neutral-600">Estética</label>
+                    <div className="grid grid-cols-3 gap-2">
+                      {([
+                        { id: "minimal",   label: "Minimal",   desc: "Limpio y moderno" },
+                        { id: "bold",      label: "Bold",      desc: "Fuerte e impactante" },
+                        { id: "editorial", label: "Editorial", desc: "Elegante y magazine" },
+                        { id: "playful",   label: "Playful",   desc: "Vibrante y divertido" },
+                        { id: "luxury",    label: "Luxury",    desc: "Premium y exclusivo" },
+                        { id: "artisanal", label: "Artesanal", desc: "Natural y orgánico" },
+                      ] as const).map((s) => (
+                        <button key={s.id} onClick={() => setAiStyle(s.id)}
+                          className={`flex flex-col items-center rounded-xl border-2 px-2 py-3 text-center transition ${aiStyle === s.id ? "border-[var(--seller-accent)] bg-[color:color-mix(in_srgb,var(--seller-accent)_8%,white)]" : "border-neutral-200 hover:border-neutral-300"}`}>
+                          <span className={`text-xs font-semibold ${aiStyle === s.id ? "text-[var(--seller-accent)]" : "text-neutral-800"}`}>{s.label}</span>
+                          <span className="mt-0.5 text-[10px] text-neutral-400">{s.desc}</span>
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+                  <div>
+                    <label className="mb-2 block text-xs font-medium text-neutral-600">Paleta de colores</label>
+                    <div className="flex flex-wrap gap-2">
+                      {([
+                        { id: "auto",    label: "Auto (IA elige)", dot: "bg-gradient-to-r from-[#0F3D3A] to-[#f97316]" },
+                        { id: "neutral", label: "Neutros",         dot: "bg-[#f5f0eb]" },
+                        { id: "earth",   label: "Tierra",          dot: "bg-[#c97040]" },
+                        { id: "dark",    label: "Oscuro",          dot: "bg-[#1a1a2e]" },
+                        { id: "vibrant", label: "Vibrante",        dot: "bg-[#f50057]" },
+                      ] as const).map((p) => (
+                        <button key={p.id} onClick={() => setAiPalette(p.id)}
+                          className={`flex items-center gap-2 rounded-full border px-3 py-1.5 text-xs font-medium transition ${aiPalette === p.id ? "border-[var(--seller-accent)] bg-[color:color-mix(in_srgb,var(--seller-accent)_10%,white)] text-[var(--seller-accent)]" : "border-neutral-200 text-neutral-600 hover:border-neutral-300"}`}>
+                          <span className={`h-3 w-3 rounded-full border border-neutral-200 ${p.dot}`} />
+                          {p.label}
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+                  <div>
+                    <label className="mb-2 block text-xs font-medium text-neutral-600">Tipo de layout</label>
+                    <div className="grid grid-cols-2 gap-2">
+                      {([
+                        { id: "hero",       label: "Hero + productos",  desc: "Un producto dominante, título en grande" },
+                        { id: "grid",       label: "Grid de productos", desc: "Cuadrícula ordenada, equilibrada" },
+                        { id: "asymmetric", label: "Asimétrico",        desc: "Tensión dinámica, elementos en capas" },
+                        { id: "collage",    label: "Collage",           desc: "Imágenes superpuestas, textura editorial" },
+                      ] as const).map((l) => (
+                        <button key={l.id} onClick={() => setAiLayout(l.id)}
+                          className={`rounded-xl border-2 px-3 py-3 text-left transition ${aiLayout === l.id ? "border-[var(--seller-accent)] bg-[color:color-mix(in_srgb,var(--seller-accent)_8%,white)]" : "border-neutral-200 hover:border-neutral-300"}`}>
+                          <p className={`text-xs font-semibold ${aiLayout === l.id ? "text-[var(--seller-accent)]" : "text-neutral-800"}`}>{l.label}</p>
+                          <p className="mt-0.5 text-[10px] text-neutral-400">{l.desc}</p>
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+                  <label className="flex cursor-pointer items-start gap-3 rounded-xl border border-neutral-200 p-3 text-sm text-neutral-600 hover:bg-neutral-50">
+                    <input type="checkbox" checked={aiGenerateBgImage} onChange={(e) => setAiGenerateBgImage(e.target.checked)} className="mt-0.5 rounded" />
+                    <span>
+                      <strong className="block text-xs font-semibold text-neutral-800">Generar imagen de fondo con OpenAI</strong>
+                      <span className="text-[11px] text-neutral-500">Imagen personalizada para el fondo (~15–30 s extra).</span>
+                    </span>
+                  </label>
+                  {aiError && (
+                    <div className="rounded-xl border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-700">{aiError}</div>
+                  )}
+                </>
+              )}
+            </div>
+
+            <div className="flex gap-3 border-t border-neutral-100 px-6 py-4">
+              <button
+                onClick={() => { if (aiStep > 1) setAiStep((s) => (s - 1) as 1 | 2 | 3); else setAiModalOpen(false); }}
+                disabled={aiLoading}
+                className="flex-1 rounded-xl border border-neutral-200 py-2.5 text-sm font-medium text-neutral-600 transition hover:bg-neutral-50 disabled:opacity-50"
+              >
+                {aiStep === 1 ? "Cancelar" : "← Atrás"}
+              </button>
+              {aiStep < 3 ? (
+                <button onClick={() => setAiStep((s) => (s + 1) as 1 | 2 | 3)}
+                  disabled={aiStep === 1 && aiSelectedProductIds.size === 0}
+                  className="flex-1 rounded-xl bg-[#0F3D3A] py-2.5 text-sm font-medium text-white transition hover:bg-[#14544f] disabled:opacity-60">
+                  Siguiente →
+                </button>
+              ) : (
+                <button onClick={handleAiGenerate} disabled={aiLoading || !aiPrompt.trim()}
+                  className="flex flex-1 items-center justify-center gap-2 rounded-xl bg-[#0F3D3A] py-2.5 text-sm font-medium text-white transition hover:bg-[#14544f] disabled:opacity-60">
+                  {aiLoading ? <><Loader2 className="h-4 w-4 animate-spin" />Generando...</> : <><Sparkles className="h-4 w-4" />Generar canvas</>}
+                </button>
+              )}
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useRef, useState, type CSSProperties, type ReactNode } from "react";
+import React, { useEffect, useRef, useState, type CSSProperties, type ReactNode } from "react";
 import { ImageIcon } from "lucide-react";
 
 type CanvasItem = {
@@ -17,6 +17,30 @@ type CanvasItem = {
   product_image?: string | null;
 };
 
+type EntranceAnim = "none" | "fadeIn" | "slideUp" | "slideLeft" | "zoomIn";
+type MotionAnim   = "none" | "float" | "pulse" | "spin" | "shake" | "bounce";
+
+const MOTION_DURATION: Record<MotionAnim, string> = {
+  none: "", float: "3s ease-in-out infinite", pulse: "2s ease-in-out infinite",
+  spin: "4s linear infinite", shake: "0.5s ease-in-out infinite", bounce: "1s ease-in-out infinite",
+};
+const ENTRANCE_DURATION: Record<EntranceAnim, string> = {
+  none: "", fadeIn: "0.6s ease both", slideUp: "0.55s cubic-bezier(0.22,1,0.36,1) both",
+  slideLeft: "0.55s cubic-bezier(0.22,1,0.36,1) both", zoomIn: "0.5s cubic-bezier(0.34,1.56,0.64,1) both",
+};
+
+const ANIM_KEYFRAMES = `
+  @keyframes canvas-float    { 0%,100%{transform:translateY(0)}   50%{transform:translateY(-10px)} }
+  @keyframes canvas-pulse    { 0%,100%{transform:scale(1)}        50%{transform:scale(1.06)} }
+  @keyframes canvas-spin     { from{transform:rotate(0deg)}       to{transform:rotate(360deg)} }
+  @keyframes canvas-shake    { 0%,100%{transform:translateX(0)}   25%,75%{transform:translateX(-5px)} 50%{transform:translateX(5px)} }
+  @keyframes canvas-bounce   { 0%,100%{transform:translateY(0)}   50%{transform:translateY(-14px)} }
+  @keyframes canvas-fadeIn   { from{opacity:0}                    to{opacity:1} }
+  @keyframes canvas-slideUp  { from{opacity:0;transform:translateY(24px)} to{opacity:1;transform:translateY(0)} }
+  @keyframes canvas-slideLeft{ from{opacity:0;transform:translateX(24px)} to{opacity:1;transform:translateX(0)} }
+  @keyframes canvas-zoomIn   { from{opacity:0;transform:scale(0.72)} to{opacity:1;transform:scale(1)} }
+`;
+
 type CollectionArtworkPreviewProps = {
   name: string;
   imageUrl?: string | null;
@@ -32,10 +56,12 @@ type CollectionArtworkPreviewProps = {
   emptyDescription?: string;
   /** Actual rendered pixel width — used to scale canvas elements proportionally. */
   renderedWidth?: number | null;
+  /** Play entrance + motion animations. Default false (thumbnails). */
+  playAnimations?: boolean;
 };
 
 const GOOGLE_FONTS_URL =
-  "https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,400;0,700;1,400&family=Montserrat:wght@400;600;700&family=Lato:ital,wght@0,400;0,700;1,400&family=Raleway:wght@400;600;700&family=Oswald:wght@400;600;700&family=Pacifico&family=Dancing+Script:wght@400;700&family=Nunito:wght@400;600;700&family=Bebas+Neue&family=Satisfy&family=Abril+Fatface&family=Josefin+Sans:ital,wght@0,400;0,700&display=swap";
+  "https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,400;0,700;1,400&family=Montserrat:wght@400;600;700&family=Lato:ital,wght@0,400;0,700;1,400&family=Raleway:wght@400;600;700&family=Oswald:wght@400;600;700&family=Pacifico&family=Dancing+Script:wght@400;700&family=Nunito:wght@400;600;700&family=Bebas+Neue&family=Satisfy&family=Abril+Fatface&family=Josefin+Sans:ital,wght@0,400;0,700;1,400&family=Inter:wght@400;500;600;700&family=Poppins:ital,wght@0,400;0,600;0,700;1,400&family=Work+Sans:wght@400;600;700&family=DM+Sans:ital,wght@0,400;0,500;0,700&family=Manrope:wght@400;600;700&family=Cormorant+Garamond:ital,wght@0,400;0,600;1,400&family=Lora:ital,wght@0,400;0,600;1,400&family=EB+Garamond:ital,wght@0,400;0,600;1,400&family=Libre+Baskerville:ital,wght@0,400;0,700;1,400&family=Righteous&family=Fredoka+One&family=Russo+One&family=Baloo+2:wght@400;600;700&family=Great+Vibes&family=Sacramento&family=Space+Mono:ital,wght@0,400;0,700&display=swap";
 
 const FALLBACK_BACKGROUND = "linear-gradient(135deg, #FFF8F0 0%, #F5EEE5 42%, #E9DFD2 100%)";
 
@@ -182,6 +208,7 @@ export default function CollectionArtworkPreview({
   emptyTitle = "Aún no hay imagen promocional",
   emptyDescription = "Puedes subir una portada ya editada o diseñarla en canvas si quieres una imagen nueva.",
   renderedWidth,
+  playAnimations = false,
 }: CollectionArtworkPreviewProps) {
   const width = Math.max(1, Number(canvasWidth ?? 1080));
   const height = Math.max(1, Number(canvasHeight ?? 1080));
@@ -225,6 +252,7 @@ export default function CollectionArtworkPreview({
   if (hasCanvasArtwork) {
     return (
       <div className={`relative h-full w-full overflow-hidden ${className}`.trim()} style={{ background }}>
+        {playAnimations && <style>{ANIM_KEYFRAMES}</style>}
         {backgroundImageUrl ? (
           <img
             src={backgroundImageUrl}
@@ -257,30 +285,51 @@ export default function CollectionArtworkPreview({
           const content = (item.content ?? null) as Record<string, unknown> | null;
           const key = `${item.id ?? "canvas"}-${item.element_type}-${index}`;
 
+          // Animation styles (only when playAnimations is true)
+          const motionKey = (content?.motion ?? "none") as MotionAnim;
+          const entranceKey = (content?.animation ?? "none") as EntranceAnim;
+          const motionStyle: CSSProperties = playAnimations && motionKey !== "none"
+            ? { animation: `canvas-${motionKey} ${MOTION_DURATION[motionKey]}` }
+            : {};
+          const entranceStyle: CSSProperties = playAnimations && entranceKey !== "none"
+            ? { animation: `canvas-${entranceKey} ${ENTRANCE_DURATION[entranceKey]}`, animationDelay: `${Number(item.z_index ?? 0) * 100}ms` }
+            : {};
+
+          const wrapWithAnim = (inner: React.ReactNode) => (
+            <div key={key} style={{ ...commonStyle, overflow: "visible" }}>
+              <div style={{ width: "100%", height: "100%", position: "relative", overflow: "hidden", ...entranceStyle }}>
+                <div style={{ width: "100%", height: "100%", position: "relative", ...motionStyle }}>
+                  {inner}
+                </div>
+              </div>
+            </div>
+          );
+
           if (item.element_type === "text") {
-            return (
-              <div key={key} style={{ ...commonStyle, ...buildTextStyle(content, previewScale) }}>
+            return wrapWithAnim(
+              <div style={{ width: "100%", height: "100%", ...buildTextStyle(content, previewScale) }}>
                 {typeof content?.text === "string" ? content.text : "Texto"}
               </div>
             );
           }
 
           if (item.element_type === "shape") {
-            return <div key={key} style={{ ...commonStyle, ...buildShapeStyle(content, previewScale) }} />;
+            return wrapWithAnim(
+              <div style={{ width: "100%", height: "100%", ...buildShapeStyle(content, previewScale) }} />
+            );
           }
 
           if (item.element_type === "image") {
             const imageSrc = typeof content?.url === "string" ? content.url : null;
             if (!imageSrc) return null;
-            return (
+            return wrapWithAnim(
               <img
-                key={key}
                 src={imageSrc}
                 alt=""
                 draggable={false}
                 loading="lazy"
                 style={{
-                  ...commonStyle,
+                  width: "100%", height: "100%",
                   objectFit: content?.objectFit === "contain" ? "contain" : "cover",
                   borderRadius: `${Math.max(1, Number(content?.borderRadius ?? 8) * previewScale)}px`,
                   opacity: Number(content?.opacity ?? 1),
@@ -293,15 +342,14 @@ export default function CollectionArtworkPreview({
 
           if (item.element_type === "product") {
             if (item.product_image) {
-              return (
+              return wrapWithAnim(
                 <img
-                  key={key}
                   src={item.product_image}
                   alt={item.product_name ?? ""}
                   draggable={false}
                   loading="lazy"
                   style={{
-                    ...commonStyle,
+                    width: "100%", height: "100%",
                     objectFit: content?.objectFit === "contain" ? "contain" : "cover",
                     borderRadius: `${Math.max(0, Number(content?.borderRadius ?? 0) * previewScale)}px`,
                     opacity: Number(content?.opacity ?? 1),
@@ -311,11 +359,10 @@ export default function CollectionArtworkPreview({
                 />
               );
             }
-            return (
+            return wrapWithAnim(
               <div
-                key={key}
                 style={{
-                  ...commonStyle,
+                  width: "100%", height: "100%",
                   background: "#dbe4ea",
                   borderRadius: `${Math.max(0, Number(content?.borderRadius ?? 0) * previewScale)}px`,
                   opacity: Number(content?.opacity ?? 1),

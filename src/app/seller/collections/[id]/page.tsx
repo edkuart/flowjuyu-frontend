@@ -125,7 +125,8 @@ export default function CollectionDetailPage() {
     );
   }, [products, search]);
 
-  const promoImageUrl = collection?.promo_image_url ?? collection?.background_image_url ?? null;
+  const hasCanvasItems = (collection?.items?.length ?? 0) > 0;
+  const promoImageUrl = !hasCanvasItems ? (collection?.promo_image_url ?? collection?.background_image_url ?? null) : null;
   const selectedProducts = products.filter((product) => selectedProductIds.includes(product.id));
 
   function toggleProduct(productId: string) {
@@ -274,6 +275,7 @@ export default function CollectionDetailPage() {
             <CollectionPreviewBox
               name={collection.name}
               imageUrl={promoImageUrl}
+              backgroundImageUrl={collection.background_image_url ?? undefined}
               items={collection.items}
               backgroundColor={collection.background_color}
               backgroundStyle={collection.background_style}

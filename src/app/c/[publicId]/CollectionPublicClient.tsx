@@ -90,7 +90,8 @@ export default function CollectionPublicClient({
         <div className="overflow-hidden rounded-2xl shadow-lg">
           <CollectionPreviewBox
             name={collection.name}
-            imageUrl={collection.promo_image_url ?? collection.background_image_url ?? null}
+            imageUrl={!(collection.items?.length) ? (collection.promo_image_url ?? collection.background_image_url ?? null) : null}
+            backgroundImageUrl={collection.background_image_url ?? undefined}
             items={collection.items}
             backgroundColor={collection.background_color}
             backgroundStyle={collection.background_style}
@@ -99,6 +100,7 @@ export default function CollectionPublicClient({
             maxWidth={1200}
             maxHeight={700}
             className="w-full"
+            playAnimations
           />
         </div>
 

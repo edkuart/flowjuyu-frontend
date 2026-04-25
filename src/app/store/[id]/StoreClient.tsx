@@ -1773,7 +1773,8 @@ export default function StoreClient({
                   <div className="min-h-[340px] overflow-hidden border-b border-neutral-100 lg:min-h-[460px] lg:border-b-0 lg:border-r">
                     <CollectionArtworkPreview
                       name={featuredCollection.name}
-                      imageUrl={featuredCollection.promo_image_url ?? featuredCollection.background_image_url ?? null}
+                      imageUrl={!(featuredCollection.items?.length) ? (featuredCollection.promo_image_url ?? featuredCollection.background_image_url ?? null) : null}
+                      backgroundImageUrl={featuredCollection.background_image_url ?? undefined}
                       items={featuredCollection.items}
                       backgroundColor={featuredCollection.background_color}
                       backgroundStyle={featuredCollection.background_style}
@@ -1851,7 +1852,8 @@ export default function StoreClient({
                           <a href={collectionHref} className="block">
                             <CollectionPreviewBox
                               name={col.name}
-                              imageUrl={col.promo_image_url ?? col.background_image_url ?? null}
+                              imageUrl={!(col.items?.length) ? (col.promo_image_url ?? col.background_image_url ?? null) : null}
+                              backgroundImageUrl={col.background_image_url ?? undefined}
                               items={col.items}
                               backgroundColor={col.background_color}
                               backgroundStyle={col.background_style}
@@ -1865,7 +1867,8 @@ export default function StoreClient({
                         ) : (
                           <CollectionPreviewBox
                             name={col.name}
-                            imageUrl={col.promo_image_url ?? col.background_image_url ?? null}
+                            imageUrl={!(col.items?.length) ? (col.promo_image_url ?? col.background_image_url ?? null) : null}
+                            backgroundImageUrl={col.background_image_url ?? undefined}
                             items={col.items}
                             backgroundColor={col.background_color}
                             backgroundStyle={col.background_style}

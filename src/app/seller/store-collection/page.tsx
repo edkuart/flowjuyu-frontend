@@ -206,7 +206,8 @@ export default function SellerStoreCollectionPage() {
             {previewCollection ? (
               <CollectionPreviewBox
                 name={previewCollection.name}
-                imageUrl={previewCollection.promo_image_url ?? previewCollection.background_image_url ?? null}
+                imageUrl={!(previewCollection.items?.length) ? (previewCollection.promo_image_url ?? previewCollection.background_image_url ?? null) : null}
+                backgroundImageUrl={previewCollection.background_image_url ?? undefined}
                 items={previewCollection.items}
                 backgroundColor={previewCollection.background_color}
                 backgroundStyle={previewCollection.background_style}
@@ -261,7 +262,8 @@ export default function SellerStoreCollectionPage() {
                     <div className="h-52 overflow-hidden border-b border-neutral-100 bg-[linear-gradient(135deg,#FFF8F0_0%,#F5EEE5_42%,#E9DFD2_100%)]">
                       <CollectionArtworkPreview
                         name={collection.name}
-                        imageUrl={collection.promo_image_url ?? collection.background_image_url ?? null}
+                        imageUrl={!(collection.items?.length) ? (collection.promo_image_url ?? collection.background_image_url ?? null) : null}
+                        backgroundImageUrl={collection.background_image_url ?? undefined}
                         items={collection.items}
                         backgroundColor={collection.background_color}
                         backgroundStyle={collection.background_style}

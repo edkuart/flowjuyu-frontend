@@ -39,6 +39,7 @@
     "exceljs": "^4.4.0",
     "firebase": "^12.5.0",
     "framer-motion": "^12.36.0",
+    "html2canvas": "^1.4.1",
     "jotai": "^2.15.0",
     "jsonwebtoken": "^9.0.2",
     "jspdf": "^3.0.3",
