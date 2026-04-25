@@ -1,9 +1,9 @@
 "use client";
 
-import { ChangeEvent, useEffect, useMemo, useState } from "react";
+import { ChangeEvent, useEffect, useMemo, useRef, useState } from "react";
 import Link from "next/link";
 import { useParams } from "next/navigation";
-import { ImageIcon, Loader2, Plus, Sparkles, Trash2 } from "lucide-react";
+import { ChevronDown, ExternalLink, ImageIcon, Loader2, Plus, Sparkles, Trash2 } from "lucide-react";
 import {
   SellerActionButton,
   SellerPill,
@@ -76,6 +76,19 @@ export default function CollectionDetailPage() {
   const [uploadingImage, setUploadingImage] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [success, setSuccess] = useState<string | null>(null);
+  const [otherEditorOpen, setOtherEditorOpen] = useState(false);
+  const otherEditorRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    if (!otherEditorOpen) return;
+    function handleClickOutside(e: MouseEvent) {
+      if (otherEditorRef.current && !otherEditorRef.current.contains(e.target as Node)) {
+        setOtherEditorOpen(false);
+      }
+    }
+    document.addEventListener("mousedown", handleClickOutside);
+    return () => document.removeEventListener("mousedown", handleClickOutside);
+  }, [otherEditorOpen]);
 
   useEffect(() => {
     let cancelled = false;
@@ -300,6 +313,65 @@ export default function CollectionDetailPage() {
                 <Sparkles className="h-4 w-4" />
                 Editor canvas
               </Link>
+            </div>
+
+            {/* External editors dropdown */}
+            <div ref={otherEditorRef} className="relative">
+              <button
+                type="button"
+                onClick={() => setOtherEditorOpen((v) => !v)}
+                className="flex w-full items-center justify-center gap-2 rounded-xl border border-[var(--seller-line-strong)] px-4 py-3 text-sm font-medium text-[var(--seller-text)] transition hover:bg-[var(--seller-panel)]"
+              >
+                <ExternalLink className="h-4 w-4" />
+                Editar en otro editor
+                <ChevronDown className={`ml-auto h-4 w-4 transition-transform ${otherEditorOpen ? "rotate-180" : ""}`} />
+              </button>
+
+              {otherEditorOpen && (
+                <div className="absolute left-0 right-0 top-full z-20 mt-2 overflow-hidden rounded-2xl border border-[var(--seller-line-strong)] bg-white shadow-xl">
+                  <p className="border-b border-neutral-100 px-4 py-2.5 text-[11px] font-semibold uppercase tracking-[0.18em] text-neutral-400">
+                    Diseña tu imagen y luego súbela aquí
+                  </p>
+                  {[
+                    {
+                      name: "Canva",
+                      description: "Plantillas y diseño fácil",
+                      href: "https://www.canva.com/create/",
+                      color: "text-[#7B2FBE]",
+                      bg: "hover:bg-purple-50",
+                    },
+                    {
+                      name: "Adobe Express",
+                      description: "Diseño profesional rápido",
+                      href: "https://new.express.adobe.com/",
+                      color: "text-[#FF0000]",
+                      bg: "hover:bg-red-50",
+                    },
+                    {
+                      name: "Photopea",
+                      description: "Editor avanzado tipo Photoshop, gratis",
+                      href: "https://www.photopea.com/",
+                      color: "text-[#0073E6]",
+                      bg: "hover:bg-blue-50",
+                    },
+                  ].map((editor) => (
+                    <a
+                      key={editor.name}
+                      href={editor.href}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      onClick={() => setOtherEditorOpen(false)}
+                      className={`flex items-center gap-3 px-4 py-3 transition ${editor.bg}`}
+                    >
+                      <div className="min-w-0 flex-1">
+                        <p className={`text-sm font-semibold ${editor.color}`}>{editor.name}</p>
+                        <p className="text-xs text-neutral-500">{editor.description}</p>
+                      </div>
+                      <ExternalLink className="h-3.5 w-3.5 flex-shrink-0 text-neutral-300" />
+                    </a>
+                  ))}
+                </div>
+              )}
             </div>
 
             <div>
