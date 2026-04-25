@@ -43,7 +43,13 @@
       "Bash(git push *)",
       "Bash(vercel --prod)",
       "Bash(npx --prefix \"C:/Users/Dell/Projects/Flowjuyu-1.0/flowjuyu-backend\" tsc --noEmit)",
-      "Bash(npx --prefix \"C:/Users/Dell/Projects/Flowjuyu-1.0/flowjuyu-frontend\" tsc --noEmit)"
+      "Bash(npx --prefix \"C:/Users/Dell/Projects/Flowjuyu-1.0/flowjuyu-frontend\" tsc --noEmit)",
+      "Bash(cross-env NODE_EXTRA_CA_CERTS=./config/supabase-ca.crt ts-node --project tsconfig.json scripts/diagnose-templates.ts)",
+      "Bash(npx cross-env *)",
+      "Bash(cross-env NODE_EXTRA_CA_CERTS=./config/supabase-ca.crt ts-node --project tsconfig.json scripts/import-crafted-heritage-template.ts)",
+      "Bash(pnpm run *)",
+      "Bash(npm install *)",
+      "Bash(pnpm install *)"
     ],
     "additionalDirectories": [
       "C:\\Users\\Dell\\Projects\\Flowjuyu-1.0\\flowjuyu-backend\\src\\services",
@@ -55,7 +61,8 @@
       "c:\\Users\\Dell\\Projects\\Flowjuyu-1.0\\flowjuyu-backend\\src\\routes",
       "c:\\Users\\Dell\\Projects\\Flowjuyu-1.0\\flowjuyu-backend\\src",
       "c:\\Users\\Dell\\Projects\\Flowjuyu-1.0\\flowjuyu-frontend\\.next",
-      "C:\\Users\\Dell\\Projects\\Flowjuyu-1.0\\flowjuyu-backend"
+      "C:\\Users\\Dell\\Projects\\Flowjuyu-1.0\\flowjuyu-backend",
+      "C:\\Users\\Dell\\Projects\\Flowjuyu-1.0\\flowjuyu-frontend\\src\\app\\c"
     ]
   }
 }

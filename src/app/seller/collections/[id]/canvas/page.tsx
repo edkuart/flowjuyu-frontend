@@ -1987,10 +1987,18 @@ export default function CollectionEditorPage() {
 
         const mimeType = exportFormat === "jpeg" ? "image/jpeg" : "image/png";
         const dataUrl = captured.toDataURL(mimeType, exportFormat === "jpeg" ? exportQuality / 100 : undefined);
+        const filename = `${(name || "canvas").replace(/\s+/g, "-").toLowerCase()}.${exportFormat}`;
+
+        // Convert to blob for reliable cross-platform download (required on iOS/Android)
+        const blob = await fetch(dataUrl).then((r) => r.blob());
+        const blobUrl = URL.createObjectURL(blob);
         const link = document.createElement("a");
-        link.download = `${(name || "canvas").replace(/\s+/g, "-").toLowerCase()}.${exportFormat}`;
-        link.href = dataUrl;
+        link.href = blobUrl;
+        link.download = filename;
+        document.body.appendChild(link);
         link.click();
+        document.body.removeChild(link);
+        setTimeout(() => URL.revokeObjectURL(blobUrl), 500);
         setExportOpen(false);
       } finally {
         document.body.removeChild(clone);
@@ -2907,14 +2915,14 @@ export default function CollectionEditorPage() {
           <span className="hidden sm:inline">Guardar plantilla</span>
           <span className="sm:hidden">Guardar temp.</span>
         </button>
-        {/* Export button + dropdown */}
+        {/* Export button + dropdown (desktop) / direct action (mobile) */}
         <div ref={exportBtnRef} className="relative">
           <button
-            onClick={() => setExportOpen((o) => !o)}
+            onClick={() => isMobileViewport ? void handleExport() : setExportOpen((o) => !o)}
             title="Exportar canvas como imagen"
             className="flex items-center gap-1.5 rounded-lg border border-neutral-200 px-3 py-1.5 text-xs font-medium text-neutral-600 transition hover:bg-neutral-50"
           >
-            <Download className="h-3.5 w-3.5" />
+            {exporting ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Download className="h-3.5 w-3.5" />}
             <span className="hidden sm:inline">Exportar</span>
           </button>
 
@@ -3089,7 +3097,7 @@ export default function CollectionEditorPage() {
       >
 
         {/* ── Left sidebar ── */}
-        <aside ref={leftPanelRef} className={`${isMobileToolsPanelOpen ? "fixed inset-x-3 bottom-24 top-20 z-40 flex" : "hidden"} order-2 h-auto w-full shrink-0 flex-col overflow-hidden rounded-2xl border border-[var(--seller-line-strong)] bg-white shadow-[0_24px_60px_rgba(15,61,58,0.18)] md:static md:inset-auto md:order-none md:flex md:max-h-none md:w-56 md:rounded-xl md:shadow-none md:z-auto`}>
+        <aside ref={leftPanelRef} className={`${isMobileToolsPanelOpen ? "fixed inset-x-3 bottom-20 top-40 z-40 flex" : "hidden"} order-2 h-auto w-full shrink-0 flex-col overflow-hidden rounded-2xl border border-[var(--seller-line-strong)] bg-white shadow-[0_24px_60px_rgba(15,61,58,0.18)] md:static md:inset-auto md:order-none md:flex md:max-h-none md:w-56 md:rounded-xl md:shadow-none md:z-auto`}>
           <div className="border-b border-neutral-100 p-3">
             <div className="mb-2 flex items-center justify-between gap-2">
               <p className="text-[11px] font-semibold uppercase tracking-widest text-neutral-400">
@@ -4173,7 +4181,7 @@ export default function CollectionEditorPage() {
         </div>
 
         {/* ── Right properties panel ── */}
-        <aside ref={rightPanelRef} className={`${mobilePanel === "properties" ? "fixed inset-x-3 bottom-24 top-20 z-40 flex" : "hidden"} order-3 h-auto w-full shrink-0 flex-col overflow-hidden rounded-2xl border border-neutral-200 bg-white shadow-[0_24px_60px_rgba(15,61,58,0.18)] md:static md:inset-auto md:order-none md:flex md:max-h-none md:w-60 md:rounded-xl md:shadow-none md:z-auto`}>
+        <aside ref={rightPanelRef} className={`${mobilePanel === "properties" ? "fixed inset-x-3 bottom-20 top-40 z-40 flex" : "hidden"} order-3 h-auto w-full shrink-0 flex-col overflow-hidden rounded-2xl border border-neutral-200 bg-white shadow-[0_24px_60px_rgba(15,61,58,0.18)] md:static md:inset-auto md:order-none md:flex md:max-h-none md:w-60 md:rounded-xl md:shadow-none md:z-auto`}>
           <div className="border-b border-neutral-100 p-3">
             <div className="flex items-center justify-between gap-2">
               <p className="text-[11px] font-semibold uppercase tracking-widest text-neutral-400">Propiedades</p>

@@ -54,7 +54,7 @@ type CollectionArtworkPreviewProps = {
   imageFit?: "cover" | "contain";
   emptyTitle?: string;
   emptyDescription?: string;
-  /** Actual rendered pixel width — used to scale canvas elements proportionally. */
+  /** @deprecated — no longer used; scale is derived internally via ResizeObserver */
   renderedWidth?: number | null;
   /** Play entrance + motion animations. Default false (thumbnails). */
   playAnimations?: boolean;
@@ -73,16 +73,13 @@ function buildTransform(rotation: number, flipX: boolean, flipY: boolean): strin
   return parts.length ? parts.join(" ") : undefined;
 }
 
-function buildBoxShadow(
-  content: Record<string, unknown> | null | undefined,
-  scale: number,
-): string | undefined {
+function buildBoxShadow(content: Record<string, unknown> | null | undefined): string | undefined {
   const shadowEnabled = Boolean(content?.shadowEnabled) || Boolean(content?.shadow);
   if (!shadowEnabled) return undefined;
-  const shadowX = Number(content?.shadowX ?? 4) * scale;
-  const shadowY = Number(content?.shadowY ?? 4) * scale;
-  const shadowBlur = Number(content?.shadowBlur ?? 8) * scale;
-  const shadowSpread = Number(content?.shadowSpread ?? 0) * scale;
+  const shadowX = Number(content?.shadowX ?? 4);
+  const shadowY = Number(content?.shadowY ?? 4);
+  const shadowBlur = Number(content?.shadowBlur ?? 8);
+  const shadowSpread = Number(content?.shadowSpread ?? 0);
   const shadowColor = typeof content?.shadowColor === "string" ? content.shadowColor : "rgba(0,0,0,0.3)";
   return `${shadowX}px ${shadowY}px ${shadowBlur}px ${shadowSpread}px ${shadowColor}`;
 }
@@ -104,14 +101,14 @@ function getShapeClipPath(shapeType: unknown): string | undefined {
   return undefined;
 }
 
-function getShapeBorderRadius(content: Record<string, unknown> | null | undefined, scale: number): string {
+function getShapeBorderRadius(content: Record<string, unknown> | null | undefined): string {
   const shapeType = content?.shapeType;
   if (shapeType === "circle") return "50%";
   if (shapeType === "capsule") return "999px";
   if (shapeType === "arch") return "999px 999px 18px 18px";
   if (shapeType === "blob") return "58% 42% 57% 43% / 39% 44% 56% 61%";
   if (shapeType === "triangle" || shapeType === "star" || shapeType === "line" || shapeType === "sparkle" || shapeType === "wave" || shapeType === "diamond") return "0";
-  return `${Math.max(0, Number(content?.borderRadius ?? 8) * scale)}px`;
+  return `${Math.max(0, Number(content?.borderRadius ?? 8))}px`;
 }
 
 function isBorderFriendlyShape(shapeType: unknown): boolean {
@@ -131,8 +128,8 @@ function getShapeBackground(content: Record<string, unknown> | null | undefined)
   return color1;
 }
 
-// scale = renderedWidth / canvasWidth  (e.g. 300px preview of a 1080px canvas → 0.278)
-function buildTextStyle(content: Record<string, unknown> | null | undefined, scale: number): CSSProperties {
+// All values in native canvas pixels — the parent div is CSS-scaled, so no multiplication needed.
+function buildTextStyle(content: Record<string, unknown> | null | undefined): CSSProperties {
   const rawFontWeight = content?.fontWeight;
   const fontWeight =
     typeof rawFontWeight === "number"
@@ -156,41 +153,41 @@ function buildTextStyle(content: Record<string, unknown> | null | undefined, sca
     alignItems: "center",
     justifyContent: textAlign === "right" ? "flex-end" : textAlign === "center" ? "center" : "flex-start",
     color: typeof content?.color === "string" ? content.color : "#2f2a25",
-    fontSize: Math.max(6, Number(content?.fontSize ?? 20) * scale),
+    fontSize: Number(content?.fontSize ?? 20),
     fontWeight,
     fontStyle: content?.fontStyle === "italic" ? "italic" : "normal",
     textAlign,
-    lineHeight: Number(content?.lineHeight ?? 1.1),
-    letterSpacing: `${Number(content?.letterSpacing ?? 0) * scale}px`,
-    padding: `${Math.max(1, Number(content?.paddingY ?? 8) * scale)}px ${Math.max(1, Number(content?.paddingX ?? 10) * scale)}px`,
+    lineHeight: Number(content?.lineHeight ?? 1.2),
+    letterSpacing: `${Number(content?.letterSpacing ?? 0)}px`,
+    padding: `${Number(content?.paddingY ?? 8)}px ${Number(content?.paddingX ?? 10)}px`,
     whiteSpace: "pre-wrap",
     wordBreak: "break-word",
     fontFamily: typeof content?.fontFamily === "string" ? content.fontFamily : "inherit",
     textShadow: content?.shadow
-      ? `${Number(content?.shadowX ?? 2) * scale}px ${Number(content?.shadowY ?? 2) * scale}px ${Math.max(0.5, Number(content?.shadowBlur ?? 4) * scale)}px ${typeof content?.shadowColor === "string" ? content.shadowColor : "#000000"}`
+      ? `${Number(content?.shadowX ?? 2)}px ${Number(content?.shadowY ?? 2)}px ${Number(content?.shadowBlur ?? 4)}px ${typeof content?.shadowColor === "string" ? content.shadowColor : "#000000"}`
       : undefined,
     WebkitTextStroke: content?.outline
-      ? `${Math.max(0.3, Number(content?.outlineWidth ?? 1) * scale)}px ${typeof content?.outlineColor === "string" ? content.outlineColor : "#000000"}`
+      ? `${Number(content?.outlineWidth ?? 1)}px ${typeof content?.outlineColor === "string" ? content.outlineColor : "#000000"}`
       : undefined,
     background: hasBackground ? hexToRgba(String(content.bgColor), Number(content?.bgOpacity ?? 0.6)) : undefined,
-    borderRadius: hasBackground ? Math.max(2, 8 * scale) : undefined,
+    borderRadius: hasBackground ? 8 : undefined,
   };
 }
 
-function buildShapeStyle(content: Record<string, unknown> | null | undefined, scale: number): CSSProperties {
+function buildShapeStyle(content: Record<string, unknown> | null | undefined): CSSProperties {
   const shapeType = content?.shapeType;
-  const strokeWidth = Number(content?.strokeWidth ?? 0) * scale;
+  const strokeWidth = Number(content?.strokeWidth ?? 0);
   return {
     background: getShapeBackground(content),
     opacity: Number(content?.opacity ?? 1),
-    borderRadius: getShapeBorderRadius(content, scale),
+    borderRadius: getShapeBorderRadius(content),
     clipPath: getShapeClipPath(shapeType),
-    boxShadow: buildBoxShadow(content, scale),
+    boxShadow: buildBoxShadow(content),
     border: strokeWidth > 0 && isBorderFriendlyShape(shapeType)
       ? `${strokeWidth}px solid ${typeof content?.strokeColor === "string" ? content.strokeColor : "#000000"}`
       : undefined,
     boxSizing: "border-box",
-    ...(shapeType === "line" ? { minHeight: Math.max(1, 3 * scale), borderRadius: 999 } : {}),
+    ...(shapeType === "line" ? { minHeight: 3, borderRadius: 999 } : {}),
   };
 }
 
@@ -207,7 +204,6 @@ export default function CollectionArtworkPreview({
   imageFit = "cover",
   emptyTitle = "Aún no hay imagen promocional",
   emptyDescription = "Puedes subir una portada ya editada o diseñarla en canvas si quieres una imagen nueva.",
-  renderedWidth,
   playAnimations = false,
 }: CollectionArtworkPreviewProps) {
   const width = Math.max(1, Number(canvasWidth ?? 1080));
@@ -216,9 +212,22 @@ export default function CollectionArtworkPreview({
   const hasCanvasArtwork = safeItems.length > 0;
   const background = backgroundStyle || backgroundColor || FALLBACK_BACKGROUND;
 
-  // Scale all pixel-based values relative to how large the preview actually renders.
-  // Fallback 0.18 keeps backward compat when renderedWidth is not provided.
-  const previewScale = renderedWidth ? renderedWidth / width : 0.18;
+  // Measure the container's actual rendered width to compute the CSS scale factor.
+  // All canvas items are positioned at native canvas pixel coordinates inside a
+  // native-sized div; a single CSS scale() on that div makes the preview pixel-perfect.
+  const containerRef = useRef<HTMLDivElement>(null);
+  const [canvasScale, setCanvasScale] = useState<number | null>(null);
+
+  useEffect(() => {
+    const el = containerRef.current;
+    if (!el || !hasCanvasArtwork) return;
+    const ro = new ResizeObserver((entries) => {
+      const w = entries[0]?.contentRect.width;
+      if (w && w > 0) setCanvasScale(w / width);
+    });
+    ro.observe(el);
+    return () => ro.disconnect();
+  }, [width, hasCanvasArtwork]);
 
   useEffect(() => {
     const needsFontSheet = safeItems.some((item) => {
@@ -226,10 +235,8 @@ export default function CollectionArtworkPreview({
       return typeof fontFamily === "string" && fontFamily !== "inherit";
     });
     if (!needsFontSheet || typeof document === "undefined") return;
-
     const existingLink = document.querySelector<HTMLLinkElement>(`link[data-collection-fonts="true"]`);
     if (existingLink) return;
-
     const link = document.createElement("link");
     link.rel = "stylesheet";
     link.href = GOOGLE_FONTS_URL;
@@ -251,8 +258,14 @@ export default function CollectionArtworkPreview({
 
   if (hasCanvasArtwork) {
     return (
-      <div className={`relative h-full w-full overflow-hidden ${className}`.trim()} style={{ background }}>
+      <div
+        ref={containerRef}
+        className={`relative h-full w-full overflow-hidden ${className}`.trim()}
+        style={{ background }}
+      >
         {playAnimations && <style>{ANIM_KEYFRAMES}</style>}
+
+        {/* Background image fills the display container (same aspect ratio as canvas) */}
         {backgroundImageUrl ? (
           <img
             src={backgroundImageUrl}
@@ -263,117 +276,142 @@ export default function CollectionArtworkPreview({
             className="pointer-events-none absolute inset-0 h-full w-full object-cover"
           />
         ) : null}
-        {safeItems.slice().sort((a, b) => Number(a.z_index ?? 0) - Number(b.z_index ?? 0)).map((item, index) => {
-          const left = `${(Number(item.pos_x ?? 0) / width) * 100}%`;
-          const top = `${(Number(item.pos_y ?? 0) / height) * 100}%`;
-          const itemWidth = `${Math.max(2, (Number(item.width ?? 40) / width) * 100)}%`;
-          const itemHeight = `${Math.max(2, (Number(item.height ?? 20) / height) * 100)}%`;
-          const rotation = Number((item.content as Record<string, unknown> | null | undefined)?.rotation ?? 0);
-          const flipX = Boolean((item.content as Record<string, unknown> | null | undefined)?.flipX);
-          const flipY = Boolean((item.content as Record<string, unknown> | null | undefined)?.flipY);
-          const commonStyle: CSSProperties = {
-            position: "absolute",
-            left,
-            top,
-            width: itemWidth,
-            height: itemHeight,
-            overflow: "hidden",
-            zIndex: Number(item.z_index ?? 0) + 1,
-            transform: buildTransform(rotation, flipX, flipY),
-            transformOrigin: "center center",
-          };
-          const content = (item.content ?? null) as Record<string, unknown> | null;
-          const key = `${item.id ?? "canvas"}-${item.element_type}-${index}`;
 
-          // Animation styles (only when playAnimations is true)
-          const motionKey = (content?.motion ?? "none") as MotionAnim;
-          const entranceKey = (content?.animation ?? "none") as EntranceAnim;
-          const motionStyle: CSSProperties = playAnimations && motionKey !== "none"
-            ? { animation: `canvas-${motionKey} ${MOTION_DURATION[motionKey]}` }
-            : {};
-          const entranceStyle: CSSProperties = playAnimations && entranceKey !== "none"
-            ? { animation: `canvas-${entranceKey} ${ENTRANCE_DURATION[entranceKey]}`, animationDelay: `${Number(item.z_index ?? 0) * 100}ms` }
-            : {};
+        {/* Canvas at native resolution, CSS-scaled to match rendered container width.
+            This guarantees every element looks identical to the canvas editor. */}
+        {canvasScale !== null ? (
+          <div
+            style={{
+              position: "absolute",
+              top: 0,
+              left: 0,
+              width: `${width}px`,
+              height: `${height}px`,
+              transformOrigin: "top left",
+              transform: `scale(${canvasScale})`,
+            }}
+          >
+            {safeItems
+              .slice()
+              .sort((a, b) => Number(a.z_index ?? 0) - Number(b.z_index ?? 0))
+              .map((item, index) => {
+                const itemLeft   = Number(item.pos_x ?? 0);
+                const itemTop    = Number(item.pos_y ?? 0);
+                const itemWidth  = Math.max(1, Number(item.width ?? 40));
+                const itemHeight = Math.max(1, Number(item.height ?? 20));
+                const rotation = Number((item.content as Record<string, unknown> | null | undefined)?.rotation ?? 0);
+                const flipX = Boolean((item.content as Record<string, unknown> | null | undefined)?.flipX);
+                const flipY = Boolean((item.content as Record<string, unknown> | null | undefined)?.flipY);
 
-          const wrapWithAnim = (inner: React.ReactNode) => (
-            <div key={key} style={{ ...commonStyle, overflow: "visible" }}>
-              <div style={{ width: "100%", height: "100%", position: "relative", overflow: "hidden", ...entranceStyle }}>
-                <div style={{ width: "100%", height: "100%", position: "relative", ...motionStyle }}>
-                  {inner}
-                </div>
-              </div>
-            </div>
-          );
+                const itemStyle: CSSProperties = {
+                  position: "absolute",
+                  left: `${itemLeft}px`,
+                  top: `${itemTop}px`,
+                  width: `${itemWidth}px`,
+                  height: `${itemHeight}px`,
+                  zIndex: Number(item.z_index ?? 0) + 1,
+                  transform: buildTransform(rotation, flipX, flipY),
+                  transformOrigin: "center center",
+                };
 
-          if (item.element_type === "text") {
-            return wrapWithAnim(
-              <div style={{ width: "100%", height: "100%", ...buildTextStyle(content, previewScale) }}>
-                {typeof content?.text === "string" ? content.text : "Texto"}
-              </div>
-            );
-          }
+                const content = (item.content ?? null) as Record<string, unknown> | null;
+                const key = `${item.id ?? "canvas"}-${item.element_type}-${index}`;
 
-          if (item.element_type === "shape") {
-            return wrapWithAnim(
-              <div style={{ width: "100%", height: "100%", ...buildShapeStyle(content, previewScale) }} />
-            );
-          }
+                const motionKey   = (content?.motion    ?? "none") as MotionAnim;
+                const entranceKey = (content?.animation ?? "none") as EntranceAnim;
+                const motionStyle: CSSProperties = playAnimations && motionKey !== "none"
+                  ? { animation: `canvas-${motionKey} ${MOTION_DURATION[motionKey]}` }
+                  : {};
+                const entranceStyle: CSSProperties = playAnimations && entranceKey !== "none"
+                  ? { animation: `canvas-${entranceKey} ${ENTRANCE_DURATION[entranceKey]}`, animationDelay: `${Number(item.z_index ?? 0) * 100}ms` }
+                  : {};
 
-          if (item.element_type === "image") {
-            const imageSrc = typeof content?.url === "string" ? content.url : null;
-            if (!imageSrc) return null;
-            return wrapWithAnim(
-              <img
-                src={imageSrc}
-                alt=""
-                draggable={false}
-                loading="lazy"
-                style={{
-                  width: "100%", height: "100%",
-                  objectFit: content?.objectFit === "contain" ? "contain" : "cover",
-                  borderRadius: `${Math.max(1, Number(content?.borderRadius ?? 8) * previewScale)}px`,
-                  opacity: Number(content?.opacity ?? 1),
-                  boxShadow: buildBoxShadow(content, previewScale),
-                  display: "block",
-                }}
-              />
-            );
-          }
+                // No overflow:hidden on wrappers — matches canvas editor behavior where items
+                // are free to visually exceed their bounding box (shadows, rounded corners, etc.)
+                const wrapWithAnim = (inner: React.ReactNode) => (
+                  <div key={key} style={itemStyle}>
+                    <div style={{ width: "100%", height: "100%", position: "relative", ...entranceStyle }}>
+                      <div style={{ width: "100%", height: "100%", position: "relative", ...motionStyle }}>
+                        {inner}
+                      </div>
+                    </div>
+                  </div>
+                );
 
-          if (item.element_type === "product") {
-            if (item.product_image) {
-              return wrapWithAnim(
-                <img
-                  src={item.product_image}
-                  alt={item.product_name ?? ""}
-                  draggable={false}
-                  loading="lazy"
-                  style={{
-                    width: "100%", height: "100%",
-                    objectFit: content?.objectFit === "contain" ? "contain" : "cover",
-                    borderRadius: `${Math.max(0, Number(content?.borderRadius ?? 0) * previewScale)}px`,
-                    opacity: Number(content?.opacity ?? 1),
-                    boxShadow: buildBoxShadow(content, previewScale),
-                    display: "block",
-                  }}
-                />
-              );
-            }
-            return wrapWithAnim(
-              <div
-                style={{
-                  width: "100%", height: "100%",
-                  background: "#dbe4ea",
-                  borderRadius: `${Math.max(0, Number(content?.borderRadius ?? 0) * previewScale)}px`,
-                  opacity: Number(content?.opacity ?? 1),
-                  boxShadow: buildBoxShadow(content, previewScale),
-                }}
-              />
-            );
-          }
+                if (item.element_type === "text") {
+                  return wrapWithAnim(
+                    <div style={{ width: "100%", height: "100%", overflow: "hidden", ...buildTextStyle(content) }}>
+                      {typeof content?.text === "string" ? content.text : "Texto"}
+                    </div>
+                  );
+                }
 
-          return null;
-        })}
+                if (item.element_type === "shape") {
+                  return wrapWithAnim(
+                    <div style={{ width: "100%", height: "100%", ...buildShapeStyle(content) }} />
+                  );
+                }
+
+                if (item.element_type === "image") {
+                  const imageSrc = typeof content?.url === "string" ? content.url : null;
+                  if (!imageSrc) return null;
+                  return wrapWithAnim(
+                    <img
+                      src={imageSrc}
+                      alt=""
+                      draggable={false}
+                      loading="lazy"
+                      style={{
+                        width: "100%",
+                        height: "100%",
+                        objectFit: content?.objectFit === "contain" ? "contain" : "cover",
+                        borderRadius: `${Number(content?.borderRadius ?? 8)}px`,
+                        opacity: Number(content?.opacity ?? 1),
+                        boxShadow: buildBoxShadow(content),
+                        display: "block",
+                      }}
+                    />
+                  );
+                }
+
+                if (item.element_type === "product") {
+                  if (item.product_image) {
+                    return wrapWithAnim(
+                      <img
+                        src={item.product_image}
+                        alt={item.product_name ?? ""}
+                        draggable={false}
+                        loading="lazy"
+                        style={{
+                          width: "100%",
+                          height: "100%",
+                          objectFit: content?.objectFit === "contain" ? "contain" : "cover",
+                          borderRadius: `${Number(content?.borderRadius ?? 0)}px`,
+                          opacity: Number(content?.opacity ?? 1),
+                          boxShadow: buildBoxShadow(content),
+                          display: "block",
+                        }}
+                      />
+                    );
+                  }
+                  return wrapWithAnim(
+                    <div
+                      style={{
+                        width: "100%",
+                        height: "100%",
+                        background: "#dbe4ea",
+                        borderRadius: `${Number(content?.borderRadius ?? 0)}px`,
+                        opacity: Number(content?.opacity ?? 1),
+                        boxShadow: buildBoxShadow(content),
+                      }}
+                    />
+                  );
+                }
+
+                return null;
+              })}
+          </div>
+        ) : null}
       </div>
     );
   }
@@ -391,9 +429,9 @@ export default function CollectionArtworkPreview({
 
 // ---------------------------------------------------------------------------
 // CollectionPreviewBox
-// Sizes itself to the canvas aspect ratio, clamped by maxWidth / maxHeight.
-// Measures its own rendered width via ResizeObserver and passes it to
-// CollectionArtworkPreview so pixel-based canvas values scale correctly.
+// Wraps CollectionArtworkPreview in a container sized to the canvas aspect
+// ratio, clamped by maxWidth / maxHeight. CollectionArtworkPreview measures
+// its own rendered width internally — no need to pass renderedWidth here.
 // ---------------------------------------------------------------------------
 
 export type CollectionPreviewBoxProps = Omit<CollectionArtworkPreviewProps, "className" | "renderedWidth"> & {
@@ -418,26 +456,10 @@ export function CollectionPreviewBox({
 }: CollectionPreviewBoxProps) {
   const w = Math.max(1, Number(canvasWidth ?? 1080));
   const h = Math.max(1, Number(canvasHeight ?? 1080));
-  // Largest width where neither dimension exceeds its maximum
   const effectiveMaxWidth = Math.min(maxWidth, Math.round(maxHeight * (w / h)));
-
-  const boxRef = useRef<HTMLDivElement>(null);
-  const [renderedWidth, setRenderedWidth] = useState<number | null>(null);
-
-  useEffect(() => {
-    const el = boxRef.current;
-    if (!el) return;
-    const observer = new ResizeObserver((entries) => {
-      const entry = entries[0];
-      if (entry) setRenderedWidth(entry.contentRect.width);
-    });
-    observer.observe(el);
-    return () => observer.disconnect();
-  }, []);
 
   return (
     <div
-      ref={boxRef}
       className={`relative mx-auto overflow-hidden ${className}`.trim()}
       style={{
         aspectRatio: `${w} / ${h}`,
@@ -448,7 +470,6 @@ export function CollectionPreviewBox({
       <CollectionArtworkPreview
         canvasWidth={canvasWidth}
         canvasHeight={canvasHeight}
-        renderedWidth={renderedWidth}
         {...artworkProps}
       />
       {children}

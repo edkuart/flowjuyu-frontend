@@ -71,8 +71,6 @@ export function WhatsAppFloatingButton({ isLinked: isLinkedProp, code }: Props) 
   )
 
   useEffect(() => {
-    console.log('WhatsApp Bot Phone:', BOT_PHONE)
-
     if (!BOT_PHONE) {
       console.warn(
         'WhatsAppFloatingButton: NEXT_PUBLIC_WHATSAPP_BOT_PHONE is missing or invalid. Expected E.164 digits without "+" or spaces.'
