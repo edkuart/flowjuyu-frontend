@@ -35,7 +35,7 @@ import {
 // ─── Types ────────────────────────────────────────────────────────────────────
 
 type EntranceAnim = "none" | "fadeIn" | "slideUp" | "slideLeft" | "zoomIn";
-type MotionAnim   = "none" | "float" | "pulse" | "spin" | "shake" | "bounce";
+type MotionAnim   = "none" | "float" | "pulse" | "spin" | "shake" | "bounce" | "heartbeat" | "swing" | "wiggle" | "breathe" | "rubber-band" | "tilt";
 type HistoryEntry = { undo: () => void; redo: () => void };
 
 type ContentText = {
@@ -110,6 +110,13 @@ type ContentImage = {
   rotation?: number;
   animation?: EntranceAnim;
   motion?: MotionAnim;
+  filterBrightness?: number;
+  filterContrast?: number;
+  filterSaturation?: number;
+  filterHue?: number;
+  filterBlur?: number;
+  filterSepia?: number;
+  filterGrayscale?: number;
 };
 
 type ContentProduct = {
@@ -128,6 +135,13 @@ type ContentProduct = {
   rotation?: number;
   animation?: EntranceAnim;
   motion?: MotionAnim;
+  filterBrightness?: number;
+  filterContrast?: number;
+  filterSaturation?: number;
+  filterHue?: number;
+  filterBlur?: number;
+  filterSepia?: number;
+  filterGrayscale?: number;
 };
 
 type CanvasItem = {
@@ -313,21 +327,33 @@ const ENTRANCE_ANIMS: { value: EntranceAnim; label: string }[] = [
 ];
 
 const MOTION_ANIMS: { value: MotionAnim; label: string }[] = [
-  { value: "none",   label: "Sin movimiento" },
-  { value: "float",  label: "Flotar" },
-  { value: "pulse",  label: "Pulso" },
-  { value: "spin",   label: "Rotar" },
-  { value: "shake",  label: "Vibrar" },
-  { value: "bounce", label: "Rebotar" },
+  { value: "none",        label: "Sin movimiento" },
+  { value: "float",       label: "Flotar" },
+  { value: "pulse",       label: "Pulso" },
+  { value: "spin",        label: "Rotar" },
+  { value: "shake",       label: "Vibrar" },
+  { value: "bounce",      label: "Rebotar" },
+  { value: "heartbeat",   label: "Latido" },
+  { value: "swing",       label: "Columpio" },
+  { value: "wiggle",      label: "Bamboleo" },
+  { value: "breathe",     label: "Respirar" },
+  { value: "rubber-band", label: "Elástico" },
+  { value: "tilt",        label: "Inclinar" },
 ];
 
 const MOTION_DURATION: Record<MotionAnim, string> = {
-  none: "",
-  float:  "3s ease-in-out infinite",
-  pulse:  "2s ease-in-out infinite",
-  spin:   "4s linear infinite",
-  shake:  "0.5s ease-in-out infinite",
-  bounce: "1s ease-in-out infinite",
+  none:         "",
+  float:        "3s ease-in-out infinite",
+  pulse:        "2s ease-in-out infinite",
+  spin:         "4s linear infinite",
+  shake:        "0.5s ease-in-out infinite",
+  bounce:       "1s ease-in-out infinite",
+  heartbeat:    "1.2s ease-in-out infinite",
+  swing:        "2s ease-in-out infinite",
+  wiggle:       "1s ease-in-out infinite",
+  breathe:      "4s ease-in-out infinite",
+  "rubber-band": "1.2s ease-in-out infinite",
+  tilt:         "3s ease-in-out infinite",
 };
 
 const GRID_OPTIONS = [
@@ -919,6 +945,19 @@ function snapToGrid(v: number, grid: number): number {
 function buildBoxShadow(c: { shadowEnabled?: boolean; shadowX?: number; shadowY?: number; shadowBlur?: number; shadowSpread?: number; shadowColor?: string } | null | undefined): string | undefined {
   if (!c?.shadowEnabled) return undefined;
   return `${c.shadowX ?? 4}px ${c.shadowY ?? 4}px ${c.shadowBlur ?? 8}px ${c.shadowSpread ?? 0}px ${c.shadowColor ?? "rgba(0,0,0,0.3)"}`;
+}
+
+function buildCssFilter(c: { filterBrightness?: number; filterContrast?: number; filterSaturation?: number; filterHue?: number; filterBlur?: number; filterSepia?: number; filterGrayscale?: number } | null | undefined): string | undefined {
+  if (!c) return undefined;
+  const parts: string[] = [];
+  if (c.filterBrightness !== undefined && c.filterBrightness !== 100) parts.push(`brightness(${c.filterBrightness}%)`);
+  if (c.filterContrast   !== undefined && c.filterContrast   !== 100) parts.push(`contrast(${c.filterContrast}%)`);
+  if (c.filterSaturation !== undefined && c.filterSaturation !== 100) parts.push(`saturate(${c.filterSaturation}%)`);
+  if (c.filterHue        !== undefined && c.filterHue        !== 0)   parts.push(`hue-rotate(${c.filterHue}deg)`);
+  if (c.filterBlur       !== undefined && c.filterBlur       !== 0)   parts.push(`blur(${c.filterBlur}px)`);
+  if (c.filterSepia      !== undefined && c.filterSepia      !== 0)   parts.push(`sepia(${c.filterSepia}%)`);
+  if (c.filterGrayscale  !== undefined && c.filterGrayscale  !== 0)   parts.push(`grayscale(${c.filterGrayscale}%)`);
+  return parts.length > 0 ? parts.join(" ") : undefined;
 }
 
 function hexToRgba(hex: string, opacity: number): string {
@@ -1956,59 +1995,358 @@ export default function CollectionEditorPage() {
   }, [aiCta, aiGenerateBgImage, aiLayout, aiPalette, aiProductCount, aiPrompt, aiSelectedProductIds, aiStyle, aiTagline, aiTitle, bgColor, bgGradient, bgTexture, collection, collectionId, items, loadCollection, name, record, resetCanvasViewport]);
 
   const handleExport = useCallback(async () => {
-    if (!canvasRef.current) return;
     setExporting(true);
     try {
-      const { default: html2canvas } = await import("html2canvas");
-      const source = canvasRef.current;
+      const W = displayCanvasWidth;
+      const H = displayCanvasHeight;
 
-      // Clone the canvas node so we can strip the CSS scale transform
-      // and capture at full native resolution regardless of editor zoom level.
-      const clone = source.cloneNode(true) as HTMLDivElement;
-      clone.style.transform = "none";
-      clone.style.transformOrigin = "top left";
-      clone.style.position = "fixed";
-      clone.style.top = "0";
-      clone.style.left = "-99999px";
-      clone.style.zIndex = "-1";
-      clone.style.visibility = "hidden";
-      document.body.appendChild(clone);
+      const canvas = document.createElement("canvas");
+      canvas.width  = W;
+      canvas.height = H;
+      const ctx = canvas.getContext("2d");
+      if (!ctx) throw new Error("No 2D context");
 
-      try {
-        const captured = await html2canvas(clone, {
-          useCORS: true,
-          allowTaint: true,
-          backgroundColor: null,
-          logging: false,
-          scale: 1,
-          width: displayCanvasWidth,
-          height: displayCanvasHeight,
+      // ── helpers ──────────────────────────────────────────────────────────
+      // Convert oklch() to hex for browsers/environments that don't support
+      // oklch in Canvas 2D (Canvas fillStyle accepts CSS colors since Chrome 111,
+      // but we keep this for safety with older WebViews / server-side).
+      function resolveColor(color: string | undefined | null): string {
+        if (!color) return "#000000";
+        const m = color.match(/^oklch\(\s*([\d.]+%?)\s+([\d.]+)\s+([\d.]+)(?:\s*\/\s*([\d.]+%?))?\s*\)$/i);
+        if (!m) return color;
+        let L = parseFloat(m[1]); if (m[1].endsWith("%")) L /= 100;
+        const C = parseFloat(m[2]);
+        const H = parseFloat(m[3]) * Math.PI / 180;
+        const alpha = m[4] ? parseFloat(m[4]) / (m[4].endsWith("%") ? 100 : 1) : 1;
+        const a = C * Math.cos(H), b = C * Math.sin(H);
+        const l_ = L + 0.3963377774 * a + 0.2158037573 * b;
+        const m_ = L - 0.1055613458 * a - 0.0638541728 * b;
+        const s_ = L - 0.0894841775 * a - 1.2914855480 * b;
+        const toLinear = (x: number) => x * x * x;
+        const rl = toLinear(l_), rm = toLinear(m_), rs = toLinear(s_);
+        const toSRGB = (c: number) => { c = Math.max(0, Math.min(1, c)); return c <= 0.0031308 ? 12.92 * c : 1.055 * c ** (1 / 2.4) - 0.055; };
+        const r = Math.round(toSRGB(+4.0767416621 * rl - 3.3077115913 * rm + 0.2309699292 * rs) * 255);
+        const g = Math.round(toSRGB(-1.2684380046 * rl + 2.6097574011 * rm - 0.3413193965 * rs) * 255);
+        const bv = Math.round(toSRGB(-0.0041960863 * rl - 0.7034186147 * rm + 1.7076147010 * rs) * 255);
+        const h = (n: number) => Math.max(0, Math.min(255, n)).toString(16).padStart(2, "0");
+        return alpha < 1 ? `rgba(${Math.max(0,Math.min(255,r))},${Math.max(0,Math.min(255,g))},${Math.max(0,Math.min(255,bv))},${alpha.toFixed(3)})` : `#${h(r)}${h(g)}${h(bv)}`;
+      }
+
+      const loadImg = (url: string): Promise<HTMLImageElement | null> =>
+        new Promise((res) => {
+          const img = new Image();
+          img.crossOrigin = "anonymous";
+          img.onload  = () => res(img);
+          img.onerror = () => { img.crossOrigin = ""; img.src = url; img.onerror = () => res(null); img.onload = () => res(img); };
+          img.src = url;
         });
 
-        const mimeType = exportFormat === "jpeg" ? "image/jpeg" : "image/png";
-        const dataUrl = captured.toDataURL(mimeType, exportFormat === "jpeg" ? exportQuality / 100 : undefined);
-        const filename = `${(name || "canvas").replace(/\s+/g, "-").toLowerCase()}.${exportFormat}`;
-
-        // Convert to blob for reliable cross-platform download (required on iOS/Android)
-        const blob = await fetch(dataUrl).then((r) => r.blob());
-        const blobUrl = URL.createObjectURL(blob);
-        const link = document.createElement("a");
-        link.href = blobUrl;
-        link.download = filename;
-        document.body.appendChild(link);
-        link.click();
-        document.body.removeChild(link);
-        setTimeout(() => URL.revokeObjectURL(blobUrl), 500);
-        setExportOpen(false);
-      } finally {
-        document.body.removeChild(clone);
+      function drawRR(x: number, y: number, w: number, h: number, r: number) {
+        const rad = Math.min(Math.abs(r), w / 2, h / 2);
+        ctx.beginPath();
+        ctx.moveTo(x + rad, y);
+        ctx.arcTo(x + w, y,     x + w, y + h, rad);
+        ctx.arcTo(x + w, y + h, x,     y + h, rad);
+        ctx.arcTo(x,     y + h, x,     y,     rad);
+        ctx.arcTo(x,     y,     x + w, y,     rad);
+        ctx.closePath();
       }
-    } catch {
+
+      // ── 1. Background ────────────────────────────────────────────────────
+      ctx.fillStyle = resolveColor(bgColor) || "#FFFFFF";
+      ctx.fillRect(0, 0, W, H);
+
+      if (!previewTemplate && bgGradient.enabled && bgGradient.color2) {
+        let grad: CanvasGradient;
+        if (bgGradient.type === "radial") {
+          grad = ctx.createRadialGradient(W / 2, H / 2, 0, W / 2, H / 2, Math.max(W, H) / 2);
+        } else {
+          const rad = ((bgGradient.angle - 90) * Math.PI) / 180;
+          grad = ctx.createLinearGradient(
+            W / 2 + Math.cos(rad + Math.PI) * W / 2, H / 2 + Math.sin(rad + Math.PI) * H / 2,
+            W / 2 + Math.cos(rad) * W / 2,           H / 2 + Math.sin(rad) * H / 2,
+          );
+        }
+        grad.addColorStop(0, resolveColor(bgColor));
+        grad.addColorStop(1, resolveColor(bgGradient.color2));
+        ctx.fillStyle = grad;
+        ctx.fillRect(0, 0, W, H);
+      } else if (previewTemplate?.background_style) {
+        const bs = previewTemplate.background_style;
+        const linM = bs.match(/linear-gradient\((\d+)deg,\s*([^,]+),\s*([^)]+)\)/);
+        const radM = bs.match(/radial-gradient\(circle,\s*([^,]+),\s*([^)]+)\)/);
+        if (linM) {
+          const ang = ((parseInt(linM[1]) - 90) * Math.PI) / 180;
+          const g = ctx.createLinearGradient(
+            W / 2 + Math.cos(ang + Math.PI) * W / 2, H / 2 + Math.sin(ang + Math.PI) * H / 2,
+            W / 2 + Math.cos(ang) * W / 2,           H / 2 + Math.sin(ang) * H / 2,
+          );
+          g.addColorStop(0, resolveColor(linM[2].trim())); g.addColorStop(1, resolveColor(linM[3].trim()));
+          ctx.fillStyle = g; ctx.fillRect(0, 0, W, H);
+        } else if (radM) {
+          const g = ctx.createRadialGradient(W / 2, H / 2, 0, W / 2, H / 2, Math.max(W, H) / 2);
+          g.addColorStop(0, resolveColor(radM[1].trim())); g.addColorStop(1, resolveColor(radM[2].trim()));
+          ctx.fillStyle = g; ctx.fillRect(0, 0, W, H);
+        }
+      }
+
+      // Texture overlay (editor only)
+      if (!previewTemplate && bgTexture.patternId !== "none") {
+        const rgb  = bgColor.match(/^#([a-f\d]{2})([a-f\d]{2})([a-f\d]{2})$/i);
+        const r0   = rgb ? parseInt(rgb[1], 16) : 255;
+        const g0   = rgb ? parseInt(rgb[2], 16) : 255;
+        const b0   = rgb ? parseInt(rgb[3], 16) : 255;
+        const luma = (r0 * 299 + g0 * 587 + b0 * 114) / 1000;
+        const tc   = luma > 135 ? "rgba(0,0,0,0.10)" : "rgba(255,255,255,0.14)";
+        const s    = bgTexture.scale;
+        ctx.save();
+        ctx.strokeStyle = tc;
+        ctx.fillStyle   = tc;
+        ctx.lineWidth   = 1;
+        switch (bgTexture.patternId) {
+          case "dots":
+            for (let px = s / 2; px < W; px += s)
+              for (let py = s / 2; py < H; py += s) {
+                ctx.beginPath(); ctx.arc(px, py, 1.5, 0, Math.PI * 2); ctx.fill();
+              }
+            break;
+          case "grid":
+            for (let px = 0; px <= W; px += s) { ctx.beginPath(); ctx.moveTo(px, 0); ctx.lineTo(px, H); ctx.stroke(); }
+            for (let py = 0; py <= H; py += s) { ctx.beginPath(); ctx.moveTo(0, py); ctx.lineTo(W, py); ctx.stroke(); }
+            break;
+          case "lines":
+            for (let py = 0; py <= H; py += s) { ctx.beginPath(); ctx.moveTo(0, py); ctx.lineTo(W, py); ctx.stroke(); }
+            break;
+          case "diagonal":
+            for (let d = -H; d < W + H; d += s) { ctx.beginPath(); ctx.moveTo(d, 0); ctx.lineTo(d + H, H); ctx.stroke(); }
+            break;
+          case "crosshatch":
+            for (let d = -H; d < W + H; d += s) {
+              ctx.beginPath(); ctx.moveTo(d, 0);     ctx.lineTo(d + H, H); ctx.stroke();
+              ctx.beginPath(); ctx.moveTo(d + H, 0); ctx.lineTo(d, H);     ctx.stroke();
+            }
+            break;
+        }
+        ctx.restore();
+      }
+
+      // Background image
+      if (displayBackgroundImageUrl) {
+        const bgImg = await loadImg(displayBackgroundImageUrl);
+        if (bgImg) ctx.drawImage(bgImg, 0, 0, W, H);
+      }
+
+      // ── 2. Items ─────────────────────────────────────────────────────────
+      const sorted = [...displayItems].sort((a, b) => (a.z_index ?? 0) - (b.z_index ?? 0));
+
+      for (const item of sorted) {
+        const { pos_x: ix, pos_y: iy, width: iw, height: ih, element_type } = item;
+        const c = item.content as Record<string, unknown> | null;
+        const rotation = Number(c?.rotation ?? 0);
+        const flipX    = Boolean(c?.flipX);
+        const flipY    = Boolean(c?.flipY);
+
+        ctx.save();
+
+        if (rotation || flipX || flipY) {
+          ctx.translate(ix + iw / 2, iy + ih / 2);
+          if (rotation) ctx.rotate((rotation * Math.PI) / 180);
+          if (flipX) ctx.scale(-1, 1);
+          if (flipY) ctx.scale(1, -1);
+          ctx.translate(-(ix + iw / 2), -(iy + ih / 2));
+        }
+
+        const hasShadow = Boolean(c?.shadowEnabled) || Boolean(c?.shadow);
+        if (hasShadow) {
+          ctx.shadowColor   = resolveColor(String(c?.shadowColor ?? "#00000066"));
+          ctx.shadowOffsetX = Number(c?.shadowX ?? 4);
+          ctx.shadowOffsetY = Number(c?.shadowY ?? 4);
+          ctx.shadowBlur    = Number(c?.shadowBlur ?? 8);
+        }
+
+        // ── image / product ───────────────────────────────────────────────
+        if (element_type === "image" || element_type === "product") {
+          const imgUrl   = element_type === "image" ? String((c as ContentImage | null)?.url ?? "") : (item.product_image ?? "");
+          const br       = Number(c?.borderRadius ?? (element_type === "product" ? 8 : 0));
+          const fit      = String(c?.objectFit ?? "cover") as "cover" | "contain";
+          ctx.globalAlpha = Number(c?.opacity ?? 1);
+
+          if (imgUrl) {
+            const img = await loadImg(imgUrl);
+            if (img) {
+              ctx.save();
+              const cssFilter = buildCssFilter(c as Parameters<typeof buildCssFilter>[0]);
+              if (cssFilter) ctx.filter = cssFilter;
+              if (br > 0) { drawRR(ix, iy, iw, ih, br); ctx.clip(); }
+              if (fit === "cover") {
+                const scale = Math.max(iw / img.width, ih / img.height);
+                ctx.drawImage(img, ix - (img.width * scale - iw) / 2, iy - (img.height * scale - ih) / 2, img.width * scale, img.height * scale);
+              } else {
+                const scale = Math.min(iw / img.width, ih / img.height);
+                ctx.drawImage(img, ix + (iw - img.width * scale) / 2, iy + (ih - img.height * scale) / 2, img.width * scale, img.height * scale);
+              }
+              ctx.restore();
+            }
+          }
+
+        // ── shape ─────────────────────────────────────────────────────────
+        } else if (element_type === "shape") {
+          const sc = c as ContentShape | null;
+          if (sc) {
+            ctx.globalAlpha = sc.opacity ?? 1;
+            let fill: CanvasGradient | string = resolveColor(sc.fillColor) || "#0F3D3A";
+            if (sc.gradientEnabled && sc.gradientColor2) {
+              if (sc.gradientType === "radial") {
+                const g = ctx.createRadialGradient(ix + iw / 2, iy + ih / 2, 0, ix + iw / 2, iy + ih / 2, Math.max(iw, ih) / 2);
+                g.addColorStop(0, resolveColor(sc.fillColor)); g.addColorStop(1, resolveColor(sc.gradientColor2)); fill = g;
+              } else {
+                const ang = ((sc.gradientAngle ?? 90) * Math.PI) / 180;
+                const g = ctx.createLinearGradient(ix + iw / 2 - Math.cos(ang) * iw / 2, iy + ih / 2 - Math.sin(ang) * ih / 2, ix + iw / 2 + Math.cos(ang) * iw / 2, iy + ih / 2 + Math.sin(ang) * ih / 2);
+                g.addColorStop(0, resolveColor(sc.fillColor)); g.addColorStop(1, resolveColor(sc.gradientColor2)); fill = g;
+              }
+            }
+            ctx.fillStyle = fill;
+
+            switch (sc.shapeType) {
+              case "rectangle":
+                sc.borderRadius > 0 ? (drawRR(ix, iy, iw, ih, sc.borderRadius), ctx.fill()) : ctx.fillRect(ix, iy, iw, ih);
+                break;
+              case "circle":
+                ctx.beginPath(); ctx.ellipse(ix + iw / 2, iy + ih / 2, iw / 2, ih / 2, 0, 0, Math.PI * 2); ctx.fill(); break;
+              case "triangle":
+                ctx.beginPath(); ctx.moveTo(ix + iw / 2, iy); ctx.lineTo(ix + iw, iy + ih); ctx.lineTo(ix, iy + ih); ctx.closePath(); ctx.fill(); break;
+              case "star": {
+                const cx2 = ix + iw / 2, cy2 = iy + ih / 2, oR = Math.min(iw, ih) / 2, iR = oR * 0.4;
+                ctx.beginPath();
+                for (let i = 0; i < 10; i++) {
+                  const a = (i * Math.PI) / 5 - Math.PI / 2;
+                  const rr = i % 2 === 0 ? oR : iR;
+                  i === 0 ? ctx.moveTo(cx2 + rr * Math.cos(a), cy2 + rr * Math.sin(a)) : ctx.lineTo(cx2 + rr * Math.cos(a), cy2 + rr * Math.sin(a));
+                }
+                ctx.closePath(); ctx.fill(); break;
+              }
+              case "line":
+                ctx.shadowColor = "transparent";
+                ctx.strokeStyle = resolveColor(sc.fillColor) || "#0F3D3A"; ctx.lineWidth = ih;
+                ctx.beginPath(); ctx.moveTo(ix, iy + ih / 2); ctx.lineTo(ix + iw, iy + ih / 2); ctx.stroke(); break;
+              case "capsule":
+                drawRR(ix, iy, iw, ih, Math.min(iw, ih) / 2); ctx.fill(); break;
+              case "diamond":
+                ctx.beginPath(); ctx.moveTo(ix + iw / 2, iy); ctx.lineTo(ix + iw, iy + ih / 2); ctx.lineTo(ix + iw / 2, iy + ih); ctx.lineTo(ix, iy + ih / 2); ctx.closePath(); ctx.fill(); break;
+              case "arch":
+                ctx.beginPath(); ctx.arc(ix + iw / 2, iy + ih * 0.6, Math.min(iw, ih) * 0.45, Math.PI, 0); ctx.lineTo(ix + iw, iy + ih); ctx.lineTo(ix, iy + ih); ctx.closePath(); ctx.fill(); break;
+              default:
+                ctx.beginPath(); ctx.ellipse(ix + iw / 2, iy + ih / 2, iw / 2, ih / 2, 0, 0, Math.PI * 2); ctx.fill(); break;
+            }
+
+            if ((sc.strokeWidth ?? 0) > 0 && sc.strokeColor) {
+              ctx.shadowColor = "transparent";
+              ctx.strokeStyle = resolveColor(sc.strokeColor); ctx.lineWidth = sc.strokeWidth!;
+              if (sc.shapeType === "rectangle") {
+                sc.borderRadius > 0 ? (drawRR(ix, iy, iw, ih, sc.borderRadius), ctx.stroke()) : ctx.strokeRect(ix, iy, iw, ih);
+              } else if (sc.shapeType === "circle") {
+                ctx.beginPath(); ctx.ellipse(ix + iw / 2, iy + ih / 2, iw / 2, ih / 2, 0, 0, Math.PI * 2); ctx.stroke();
+              }
+            }
+          }
+
+        // ── text ──────────────────────────────────────────────────────────
+        } else if (element_type === "text") {
+          const tc = c as ContentText | null;
+          if (tc) {
+            const fontSize   = tc.fontSize || 24;
+            const fontFamily = tc.fontFamily ? `"${tc.fontFamily}"` : "sans-serif";
+            const align      = tc.textAlign || "center";
+            const lh         = (tc.lineHeight ?? 1.2) * fontSize;
+            const padX       = tc.paddingX ?? 10;
+            const padY       = tc.paddingY ?? 8;
+            const ls         = tc.letterSpacing ?? 0;
+
+            if (tc.bgColor) {
+              ctx.save();
+              ctx.shadowColor = "transparent";
+              ctx.globalAlpha = tc.bgOpacity ?? 0.6;
+              ctx.fillStyle   = resolveColor(tc.bgColor);
+              ctx.fillRect(ix, iy, iw, ih);
+              ctx.restore();
+            }
+
+            ctx.font         = `${tc.fontStyle || "normal"} ${tc.fontWeight || "bold"} ${fontSize}px ${fontFamily}`;
+            // Use "middle" baseline so we can center text vertically the same
+            // way the canvas editor does with flexbox alignItems:"center".
+            ctx.textBaseline = "middle";
+            ctx.textAlign    = align;
+            ctx.globalAlpha  = 1;
+
+            if (tc.shadow) {
+              ctx.shadowColor   = resolveColor(tc.shadowColor) ?? "#000000";
+              ctx.shadowOffsetX = tc.shadowX ?? 2;
+              ctx.shadowOffsetY = tc.shadowY ?? 2;
+              ctx.shadowBlur    = tc.shadowBlur ?? 4;
+            }
+
+            const lines = (tc.text || "").split("\n");
+            // Replicate CSS flex alignItems:"center": center the whole text
+            // block vertically, then spread lines around that center.
+            const n = lines.length;
+            lines.forEach((line, li) => {
+              // Middle of line `li` when the block is vertically centered in ih
+              const ty = iy + ih / 2 + (li - (n - 1) / 2) * lh;
+              let tx = align === "center" ? ix + iw / 2 : align === "right" ? ix + iw - padX : ix + padX;
+
+              if (tc.outline) {
+                ctx.strokeStyle = resolveColor(tc.outlineColor) ?? "#000";
+                ctx.lineWidth   = (tc.outlineWidth ?? 1) * 2;
+                if (ls > 0) {
+                  const totalW = [...line].reduce((s, ch) => s + ctx.measureText(ch).width, 0) + ls * Math.max(line.length - 1, 0);
+                  let curX = align === "center" ? ix + (iw - totalW) / 2 : align === "right" ? ix + iw - padX - totalW : ix + padX;
+                  for (const ch of line) { ctx.textAlign = "left"; ctx.strokeText(ch, curX, ty); curX += ctx.measureText(ch).width + ls; }
+                  ctx.textAlign = align;
+                } else {
+                  ctx.strokeText(line, tx, ty);
+                }
+              }
+
+              ctx.fillStyle = resolveColor(tc.color) || "#1a1a1a";
+              if (ls > 0 && line.length > 0) {
+                const totalW = [...line].reduce((s, ch) => s + ctx.measureText(ch).width, 0) + ls * Math.max(line.length - 1, 0);
+                let curX = align === "center" ? ix + (iw - totalW) / 2 : align === "right" ? ix + iw - padX - totalW : ix + padX;
+                ctx.textAlign = "left";
+                for (const ch of line) { ctx.fillText(ch, curX, ty); curX += ctx.measureText(ch).width + ls; }
+                ctx.textAlign = align;
+              } else {
+                ctx.fillText(line, tx, ty);
+              }
+            });
+          }
+        }
+
+        ctx.restore();
+      }
+
+      // ── 3. Download ───────────────────────────────────────────────────────
+      const mimeType = exportFormat === "jpeg" ? "image/jpeg" : "image/png";
+      const quality  = exportFormat === "jpeg" ? exportQuality / 100 : undefined;
+      const filename = `${(name || "canvas").replace(/\s+/g, "-").toLowerCase()}.${exportFormat}`;
+      const dataUrl  = canvas.toDataURL(mimeType, quality);
+      const blob     = await fetch(dataUrl).then((r) => r.blob());
+      const blobUrl  = URL.createObjectURL(blob);
+      const link     = document.createElement("a");
+      link.href      = blobUrl;
+      link.download  = filename;
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+      setTimeout(() => URL.revokeObjectURL(blobUrl), 500);
+      setExportOpen(false);
+
+    } catch (err) {
+      console.error("[Canvas Export]", err);
       alert("No se pudo exportar la imagen. Intenta de nuevo.");
     } finally {
       setExporting(false);
     }
-  }, [displayCanvasHeight, displayCanvasWidth, exportFormat, exportQuality, name]);
+  }, [bgColor, bgGradient, bgTexture, displayBackgroundImageUrl, displayCanvasHeight, displayCanvasWidth, displayItems, exportFormat, exportQuality, name, previewTemplate]);
 
   const handlePreviewTemplate = useCallback(async (template: CollectionTemplate) => {
     setTemplatePreviewLoadingId(template.id);
@@ -2818,15 +3156,21 @@ export default function CollectionEditorPage() {
     <div className="flex flex-col gap-4">
       {/* Canvas animation keyframes */}
       <style>{`
-        @keyframes canvas-float    { 0%,100%{transform:translateY(0)}   50%{transform:translateY(-10px)} }
-        @keyframes canvas-pulse    { 0%,100%{transform:scale(1)}        50%{transform:scale(1.06)} }
-        @keyframes canvas-spin     { from{transform:rotate(0deg)}       to{transform:rotate(360deg)} }
-        @keyframes canvas-shake    { 0%,100%{transform:translateX(0)}   25%,75%{transform:translateX(-5px)} 50%{transform:translateX(5px)} }
-        @keyframes canvas-bounce   { 0%,100%{transform:translateY(0)}   50%{transform:translateY(-14px)} }
-        @keyframes canvas-fadeIn   { from{opacity:0}                    to{opacity:1} }
-        @keyframes canvas-slideUp  { from{opacity:0;transform:translateY(24px)} to{opacity:1;transform:translateY(0)} }
-        @keyframes canvas-slideLeft{ from{opacity:0;transform:translateX(24px)} to{opacity:1;transform:translateX(0)} }
-        @keyframes canvas-zoomIn   { from{opacity:0;transform:scale(0.72)} to{opacity:1;transform:scale(1)} }
+        @keyframes canvas-float      { 0%,100%{transform:translateY(0)}   50%{transform:translateY(-10px)} }
+        @keyframes canvas-pulse      { 0%,100%{transform:scale(1)}        50%{transform:scale(1.06)} }
+        @keyframes canvas-spin       { from{transform:rotate(0deg)}       to{transform:rotate(360deg)} }
+        @keyframes canvas-shake      { 0%,100%{transform:translateX(0)}   25%,75%{transform:translateX(-5px)} 50%{transform:translateX(5px)} }
+        @keyframes canvas-bounce     { 0%,100%{transform:translateY(0)}   50%{transform:translateY(-14px)} }
+        @keyframes canvas-heartbeat  { 0%,100%{transform:scale(1)} 14%{transform:scale(1.08)} 28%{transform:scale(1)} 42%{transform:scale(1.05)} 70%{transform:scale(1)} }
+        @keyframes canvas-swing      { 0%,100%{transform:rotate(0deg);transform-origin:top center} 25%{transform:rotate(10deg);transform-origin:top center} 75%{transform:rotate(-10deg);transform-origin:top center} }
+        @keyframes canvas-wiggle     { 0%,100%{transform:rotateZ(0deg)} 15%{transform:rotateZ(5deg)} 30%{transform:rotateZ(-5deg)} 45%{transform:rotateZ(3deg)} 60%{transform:rotateZ(-3deg)} 75%{transform:rotateZ(1deg)} }
+        @keyframes canvas-breathe    { 0%,100%{transform:scale(1)} 50%{transform:scale(1.04)} }
+        @keyframes canvas-rubber-band{ 0%,100%{transform:scaleX(1) scaleY(1)} 30%{transform:scaleX(1.18) scaleY(0.86)} 40%{transform:scaleX(0.88) scaleY(1.14)} 60%{transform:scaleX(1.08) scaleY(0.94)} 80%{transform:scaleX(0.98) scaleY(1.03)} }
+        @keyframes canvas-tilt       { 0%,100%{transform:rotateZ(-1deg)} 50%{transform:rotateZ(1deg)} }
+        @keyframes canvas-fadeIn     { from{opacity:0}                    to{opacity:1} }
+        @keyframes canvas-slideUp    { from{opacity:0;transform:translateY(24px)} to{opacity:1;transform:translateY(0)} }
+        @keyframes canvas-slideLeft  { from{opacity:0;transform:translateX(24px)} to{opacity:1;transform:translateX(0)} }
+        @keyframes canvas-zoomIn     { from{opacity:0;transform:scale(0.72)} to{opacity:1;transform:scale(1)} }
       `}</style>
 
       {/* Hidden image input */}
@@ -4002,6 +4346,7 @@ export default function CollectionEditorPage() {
                                 borderRadius: pc?.borderRadius ?? 8,
                                 opacity: pc?.opacity ?? 1,
                                 boxShadow: buildBoxShadow(pc),
+                                filter: buildCssFilter(pc),
                                 display: "block",
                               }}
                             />
@@ -4092,6 +4437,7 @@ export default function CollectionEditorPage() {
                                 borderRadius: ic.borderRadius ?? 8,
                                 opacity: ic.opacity ?? 1,
                                 boxShadow: buildBoxShadow(ic),
+                                filter: buildCssFilter(ic),
                                 display: "block",
                               }} />
                           : <div className="flex h-full w-full items-center justify-center rounded-lg bg-neutral-200">
@@ -4775,6 +5121,58 @@ export default function CollectionEditorPage() {
                         onChange={(e) => upd({ opacity: Number(e.target.value) })}
                         className="mt-1 w-full" />
                     </div>
+                    <div className="border-t border-neutral-100 pt-2 space-y-2">
+                      <p className="text-[11px] font-semibold uppercase tracking-widest text-neutral-400">Filtros</p>
+                      <div>
+                        <label className="text-[11px] font-medium text-neutral-500">Brillo: {c?.filterBrightness ?? 100}%</label>
+                        <input type="range" min={0} max={200} value={c?.filterBrightness ?? 100}
+                          onChange={(e) => upd({ filterBrightness: Number(e.target.value) })}
+                          className="mt-1 w-full" />
+                      </div>
+                      <div>
+                        <label className="text-[11px] font-medium text-neutral-500">Contraste: {c?.filterContrast ?? 100}%</label>
+                        <input type="range" min={0} max={200} value={c?.filterContrast ?? 100}
+                          onChange={(e) => upd({ filterContrast: Number(e.target.value) })}
+                          className="mt-1 w-full" />
+                      </div>
+                      <div>
+                        <label className="text-[11px] font-medium text-neutral-500">Saturación: {c?.filterSaturation ?? 100}%</label>
+                        <input type="range" min={0} max={200} value={c?.filterSaturation ?? 100}
+                          onChange={(e) => upd({ filterSaturation: Number(e.target.value) })}
+                          className="mt-1 w-full" />
+                      </div>
+                      <div>
+                        <label className="text-[11px] font-medium text-neutral-500">Tono: {c?.filterHue ?? 0}°</label>
+                        <input type="range" min={0} max={360} value={c?.filterHue ?? 0}
+                          onChange={(e) => upd({ filterHue: Number(e.target.value) })}
+                          className="mt-1 w-full" />
+                      </div>
+                      <div className="grid grid-cols-3 gap-1.5">
+                        <div>
+                          <label className="text-[10px] text-neutral-400">Sepia: {c?.filterSepia ?? 0}%</label>
+                          <input type="range" min={0} max={100} value={c?.filterSepia ?? 0}
+                            onChange={(e) => upd({ filterSepia: Number(e.target.value) })}
+                            className="mt-1 w-full" />
+                        </div>
+                        <div>
+                          <label className="text-[10px] text-neutral-400">B&N: {c?.filterGrayscale ?? 0}%</label>
+                          <input type="range" min={0} max={100} value={c?.filterGrayscale ?? 0}
+                            onChange={(e) => upd({ filterGrayscale: Number(e.target.value) })}
+                            className="mt-1 w-full" />
+                        </div>
+                        <div>
+                          <label className="text-[10px] text-neutral-400">Blur: {c?.filterBlur ?? 0}px</label>
+                          <input type="range" min={0} max={20} value={c?.filterBlur ?? 0}
+                            onChange={(e) => upd({ filterBlur: Number(e.target.value) })}
+                            className="mt-1 w-full" />
+                        </div>
+                      </div>
+                      <button
+                        onClick={() => upd({ filterBrightness: undefined, filterContrast: undefined, filterSaturation: undefined, filterHue: undefined, filterBlur: undefined, filterSepia: undefined, filterGrayscale: undefined })}
+                        className="w-full rounded-lg border border-neutral-200 py-1 text-[11px] text-neutral-500 transition hover:bg-neutral-50">
+                        Restablecer filtros
+                      </button>
+                    </div>
                     <div className="border-t border-neutral-100 pt-2">
                       <label className="flex cursor-pointer items-center gap-2 text-xs font-medium text-neutral-600">
                         <input type="checkbox" checked={c?.shadowEnabled ?? false}
@@ -4823,6 +5221,90 @@ export default function CollectionEditorPage() {
                       Cambiar imagen
                     </button>
                   </>
+                );
+              })()}
+
+              {/* ── PRODUCT image filters + visual props ── */}
+              {selectedItem.element_type === "product" && (() => {
+                const c = selectedItem.content as ContentProduct;
+                const upd = (patch: Partial<ContentProduct>) => updateItemContent(selectedItem.id, { ...c, ...patch });
+                return (
+                  <div className="border-t border-neutral-100 pt-2 space-y-2">
+                    <p className="text-[11px] font-semibold uppercase tracking-widest text-neutral-400">Imagen</p>
+                    <div>
+                      <label className="mb-1 block text-[11px] font-medium text-neutral-500">Ajuste</label>
+                      <div className="flex gap-1.5">
+                        {(["cover","contain"] as const).map((fit) => (
+                          <button key={fit} onClick={() => upd({ objectFit: fit })}
+                            className={`flex-1 rounded-lg border py-1.5 text-xs transition ${(c?.objectFit ?? "cover") === fit ? "border-[#0F3D3A] bg-[#0F3D3A] text-white" : "border-neutral-200 text-neutral-500"}`}>
+                            {fit === "cover" ? "Llenar" : "Contener"}
+                          </button>
+                        ))}
+                      </div>
+                    </div>
+                    <div>
+                      <label className="text-[11px] font-medium text-neutral-500">Redondeo: {c?.borderRadius ?? 8}px</label>
+                      <input type="range" min={0} max={100} value={c?.borderRadius ?? 8}
+                        onChange={(e) => upd({ borderRadius: Number(e.target.value) })}
+                        className="mt-1 w-full" />
+                    </div>
+                    <div>
+                      <label className="text-[11px] font-medium text-neutral-500">Opacidad: {Math.round((c?.opacity ?? 1) * 100)}%</label>
+                      <input type="range" min={0.05} max={1} step={0.05} value={c?.opacity ?? 1}
+                        onChange={(e) => upd({ opacity: Number(e.target.value) })}
+                        className="mt-1 w-full" />
+                    </div>
+                    <p className="text-[11px] font-semibold uppercase tracking-widest text-neutral-400 pt-1">Filtros</p>
+                    <div>
+                      <label className="text-[11px] font-medium text-neutral-500">Brillo: {c?.filterBrightness ?? 100}%</label>
+                      <input type="range" min={0} max={200} value={c?.filterBrightness ?? 100}
+                        onChange={(e) => upd({ filterBrightness: Number(e.target.value) })}
+                        className="mt-1 w-full" />
+                    </div>
+                    <div>
+                      <label className="text-[11px] font-medium text-neutral-500">Contraste: {c?.filterContrast ?? 100}%</label>
+                      <input type="range" min={0} max={200} value={c?.filterContrast ?? 100}
+                        onChange={(e) => upd({ filterContrast: Number(e.target.value) })}
+                        className="mt-1 w-full" />
+                    </div>
+                    <div>
+                      <label className="text-[11px] font-medium text-neutral-500">Saturación: {c?.filterSaturation ?? 100}%</label>
+                      <input type="range" min={0} max={200} value={c?.filterSaturation ?? 100}
+                        onChange={(e) => upd({ filterSaturation: Number(e.target.value) })}
+                        className="mt-1 w-full" />
+                    </div>
+                    <div>
+                      <label className="text-[11px] font-medium text-neutral-500">Tono: {c?.filterHue ?? 0}°</label>
+                      <input type="range" min={0} max={360} value={c?.filterHue ?? 0}
+                        onChange={(e) => upd({ filterHue: Number(e.target.value) })}
+                        className="mt-1 w-full" />
+                    </div>
+                    <div className="grid grid-cols-3 gap-1.5">
+                      <div>
+                        <label className="text-[10px] text-neutral-400">Sepia: {c?.filterSepia ?? 0}%</label>
+                        <input type="range" min={0} max={100} value={c?.filterSepia ?? 0}
+                          onChange={(e) => upd({ filterSepia: Number(e.target.value) })}
+                          className="mt-1 w-full" />
+                      </div>
+                      <div>
+                        <label className="text-[10px] text-neutral-400">B&N: {c?.filterGrayscale ?? 0}%</label>
+                        <input type="range" min={0} max={100} value={c?.filterGrayscale ?? 0}
+                          onChange={(e) => upd({ filterGrayscale: Number(e.target.value) })}
+                          className="mt-1 w-full" />
+                      </div>
+                      <div>
+                        <label className="text-[10px] text-neutral-400">Blur: {c?.filterBlur ?? 0}px</label>
+                        <input type="range" min={0} max={20} value={c?.filterBlur ?? 0}
+                          onChange={(e) => upd({ filterBlur: Number(e.target.value) })}
+                          className="mt-1 w-full" />
+                      </div>
+                    </div>
+                    <button
+                      onClick={() => upd({ filterBrightness: undefined, filterContrast: undefined, filterSaturation: undefined, filterHue: undefined, filterBlur: undefined, filterSepia: undefined, filterGrayscale: undefined })}
+                      className="w-full rounded-lg border border-neutral-200 py-1 text-[11px] text-neutral-500 transition hover:bg-neutral-50">
+                      Restablecer filtros
+                    </button>
+                  </div>
                 );
               })()}
 

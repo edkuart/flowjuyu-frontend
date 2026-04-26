@@ -18,11 +18,14 @@ type CanvasItem = {
 };
 
 type EntranceAnim = "none" | "fadeIn" | "slideUp" | "slideLeft" | "zoomIn";
-type MotionAnim   = "none" | "float" | "pulse" | "spin" | "shake" | "bounce";
+type MotionAnim   = "none" | "float" | "pulse" | "spin" | "shake" | "bounce" | "heartbeat" | "swing" | "wiggle" | "breathe" | "rubber-band" | "tilt";
 
 const MOTION_DURATION: Record<MotionAnim, string> = {
   none: "", float: "3s ease-in-out infinite", pulse: "2s ease-in-out infinite",
   spin: "4s linear infinite", shake: "0.5s ease-in-out infinite", bounce: "1s ease-in-out infinite",
+  heartbeat: "1.2s ease-in-out infinite", swing: "2s ease-in-out infinite",
+  wiggle: "1s ease-in-out infinite", breathe: "4s ease-in-out infinite",
+  "rubber-band": "1.2s ease-in-out infinite", tilt: "3s ease-in-out infinite",
 };
 const ENTRANCE_DURATION: Record<EntranceAnim, string> = {
   none: "", fadeIn: "0.6s ease both", slideUp: "0.55s cubic-bezier(0.22,1,0.36,1) both",
@@ -30,15 +33,21 @@ const ENTRANCE_DURATION: Record<EntranceAnim, string> = {
 };
 
 const ANIM_KEYFRAMES = `
-  @keyframes canvas-float    { 0%,100%{transform:translateY(0)}   50%{transform:translateY(-10px)} }
-  @keyframes canvas-pulse    { 0%,100%{transform:scale(1)}        50%{transform:scale(1.06)} }
-  @keyframes canvas-spin     { from{transform:rotate(0deg)}       to{transform:rotate(360deg)} }
-  @keyframes canvas-shake    { 0%,100%{transform:translateX(0)}   25%,75%{transform:translateX(-5px)} 50%{transform:translateX(5px)} }
-  @keyframes canvas-bounce   { 0%,100%{transform:translateY(0)}   50%{transform:translateY(-14px)} }
-  @keyframes canvas-fadeIn   { from{opacity:0}                    to{opacity:1} }
-  @keyframes canvas-slideUp  { from{opacity:0;transform:translateY(24px)} to{opacity:1;transform:translateY(0)} }
-  @keyframes canvas-slideLeft{ from{opacity:0;transform:translateX(24px)} to{opacity:1;transform:translateX(0)} }
-  @keyframes canvas-zoomIn   { from{opacity:0;transform:scale(0.72)} to{opacity:1;transform:scale(1)} }
+  @keyframes canvas-float      { 0%,100%{transform:translateY(0)}   50%{transform:translateY(-10px)} }
+  @keyframes canvas-pulse      { 0%,100%{transform:scale(1)}        50%{transform:scale(1.06)} }
+  @keyframes canvas-spin       { from{transform:rotate(0deg)}       to{transform:rotate(360deg)} }
+  @keyframes canvas-shake      { 0%,100%{transform:translateX(0)}   25%,75%{transform:translateX(-5px)} 50%{transform:translateX(5px)} }
+  @keyframes canvas-bounce     { 0%,100%{transform:translateY(0)}   50%{transform:translateY(-14px)} }
+  @keyframes canvas-heartbeat  { 0%,100%{transform:scale(1)} 14%{transform:scale(1.08)} 28%{transform:scale(1)} 42%{transform:scale(1.05)} 70%{transform:scale(1)} }
+  @keyframes canvas-swing      { 0%,100%{transform:rotate(0deg);transform-origin:top center} 25%{transform:rotate(10deg);transform-origin:top center} 75%{transform:rotate(-10deg);transform-origin:top center} }
+  @keyframes canvas-wiggle     { 0%,100%{transform:rotateZ(0deg)} 15%{transform:rotateZ(5deg)} 30%{transform:rotateZ(-5deg)} 45%{transform:rotateZ(3deg)} 60%{transform:rotateZ(-3deg)} 75%{transform:rotateZ(1deg)} }
+  @keyframes canvas-breathe    { 0%,100%{transform:scale(1)} 50%{transform:scale(1.04)} }
+  @keyframes canvas-rubber-band{ 0%,100%{transform:scaleX(1) scaleY(1)} 30%{transform:scaleX(1.18) scaleY(0.86)} 40%{transform:scaleX(0.88) scaleY(1.14)} 60%{transform:scaleX(1.08) scaleY(0.94)} 80%{transform:scaleX(0.98) scaleY(1.03)} }
+  @keyframes canvas-tilt       { 0%,100%{transform:rotateZ(-1deg)} 50%{transform:rotateZ(1deg)} }
+  @keyframes canvas-fadeIn     { from{opacity:0}                    to{opacity:1} }
+  @keyframes canvas-slideUp    { from{opacity:0;transform:translateY(24px)} to{opacity:1;transform:translateY(0)} }
+  @keyframes canvas-slideLeft  { from{opacity:0;transform:translateX(24px)} to{opacity:1;transform:translateX(0)} }
+  @keyframes canvas-zoomIn     { from{opacity:0;transform:scale(0.72)} to{opacity:1;transform:scale(1)} }
 `;
 
 type CollectionArtworkPreviewProps = {
@@ -82,6 +91,26 @@ function buildBoxShadow(content: Record<string, unknown> | null | undefined): st
   const shadowSpread = Number(content?.shadowSpread ?? 0);
   const shadowColor = typeof content?.shadowColor === "string" ? content.shadowColor : "rgba(0,0,0,0.3)";
   return `${shadowX}px ${shadowY}px ${shadowBlur}px ${shadowSpread}px ${shadowColor}`;
+}
+
+function buildCssFilter(content: Record<string, unknown> | null | undefined): string | undefined {
+  if (!content) return undefined;
+  const parts: string[] = [];
+  const b = Number(content.filterBrightness ?? 100);
+  const c = Number(content.filterContrast ?? 100);
+  const s = Number(content.filterSaturation ?? 100);
+  const h = Number(content.filterHue ?? 0);
+  const bl = Number(content.filterBlur ?? 0);
+  const se = Number(content.filterSepia ?? 0);
+  const gr = Number(content.filterGrayscale ?? 0);
+  if (b !== 100) parts.push(`brightness(${b}%)`);
+  if (c !== 100) parts.push(`contrast(${c}%)`);
+  if (s !== 100) parts.push(`saturate(${s}%)`);
+  if (h !== 0)   parts.push(`hue-rotate(${h}deg)`);
+  if (bl !== 0)  parts.push(`blur(${bl}px)`);
+  if (se !== 0)  parts.push(`sepia(${se}%)`);
+  if (gr !== 0)  parts.push(`grayscale(${gr}%)`);
+  return parts.length > 0 ? parts.join(" ") : undefined;
 }
 
 function hexToRgba(hex: string, opacity: number): string {
@@ -368,6 +397,7 @@ export default function CollectionArtworkPreview({
                         borderRadius: `${Number(content?.borderRadius ?? 8)}px`,
                         opacity: Number(content?.opacity ?? 1),
                         boxShadow: buildBoxShadow(content),
+                        filter: buildCssFilter(content),
                         display: "block",
                       }}
                     />
@@ -389,6 +419,7 @@ export default function CollectionArtworkPreview({
                           borderRadius: `${Number(content?.borderRadius ?? 0)}px`,
                           opacity: Number(content?.opacity ?? 1),
                           boxShadow: buildBoxShadow(content),
+                          filter: buildCssFilter(content),
                           display: "block",
                         }}
                       />

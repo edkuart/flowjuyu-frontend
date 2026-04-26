@@ -25,6 +25,7 @@ import { Button } from "@/components/ui/button"
 import {
   Dialog,
   DialogContent,
+  DialogDescription,
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog"
@@ -821,6 +822,9 @@ export default function SellerProductsPage() {
                 <DialogTitle className="text-lg font-semibold">
                   {selectedImage.nombre}
                 </DialogTitle>
+                <DialogDescription className="sr-only">
+                  Vista ampliada de la imagen del producto
+                </DialogDescription>
               </DialogHeader>
 
               <div className="relative w-full h-[450px]">

@@ -11,6 +11,7 @@ import { Card, CardContent } from "@/components/ui/card"
 import {
   Dialog,
   DialogContent,
+  DialogDescription,
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog"
@@ -186,6 +187,9 @@ export default function NewProductPage() {
               <span className="text-2xl">🎉</span>
               Producto creado correctamente
             </DialogTitle>
+            <DialogDescription className="sr-only">
+              Tu producto fue guardado en Flowjuyu.
+            </DialogDescription>
           </DialogHeader>
 
           <div className="space-y-5 pt-1">

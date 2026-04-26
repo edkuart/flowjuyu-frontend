@@ -157,7 +157,7 @@ export default function CollectionDetailPage() {
     setSuccess(null);
 
     try {
-      await apiFetch(`/api/collections/${collection.id}`, {
+      const res = await apiFetch(`/api/collections/${collection.id}`, {
         method: "PUT",
         body: JSON.stringify({
           name: collection.name,
@@ -166,9 +166,11 @@ export default function CollectionDetailPage() {
           product_ids: selectedProductIds,
         }),
       });
+      if (!res.ok) throw new Error("save_failed");
 
       if (overrides?.status && overrides.status !== collection.status) {
-        await apiFetch(`/api/collections/${collection.id}/publish`, { method: "PATCH" });
+        const pubRes = await apiFetch(`/api/collections/${collection.id}/publish`, { method: "PATCH" });
+        if (!pubRes.ok) throw new Error("publish_failed");
         setCollection((current) => (current ? { ...current, status: overrides.status! } : current));
       }
 
