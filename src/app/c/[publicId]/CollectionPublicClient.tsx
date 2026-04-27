@@ -186,6 +186,7 @@ export default function CollectionPublicClient({
   const [otherCollections, setOtherCollections] = useState<OtherCollection[]>([]);
   const [collectionsLoading, setCollectionsLoading] = useState(true);
   const [isFullscreen, setIsFullscreen] = useState(false);
+  const [canvasExpanded, setCanvasExpanded] = useState(false);
 
   const heroRef = useRef<HTMLElement>(null);
   const theme = useMemo(() => buildTheme(collection.background_color), [collection.background_color]);
@@ -257,6 +258,14 @@ export default function CollectionPublicClient({
       }
     } catch { /* browser may not support fullscreen API */ }
   }, []);
+
+  // Close canvas lightbox on Escape
+  useEffect(() => {
+    if (!canvasExpanded) return;
+    const handler = (e: KeyboardEvent) => { if (e.key === "Escape") setCanvasExpanded(false); };
+    window.addEventListener("keydown", handler);
+    return () => window.removeEventListener("keydown", handler);
+  }, [canvasExpanded]);
 
   const whatsappPhone = seller?.whatsapp ? extractWhatsAppPhone(seller.whatsapp) : null;
   const whatsappHref = whatsappPhone
@@ -479,12 +488,18 @@ export default function CollectionPublicClient({
               />
             )}
             <div
+              role="button"
+              tabIndex={0}
+              aria-label="Ver canvas en pantalla completa"
+              onClick={() => setCanvasExpanded(true)}
+              onKeyDown={(e) => e.key === "Enter" && setCanvasExpanded(true)}
               style={{
                 position: "relative", zIndex: 1,
                 borderRadius: 18, overflow: "hidden",
                 boxShadow: "0 24px 72px rgba(0,0,0,0.26), 0 4px 16px rgba(0,0,0,0.10)",
                 transform: posterReady ? "scale(1)" : "scale(0.97)",
                 transition: "transform 500ms cubic-bezier(0.16,1,0.3,1)",
+                cursor: "zoom-in",
               }}
             >
               <CollectionPreviewBox
@@ -505,6 +520,20 @@ export default function CollectionPublicClient({
                 className="w-full"
                 playAnimations
               />
+              {/* Expand hint — top-right corner */}
+              <div
+                aria-hidden
+                style={{
+                  position: "absolute", top: 12, right: 12,
+                  width: 32, height: 32, borderRadius: 8,
+                  background: "rgba(0,0,0,0.36)",
+                  backdropFilter: "blur(6px)",
+                  display: "flex", alignItems: "center", justifyContent: "center",
+                  color: "#fff", pointerEvents: "none",
+                }}
+              >
+                <Maximize2 size={14} />
+              </div>
             </div>
           </div>
 
@@ -870,6 +899,101 @@ export default function CollectionPublicClient({
 
         </div>
       </div>
+
+      {/* ── Canvas lightbox ── */}
+      {canvasExpanded && (
+        <div
+          onClick={() => setCanvasExpanded(false)}
+          style={{
+            position: "fixed", inset: 0, zIndex: 70,
+            background: "rgba(0,0,0,0.88)",
+            backdropFilter: "blur(12px)",
+            display: "flex", alignItems: "center", justifyContent: "center",
+            padding: "24px 16px",
+            animation: "fj-fade-in 220ms ease",
+          }}
+        >
+          <style dangerouslySetInnerHTML={{ __html: `
+            @keyframes fj-fade-in { from { opacity: 0; } to { opacity: 1; } }
+            @keyframes fj-scale-in { from { transform: scale(0.94); opacity: 0; } to { transform: scale(1); opacity: 1; } }
+          `}} />
+
+          {/* Close button */}
+          <button
+            onClick={() => setCanvasExpanded(false)}
+            style={{
+              position: "absolute", top: 16, right: 16,
+              width: 40, height: 40, borderRadius: "50%",
+              background: "rgba(255,255,255,0.12)",
+              border: "1px solid rgba(255,255,255,0.22)",
+              display: "flex", alignItems: "center", justifyContent: "center",
+              cursor: "pointer", color: "#fff",
+              backdropFilter: "blur(8px)",
+            }}
+          >
+            <Minimize2 size={16} />
+          </button>
+
+          {/* Collection label */}
+          <div style={{ position: "absolute", top: 20, left: 24, display: "flex", alignItems: "center", gap: 10 }}>
+            {seller?.logo_url && (
+              <img src={seller.logo_url} alt={seller.nombre_comercio} style={{ width: 28, height: 28, borderRadius: "50%", objectFit: "cover", opacity: 0.85 }} />
+            )}
+            <span style={{
+              fontFamily: "'Cormorant Garamond', serif",
+              fontSize: 16, fontWeight: 500, fontStyle: "italic",
+              color: "rgba(255,255,255,0.85)", letterSpacing: "-0.01em",
+            }}>
+              {collection.name}
+            </span>
+          </div>
+
+          {/* Canvas — stop propagation so clicking canvas doesn't close overlay */}
+          <div
+            onClick={(e) => e.stopPropagation()}
+            style={{
+              width: "100%", maxWidth: 1100,
+              borderRadius: 20, overflow: "hidden",
+              boxShadow: theme
+                ? `0 0 0 1px ${theme.glow20}, 0 40px 120px rgba(0,0,0,0.6)`
+                : "0 40px 120px rgba(0,0,0,0.6)",
+              animation: "fj-scale-in 280ms cubic-bezier(0.16,1,0.3,1)",
+            }}
+          >
+            {theme && (
+              <div style={{ height: 3, background: theme.accent }} />
+            )}
+            <CollectionPreviewBox
+              name={collection.name}
+              imageUrl={
+                !(collection.items?.length)
+                  ? (collection.promo_image_url ?? collection.background_image_url ?? null)
+                  : null
+              }
+              backgroundImageUrl={collection.background_image_url ?? undefined}
+              items={collection.items}
+              backgroundColor={collection.background_color}
+              backgroundStyle={collection.background_style}
+              canvasWidth={collection.canvas_width}
+              canvasHeight={collection.canvas_height}
+              maxWidth={1920}
+              maxHeight={900}
+              className="w-full"
+              playAnimations
+            />
+          </div>
+
+          {/* Hint */}
+          <p style={{
+            position: "absolute", bottom: 18,
+            fontFamily: "'JetBrains Mono', monospace",
+            fontSize: 10, letterSpacing: "0.22em", textTransform: "uppercase",
+            color: "rgba(255,255,255,0.35)",
+          }}>
+            Esc o clic fuera para cerrar
+          </p>
+        </div>
+      )}
 
       {/* ── Mobile sticky WhatsApp bar ── */}
       {whatsappHref && (
