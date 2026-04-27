@@ -12,6 +12,8 @@ import {
   MessageCircle,
   ShoppingBag,
   ChevronDown,
+  Maximize2,
+  Minimize2,
 } from "lucide-react";
 import { buildWhatsAppHref, extractWhatsAppPhone } from "@/lib/whatsapp";
 
@@ -183,6 +185,7 @@ export default function CollectionPublicClient({
   const [scrollY, setScrollY] = useState(0);
   const [otherCollections, setOtherCollections] = useState<OtherCollection[]>([]);
   const [collectionsLoading, setCollectionsLoading] = useState(true);
+  const [isFullscreen, setIsFullscreen] = useState(false);
 
   const heroRef = useRef<HTMLElement>(null);
   const theme = useMemo(() => buildTheme(collection.background_color), [collection.background_color]);
@@ -238,6 +241,23 @@ export default function CollectionPublicClient({
     return () => obs.disconnect();
   }, []);
 
+  // Fullscreen sync (user can also exit with Esc)
+  useEffect(() => {
+    const handler = () => setIsFullscreen(!!document.fullscreenElement);
+    document.addEventListener("fullscreenchange", handler);
+    return () => document.removeEventListener("fullscreenchange", handler);
+  }, []);
+
+  const toggleFullscreen = useCallback(async () => {
+    try {
+      if (!document.fullscreenElement) {
+        await document.documentElement.requestFullscreen();
+      } else {
+        await document.exitFullscreen();
+      }
+    } catch { /* browser may not support fullscreen API */ }
+  }, []);
+
   const whatsappPhone = seller?.whatsapp ? extractWhatsAppPhone(seller.whatsapp) : null;
   const whatsappHref = whatsappPhone
     ? buildWhatsAppHref(whatsappPhone, `Hola! Vi la colección "${collection.name}" en Flowjuyu y me gustaría saber más.`)
@@ -284,31 +304,82 @@ export default function CollectionPublicClient({
       )}
 
       {/* ── Sticky nav ── */}
-      <header className="sticky top-0 z-30 border-b border-neutral-100 bg-white/90 backdrop-blur-sm">
+      <header
+        className="sticky top-0 z-30 border-b backdrop-blur-sm"
+        style={{
+          background: isFullscreen
+            ? theme ? `${theme.deep}cc` : "rgba(20,18,15,0.80)"
+            : "rgba(255,255,255,0.92)",
+          borderBottomColor: isFullscreen
+            ? theme ? theme.glow20 : "rgba(255,255,255,0.12)"
+            : "#f3f4f6",
+          transition: "background 400ms ease, border-color 400ms ease",
+        }}
+      >
         <div className="mx-auto flex max-w-5xl items-center gap-3 px-4 py-3">
-          <a
-            href={storeHref}
-            className="flex items-center gap-1.5 rounded-lg px-2 py-1.5 text-sm text-neutral-500 transition hover:bg-neutral-100 hover:text-neutral-900"
-          >
-            <ArrowLeft className="h-4 w-4" />
-            <span className="hidden sm:inline">Volver a la tienda</span>
-          </a>
-          <div className="ml-auto flex items-center gap-2">
+          {!isFullscreen && (
             <a
               href={storeHref}
-              className="flex items-center gap-2 rounded-lg border border-neutral-200 bg-white px-3 py-1.5 transition hover:border-neutral-300 hover:bg-neutral-50"
+              className="flex items-center gap-1.5 rounded-lg px-2 py-1.5 text-sm text-neutral-500 transition hover:bg-neutral-100 hover:text-neutral-900"
             >
-              {seller?.logo_url ? (
-                <img src={seller.logo_url} alt={seller.nombre_comercio} className="h-6 w-6 rounded-full object-cover" />
-              ) : (
-                <div className="flex h-6 w-6 items-center justify-center rounded-full bg-neutral-100">
-                  <Store className="h-3.5 w-3.5 text-neutral-400" />
-                </div>
-              )}
-              <span className="text-xs font-medium text-neutral-700">
-                {seller?.nombre_comercio ?? "Tienda"}
-              </span>
+              <ArrowLeft className="h-4 w-4" />
+              <span className="hidden sm:inline">Volver a la tienda</span>
             </a>
+          )}
+          <div className={`flex items-center gap-2 ${isFullscreen ? "w-full justify-between" : "ml-auto"}`}>
+            {!isFullscreen && (
+              <a
+                href={storeHref}
+                className="flex items-center gap-2 rounded-lg border border-neutral-200 bg-white px-3 py-1.5 transition hover:border-neutral-300 hover:bg-neutral-50"
+              >
+                {seller?.logo_url ? (
+                  <img src={seller.logo_url} alt={seller.nombre_comercio} className="h-6 w-6 rounded-full object-cover" />
+                ) : (
+                  <div className="flex h-6 w-6 items-center justify-center rounded-full bg-neutral-100">
+                    <Store className="h-3.5 w-3.5 text-neutral-400" />
+                  </div>
+                )}
+                <span className="text-xs font-medium text-neutral-700">
+                  {seller?.nombre_comercio ?? "Tienda"}
+                </span>
+              </a>
+            )}
+            {isFullscreen && (
+              <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+                {seller?.logo_url && (
+                  <img src={seller.logo_url} alt={seller.nombre_comercio} style={{ width: 26, height: 26, borderRadius: "50%", objectFit: "cover", opacity: 0.9 }} />
+                )}
+                <span style={{
+                  fontFamily: "'Cormorant Garamond', serif",
+                  fontSize: 18, fontWeight: 500, fontStyle: "italic",
+                  color: theme?.isLight ? theme.ink : "#fff",
+                  letterSpacing: "-0.01em",
+                }}>
+                  {collection.name}
+                </span>
+              </div>
+            )}
+            <button
+              onClick={toggleFullscreen}
+              title={isFullscreen ? "Salir de pantalla completa (Esc)" : "Ver en pantalla completa"}
+              style={{
+                display: "flex", alignItems: "center", justifyContent: "center",
+                width: 34, height: 34, borderRadius: 8, flexShrink: 0,
+                background: isFullscreen
+                  ? "rgba(255,255,255,0.12)"
+                  : "transparent",
+                border: isFullscreen
+                  ? "1px solid rgba(255,255,255,0.2)"
+                  : "1px solid #e5e7eb",
+                cursor: "pointer",
+                color: isFullscreen
+                  ? (theme?.isLight ? theme.ink : "#fff")
+                  : "#6b7280",
+                transition: "background 200ms, border-color 200ms, color 200ms",
+              }}
+            >
+              {isFullscreen ? <Minimize2 size={15} /> : <Maximize2 size={15} />}
+            </button>
           </div>
         </div>
       </header>
