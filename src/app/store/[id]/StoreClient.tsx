@@ -534,6 +534,18 @@ export default function StoreClient({
     loadReviews();
   }, [loadReviews]);
 
+  // Load editorial fonts (shared with collection page)
+  useEffect(() => {
+    const id = "fj-editorial-fonts";
+    if (document.getElementById(id)) return;
+    const link = document.createElement("link");
+    link.id = id;
+    link.rel = "stylesheet";
+    link.href =
+      "https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,400;0,500;1,400;1,500&family=JetBrains+Mono:wght@400;500&display=swap";
+    document.head.appendChild(link);
+  }, []);
+
   useEffect(() => {
     if (!seller.is_live) return;
 
@@ -1506,25 +1518,21 @@ export default function StoreClient({
         }
         {config.show_story && seller.descripcion && (
           <section className="mb-16">
-            <div className="flex flex-col items-start gap-8 rounded-3xl border border-amber-100 bg-gradient-to-br from-amber-50 to-emerald-50 p-8 md:flex-row">
-              <div className="flex-shrink-0 text-4xl">📖</div>
-              <div className="min-w-0">
-                <div className="mb-3 flex items-center gap-2">
-                  <BookOpen className="h-4 w-4 text-amber-700" />
-                  <p className="text-xs font-bold tracking-widest text-amber-700 uppercase">
-                    {tr("seller.storyEyebrow")}
-                  </p>
-                </div>
-                <h2 className="mb-3 text-xl font-bold text-neutral-900">
+            <div className="rounded-3xl border border-neutral-100 bg-white p-8 md:p-10" style={{ boxShadow: "0 2px 12px rgba(0,0,0,0.04)" }}>
+              <div className="max-w-2xl">
+                <p style={{ fontFamily: "'JetBrains Mono', monospace", fontSize: 10, letterSpacing: "0.30em", textTransform: "uppercase", color: "#9ca3af", marginBottom: 10 }}>
+                  {tr("seller.storyEyebrow")}
+                </p>
+                <h2 style={{ fontFamily: "'Cormorant Garamond', serif", fontSize: "clamp(22px, 4vw, 34px)", fontWeight: 500, fontStyle: "italic", letterSpacing: "-0.015em", lineHeight: 1.15, color: "#1c1a17", margin: "0 0 16px" }}>
                   {tr("seller.storyHeading")} {seller.nombre_comercio}
                 </h2>
-                <p className="leading-relaxed text-neutral-600">
+                <p className="leading-relaxed text-neutral-500" style={{ fontSize: 15 }}>
                   {seller.descripcion}
                 </p>
                 {showWhatsapp && (
                   <button
                     onClick={() => setWhatsAppOpen(true)}
-                    className="mt-5 inline-flex items-center gap-2 text-sm font-semibold text-emerald-700 transition hover:text-emerald-900"
+                    className="mt-6 inline-flex items-center gap-2 text-sm font-semibold text-emerald-700 transition hover:text-emerald-900"
                   >
                     {tr("seller.talkDirectly")}
                     <ArrowRight className="h-4 w-4" />
@@ -1535,81 +1543,6 @@ export default function StoreClient({
           </section>
         )}
 
-        {/* ══════════════════════════════════════════════
-          FEATURED PRODUCT (when no destacados)
-      ══════════════════════════════════════════════ */}
-        {
-          (console.log(
-            "[DEBUG] RENDER CHECK — show_featured:",
-            config.show_featured,
-            "| featuredProduct:",
-            !!featuredProduct,
-            "| destacados.length:",
-            destacados.length,
-            "| productos.length:",
-            productos.length,
-          ),
-          null)
-        }
-        {config.show_featured && featuredProduct && (
-          <section className="mb-16">
-            <div className="mb-6">
-              <p className="mb-1 text-xs font-bold tracking-widest text-neutral-400 uppercase">
-                {tr("seller.popularEyebrow")}
-              </p>
-              <h2 className="text-2xl font-bold text-neutral-900">
-                {tr("seller.featuredTitle")}
-              </h2>
-            </div>
-            <Link
-              href={
-                featuredProduct.internal_code
-                  ? `/p/${featuredProduct.internal_code}`
-                  : `/product/${featuredProduct.id}`
-              }
-            >
-              <div className="group flex flex-col gap-6 overflow-hidden rounded-3xl border border-neutral-100 bg-white p-6 shadow-sm transition-all hover:shadow-xl sm:flex-row">
-                <div className="relative aspect-square w-full flex-shrink-0 overflow-hidden rounded-2xl bg-neutral-50 sm:w-52">
-                  <Image
-                    src={getProductImage(featuredProduct)}
-                    alt={featuredProduct.nombre}
-                    fill
-                    className="object-contain p-4 transition-transform duration-500 group-hover:scale-105"
-                  />
-                  <div className="absolute top-3 left-3">
-                    <span className="inline-flex items-center gap-1 rounded-full bg-amber-500 px-2.5 py-1 text-[10px] font-bold text-white shadow">
-                      ⭐ {tr("seller.featuredBadge")}
-                    </span>
-                  </div>
-                </div>
-                <div className="flex min-w-0 flex-col justify-center gap-3">
-                  <p className="text-[10px] font-semibold tracking-wide text-neutral-400 uppercase">
-                    {tr("seller.craftOf")} {seller.nombre_comercio}
-                  </p>
-                  <h3 className="text-xl font-bold text-neutral-900 transition-colors group-hover:text-[#0F3D3A]">
-                    {featuredProduct.nombre}
-                  </h3>
-                  <p className="text-2xl font-black text-[#0F3D3A]">
-                    Q{Number(featuredProduct.precio).toFixed(2)}
-                  </p>
-                  {featuredProduct.descripcion && (
-                    <p className="line-clamp-3 text-sm leading-relaxed text-neutral-500">
-                      {featuredProduct.descripcion}
-                    </p>
-                  )}
-                  <ProductDetailsBlock
-                    atributos={featuredProduct.atributos}
-                    variant="store"
-                  />
-                  <span className="inline-flex w-fit items-center gap-2 rounded-full border border-[#0F3D3A]/30 px-4 py-2 text-sm font-semibold text-[#0F3D3A] transition-colors group-hover:bg-[#0F3D3A] group-hover:text-white">
-                    {tr("seller.viewProduct")}{" "}
-                    <ArrowRight className="h-4 w-4" />
-                  </span>
-                </div>
-              </div>
-            </Link>
-          </section>
-        )}
 
         {/* ══════════════════════════════════════════════
           DESTACADOS
@@ -1617,10 +1550,10 @@ export default function StoreClient({
         {config.show_featured && destacados.length > 0 && (
           <section className="mb-20">
             <div className="mb-8">
-              <p className="mb-1 text-xs font-bold tracking-widest text-neutral-400 uppercase">
+              <p style={{ fontFamily: "'JetBrains Mono', monospace", fontSize: 10, letterSpacing: "0.30em", textTransform: "uppercase", color: "#9ca3af", marginBottom: 8 }}>
                 {tr("seller.curatedEyebrow")}
               </p>
-              <h2 className="text-2xl font-bold text-neutral-900">
+              <h2 style={{ fontFamily: "'Cormorant Garamond', serif", fontSize: "clamp(26px, 5vw, 42px)", fontWeight: 500, fontStyle: "italic", letterSpacing: "-0.015em", lineHeight: 1.1, color: "#1c1a17", margin: 0 }}>
                 {tr("seller.destacadosTitle")}
               </h2>
             </div>
@@ -1743,10 +1676,10 @@ export default function StoreClient({
             {storefrontCollections.length > 0 ? (
               <div>
                 <div className="mb-8">
-                  <p className="mb-1 text-xs font-bold tracking-widest text-neutral-400 uppercase">
+                  <p style={{ fontFamily: "'JetBrains Mono', monospace", fontSize: 10, letterSpacing: "0.30em", textTransform: "uppercase", color: "#9ca3af", marginBottom: 8 }}>
                     Looks y conjuntos
                   </p>
-                  <h2 className="text-2xl font-bold text-neutral-900">
+                  <h2 style={{ fontFamily: "'Cormorant Garamond', serif", fontSize: "clamp(26px, 5vw, 42px)", fontWeight: 500, fontStyle: "italic", letterSpacing: "-0.015em", lineHeight: 1.1, color: "#1c1a17", margin: 0 }}>
                     Colecciones de {seller.nombre_comercio}
                   </h2>
                 </div>
@@ -1864,19 +1797,16 @@ export default function StoreClient({
         <section id="catalogo" ref={catalogSectionRef} className="mt-20">
           <div className="mb-6 flex items-end justify-between">
             <div>
-              <p className="mb-1 text-xs font-bold tracking-widest text-neutral-400 uppercase">
+              <p style={{ fontFamily: "'JetBrains Mono', monospace", fontSize: 10, letterSpacing: "0.30em", textTransform: "uppercase", color: "#9ca3af", marginBottom: 8 }}>
                 {tr("seller.catalogEyebrow")}
               </p>
-              <h2 className="text-2xl font-bold text-neutral-900">
+              <h2 style={{ fontFamily: "'Cormorant Garamond', serif", fontSize: "clamp(26px, 5vw, 42px)", fontWeight: 500, fontStyle: "italic", letterSpacing: "-0.015em", lineHeight: 1.1, color: "#1c1a17", margin: 0 }}>
                 {tr("seller.catalogTitle")}
               </h2>
             </div>
             {productos.length > 0 && (
-              <span className="text-sm text-neutral-400">
-                {productos.length}{" "}
-                {productos.length === 1
-                  ? tr("seller.productSingular")
-                  : tr("seller.productPlural")}
+              <span style={{ fontFamily: "'JetBrains Mono', monospace", fontSize: 10, letterSpacing: "0.16em", color: "#9ca3af" }}>
+                {productos.length} {productos.length === 1 ? tr("seller.productSingular") : tr("seller.productPlural")}
               </span>
             )}
           </div>
@@ -1949,10 +1879,10 @@ export default function StoreClient({
           <section ref={reviewsSectionRef} className="mt-20">
             <div className="mb-8 flex items-end justify-between">
               <div>
-                <p className="mb-1 text-xs font-bold tracking-widest text-neutral-400 uppercase">
+                <p style={{ fontFamily: "'JetBrains Mono', monospace", fontSize: 10, letterSpacing: "0.30em", textTransform: "uppercase", color: "#9ca3af", marginBottom: 8 }}>
                   {tr("seller.reviewsEyebrow")}
                 </p>
-                <h2 className="text-2xl font-bold text-neutral-900">
+                <h2 style={{ fontFamily: "'Cormorant Garamond', serif", fontSize: "clamp(26px, 5vw, 42px)", fontWeight: 500, fontStyle: "italic", letterSpacing: "-0.015em", lineHeight: 1.1, color: "#1c1a17", margin: 0 }}>
                   {tr("seller.reviewsTitle")}
                 </h2>
               </div>
