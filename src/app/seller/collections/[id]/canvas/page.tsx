@@ -3154,8 +3154,9 @@ export default function CollectionEditorPage() {
 
   return (
     <div className="flex flex-col gap-4">
-      {/* Canvas animation keyframes */}
-      <style>{`
+      {/* Canvas animation keyframes — dangerouslySetInnerHTML is required so Next.js
+          production builds do not strip or hoist the raw CSS text incorrectly. */}
+      <style dangerouslySetInnerHTML={{ __html: `
         @keyframes canvas-float      { 0%,100%{transform:translateY(0)}   50%{transform:translateY(-10px)} }
         @keyframes canvas-pulse      { 0%,100%{transform:scale(1)}        50%{transform:scale(1.06)} }
         @keyframes canvas-spin       { from{transform:rotate(0deg)}       to{transform:rotate(360deg)} }
@@ -3171,7 +3172,7 @@ export default function CollectionEditorPage() {
         @keyframes canvas-slideUp    { from{opacity:0;transform:translateY(24px)} to{opacity:1;transform:translateY(0)} }
         @keyframes canvas-slideLeft  { from{opacity:0;transform:translateX(24px)} to{opacity:1;transform:translateX(0)} }
         @keyframes canvas-zoomIn     { from{opacity:0;transform:scale(0.72)} to{opacity:1;transform:scale(1)} }
-      `}</style>
+      ` }} />
 
       {/* Hidden image input */}
       <input

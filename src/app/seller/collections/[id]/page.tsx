@@ -466,6 +466,16 @@ export default function CollectionDetailPage() {
               </div>
             )}
           </div>
+
+          <div className="border-t border-[var(--seller-line-strong)] pt-4">
+            <SellerActionButton
+              onClick={() => saveCollection()}
+              disabled={saving}
+              className="w-full py-2.5 text-center text-sm font-medium"
+            >
+              {saving ? "Guardando..." : `Guardar selección (${selectedProductIds.length})`}
+            </SellerActionButton>
+          </div>
         </SellerSurfaceCard>
       </div>
 

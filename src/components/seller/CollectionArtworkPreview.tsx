@@ -259,6 +259,16 @@ export default function CollectionArtworkPreview({
   }, [width, hasCanvasArtwork]);
 
   useEffect(() => {
+    if (!playAnimations || typeof document === "undefined") return;
+    const styleId = "fj-canvas-keyframes";
+    if (document.getElementById(styleId)) return;
+    const style = document.createElement("style");
+    style.id = styleId;
+    style.textContent = ANIM_KEYFRAMES;
+    document.head.appendChild(style);
+  }, [playAnimations]);
+
+  useEffect(() => {
     const needsFontSheet = safeItems.some((item) => {
       const fontFamily = item.element_type === "text" ? item.content?.fontFamily : null;
       return typeof fontFamily === "string" && fontFamily !== "inherit";
@@ -292,8 +302,6 @@ export default function CollectionArtworkPreview({
         className={`relative h-full w-full overflow-hidden ${className}`.trim()}
         style={{ background }}
       >
-        {playAnimations && <style>{ANIM_KEYFRAMES}</style>}
-
         {/* Background image fills the display container (same aspect ratio as canvas) */}
         {backgroundImageUrl ? (
           <img
