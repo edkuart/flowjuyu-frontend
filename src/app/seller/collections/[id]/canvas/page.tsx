@@ -2003,7 +2003,8 @@ export default function CollectionEditorPage() {
       const canvas = document.createElement("canvas");
       canvas.width  = W;
       canvas.height = H;
-      const ctx = canvas.getContext("2d");
+      // Cast to non-null after guard — TypeScript doesn't propagate narrowing into nested closures
+      const ctx = canvas.getContext("2d") as CanvasRenderingContext2D;
       if (!ctx) throw new Error("No 2D context");
 
       // ── helpers ──────────────────────────────────────────────────────────
