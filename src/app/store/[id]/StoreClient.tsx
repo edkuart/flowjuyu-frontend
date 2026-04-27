@@ -1690,79 +1690,6 @@ export default function StoreClient({
         )}
 
         {/* ══════════════════════════════════════════════
-          PRODUCT GRID
-      ══════════════════════════════════════════════ */}
-        <section id="catalogo" ref={catalogSectionRef}>
-          <div className="mb-6 flex items-end justify-between">
-            <div>
-              <p className="mb-1 text-xs font-bold tracking-widest text-neutral-400 uppercase">
-                {tr("seller.catalogEyebrow")}
-              </p>
-              <h2 className="text-2xl font-bold text-neutral-900">
-                {tr("seller.catalogTitle")}
-              </h2>
-            </div>
-            {productos.length > 0 && (
-              <span className="text-sm text-neutral-400">
-                {productos.length}{" "}
-                {productos.length === 1
-                  ? tr("seller.productSingular")
-                  : tr("seller.productPlural")}
-              </span>
-            )}
-          </div>
-
-          <div className="grid grid-cols-2 gap-4 md:grid-cols-3 lg:grid-cols-5 xl:grid-cols-6">
-            {productos.map((p) => (
-              <ProductCardV2
-                key={p.id}
-                product={{
-                  ...p,
-                  id: String(p.id),
-                  precio: Number(p.precio),
-                }}
-                variant="default"
-                href={p.internal_code ? `/p/${p.internal_code}` : undefined}
-                imageSizes="(max-width: 640px) 50vw, (max-width: 1024px) 33vw, 20vw"
-              />
-            ))}
-            {productos.length === 0 && (
-              <div className="col-span-full space-y-3 py-20 text-center">
-                <p className="text-3xl opacity-40">🛍</p>
-                <p className="font-medium text-neutral-500">
-                  {tr("seller.noProducts")}
-                </p>
-              </div>
-            )}
-          </div>
-
-          {/* Bottom WhatsApp strip */}
-          {showWhatsapp && (
-            <div className="mt-16 flex flex-col items-center justify-between gap-6 rounded-2xl bg-gradient-to-r from-emerald-900 to-emerald-800 p-8 text-white sm:flex-row">
-              <div>
-                <p className="text-lg font-bold">
-                  {tr("seller.questionTitle")}
-                </p>
-                <p className="mt-1 text-sm text-white/70">
-                  {tr("seller.talkWith")} {seller.nombre_comercio}
-                </p>
-              </div>
-              <button
-                onClick={() => setWhatsAppOpen(true)}
-                className="inline-flex shrink-0 items-center gap-2.5 rounded-full bg-green-500 px-8 py-3.5 font-semibold text-white shadow-lg transition-all hover:bg-green-600 active:scale-95"
-              >
-                <MessageCircle className="h-5 w-5" />
-                {sellerWhatsappLabel}
-              </button>
-            </div>
-          )}
-
-          {seller.is_live && currentLiveProduct ? (
-            <div className="h-28 md:h-32" aria-hidden="true" />
-          ) : null}
-        </section>
-
-        {/* ══════════════════════════════════════════════
           COLLECTIONS SECTION
       ══════════════════════════════════════════════ */}
         {(featuredCollection || storefrontCollections.length > 0) && (
@@ -1930,6 +1857,79 @@ export default function StoreClient({
             ) : null}
           </section>
         )}
+
+        {/* ══════════════════════════════════════════════
+          PRODUCT GRID
+      ══════════════════════════════════════════════ */}
+        <section id="catalogo" ref={catalogSectionRef} className="mt-20">
+          <div className="mb-6 flex items-end justify-between">
+            <div>
+              <p className="mb-1 text-xs font-bold tracking-widest text-neutral-400 uppercase">
+                {tr("seller.catalogEyebrow")}
+              </p>
+              <h2 className="text-2xl font-bold text-neutral-900">
+                {tr("seller.catalogTitle")}
+              </h2>
+            </div>
+            {productos.length > 0 && (
+              <span className="text-sm text-neutral-400">
+                {productos.length}{" "}
+                {productos.length === 1
+                  ? tr("seller.productSingular")
+                  : tr("seller.productPlural")}
+              </span>
+            )}
+          </div>
+
+          <div className="grid grid-cols-2 gap-4 md:grid-cols-3 lg:grid-cols-5 xl:grid-cols-6">
+            {productos.map((p) => (
+              <ProductCardV2
+                key={p.id}
+                product={{
+                  ...p,
+                  id: String(p.id),
+                  precio: Number(p.precio),
+                }}
+                variant="default"
+                href={p.internal_code ? `/p/${p.internal_code}` : undefined}
+                imageSizes="(max-width: 640px) 50vw, (max-width: 1024px) 33vw, 20vw"
+              />
+            ))}
+            {productos.length === 0 && (
+              <div className="col-span-full space-y-3 py-20 text-center">
+                <p className="text-3xl opacity-40">🛍</p>
+                <p className="font-medium text-neutral-500">
+                  {tr("seller.noProducts")}
+                </p>
+              </div>
+            )}
+          </div>
+
+          {/* Bottom WhatsApp strip */}
+          {showWhatsapp && (
+            <div className="mt-16 flex flex-col items-center justify-between gap-6 rounded-2xl bg-gradient-to-r from-emerald-900 to-emerald-800 p-8 text-white sm:flex-row">
+              <div>
+                <p className="text-lg font-bold">
+                  {tr("seller.questionTitle")}
+                </p>
+                <p className="mt-1 text-sm text-white/70">
+                  {tr("seller.talkWith")} {seller.nombre_comercio}
+                </p>
+              </div>
+              <button
+                onClick={() => setWhatsAppOpen(true)}
+                className="inline-flex shrink-0 items-center gap-2.5 rounded-full bg-green-500 px-8 py-3.5 font-semibold text-white shadow-lg transition-all hover:bg-green-600 active:scale-95"
+              >
+                <MessageCircle className="h-5 w-5" />
+                {sellerWhatsappLabel}
+              </button>
+            </div>
+          )}
+
+          {seller.is_live && currentLiveProduct ? (
+            <div className="h-28 md:h-32" aria-hidden="true" />
+          ) : null}
+        </section>
 
         {/* ══════════════════════════════════════════════
           REVIEWS SECTION
