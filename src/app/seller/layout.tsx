@@ -15,6 +15,7 @@ import {
   LogOut,
   Layers2,
   RadioTower,
+  Clapperboard,
   ChevronRight,
   Sparkles,
   LifeBuoy,
@@ -32,27 +33,31 @@ import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet";
 import { apiGetVendedorPerfil } from "@/services/vendedorPerfil";
 
 const navItems = [
-  { label: "Resumen", icon: LayoutDashboard, href: "/seller/dashboard" },
-  { label: "Live", icon: RadioTower, href: "/seller/live" },
-  { label: "Mi tienda", icon: Home, href: "/seller/my-business" },
-  { label: "Productos", icon: Package, href: "/seller/products" },
-  { label: "Pedidos", icon: ShoppingCart, href: "/seller/orders" },
-  { label: "Colecciones", icon: Layers2, href: "/seller/collections" },
-  { label: "Métricas", icon: BarChart3, href: "/seller/metrics" },
-  { label: "Cuenta", icon: User, href: "/seller/account" },
-  { label: "Seguridad", icon: Shield, href: "/seller/security" },
+  { label: "Resumen",      icon: LayoutDashboard, href: "/seller/dashboard"    },
+  { label: "Live",         icon: RadioTower,      href: "/seller/live"         },
+  { label: "Mi tienda",    icon: Home,            href: "/seller/my-business"  },
+  { label: "Productos",    icon: Package,         href: "/seller/products"     },
+  { label: "Pedidos",      icon: ShoppingCart,    href: "/seller/orders"       },
+  { label: "Colecciones",  icon: Layers2,         href: "/seller/collections"  },
+  { label: "Video Studio", icon: Clapperboard,    href: "/seller/video-studio" },
+  { label: "IA",           icon: Sparkles,        href: "/seller/ai-credits"   },
+  { label: "Métricas",     icon: BarChart3,       href: "/seller/metrics"      },
+  { label: "Cuenta",       icon: User,            href: "/seller/account"      },
+  { label: "Seguridad",    icon: Shield,          href: "/seller/security"     },
 ];
 
 const navDescriptions: Record<string, string> = {
-  "/seller/dashboard": "Vista general de ventas, actividad y salud del negocio.",
-  "/seller/live": "Transmisiones, productos activos y ritmo del live.",
+  "/seller/dashboard":   "Vista general de ventas, actividad y salud del negocio.",
+  "/seller/live":        "Transmisiones, productos activos y ritmo del live.",
   "/seller/my-business": "Identidad de tienda, presencia publica y optimizacion.",
-  "/seller/products": "Catalogo, altas, edicion y control de tus piezas.",
-  "/seller/orders": "Seguimiento operativo de pedidos y conversaciones de venta.",
+  "/seller/products":    "Catalogo, altas, edicion y control de tus piezas.",
+  "/seller/orders":      "Seguimiento operativo de pedidos y conversaciones de venta.",
   "/seller/collections": "Conjuntos visuales, stories y experiencias curadas.",
-  "/seller/metrics": "Lecturas de trafico, reputacion y conversion.",
-  "/seller/account": "Configuracion principal, perfil y datos de cuenta.",
-  "/seller/security": "Accesos, proteccion y confianza de la cuenta.",
+  "/seller/video-studio":"Genera videos promocionales para productos, lives y colecciones.",
+  "/seller/ai-credits":  "Compra y administra tus creditos para funciones de inteligencia artificial.",
+  "/seller/metrics":     "Lecturas de trafico, reputacion y conversion.",
+  "/seller/account":     "Configuracion principal, perfil y datos de cuenta.",
+  "/seller/security":    "Accesos, proteccion y confianza de la cuenta.",
 };
 
 export default function SellerLayout({ children }: { children: ReactNode }) {
@@ -127,7 +132,7 @@ export default function SellerLayout({ children }: { children: ReactNode }) {
           <p className="px-3 text-[10px] font-semibold uppercase tracking-[0.18em] text-[var(--seller-faint-text)]">
             Operación
           </p>
-          {navItems.slice(0, 7).map(({ label, icon, href }) => (
+          {navItems.slice(0, 9).map(({ label, icon, href }) => (
             <SidebarNavItem
               key={href}
               href={href}
@@ -150,7 +155,7 @@ export default function SellerLayout({ children }: { children: ReactNode }) {
           <p className="px-3 text-[10px] font-semibold uppercase tracking-[0.18em] text-[var(--seller-faint-text)]">
             Cuenta
           </p>
-          {navItems.slice(7).map(({ label, icon, href }) => (
+          {navItems.slice(9).map(({ label, icon, href }) => (
             <SidebarNavItem
               key={href}
               href={href}

@@ -38,6 +38,9 @@ const SKIP_CACHE_PATHS: string[] = [
   "/api/seller/whatsapp-link",
   "/api/collections",
   "/api/collections/templates",
+  "/api/seller/video-projects",
+  "/api/seller/video-generations",
+  "/api/seller/video-templates",
 ];
 
 type CacheEntry = { json: unknown; ts: number };

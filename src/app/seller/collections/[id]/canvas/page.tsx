@@ -1094,6 +1094,8 @@ export default function CollectionEditorPage() {
   const [aiGenerateBgImage, setAiGenerateBgImage] = useState(false);
   const [aiLoading, setAiLoading]               = useState(false);
   const [aiError, setAiError]                   = useState<string | null>(null);
+  const [aiNoCredits, setAiNoCredits]           = useState(false);
+  const [aiCreditsBalance, setAiCreditsBalance] = useState<number | null>(null);
 
   // Export
   const [exportOpen, setExportOpen]       = useState(false);
@@ -1941,6 +1943,7 @@ export default function CollectionEditorPage() {
     if (!collection || !aiPrompt.trim()) return;
     setAiLoading(true);
     setAiError(null);
+    setAiNoCredits(false);
 
     const prevItems      = [...items];
     const prevBgColor    = bgColor;
@@ -1965,7 +1968,10 @@ export default function CollectionEditorPage() {
         }),
       });
       const data = await res.json();
-      if (!data.ok) throw new Error(data.message ?? "No se pudo generar el canvas");
+      if (!data.ok) {
+        if (data.code === "INSUFFICIENT_CREDITS") setAiNoCredits(true);
+        throw new Error(data.message ?? "No se pudo generar el canvas");
+      }
 
       invalidateCache(`/api/collections/${collectionId}`);
       await loadCollection();
@@ -1987,6 +1993,8 @@ export default function CollectionEditorPage() {
       setActiveTool("select");
       setMobilePanel(null);
       resetCanvasViewport();
+      // Refresh balance shown in topbar after deduction
+      apiFetch("/api/seller/ai-credits/balance").then((r) => r.json()).then((d) => setAiCreditsBalance(d.balance ?? null)).catch(() => {});
     } catch (err: any) {
       setAiError(err?.message ?? "Error al generar el canvas con IA");
     } finally {
@@ -3231,6 +3239,7 @@ export default function CollectionEditorPage() {
             setAiSelectedProductIds(onCanvasIds.size > 0 ? onCanvasIds : new Set(products.slice(0, 3).map((p) => p.id)));
             setAiProductCount(Math.min(6, Math.max(1, onCanvasIds.size || 3)));
             setAiModalOpen(true);
+            apiFetch("/api/seller/ai-credits/balance").then((r) => r.json()).then((d) => setAiCreditsBalance(d.balance ?? null)).catch(() => {});
           }}
           title="Generar canvas con IA"
           className="flex items-center gap-1.5 rounded-lg border border-[var(--seller-accent)] bg-[color:color-mix(in_srgb,var(--seller-accent)_8%,white)] px-3 py-1.5 text-xs font-semibold text-[var(--seller-accent)] transition hover:bg-[color:color-mix(in_srgb,var(--seller-accent)_15%,white)]"
@@ -5844,8 +5853,33 @@ export default function CollectionEditorPage() {
                       <span className="text-[11px] text-neutral-500">Imagen personalizada para el fondo (~15–30 s extra).</span>
                     </span>
                   </label>
+                  {aiCreditsBalance !== null && (
+                    <div className={`flex items-center justify-between rounded-xl border px-3 py-2 text-xs font-medium ${aiCreditsBalance >= 8 ? "border-[color:color-mix(in_srgb,var(--seller-accent)_25%,white)] bg-[color:color-mix(in_srgb,var(--seller-accent)_6%,white)] text-[var(--seller-accent)]" : "border-orange-200 bg-orange-50 text-orange-700"}`}>
+                      <span className="flex items-center gap-1.5">
+                        <Sparkles className="h-3.5 w-3.5" />
+                        {aiCreditsBalance >= 8
+                          ? `Tienes ${aiCreditsBalance} créditos — esta acción cuesta 8`
+                          : `Saldo insuficiente: tienes ${aiCreditsBalance} cr, se necesitan 8`}
+                      </span>
+                      {aiCreditsBalance < 8 && (
+                        <a href="/seller/ai-credits" className="font-semibold underline underline-offset-2 hover:opacity-80 shrink-0">
+                          Comprar →
+                        </a>
+                      )}
+                    </div>
+                  )}
                   {aiError && (
-                    <div className="rounded-xl border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-700">{aiError}</div>
+                    <div className="rounded-xl border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-700">
+                      <p>{aiError}</p>
+                      {aiNoCredits && (
+                        <a
+                          href="/seller/ai-credits"
+                          className="mt-1.5 inline-flex items-center gap-1 font-semibold underline underline-offset-2 hover:opacity-80"
+                        >
+                          Comprar créditos →
+                        </a>
+                      )}
+                    </div>
                   )}
                 </>
               )}
@@ -5866,7 +5900,7 @@ export default function CollectionEditorPage() {
                   Siguiente →
                 </button>
               ) : (
-                <button onClick={handleAiGenerate} disabled={aiLoading || !aiPrompt.trim()}
+                <button onClick={handleAiGenerate} disabled={aiLoading || !aiPrompt.trim() || (aiCreditsBalance !== null && aiCreditsBalance < 8)}
                   className="flex flex-1 items-center justify-center gap-2 rounded-xl bg-[#0F3D3A] py-2.5 text-sm font-medium text-white transition hover:bg-[#14544f] disabled:opacity-60">
                   {aiLoading ? <><Loader2 className="h-4 w-4 animate-spin" />Generando...</> : <><Sparkles className="h-4 w-4" />Generar canvas</>}
                 </button>

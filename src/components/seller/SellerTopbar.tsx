@@ -1,8 +1,10 @@
 "use client";
 
 import Link from "next/link";
-import { ExternalLink, Menu, Plus, Store } from "lucide-react";
+import { ExternalLink, Menu, Plus, Sparkles, Store } from "lucide-react";
+import { useEffect, useState } from "react";
 import { SellerActionButton, SellerPill } from "@/components/seller/ui/SellerPrimitives";
+import { fetchAiCreditsBalance } from "@/services/aiCredits";
 
 type Props = {
   businessName?: string;
@@ -21,6 +23,14 @@ export default function SellerTopbar({
   currentSection = "Resumen",
   currentDescription = "Tu espacio central de operacion.",
 }: Props) {
+  const [aiBalance, setAiBalance] = useState<number | null>(null);
+
+  useEffect(() => {
+    fetchAiCreditsBalance()
+      .then(setAiBalance)
+      .catch(() => {});
+  }, []);
+
   const statusTone =
     status === "activo"
       ? "success"
@@ -61,6 +71,16 @@ export default function SellerTopbar({
           </div>
         </div>
         <div className="flex items-center gap-3">
+          {aiBalance !== null && (
+            <Link
+              href="/seller/ai-credits"
+              className="inline-flex items-center gap-1.5 rounded-lg border border-[var(--seller-line-strong)] bg-[color:color-mix(in_srgb,var(--seller-accent)_6%,white)] px-3 py-2 text-sm font-semibold text-[var(--seller-accent)] transition hover:bg-[color:color-mix(in_srgb,var(--seller-accent)_12%,white)]"
+              title="Créditos IA disponibles"
+            >
+              <Sparkles className="h-3.5 w-3.5" />
+              {aiBalance} cr
+            </Link>
+          )}
           <SellerPill tone={statusTone as "success" | "warning" | "danger" | "neutral"}>
             Negocio {status}
           </SellerPill>

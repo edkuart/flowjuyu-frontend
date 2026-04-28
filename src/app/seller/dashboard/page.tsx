@@ -8,6 +8,7 @@ import {
   ClipboardList,
   Package,
   ShieldCheck,
+  Sparkles,
   Store,
 } from "lucide-react";
 
@@ -46,6 +47,7 @@ export default function SellerDashboardHomePage() {
   >(null);
   const [onboardingState, setOnboardingState] =
     useState<SellerOnboardingState | null>(null);
+  const [aiBalance, setAiBalance] = useState<number | null>(null);
 
   useEffect(() => {
     async function load() {
@@ -80,6 +82,11 @@ export default function SellerDashboardHomePage() {
         }
 
         setSellerProducts(productsRes);
+
+        apiFetch("/api/seller/ai-credits/balance")
+          .then((r) => r.json())
+          .then((d) => setAiBalance(d.balance ?? null))
+          .catch(() => {});
       } finally {
         setLoading(false);
       }
@@ -136,11 +143,23 @@ export default function SellerDashboardHomePage() {
         cta: "Ver metricas",
         icon: BarChart3,
       },
+      {
+        title: "Créditos IA",
+        value: aiBalance !== null ? `${aiBalance} cr` : "—",
+        description:
+          aiBalance !== null && aiBalance < 10
+            ? "Saldo bajo. Recarga créditos para usar generación de canvas, captions y más funciones IA."
+            : "Usa créditos para generar canvas, captions de producto y otras funciones de IA.",
+        href: "/seller/ai-credits",
+        cta: aiBalance !== null && aiBalance < 10 ? "Recargar" : "Ver créditos",
+        icon: Sparkles,
+      },
     ],
     [
       onboardingIncomplete,
       sellerProducts.length,
       sellerProfile?.nombre_comercio,
+      aiBalance,
     ],
   );
 
@@ -243,7 +262,7 @@ export default function SellerDashboardHomePage() {
               title="Cada experiencia en su propia ruta"
               description="Onboarding, metricas y operacion diaria conviven sin secuestrarse entre si."
             />
-            <div className="grid grid-cols-1 gap-4 md:grid-cols-2 xl:grid-cols-4">
+            <div className="grid grid-cols-1 gap-4 md:grid-cols-2 xl:grid-cols-3 2xl:grid-cols-5">
               {summaryCards.map((card) => {
                 const Icon = card.icon;
                 return (
