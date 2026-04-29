@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState, useCallback } from "react";
+import { useEffect, useRef, useState, useCallback } from "react";
 import { useRouter } from "next/navigation";
 import {
   Sparkles,
@@ -64,7 +64,13 @@ type Tab = "history" | "requests";
  * Hero de saldo — el número como activo financiero.
  * Verde profundo + tipografía display + microtextura de luz.
  */
-function BalanceHero({ balance, loading }: { balance: number; loading: boolean }) {
+function BalanceHero({
+  balance,
+  loading,
+}: {
+  balance: number;
+  loading: boolean;
+}) {
   return (
     <div className="relative overflow-hidden rounded-3xl bg-[#0f3d3a] px-6 pt-7 pb-6 text-white shadow-[0_24px_60px_-30px_rgba(15,61,58,0.55)]">
       {/* Glow / luz superior */}
@@ -111,7 +117,13 @@ function BalanceHero({ balance, loading }: { balance: number; loading: boolean }
 /**
  * Tabla de costos colapsable — referencia rápida sin saturar.
  */
-function CostTable({ open, setOpen }: { open: boolean; setOpen: (v: boolean) => void }) {
+function CostTable({
+  open,
+  setOpen,
+}: {
+  open: boolean;
+  setOpen: (v: boolean) => void;
+}) {
   return (
     <div className="rounded-2xl border border-[var(--seller-line)] bg-white/70 backdrop-blur">
       <button
@@ -134,14 +146,19 @@ function CostTable({ open, setOpen }: { open: boolean; setOpen: (v: boolean) => 
       {open && (
         <div className="border-t border-[var(--seller-line)] px-4 pt-3 pb-4">
           <div className="space-y-2.5">
-            {Object.entries(AI_CREDIT_COSTS).map(([key, { label, credits }]) => (
-              <div key={key} className="flex items-center justify-between text-sm">
-                <span className="text-[var(--seller-muted)]">{label}</span>
-                <span className="rounded-md bg-[color:color-mix(in_srgb,var(--seller-accent)_8%,white)] px-2 py-0.5 text-xs font-semibold text-[var(--seller-accent)] tabular-nums">
-                  {credits} cr.
-                </span>
-              </div>
-            ))}
+            {Object.entries(AI_CREDIT_COSTS).map(
+              ([key, { label, credits }]) => (
+                <div
+                  key={key}
+                  className="flex items-center justify-between text-sm"
+                >
+                  <span className="text-[var(--seller-muted)]">{label}</span>
+                  <span className="rounded-md bg-[color:color-mix(in_srgb,var(--seller-accent)_8%,white)] px-2 py-0.5 text-xs font-semibold text-[var(--seller-accent)] tabular-nums">
+                    {credits} cr.
+                  </span>
+                </div>
+              ),
+            )}
           </div>
         </div>
       )}
@@ -214,7 +231,9 @@ function PackageCard({
         <span className="text-4xl leading-none font-bold tracking-tight text-[var(--seller-ink)] tabular-nums">
           {pkg.credits.toLocaleString()}
         </span>
-        <span className="text-sm font-medium text-[var(--seller-muted)]">cr.</span>
+        <span className="text-sm font-medium text-[var(--seller-muted)]">
+          cr.
+        </span>
       </div>
 
       {/* Divisor sutil */}
@@ -251,9 +270,11 @@ function PurchaseForm({
   providers: AiCreditPaymentProvider[];
 }) {
   const [selectedId, setSelectedId] = useState<number | null>(null);
-  const [selectedProvider, setSelectedProvider] = useState<AiCreditPaymentProviderId | null>(null);
+  const [selectedProvider, setSelectedProvider] =
+    useState<AiCreditPaymentProviderId | null>(null);
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const paymentPanelRef = useRef<HTMLDivElement | null>(null);
 
   const selected = packages.find((p) => p.id === selectedId) ?? null;
   const availableProviders = providers.filter((p) => p.available);
@@ -262,6 +283,16 @@ function PurchaseForm({
     availableProviders.find((p) => p.preferred)?.id ??
     availableProviders[0]?.id ??
     null;
+
+  function handlePackageSelect(packageId: number) {
+    setSelectedId(packageId);
+    window.setTimeout(() => {
+      paymentPanelRef.current?.scrollIntoView({
+        behavior: "smooth",
+        block: "center",
+      });
+    }, 80);
+  }
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
@@ -293,7 +324,7 @@ function PurchaseForm({
               key={pkg.id}
               pkg={pkg}
               selected={selectedId === pkg.id}
-              onSelect={() => setSelectedId(pkg.id)}
+              onSelect={() => handlePackageSelect(pkg.id)}
               badge={badge?.label}
               highlight={badge?.highlight}
             />
@@ -303,7 +334,10 @@ function PurchaseForm({
 
       {/* Panel inferior — método de pago + CTA, aparece al seleccionar */}
       {selected && (
-        <div className="space-y-4 rounded-3xl border border-[var(--seller-line)] bg-white p-5 shadow-[0_10px_30px_-22px_rgba(15,61,58,0.3)]">
+        <div
+          ref={paymentPanelRef}
+          className="scroll-mt-24 space-y-4 rounded-3xl border border-[var(--seller-line)] bg-white p-5 shadow-[0_10px_30px_-22px_rgba(15,61,58,0.3)]"
+        >
           {/* Resumen */}
           <div className="flex items-center justify-between border-b border-dashed border-[var(--seller-line)] pb-4">
             <div>
@@ -311,7 +345,10 @@ function PurchaseForm({
                 Resumen de compra
               </p>
               <p className="mt-1 text-sm font-medium text-[var(--seller-ink)]">
-                <span className="tabular-nums">{selected.credits.toLocaleString()}</span> créditos · {selected.name}
+                <span className="tabular-nums">
+                  {selected.credits.toLocaleString()}
+                </span>{" "}
+                créditos · {selected.name}
               </p>
             </div>
             <p className="text-xl font-bold text-[var(--seller-accent)] tabular-nums">
@@ -392,7 +429,8 @@ function PurchaseForm({
               <>
                 <Wand2 className="h-5 w-5" />
                 <span>
-                  Activar {selected.credits.toLocaleString()} créditos · {fmtGtq(selected.price_gtq)}
+                  Activar {selected.credits.toLocaleString()} créditos ·{" "}
+                  {fmtGtq(selected.price_gtq)}
                 </span>
               </>
             )}
@@ -427,21 +465,44 @@ function PurchaseForm({
 
 function TxIcon({ type }: { type: AiCreditTransaction["type"] }) {
   const map: Record<string, { icon: React.ReactNode; bg: string }> = {
-    purchase: { icon: <ArrowDownLeft className="h-4 w-4" />, bg: "bg-emerald-50 text-emerald-700 ring-1 ring-emerald-100" },
-    debit: { icon: <ArrowUpRight className="h-4 w-4" />, bg: "bg-red-50 text-red-600 ring-1 ring-red-100" },
-    refund: { icon: <RotateCcw className="h-4 w-4" />, bg: "bg-blue-50 text-blue-600 ring-1 ring-blue-100" },
-    manual_grant: { icon: <Gift className="h-4 w-4" />, bg: "bg-amber-50 text-amber-700 ring-1 ring-amber-100" },
-    plan_renewal: { icon: <RefreshCw className="h-4 w-4" />, bg: "bg-violet-50 text-violet-600 ring-1 ring-violet-100" },
+    purchase: {
+      icon: <ArrowDownLeft className="h-4 w-4" />,
+      bg: "bg-emerald-50 text-emerald-700 ring-1 ring-emerald-100",
+    },
+    debit: {
+      icon: <ArrowUpRight className="h-4 w-4" />,
+      bg: "bg-red-50 text-red-600 ring-1 ring-red-100",
+    },
+    refund: {
+      icon: <RotateCcw className="h-4 w-4" />,
+      bg: "bg-blue-50 text-blue-600 ring-1 ring-blue-100",
+    },
+    manual_grant: {
+      icon: <Gift className="h-4 w-4" />,
+      bg: "bg-amber-50 text-amber-700 ring-1 ring-amber-100",
+    },
+    plan_renewal: {
+      icon: <RefreshCw className="h-4 w-4" />,
+      bg: "bg-violet-50 text-violet-600 ring-1 ring-violet-100",
+    },
   };
   const { icon, bg } = map[type] ?? map.debit;
   return (
-    <div className={`flex h-9 w-9 shrink-0 items-center justify-center rounded-xl ${bg}`}>
+    <div
+      className={`flex h-9 w-9 shrink-0 items-center justify-center rounded-xl ${bg}`}
+    >
       {icon}
     </div>
   );
 }
 
-function TransactionList({ transactions, loading }: { transactions: AiCreditTransaction[]; loading: boolean }) {
+function TransactionList({
+  transactions,
+  loading,
+}: {
+  transactions: AiCreditTransaction[];
+  loading: boolean;
+}) {
   if (loading) {
     return (
       <div className="space-y-3">
@@ -464,7 +525,9 @@ function TransactionList({ transactions, loading }: { transactions: AiCreditTran
         <div className="mx-auto mb-3 flex h-12 w-12 items-center justify-center rounded-2xl bg-[color:color-mix(in_srgb,var(--seller-accent)_8%,white)]">
           <Clock className="h-5 w-5 text-[var(--seller-accent)]" />
         </div>
-        <p className="text-sm font-medium text-[var(--seller-ink)]">Sin movimientos aún</p>
+        <p className="text-sm font-medium text-[var(--seller-ink)]">
+          Sin movimientos aún
+        </p>
         <p className="mt-1 text-xs text-[var(--seller-muted)]">
           Tus compras y consumos aparecerán acá.
         </p>
@@ -478,8 +541,12 @@ function TransactionList({ transactions, loading }: { transactions: AiCreditTran
         <div key={tx.id} className="flex items-center gap-3 py-3.5">
           <TxIcon type={tx.type} />
           <div className="min-w-0 flex-1">
-            <p className="truncate text-sm font-medium text-[var(--seller-ink)]">{tx.description}</p>
-            <p className="mt-0.5 text-[11px] text-[var(--seller-muted)]">{fmt(tx.created_at)}</p>
+            <p className="truncate text-sm font-medium text-[var(--seller-ink)]">
+              {tx.description}
+            </p>
+            <p className="mt-0.5 text-[11px] text-[var(--seller-muted)]">
+              {fmt(tx.created_at)}
+            </p>
           </div>
           <div className="text-right">
             <span
@@ -500,8 +567,15 @@ function TransactionList({ transactions, loading }: { transactions: AiCreditTran
   );
 }
 
-function RequestStatusBadge({ status }: { status: AiCreditPurchaseRequest["status"] }) {
-  const map: Record<string, { tone: "success" | "warning" | "danger" | "neutral"; label: string }> = {
+function RequestStatusBadge({
+  status,
+}: {
+  status: AiCreditPurchaseRequest["status"];
+}) {
+  const map: Record<
+    string,
+    { tone: "success" | "warning" | "danger" | "neutral"; label: string }
+  > = {
     pending: { tone: "neutral", label: "Pendiente" },
     under_review: { tone: "warning", label: "En revisión" },
     approved: { tone: "success", label: "Aprobada" },
@@ -511,7 +585,13 @@ function RequestStatusBadge({ status }: { status: AiCreditPurchaseRequest["statu
   return <SellerPill tone={tone}>{label}</SellerPill>;
 }
 
-function RequestList({ requests, loading }: { requests: AiCreditPurchaseRequest[]; loading: boolean }) {
+function RequestList({
+  requests,
+  loading,
+}: {
+  requests: AiCreditPurchaseRequest[];
+  loading: boolean;
+}) {
   if (loading) {
     return (
       <div className="space-y-3">
@@ -528,7 +608,9 @@ function RequestList({ requests, loading }: { requests: AiCreditPurchaseRequest[
         <div className="mx-auto mb-3 flex h-12 w-12 items-center justify-center rounded-2xl bg-[color:color-mix(in_srgb,var(--seller-accent)_8%,white)]">
           <CheckCircle2 className="h-5 w-5 text-[var(--seller-accent)]" />
         </div>
-        <p className="text-sm font-medium text-[var(--seller-ink)]">Sin solicitudes</p>
+        <p className="text-sm font-medium text-[var(--seller-ink)]">
+          Sin solicitudes
+        </p>
         <p className="mt-1 text-xs text-[var(--seller-muted)]">
           Las solicitudes manuales aparecerán acá.
         </p>
@@ -571,7 +653,9 @@ export default function SellerAiCreditsPage() {
   const [packages, setPackages] = useState<AiCreditPackage[]>([]);
   const [txns, setTxns] = useState<AiCreditTransaction[]>([]);
   const [requests, setRequests] = useState<AiCreditPurchaseRequest[]>([]);
-  const [paymentProviders, setPaymentProviders] = useState<AiCreditPaymentProvider[]>([]);
+  const [paymentProviders, setPaymentProviders] = useState<
+    AiCreditPaymentProvider[]
+  >([]);
 
   const [loadingBalance, setLoadingBalance] = useState(true);
   const [loadingPackages, setLoadingPackages] = useState(true);
@@ -581,7 +665,9 @@ export default function SellerAiCreditsPage() {
 
   const [activeTab, setActiveTab] = useState<Tab>("history");
   const [costOpen, setCostOpen] = useState(false);
-  const [checkoutNotice, setCheckoutNotice] = useState<"success" | "cancel" | null>(null);
+  const [checkoutNotice, setCheckoutNotice] = useState<
+    "success" | "cancel" | null
+  >(null);
 
   const loadBalance = useCallback(async () => {
     setLoadingBalance(true);
@@ -646,7 +732,6 @@ export default function SellerAiCreditsPage() {
     <div className="min-h-screen bg-[#f8f5ef]">
       {/* Wrapper editorial — un poco más ancho que el original para respirar */}
       <div className="mx-auto max-w-2xl space-y-5 px-4 py-6 sm:px-6 sm:py-10">
-
         {/* ── 1. Header editorial ──────────────────────────────── */}
         <div className="flex items-start justify-between gap-3">
           <div>
@@ -684,7 +769,9 @@ export default function SellerAiCreditsPage() {
             </span>
             <div>
               <p className="font-semibold">Confirmando pago…</p>
-              <p className="mt-0.5 text-xs text-blue-800/80">Acreditando tus créditos.</p>
+              <p className="mt-0.5 text-xs text-blue-800/80">
+                Acreditando tus créditos.
+              </p>
             </div>
           </div>
         )}
@@ -697,7 +784,8 @@ export default function SellerAiCreditsPage() {
             <div>
               <p className="font-semibold">Pago cancelado</p>
               <p className="mt-0.5 text-xs text-amber-800/80">
-                No se cargaron créditos. Puedes intentarlo de nuevo cuando quieras.
+                No se cargaron créditos. Puedes intentarlo de nuevo cuando
+                quieras.
               </p>
             </div>
           </div>
@@ -731,7 +819,10 @@ export default function SellerAiCreditsPage() {
             {loadingPackages ? (
               <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
                 {[...Array(4)].map((_, i) => (
-                  <div key={i} className="h-44 animate-pulse rounded-3xl bg-gray-100/70" />
+                  <div
+                    key={i}
+                    className="h-44 animate-pulse rounded-3xl bg-gray-100/70"
+                  />
                 ))}
               </div>
             ) : (

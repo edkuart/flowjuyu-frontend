@@ -33,31 +33,36 @@ import { apiGetVendedorPerfil } from "@/services/vendedorPerfil";
 import { fetchAiCreditsBalance } from "@/services/aiCredits";
 
 const navItems = [
-  { label: "Resumen",      icon: LayoutDashboard, href: "/seller/dashboard"    },
-  { label: "Live",         icon: RadioTower,      href: "/seller/live"         },
-  { label: "Mi tienda",    icon: Home,            href: "/seller/my-business"  },
-  { label: "Productos",    icon: Package,         href: "/seller/products"     },
-  { label: "Pedidos",      icon: ShoppingCart,    href: "/seller/orders"       },
-  { label: "Colecciones",  icon: Layers2,         href: "/seller/collections"  },
-  { label: "Video Studio", icon: Clapperboard,    href: "/seller/video-studio" },
-  { label: "IA",           icon: Sparkles,        href: "/seller/ai-credits"   },
-  { label: "Métricas",     icon: BarChart3,       href: "/seller/metrics"      },
-  { label: "Cuenta",       icon: User,            href: "/seller/account"      },
-  { label: "Seguridad",    icon: Shield,          href: "/seller/security"     },
+  { label: "Resumen", icon: LayoutDashboard, href: "/seller/dashboard" },
+  { label: "Live", icon: RadioTower, href: "/seller/live" },
+  { label: "Mi tienda", icon: Home, href: "/seller/my-business" },
+  { label: "Productos", icon: Package, href: "/seller/products" },
+  { label: "Pedidos", icon: ShoppingCart, href: "/seller/orders" },
+  { label: "Colecciones", icon: Layers2, href: "/seller/collections" },
+  { label: "Video Studio", icon: Clapperboard, href: "/seller/video-studio" },
+  { label: "Créditos IA", icon: Sparkles, href: "/seller/ai-credits" },
+  { label: "Métricas", icon: BarChart3, href: "/seller/metrics" },
+  { label: "Cuenta", icon: User, href: "/seller/account" },
+  { label: "Seguridad", icon: Shield, href: "/seller/security" },
 ];
 
 const navDescriptions: Record<string, string> = {
-  "/seller/dashboard":   "Vista general de ventas, actividad y salud del negocio.",
-  "/seller/live":        "Transmisiones, productos activos y ritmo del live.",
-  "/seller/my-business": "Identidad de tienda, presencia publica y optimizacion.",
-  "/seller/products":    "Catalogo, altas, edicion y control de tus piezas.",
-  "/seller/orders":      "Seguimiento operativo de pedidos y conversaciones de venta.",
+  "/seller/dashboard":
+    "Vista general de ventas, actividad y salud del negocio.",
+  "/seller/live": "Transmisiones, productos activos y ritmo del live.",
+  "/seller/my-business":
+    "Identidad de tienda, presencia publica y optimizacion.",
+  "/seller/products": "Catalogo, altas, edicion y control de tus piezas.",
+  "/seller/orders":
+    "Seguimiento operativo de pedidos y conversaciones de venta.",
   "/seller/collections": "Conjuntos visuales, stories y experiencias curadas.",
-  "/seller/video-studio":"Genera videos promocionales para productos, lives y colecciones.",
-  "/seller/ai-credits":  "Compra y administra tus creditos para funciones de inteligencia artificial.",
-  "/seller/metrics":     "Lecturas de trafico, reputacion y conversion.",
-  "/seller/account":     "Configuracion principal, perfil y datos de cuenta.",
-  "/seller/security":    "Accesos, proteccion y confianza de la cuenta.",
+  "/seller/video-studio":
+    "Genera videos promocionales para productos, lives y colecciones.",
+  "/seller/ai-credits":
+    "Compra y administra tus creditos para funciones de inteligencia artificial.",
+  "/seller/metrics": "Lecturas de trafico, reputacion y conversion.",
+  "/seller/account": "Configuracion principal, perfil y datos de cuenta.",
+  "/seller/security": "Accesos, proteccion y confianza de la cuenta.",
 };
 
 export default function SellerLayout({ children }: { children: ReactNode }) {
@@ -66,12 +71,16 @@ export default function SellerLayout({ children }: { children: ReactNode }) {
   const [isLive, setIsLive] = useState(false);
   const [businessName, setBusinessName] = useState("Mi negocio");
   const [storeHref, setStoreHref] = useState("/");
-  const [sellerStatus, setSellerStatus] = useState<"activo" | "revision" | "inactivo" | "suspendido">("activo");
+  const [sellerStatus, setSellerStatus] = useState<
+    "activo" | "revision" | "inactivo" | "suspendido"
+  >("activo");
   const [aiBalance, setAiBalance] = useState<number | null>(null);
   const { logout } = useAuth();
 
   useEffect(() => {
-    fetchAiCreditsBalance().then(setAiBalance).catch(() => {});
+    fetchAiCreditsBalance()
+      .then(setAiBalance)
+      .catch(() => {});
   }, []);
 
   // Cierra automáticamente el menú móvil cuando cambia la ruta
@@ -105,26 +114,37 @@ export default function SellerLayout({ children }: { children: ReactNode }) {
   }, []);
 
   const currentNavItem =
-    [...navItems].sort((a, b) => b.href.length - a.href.length).find((item) =>
-      pathname.startsWith(item.href),
-    ) ?? navItems[0];
+    [...navItems]
+      .sort((a, b) => b.href.length - a.href.length)
+      .find((item) => pathname.startsWith(item.href)) ?? navItems[0];
 
   const currentSectionDescription =
-    navDescriptions[currentNavItem.href] ?? "Gestion centralizada del espacio seller.";
+    navDescriptions[currentNavItem.href] ??
+    "Gestion centralizada del espacio seller.";
 
   const renderSidebarNavigation = () => (
     <>
       <div className="border-b border-[var(--seller-line)] px-5 py-5">
         <div className="rounded-[26px] border border-[var(--seller-line-strong)] bg-[linear-gradient(135deg,#0f3d3a_0%,#14544f_52%,#1f6a61_100%)] p-4 text-white shadow-[0_22px_45px_-28px_rgba(15,61,58,0.45)]">
-          <p className="text-[10px] font-semibold uppercase tracking-[0.18em] text-white/70">
+          <p className="text-[10px] font-semibold tracking-[0.18em] text-white/70 uppercase">
             Flowjuyu Seller
           </p>
-          <p className="mt-2 text-lg font-semibold tracking-tight">{businessName}</p>
+          <p className="mt-2 text-lg font-semibold tracking-tight">
+            {businessName}
+          </p>
           <div className="mt-4 flex items-center justify-between">
             <span className="rounded-full border border-white/15 bg-white/10 px-2.5 py-1 text-[11px] font-semibold text-white/85">
-              {sellerStatus === "activo" ? "Operando" : sellerStatus === "revision" ? "En revisión" : "Ajustes pendientes"}
+              {sellerStatus === "activo"
+                ? "Operando"
+                : sellerStatus === "revision"
+                  ? "En revisión"
+                  : "Ajustes pendientes"}
             </span>
-            <Link href={storeHref} onClick={() => setOpen(false)} className="inline-flex items-center gap-1 text-[11px] font-semibold text-white/80 transition hover:text-white">
+            <Link
+              href={storeHref}
+              onClick={() => setOpen(false)}
+              className="inline-flex items-center gap-1 text-[11px] font-semibold text-white/80 transition hover:text-white"
+            >
               Ver tienda
               <ChevronRight className="h-3.5 w-3.5" />
             </Link>
@@ -132,16 +152,22 @@ export default function SellerLayout({ children }: { children: ReactNode }) {
         </div>
       </div>
 
-      <nav className="flex-1 overflow-y-auto space-y-5 px-4 py-5">
+      <nav className="flex-1 space-y-5 overflow-y-auto px-4 py-5">
         <div className="space-y-1">
-          <p className="px-3 text-[10px] font-semibold uppercase tracking-[0.18em] text-[var(--seller-faint-text)]">
+          <p className="px-3 text-[10px] font-semibold tracking-[0.18em] text-[var(--seller-faint-text)] uppercase">
             Operación
           </p>
           {navItems.slice(0, 9).map(({ label, icon, href }) => (
             <SidebarNavItem
               key={href}
               href={href}
-              label={href === "/seller/live" ? (isLive ? "En vivo ahora" : "En vivo") : label}
+              label={
+                href === "/seller/live"
+                  ? isLive
+                    ? "En vivo ahora"
+                    : "En vivo"
+                  : label
+              }
               icon={icon}
               isActive={pathname.startsWith(href)}
               onClick={() => setOpen(false)}
@@ -150,14 +176,24 @@ export default function SellerLayout({ children }: { children: ReactNode }) {
                   ? "!border-[var(--seller-accent)] !bg-[color:color-mix(in_srgb,var(--seller-accent)_9%,white)] !text-[var(--seller-accent)] shadow-[0_10px_24px_-20px_rgba(15,61,58,0.45)]"
                   : "!border-transparent !text-[var(--seller-text)] hover:!bg-[var(--seller-panel)] hover:!text-[var(--seller-ink)]"
               }
-              labelClassName={href === "/seller/live" && isLive ? "font-semibold text-red-600" : undefined}
-              iconClassName={href === "/seller/live" && isLive ? "text-red-600" : undefined}
-              badge={href === "/seller/live" && isLive ? <span className="flex h-2.5 w-2.5 shrink-0 rounded-full bg-red-500" /> : undefined}
+              labelClassName={
+                href === "/seller/live" && isLive
+                  ? "font-semibold text-red-600"
+                  : undefined
+              }
+              iconClassName={
+                href === "/seller/live" && isLive ? "text-red-600" : undefined
+              }
+              badge={
+                href === "/seller/live" && isLive ? (
+                  <span className="flex h-2.5 w-2.5 shrink-0 rounded-full bg-red-500" />
+                ) : undefined
+              }
             />
           ))}
         </div>
         <div className="space-y-1">
-          <p className="px-3 text-[10px] font-semibold uppercase tracking-[0.18em] text-[var(--seller-faint-text)]">
+          <p className="px-3 text-[10px] font-semibold tracking-[0.18em] text-[var(--seller-faint-text)] uppercase">
             Cuenta
           </p>
           {navItems.slice(9).map(({ label, icon, href }) => (
@@ -182,7 +218,9 @@ export default function SellerLayout({ children }: { children: ReactNode }) {
               <Sparkles className="h-4 w-4" />
             </div>
             <div className="space-y-1">
-              <p className="text-sm font-semibold text-[var(--seller-ink)]">Ahora en {currentNavItem.label}</p>
+              <p className="text-sm font-semibold text-[var(--seller-ink)]">
+                Ahora en {currentNavItem.label}
+              </p>
               <p className="text-xs leading-relaxed text-[var(--seller-muted)]">
                 {currentSectionDescription}
               </p>
@@ -193,7 +231,7 @@ export default function SellerLayout({ children }: { children: ReactNode }) {
 
       <div className="space-y-2 border-t border-[var(--seller-line)] p-3">
         <div className="rounded-2xl border border-[var(--seller-line-strong)] bg-[var(--seller-panel)] px-3 py-2.5 shadow-[var(--seller-shadow-panel)]">
-          <p className="text-[9px] font-semibold uppercase tracking-[0.16em] text-[var(--seller-faint-text)]">
+          <p className="text-[9px] font-semibold tracking-[0.16em] text-[var(--seller-faint-text)] uppercase">
             Accesos utiles
           </p>
           <div className="mt-1.5 space-y-1">
@@ -208,7 +246,7 @@ export default function SellerLayout({ children }: { children: ReactNode }) {
               </span>
               <ChevronRight className="h-3.5 w-3.5 text-[var(--seller-soft-text)]" />
             </Link>
-<Link
+            <Link
               href="/seller/tickets"
               onClick={() => setOpen(false)}
               className="flex items-center justify-between rounded-lg border border-[var(--seller-line)] bg-white px-2.5 py-1.5 text-xs font-medium text-[var(--seller-ink)] transition hover:border-[var(--seller-line-strong)] hover:bg-[var(--seller-panel)]"
@@ -245,7 +283,10 @@ export default function SellerLayout({ children }: { children: ReactNode }) {
     <AuthGuard allowedRoles={["seller", "admin"]}>
       <Sheet open={open} onOpenChange={setOpen}>
         <div className="bg-background flex min-h-screen">
-          <SheetContent side="left" className="w-80 border-r-0 bg-[linear-gradient(180deg,#f8f5ef_0%,#ffffff_30%,#fbfaf7_100%)] p-0">
+          <SheetContent
+            side="left"
+            className="w-80 border-r-0 bg-[linear-gradient(180deg,#f8f5ef_0%,#ffffff_30%,#fbfaf7_100%)] p-0"
+          >
             <div className="flex h-full flex-col">
               {renderSidebarNavigation()}
             </div>
@@ -255,7 +296,7 @@ export default function SellerLayout({ children }: { children: ReactNode }) {
             {/* ================= MOBILE HEADER ================= */}
             <div className="fixed inset-x-0 top-0 z-30 flex items-center justify-between border-b border-[var(--seller-line)] bg-[linear-gradient(180deg,rgba(255,255,255,0.96),rgba(252,251,248,0.92))] px-4 py-4 md:hidden">
               <div>
-                <p className="text-[10px] font-semibold uppercase tracking-[0.16em] text-[var(--seller-faint-text)]">
+                <p className="text-[10px] font-semibold tracking-[0.16em] text-[var(--seller-faint-text)] uppercase">
                   Flowjuyu Seller
                 </p>
                 <h2 className="text-base font-semibold text-[var(--seller-ink)]">
