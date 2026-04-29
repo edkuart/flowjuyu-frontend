@@ -2,13 +2,21 @@
 
 import { useEffect, useState } from "react"
 import Link from "next/link"
-import { Button } from "@/components/ui/button"
-import { Badge } from "@/components/ui/badge"
+import {
+  Ticket,
+  AlertTriangle,
+  BadgeCheck,
+  Clock,
+  Plus,
+  ChevronRight,
+  MessageSquare,
+} from "lucide-react"
+import { SellerPill } from "@/components/seller/ui/SellerPrimitives"
 import { authFetch } from "@/lib/authFetch"
 
 const API = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8800"
 
-interface Ticket {
+interface SupportTicket {
   id: number
   asunto: string
   estado: string
@@ -26,11 +34,11 @@ const STATUS_LABEL: Record<string, string> = {
   cerrado:           "Cerrado",
 }
 
-const STATUS_BADGE: Record<string, string> = {
-  abierto:           "bg-green-100 text-green-700 border-0",
-  en_proceso:        "bg-blue-100 text-blue-700 border-0",
-  esperando_usuario: "bg-yellow-100 text-yellow-800 border-0",
-  cerrado:           "bg-gray-100 text-gray-500 border-0",
+const STATUS_TONE: Record<string, "success" | "warning" | "danger" | "neutral"> = {
+  abierto:           "success",
+  en_proceso:        "neutral",
+  esperando_usuario: "warning",
+  cerrado:           "neutral",
 }
 
 const TIPO_LABEL: Record<string, string> = {
@@ -40,11 +48,11 @@ const TIPO_LABEL: Record<string, string> = {
   otro:         "Otro",
 }
 
-const TIPO_BADGE: Record<string, string> = {
-  verificacion: "bg-purple-100 text-purple-700 border-0",
-  incidencia:   "bg-red-100 text-red-700 border-0",
-  soporte:      "bg-gray-100 text-gray-600 border-0",
-  otro:         "bg-gray-100 text-gray-600 border-0",
+const TIPO_STYLE: Record<string, string> = {
+  verificacion: "bg-purple-50 text-purple-700 ring-1 ring-purple-100",
+  incidencia:   "bg-red-50 text-red-600 ring-1 ring-red-100",
+  soporte:      "bg-[color:color-mix(in_srgb,var(--seller-accent)_8%,white)] text-[var(--seller-accent)] ring-1 ring-[color:color-mix(in_srgb,var(--seller-accent)_15%,white)]",
+  otro:         "bg-gray-50 text-gray-500 ring-1 ring-gray-100",
 }
 
 function timeAgo(date: string): string {
@@ -61,7 +69,7 @@ function timeAgo(date: string): string {
 // ── Page ───────────────────────────────────────────────────────────────────────
 
 export default function SellerTicketsPage() {
-  const [tickets, setTickets] = useState<Ticket[]>([])
+  const [tickets, setTickets] = useState<SupportTicket[]>([])
   const [loading, setLoading] = useState(true)
 
   useEffect(() => {
@@ -72,119 +80,158 @@ export default function SellerTicketsPage() {
       .finally(() => setLoading(false))
   }, [])
 
-  const openKycTicket  = tickets.find(
+  const openKycTicket = tickets.find(
     (t) => t.tipo === "verificacion" && ["abierto", "esperando_usuario"].includes(t.estado)
   )
-  const actionRequired = tickets.filter((t) => t.estado === "esperando_usuario" && t.tipo !== "verificacion")
+  const actionRequired = tickets.filter(
+    (t) => t.estado === "esperando_usuario" && t.tipo !== "verificacion"
+  )
 
   return (
-    <div className="min-h-screen bg-[#f8f5ef] px-4 py-8">
-      <div className="max-w-3xl mx-auto space-y-6">
+    <div className="min-h-screen bg-[#f8f5ef]">
+      <div className="mx-auto max-w-2xl space-y-5 px-4 py-6 sm:px-6 sm:py-10">
 
-        {/* ── Header ──────────────────────────────────────────────────────────── */}
-        <div className="flex items-center justify-between">
+        {/* ── Header editorial ──────────────────────────────────────── */}
+        <div className="flex items-start justify-between gap-3">
           <div>
-            <h1 className="text-2xl font-bold">Mis tickets</h1>
-            <p className="text-sm text-muted-foreground mt-0.5">
-              Seguimiento de tus solicitudes de soporte
+            <p className="text-[10px] font-bold tracking-[0.22em] text-[var(--seller-accent)] uppercase">
+              Soporte · Flowjuyu Seller
+            </p>
+            <h1 className="mt-1.5 text-[28px] leading-[1.05] font-bold tracking-tight text-[var(--seller-ink)]">
+              Mis tickets
+            </h1>
+            <p className="mt-1.5 max-w-[42ch] text-sm leading-relaxed text-[var(--seller-muted)]">
+              Seguimiento de tus solicitudes con el equipo de Flowjuyu.
             </p>
           </div>
-          <Link href="/seller/tickets/new">
-            <Button className="bg-amber-500 hover:bg-amber-600 text-white rounded-xl">
-              + Nuevo ticket
-            </Button>
+          <Link
+            href="/seller/tickets/new"
+            className="inline-flex shrink-0 items-center gap-2 rounded-2xl bg-[var(--seller-accent)] px-4 py-2.5 text-sm font-semibold text-white shadow-[0_10px_24px_-14px_rgba(15,61,58,0.5)] transition hover:shadow-[0_14px_28px_-12px_rgba(15,61,58,0.6)] active:scale-[0.99]"
+          >
+            <Plus className="h-4 w-4" />
+            Nuevo ticket
           </Link>
         </div>
 
-        {/* ── KYC alert ───────────────────────────────────────────────────────── */}
+        {/* ── KYC alert ─────────────────────────────────────────────── */}
         {openKycTicket && (
           <Link href={`/seller/tickets/${openKycTicket.id}`}>
-            <div className="bg-purple-50 border border-purple-200 rounded-2xl p-4 flex items-center gap-3 cursor-pointer hover:bg-purple-100 transition">
-              <span className="text-xl shrink-0">🪪</span>
-              <div className="flex-1">
-                <p className="font-semibold text-purple-900 text-sm">Verificación pendiente</p>
-                <p className="text-xs text-purple-700 mt-0.5">
+            <div className="flex items-center gap-3 rounded-2xl border border-purple-200 bg-purple-50 px-4 py-3.5 transition hover:bg-purple-100">
+              <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-purple-100 text-purple-700">
+                <BadgeCheck className="h-4 w-4" />
+              </span>
+              <div className="min-w-0 flex-1">
+                <p className="text-sm font-semibold text-purple-900">Verificación pendiente</p>
+                <p className="mt-0.5 text-xs text-purple-700">
                   El equipo de Flowjuyu requiere documentos para completar tu verificación.
                 </p>
               </div>
-              <span className="text-purple-500 text-sm shrink-0">→</span>
+              <ChevronRight className="h-4 w-4 shrink-0 text-purple-400" />
             </div>
           </Link>
         )}
 
-        {/* ── Action required (non-KYC) ───────────────────────────────────────── */}
+        {/* ── Acción requerida (non-KYC) ────────────────────────────── */}
         {actionRequired.length > 0 && (
-          <div className="bg-yellow-50 border border-yellow-200 rounded-2xl p-4 flex items-start gap-3">
-            <span className="text-xl shrink-0 mt-0.5">⚠️</span>
+          <div className="flex items-start gap-3 rounded-2xl border border-amber-200 bg-amber-50 px-4 py-3.5">
+            <span className="mt-0.5 flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-amber-100 text-amber-700">
+              <AlertTriangle className="h-4 w-4" />
+            </span>
             <div>
-              <p className="font-semibold text-yellow-800 text-sm">
+              <p className="text-sm font-semibold text-amber-800">
                 {actionRequired.length === 1
                   ? "Tienes 1 ticket que requiere tu respuesta"
                   : `Tienes ${actionRequired.length} tickets que requieren tu respuesta`}
               </p>
-              <p className="text-xs text-yellow-700 mt-0.5">
+              <p className="mt-0.5 text-xs text-amber-700">
                 Responde para continuar con la atención de tu caso.
               </p>
             </div>
           </div>
         )}
 
-        {/* ── Ticket list ─────────────────────────────────────────────────────── */}
-        <div className="space-y-3">
+        {/* ── Lista de tickets ──────────────────────────────────────── */}
+        <section className="overflow-hidden rounded-3xl border border-[var(--seller-line)] bg-white">
           {loading ? (
-            Array.from({ length: 3 }).map((_, i) => (
-              <div key={i} className="bg-white rounded-2xl h-20 animate-pulse" />
-            ))
+            <div className="divide-y divide-[var(--seller-line)]">
+              {[...Array(3)].map((_, i) => (
+                <div key={i} className="flex items-center gap-4 px-5 py-4">
+                  <div className="h-9 w-9 animate-pulse rounded-xl bg-gray-100" />
+                  <div className="flex-1 space-y-2">
+                    <div className="h-3.5 w-3/4 animate-pulse rounded-lg bg-gray-100" />
+                    <div className="h-3 w-1/3 animate-pulse rounded-lg bg-gray-100" />
+                  </div>
+                </div>
+              ))}
+            </div>
           ) : tickets.length === 0 ? (
-            <div className="bg-white rounded-3xl shadow-sm p-12 text-center space-y-3">
-              <p className="text-4xl">🎫</p>
-              <p className="font-semibold">No tienes tickets aún</p>
-              <p className="text-sm text-muted-foreground">
+            <div className="px-6 py-14 text-center">
+              <div className="mx-auto mb-3 flex h-14 w-14 items-center justify-center rounded-2xl bg-[color:color-mix(in_srgb,var(--seller-accent)_8%,white)]">
+                <Ticket className="h-6 w-6 text-[var(--seller-accent)]" />
+              </div>
+              <p className="text-sm font-semibold text-[var(--seller-ink)]">No tienes tickets aún</p>
+              <p className="mt-1 text-xs text-[var(--seller-muted)]">
                 Crea un ticket si necesitas ayuda del equipo de Flowjuyu.
               </p>
-              <Link href="/seller/tickets/new">
-                <Button variant="outline" className="mt-2 rounded-xl">
-                  Crear primer ticket
-                </Button>
+              <Link
+                href="/seller/tickets/new"
+                className="mt-4 inline-flex items-center gap-2 rounded-xl border border-[var(--seller-line-strong)] px-4 py-2 text-sm font-medium text-[var(--seller-ink)] transition hover:bg-[var(--seller-panel)]"
+              >
+                Crear primer ticket
               </Link>
             </div>
           ) : (
-            tickets.map((ticket) => {
-              const needsAction = ticket.estado === "esperando_usuario"
-              return (
-                <Link href={`/seller/tickets/${ticket.id}`} key={ticket.id}>
-                  <div className={`bg-white rounded-2xl shadow-sm p-5 hover:shadow-md transition flex items-center gap-4 cursor-pointer ${
-                    needsAction ? "border border-yellow-200" : "border border-transparent"
-                  }`}>
-                    <div className="flex-1 min-w-0">
-                      <div className="flex items-center gap-2 flex-wrap">
-                        <span className="text-xs text-muted-foreground font-mono">#{ticket.id}</span>
-                        {needsAction && (
-                          <span className="w-2 h-2 rounded-full bg-yellow-500 shrink-0" />
-                        )}
-                        <Badge className={`text-[10px] ${TIPO_BADGE[ticket.tipo] ?? "bg-gray-100 text-gray-600 border-0"}`}>
-                          {TIPO_LABEL[ticket.tipo] ?? ticket.tipo}
-                        </Badge>
+            <div className="divide-y divide-[var(--seller-line)]">
+              {tickets.map((ticket) => {
+                const needsAction = ticket.estado === "esperando_usuario"
+                return (
+                  <Link href={`/seller/tickets/${ticket.id}`} key={ticket.id}>
+                    <div className={`flex items-center gap-4 px-5 py-4 transition hover:bg-[var(--seller-panel)] ${
+                      needsAction ? "bg-amber-50/40" : ""
+                    }`}>
+                      <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-[color:color-mix(in_srgb,var(--seller-accent)_8%,white)]">
+                        <MessageSquare className="h-4 w-4 text-[var(--seller-accent)]" />
                       </div>
-                      <p className="font-medium text-sm mt-1 truncate">{ticket.asunto}</p>
-                      <p className="text-xs text-muted-foreground mt-0.5">{timeAgo(ticket.createdAt)}</p>
+                      <div className="min-w-0 flex-1">
+                        <div className="flex flex-wrap items-center gap-2">
+                          <span className="font-mono text-[10px] text-[var(--seller-faint-text)]">
+                            #{ticket.id}
+                          </span>
+                          {needsAction && (
+                            <span className="h-1.5 w-1.5 shrink-0 rounded-full bg-amber-500" />
+                          )}
+                          <span className={`rounded-md px-1.5 py-0.5 text-[10px] font-semibold ${
+                            TIPO_STYLE[ticket.tipo] ?? TIPO_STYLE.otro
+                          }`}>
+                            {TIPO_LABEL[ticket.tipo] ?? ticket.tipo}
+                          </span>
+                        </div>
+                        <p className="mt-1 truncate text-sm font-medium text-[var(--seller-ink)]">
+                          {ticket.asunto}
+                        </p>
+                        <p className="mt-0.5 text-[11px] text-[var(--seller-muted)]">
+                          {timeAgo(ticket.createdAt)}
+                        </p>
+                      </div>
+                      <div className="flex shrink-0 flex-col items-end gap-1.5">
+                        <SellerPill tone={STATUS_TONE[ticket.estado] ?? "neutral"}>
+                          {STATUS_LABEL[ticket.estado] ?? ticket.estado}
+                        </SellerPill>
+                        <ChevronRight className="h-4 w-4 text-[var(--seller-soft-text)]" />
+                      </div>
                     </div>
-                    <div className="flex flex-col items-end gap-1.5 shrink-0">
-                      <Badge className={`text-xs ${STATUS_BADGE[ticket.estado] ?? "border-0"}`}>
-                        {STATUS_LABEL[ticket.estado] ?? ticket.estado}
-                      </Badge>
-                    </div>
-                  </div>
-                </Link>
-              )
-            })
+                  </Link>
+                )
+              })}
+            </div>
           )}
-        </div>
+        </section>
 
-        {/* ── Trust footer ──────────────────────────────────────────────────────── */}
+        {/* ── Footer de confianza ───────────────────────────────────── */}
         {!loading && tickets.length > 0 && (
-          <p className="text-center text-xs text-muted-foreground pb-2">
-            Nuestro equipo responderá en menos de 24 horas
+          <p className="px-2 pb-4 text-center text-[11px] leading-relaxed text-[var(--seller-muted)]">
+            Nuestro equipo responderá en menos de{" "}
+            <span className="font-medium text-[var(--seller-ink)]">24 horas</span>
           </p>
         )}
 

@@ -4,9 +4,18 @@ import { useEffect, useState, useCallback } from "react";
 import { useParams, useRouter } from "next/navigation";
 import Link from "next/link";
 import {
-  ArrowLeft, Loader2, Play, Save, Trash2, Film, Package, FileText,
+  ArrowLeft,
+  Loader2,
+  Play,
+  Save,
+  Trash2,
+  Film,
+  Package,
+  FileText,
   LayoutTemplate,
-  AlertCircle, X, Zap,
+  AlertCircle,
+  X,
+  Zap,
 } from "lucide-react";
 import {
   fetchVideoProject,
@@ -16,15 +25,17 @@ import {
   upsertVideoAssets,
   uploadVideoAssetImages,
   startVideoGeneration,
-  createCreditCheckout,
-  captureCreditPayment,
 } from "@/services/sellerVideoStudio";
+import AiCreditTopUpModal from "@/components/seller/ai/AiCreditTopUpModal";
 import GenerationStatusCard from "@/components/seller/video-studio/GenerationStatusCard";
 import ProductAssetPicker from "@/components/seller/video-studio/ProductAssetPicker";
 import PromptAssistantPanel from "@/components/seller/video-studio/PromptAssistantPanel";
 import ProviderPicker from "@/components/seller/video-studio/ProviderPicker";
 import VideoTemplatePicker from "@/components/seller/video-studio/VideoTemplatePicker";
-import { StudioBadge, StudioSection } from "@/components/seller/video-studio/StudioPrimitives";
+import {
+  StudioBadge,
+  StudioSection,
+} from "@/components/seller/video-studio/StudioPrimitives";
 import { compressImages } from "@/lib/imageCompression";
 import {
   DEFAULT_VIDEO_BRIEF,
@@ -40,6 +51,14 @@ import type {
   VideoTemplate,
   SupportedProvider,
 } from "@/types/video-studio";
+
+function videoAiCreditCost(provider: SupportedProvider, model: string): number {
+  if (provider === "mock") return 0;
+  if (provider === "runway" || model.toLowerCase().includes("runway"))
+    return 31;
+  if (model.toLowerCase().includes("kling")) return 7;
+  return 14;
+}
 
 export default function VideoProjectPage() {
   const { id } = useParams<{ id: string }>();
@@ -58,14 +77,21 @@ export default function VideoProjectPage() {
   const [title, setTitle] = useState("");
   const [prompt, setPrompt] = useState("");
   const [stylePreset, setStylePreset] = useState("editorial");
-  const [selectedTemplate, setSelectedTemplate] = useState<VideoTemplate | null>(null);
-  const [selectedAssets, setSelectedAssets] = useState<SelectedVideoAsset[]>([]);
+  const [selectedTemplate, setSelectedTemplate] =
+    useState<VideoTemplate | null>(null);
+  const [selectedAssets, setSelectedAssets] = useState<SelectedVideoAsset[]>(
+    [],
+  );
   const [brief, setBrief] = useState<VideoCreativeBrief>(DEFAULT_VIDEO_BRIEF);
   const [manualPrompt, setManualPrompt] = useState(false);
-  const [sellerProfile, setSellerProfile] = useState<Partial<VendedorPerfil> | null>(null);
+  const [sellerProfile, setSellerProfile] =
+    useState<Partial<VendedorPerfil> | null>(null);
 
   // Provider selection — default fal/luma; mock visible en dev para pruebas sin costo
-  const [selectedProvider, setSelectedProvider] = useState<{ provider: SupportedProvider; model: string }>({
+  const [selectedProvider, setSelectedProvider] = useState<{
+    provider: SupportedProvider;
+    model: string;
+  }>({
     provider: "fal",
     model: "luma-dream-machine",
   });
@@ -73,7 +99,6 @@ export default function VideoProjectPage() {
   const [insufficientCredits, setInsufficientCredits] = useState(false);
   const [showCreditModal, setShowCreditModal] = useState(false);
   const [creditSuccess, setCreditSuccess] = useState(false);
-  const [capturingPayment, setCapturingPayment] = useState(false);
 
   // Sections
   const [showGenerations, setShowGenerations] = useState(false);
@@ -134,17 +159,24 @@ export default function VideoProjectPage() {
             product_sku: (a.metadata as any).product_sku ?? null,
             file_name: (a.metadata as any).file_name ?? "",
             role: (a.metadata as any).role ?? "supporting_reference",
-            storage_path: (a.metadata as any).storage_path ?? a.storage_path ?? undefined,
+            storage_path:
+              (a.metadata as any).storage_path ?? a.storage_path ?? undefined,
           },
-        }))
+        })),
       );
       if (typeof window !== "undefined") {
         const storedProvider = sessionStorage.getItem(`vs_provider_${id}`);
         if (storedProvider) {
           try {
-            const parsed = JSON.parse(storedProvider) as { provider?: SupportedProvider; model?: string };
+            const parsed = JSON.parse(storedProvider) as {
+              provider?: SupportedProvider;
+              model?: string;
+            };
             if (parsed.provider && parsed.model) {
-              setSelectedProvider({ provider: parsed.provider, model: parsed.model });
+              setSelectedProvider({
+                provider: parsed.provider,
+                model: parsed.model,
+              });
             }
           } catch {
             sessionStorage.removeItem(`vs_provider_${id}`);
@@ -158,7 +190,9 @@ export default function VideoProjectPage() {
     }
   }, [id]);
 
-  useEffect(() => { load(); }, [load]);
+  useEffect(() => {
+    load();
+  }, [load]);
 
   useEffect(() => {
     apiGetVendedorPerfil()
@@ -168,47 +202,31 @@ export default function VideoProjectPage() {
       .catch(() => {});
   }, []);
 
-  // Handle PayPal redirect back: ?token=ORDER_ID&PayerID=XXXX
+  // Handle central payment return: /seller/payments/return -> this project
   useEffect(() => {
-    const params   = new URLSearchParams(window.location.search);
-    const ppToken  = params.get("token");
-    const ppPayer  = params.get("PayerID");
-    const cancel   = params.get("credit_cancel");
-
-    // Clean URL immediately so refreshing doesn't re-trigger
-    router.replace(`/seller/video-studio/${id}`, { scroll: false } as any);
-
-    if (ppToken && ppPayer) {
-      // PayPal returned after payment — capture server-side
-      setCapturingPayment(true);
-      captureCreditPayment(ppToken)
-        .then(() => {
-          setCreditSuccess(true);
-          setInsufficientCredits(false);
-        })
-        .catch((e: any) => setError(e.message ?? "No se pudo confirmar el pago"))
-        .finally(() => setCapturingPayment(false));
-    } else if (cancel === "1") {
-      // User cancelled on PayPal — do nothing, just clean URL
+    const params = new URLSearchParams(window.location.search);
+    if (params.get("credit_success") === "1") {
+      setCreditSuccess(true);
+      setInsufficientCredits(false);
+      router.replace(`/seller/video-studio/${id}`, { scroll: false } as any);
     }
-  // eslint-disable-next-line react-hooks/exhaustive-deps
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
-
 
   async function persistProjectState(): Promise<string> {
     const shouldUseManualPrompt = manualPrompt && prompt.trim();
-    const finalPrompt =
-      shouldUseManualPrompt
-        ? prompt
-        : buildProfessionalVideoPrompt({
-            brief,
-            assets: selectedAssets,
-            sellerProfile,
-            template: selectedTemplate ?? templateForPrompt,
-            format: selectedTemplate?.format ?? project?.format,
-            durationSeconds: selectedTemplate?.duration_seconds ?? project?.duration_seconds,
-            stylePreset,
-          });
+    const finalPrompt = shouldUseManualPrompt
+      ? prompt
+      : buildProfessionalVideoPrompt({
+          brief,
+          assets: selectedAssets,
+          sellerProfile,
+          template: selectedTemplate ?? templateForPrompt,
+          format: selectedTemplate?.format ?? project?.format,
+          durationSeconds:
+            selectedTemplate?.duration_seconds ?? project?.duration_seconds,
+          stylePreset,
+        });
 
     if (!shouldUseManualPrompt) setPrompt(finalPrompt);
 
@@ -225,7 +243,7 @@ export default function VideoProjectPage() {
           ...a,
           product_id: a.product_id ?? null,
           sort_order: i,
-        }))
+        })),
       );
     }
     return finalPrompt;
@@ -278,11 +296,14 @@ export default function VideoProjectPage() {
         model: selectedProvider.model,
         prompt: finalPrompt || undefined,
       });
-      setProject((prev) => prev ? { ...prev, generations: [gen, ...prev.generations] } : prev);
+      setProject((prev) =>
+        prev ? { ...prev, generations: [gen, ...prev.generations] } : prev,
+      );
       setShowGenerations(true);
     } catch (e: any) {
       if ((e as any).code === "INSUFFICIENT_CREDITS") {
         setInsufficientCredits(true);
+        setShowCreditModal(true);
       } else {
         setError(e.message ?? "Error al iniciar generación");
       }
@@ -301,9 +322,11 @@ export default function VideoProjectPage() {
       prev
         ? {
             ...prev,
-            generations: prev.generations.map((g) => (g.id === updated.id ? updated : g)),
+            generations: prev.generations.map((g) =>
+              g.id === updated.id ? updated : g,
+            ),
           }
-        : prev
+        : prev,
     );
   }
 
@@ -314,15 +337,22 @@ export default function VideoProjectPage() {
             ...prev,
             generations: prev.generations.filter((g) => g.id !== generationId),
           }
-        : prev
+        : prev,
     );
   }
 
   const activeGeneration = project?.generations.find((g) =>
-    ["queued", "validating", "generating", "processing_output"].includes(g.status)
+    ["queued", "validating", "generating", "processing_output"].includes(
+      g.status,
+    ),
   );
   const generationCount = project?.generations.length ?? 0;
-  const completedCount = project?.generations.filter((g) => g.status === "completed").length ?? 0;
+  const completedCount =
+    project?.generations.filter((g) => g.status === "completed").length ?? 0;
+  const selectedVideoCost = videoAiCreditCost(
+    selectedProvider.provider,
+    selectedProvider.model,
+  );
   const templateForPrompt = project
     ? ({
         id: selectedTemplate?.id ?? project.template_id ?? "",
@@ -330,10 +360,14 @@ export default function VideoProjectPage() {
         name: selectedTemplate?.name ?? project.template_name ?? "",
         objective: selectedTemplate?.objective ?? project.objective,
         format: selectedTemplate?.format ?? project.format,
-        duration_seconds: selectedTemplate?.duration_seconds ?? project.duration_seconds,
-        prompt_template: selectedTemplate?.prompt_template ?? project.prompt_template ?? "",
-        style_config: selectedTemplate?.style_config ?? project.template_style_config ?? {},
-        thumbnail_url: selectedTemplate?.thumbnail_url ?? project.thumbnail_url ?? null,
+        duration_seconds:
+          selectedTemplate?.duration_seconds ?? project.duration_seconds,
+        prompt_template:
+          selectedTemplate?.prompt_template ?? project.prompt_template ?? "",
+        style_config:
+          selectedTemplate?.style_config ?? project.template_style_config ?? {},
+        thumbnail_url:
+          selectedTemplate?.thumbnail_url ?? project.thumbnail_url ?? null,
       } as unknown as VideoTemplate)
     : null;
 
@@ -370,23 +404,39 @@ export default function VideoProjectPage() {
                   value={title}
                   onChange={(e) => setTitle(e.target.value)}
                   maxLength={160}
-                  className="w-full min-w-0 truncate bg-transparent text-base font-semibold leading-tight text-[var(--seller-ink)] focus:outline-none sm:text-lg"
+                  className="w-full min-w-0 truncate bg-transparent text-base leading-tight font-semibold text-[var(--seller-ink)] focus:outline-none sm:text-lg"
                 />
                 <div className="mt-1.5 flex flex-wrap items-center gap-1.5">
                   <StudioBadge tone="accent">
-                    {selectedTemplate?.name ?? project?.template_name ?? "Plantilla"}
+                    {selectedTemplate?.name ??
+                      project?.template_name ??
+                      "Plantilla"}
                   </StudioBadge>
                   <StudioBadge>
                     {selectedTemplate?.format ?? project?.format}
                   </StudioBadge>
                   <StudioBadge>
-                    {selectedTemplate?.duration_seconds ?? project?.duration_seconds}s
+                    {selectedTemplate?.duration_seconds ??
+                      project?.duration_seconds}
+                    s
                   </StudioBadge>
-                  <StudioBadge tone={selectedAssets.length ? "success" : "default"}>
+                  <StudioBadge
+                    tone={selectedAssets.length ? "success" : "default"}
+                  >
                     {selectedAssets.length} visuales
                   </StudioBadge>
-                  <StudioBadge tone={completedCount ? "success" : activeGeneration ? "warning" : "default"}>
-                    {completedCount ? `${completedCount} listo${completedCount === 1 ? "" : "s"}` : `${generationCount} videos`}
+                  <StudioBadge
+                    tone={
+                      completedCount
+                        ? "success"
+                        : activeGeneration
+                          ? "warning"
+                          : "default"
+                    }
+                  >
+                    {completedCount
+                      ? `${completedCount} listo${completedCount === 1 ? "" : "s"}`
+                      : `${generationCount} videos`}
                   </StudioBadge>
                 </div>
               </div>
@@ -405,7 +455,11 @@ export default function VideoProjectPage() {
                   disabled={saving}
                   className="inline-flex min-h-9 items-center justify-center gap-1.5 rounded-lg border border-[var(--seller-line)] bg-white px-3 text-xs font-semibold text-[var(--seller-ink)] transition hover:bg-[var(--seller-panel)] disabled:opacity-60"
                 >
-                  {saving ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Save className="h-3.5 w-3.5" />}
+                  {saving ? (
+                    <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                  ) : (
+                    <Save className="h-3.5 w-3.5" />
+                  )}
                   Guardar
                 </button>
                 <button
@@ -413,10 +467,23 @@ export default function VideoProjectPage() {
                   disabled={generating || !!activeGeneration}
                   className="inline-flex min-h-9 items-center justify-center gap-1.5 rounded-lg bg-[var(--seller-accent)] px-3 text-xs font-semibold text-white transition hover:opacity-90 disabled:opacity-60 sm:px-4"
                 >
-                  {generating ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Play className="h-3.5 w-3.5" />}
-                  <span className="truncate">{activeGeneration ? "Generando" : "Generar"}</span>
+                  {generating ? (
+                    <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                  ) : (
+                    <Play className="h-3.5 w-3.5" />
+                  )}
+                  <span className="truncate">
+                    {activeGeneration
+                      ? "Generando"
+                      : `Generar${selectedVideoCost ? ` (${selectedVideoCost} cr.)` : ""}`}
+                  </span>
                 </button>
               </div>
+              {!activeGeneration && selectedVideoCost > 0 && (
+                <p className="mt-2 text-[11px] font-medium text-[var(--seller-muted)] md:text-right">
+                  Esta generación consumirá {selectedVideoCost} créditos IA.
+                </p>
+              )}
             </div>
           </div>
         </div>
@@ -425,16 +492,19 @@ export default function VideoProjectPage() {
       {insufficientCredits && (
         <div className="rounded-xl border border-amber-200 bg-amber-50 px-4 py-4">
           <div className="flex items-start gap-3">
-            <AlertCircle className="h-5 w-5 shrink-0 text-amber-600 mt-0.5" />
+            <AlertCircle className="mt-0.5 h-5 w-5 shrink-0 text-amber-600" />
             <div className="flex-1 space-y-1">
-              <p className="text-sm font-semibold text-amber-900">Créditos de video insuficientes</p>
+              <p className="text-sm font-semibold text-amber-900">
+                Créditos de video insuficientes
+              </p>
               <p className="text-xs text-amber-700">
-                Tu cuenta no tiene saldo para generar este clip. Recarga para continuar.
+                Este video cuesta {selectedVideoCost} créditos IA. Recarga para
+                continuar sin salir del proyecto.
               </p>
             </div>
             <button
               onClick={() => setShowCreditModal(true)}
-              className="shrink-0 inline-flex items-center gap-1.5 rounded-xl bg-amber-600 px-3 py-2 text-xs font-semibold text-white transition hover:bg-amber-700"
+              className="inline-flex shrink-0 items-center gap-1.5 rounded-xl bg-amber-600 px-3 py-2 text-xs font-semibold text-white transition hover:bg-amber-700"
             >
               <Zap className="h-3.5 w-3.5" /> Comprar créditos
             </button>
@@ -442,31 +512,36 @@ export default function VideoProjectPage() {
         </div>
       )}
 
-      {capturingPayment && (
-        <div className="rounded-xl border border-blue-200 bg-blue-50 px-4 py-4">
-          <div className="flex items-center gap-3">
-            <Loader2 className="h-5 w-5 shrink-0 text-blue-600 animate-spin" />
-            <p className="text-sm font-semibold text-blue-900">Confirmando tu pago…</p>
-          </div>
-        </div>
-      )}
-
       {creditSuccess && (
         <div className="rounded-xl border border-emerald-200 bg-emerald-50 px-4 py-4">
           <div className="flex items-start gap-3">
-            <Zap className="h-5 w-5 shrink-0 text-emerald-600 mt-0.5" />
+            <Zap className="mt-0.5 h-5 w-5 shrink-0 text-emerald-600" />
             <div className="flex-1">
-              <p className="text-sm font-semibold text-emerald-900">¡Créditos añadidos exitosamente!</p>
-              <p className="text-xs text-emerald-700 mt-0.5">Ya puedes generar videos.</p>
+              <p className="text-sm font-semibold text-emerald-900">
+                ¡Créditos añadidos exitosamente!
+              </p>
+              <p className="mt-0.5 text-xs text-emerald-700">
+                Ya puedes generar videos.
+              </p>
             </div>
-            <button onClick={() => setCreditSuccess(false)} className="text-emerald-600 hover:text-emerald-800">
+            <button
+              onClick={() => setCreditSuccess(false)}
+              className="text-emerald-600 hover:text-emerald-800"
+            >
               <X className="h-4 w-4" />
             </button>
           </div>
         </div>
       )}
 
-      {showCreditModal && <CreditPurchaseModal projectId={id} onClose={() => setShowCreditModal(false)} />}
+      <AiCreditTopUpModal
+        open={showCreditModal}
+        onClose={() => setShowCreditModal(false)}
+        returnTo={`/seller/video-studio/${id}?credit_success=1`}
+        source="video_studio"
+        title="Comprar créditos para Video Studio"
+        description="Compra créditos IA y vuelve a este proyecto automáticamente."
+      />
 
       {error && (
         <div className="flex items-center gap-2 rounded-xl border border-red-100 bg-red-50 px-4 py-3 text-sm text-red-600">
@@ -510,228 +585,145 @@ export default function VideoProjectPage() {
           )}
         </StudioSection>
 
-          <StudioSection
-            icon={LayoutTemplate}
-            title="Plantilla"
-            subtitle={
-              selectedTemplate
-                ? `${selectedTemplate.name} · ${selectedTemplate.format} · ${selectedTemplate.duration_seconds}s`
-                : "Elige una idea inicial para el video"
-            }
-            open={showTemplates}
-            onToggle={() => setShowTemplates((v) => !v)}
-          >
-            {templates.length > 0 ? (
-              <VideoTemplatePicker
-                templates={templates}
-                selectedId={selectedTemplate?.id ?? project?.template_id ?? null}
-                selectedOnly={!showAllTemplates && Boolean(selectedTemplate ?? project?.template_id)}
-                onShowAll={() => setShowAllTemplates(true)}
-                onSelect={(template) => {
-                  setSelectedTemplate(template);
-                  setShowAllTemplates(false);
-                  setProject((prev) =>
-                    prev
-                      ? {
-                          ...prev,
-                          template_id: template.id,
-                          template_name: template.name,
-                          template_slug: template.slug,
-                          prompt_template: template.prompt_template,
-                          template_style_config: template.style_config,
-                          objective: template.objective,
-                          format: template.format,
-                          duration_seconds: template.duration_seconds,
-                        }
-                      : prev
-                  );
-                }}
-              />
-            ) : (
-              <div className="flex items-center justify-center py-8 text-[var(--seller-faint-text)]">
-                <Loader2 className="h-5 w-5 animate-spin" />
-              </div>
-            )}
-          </StudioSection>
+        <StudioSection
+          icon={LayoutTemplate}
+          title="Plantilla"
+          subtitle={
+            selectedTemplate
+              ? `${selectedTemplate.name} · ${selectedTemplate.format} · ${selectedTemplate.duration_seconds}s`
+              : "Elige una idea inicial para el video"
+          }
+          open={showTemplates}
+          onToggle={() => setShowTemplates((v) => !v)}
+        >
+          {templates.length > 0 ? (
+            <VideoTemplatePicker
+              templates={templates}
+              selectedId={selectedTemplate?.id ?? project?.template_id ?? null}
+              selectedOnly={
+                !showAllTemplates &&
+                Boolean(selectedTemplate ?? project?.template_id)
+              }
+              onShowAll={() => setShowAllTemplates(true)}
+              onSelect={(template) => {
+                setSelectedTemplate(template);
+                setShowAllTemplates(false);
+                setProject((prev) =>
+                  prev
+                    ? {
+                        ...prev,
+                        template_id: template.id,
+                        template_name: template.name,
+                        template_slug: template.slug,
+                        prompt_template: template.prompt_template,
+                        template_style_config: template.style_config,
+                        objective: template.objective,
+                        format: template.format,
+                        duration_seconds: template.duration_seconds,
+                      }
+                    : prev,
+                );
+              }}
+            />
+          ) : (
+            <div className="flex items-center justify-center py-8 text-[var(--seller-faint-text)]">
+              <Loader2 className="h-5 w-5 animate-spin" />
+            </div>
+          )}
+        </StudioSection>
 
-          {/* Products section */}
-          <StudioSection
-            icon={Package}
-            title="Productos"
-            subtitle={`${selectedAssets.length} seleccionados`}
-            open={showProducts}
-            onToggle={() => setShowProducts((v) => !v)}
-          >
-            <ProductAssetPicker
-              selected={selectedAssets}
-              onChange={setSelectedAssets}
-              onUploadFiles={handleUploadAssetFiles}
+        {/* Products section */}
+        <StudioSection
+          icon={Package}
+          title="Productos"
+          subtitle={`${selectedAssets.length} seleccionados`}
+          open={showProducts}
+          onToggle={() => setShowProducts((v) => !v)}
+        >
+          <ProductAssetPicker
+            selected={selectedAssets}
+            onChange={setSelectedAssets}
+            onUploadFiles={handleUploadAssetFiles}
             uploadingImages={uploadingImages}
           />
-          </StudioSection>
+        </StudioSection>
 
-          {/* Prompt section */}
-          <StudioSection
-            icon={FileText}
-            title="Descripción del video"
-            subtitle={prompt ? `${prompt.length} caracteres` : "Sin descripción"}
-            open={showPrompt}
-            onToggle={() => setShowPrompt((v) => !v)}
-          >
-            <PromptAssistantPanel
-              prompt={prompt}
-              stylePreset={stylePreset}
-              template={templateForPrompt}
-              assets={selectedAssets}
-              sellerProfile={sellerProfile}
-              brief={brief}
-              format={project?.format}
-              durationSeconds={project?.duration_seconds}
-              onBriefChange={setBrief}
-              onChange={(p, s) => { setPrompt(p); setStylePreset(s); }}
-              onManualPromptChange={setManualPrompt}
-            />
-          </StudioSection>
+        {/* Prompt section */}
+        <StudioSection
+          icon={FileText}
+          title="Descripción del video"
+          subtitle={prompt ? `${prompt.length} caracteres` : "Sin descripción"}
+          open={showPrompt}
+          onToggle={() => setShowPrompt((v) => !v)}
+        >
+          <PromptAssistantPanel
+            prompt={prompt}
+            stylePreset={stylePreset}
+            template={templateForPrompt}
+            assets={selectedAssets}
+            sellerProfile={sellerProfile}
+            brief={brief}
+            format={project?.format}
+            durationSeconds={project?.duration_seconds}
+            onBriefChange={setBrief}
+            onChange={(p, s) => {
+              setPrompt(p);
+              setStylePreset(s);
+            }}
+            onManualPromptChange={setManualPrompt}
+          />
+        </StudioSection>
 
-          {/* Provider section */}
-          <StudioSection
-            icon={Play}
-            title="Calidad y proveedor"
-            subtitle={`${selectedProvider.model} · ${selectedProvider.provider}`}
-            open={showProvider}
-            onToggle={() => setShowProvider((v) => !v)}
-          >
-            <ProviderPicker
-              selected={selectedProvider}
-              onChange={setSelectedProvider}
-              durationSeconds={project?.duration_seconds ?? 10}
-              hasImages={selectedAssets.length > 0}
-            />
-          </StudioSection>
+        {/* Provider section */}
+        <StudioSection
+          icon={Play}
+          title="Calidad y proveedor"
+          subtitle={`${selectedProvider.model} · ${selectedProvider.provider}`}
+          open={showProvider}
+          onToggle={() => setShowProvider((v) => !v)}
+        >
+          <ProviderPicker
+            selected={selectedProvider}
+            onChange={setSelectedProvider}
+            durationSeconds={project?.duration_seconds ?? 10}
+            hasImages={selectedAssets.length > 0}
+          />
+        </StudioSection>
 
-          {/* Danger zone */}
-          <div className="rounded-[18px] border border-[var(--seller-line)] bg-white p-3">
-            {!confirmDelete ? (
-              <button
-                onClick={() => setConfirmDelete(true)}
-                className="flex items-center gap-1.5 text-sm text-[var(--seller-muted)] transition hover:text-red-500"
-              >
-                <Trash2 className="h-3.5 w-3.5" />
-                Eliminar proyecto
-              </button>
-            ) : (
-              <div className="space-y-2">
-                <p className="text-sm font-medium text-[var(--seller-ink)]">¿Eliminar este proyecto?</p>
-                <p className="text-xs text-[var(--seller-muted)]">Esta acción no se puede deshacer.</p>
-                <div className="flex gap-2">
-                  <button
-                    onClick={handleDelete}
-                    className="rounded-xl bg-red-500 px-3 py-1.5 text-xs font-semibold text-white"
-                  >
-                    Eliminar
-                  </button>
-                  <button
-                    onClick={() => setConfirmDelete(false)}
-                    className="rounded-xl border border-[var(--seller-line)] bg-white px-3 py-1.5 text-xs font-medium text-[var(--seller-ink)]"
-                  >
-                    Cancelar
-                  </button>
-                </div>
-              </div>
-            )}
-          </div>
-      </div>
-    </div>
-  );
-}
-
-const CREDIT_PACKAGES = [
-  { id: "starter", label: "Starter", gtq: "Q25.00", usd: "$3.23", clips: "~80 clips de 8s", badge: null },
-  { id: "creador", label: "Creador", gtq: "Q75.00", usd: "$9.68", clips: "~250 clips de 8s", badge: "Más popular" },
-  { id: "pro",     label: "Pro",     gtq: "Q150.00", usd: "$19.35", clips: "~500 clips de 8s", badge: "Mejor precio" },
-];
-
-function CreditPurchaseModal({ projectId, onClose }: { projectId: string; onClose: () => void }) {
-  const [loadingId, setLoadingId] = useState<string | null>(null);
-  const [checkoutError, setCheckoutError] = useState<string | null>(null);
-
-  async function handlePay(packageId: string) {
-    setLoadingId(packageId);
-    setCheckoutError(null);
-    try {
-      const { approveUrl } = await createCreditCheckout(packageId, projectId);
-      window.location.href = approveUrl;
-    } catch (e: any) {
-      setCheckoutError(e.message ?? "Error al conectar con el procesador de pagos");
-      setLoadingId(null);
-    }
-  }
-
-  return (
-    <div
-      className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 backdrop-blur-sm p-4"
-      onClick={onClose}
-    >
-      <div
-        className="relative w-full max-w-md rounded-[28px] bg-white shadow-2xl"
-        onClick={(e) => e.stopPropagation()}
-      >
-        {/* Header */}
-        <div className="flex items-center justify-between border-b border-[var(--seller-line)] px-6 py-5">
-          <div>
-            <p className="text-base font-bold text-[var(--seller-ink)]">Créditos de Video Studio</p>
-            <p className="text-xs text-[var(--seller-muted)]">Pago seguro con tarjeta de crédito o débito</p>
-          </div>
-          <button onClick={onClose} className="flex h-8 w-8 items-center justify-center rounded-full hover:bg-[var(--seller-panel)] text-[var(--seller-muted)]">
-            <X className="h-4 w-4" />
-          </button>
-        </div>
-
-        {/* Packages */}
-        <div className="space-y-3 px-6 py-5">
-          {CREDIT_PACKAGES.map((pkg) => (
-            <div
-              key={pkg.id}
-              className={`relative rounded-2xl border p-4 ${pkg.badge ? "border-[var(--seller-accent)] bg-[color:color-mix(in_srgb,var(--seller-accent)_6%,white)]" : "border-[var(--seller-line)] bg-white"}`}
+        {/* Danger zone */}
+        <div className="rounded-[18px] border border-[var(--seller-line)] bg-white p-3">
+          {!confirmDelete ? (
+            <button
+              onClick={() => setConfirmDelete(true)}
+              className="flex items-center gap-1.5 text-sm text-[var(--seller-muted)] transition hover:text-red-500"
             >
-              {pkg.badge && (
-                <span className="absolute -top-2.5 left-4 rounded-full bg-[var(--seller-accent)] px-2.5 py-0.5 text-[10px] font-bold text-white">
-                  {pkg.badge}
-                </span>
-              )}
-              <div className="flex items-center gap-3">
-                <div className="flex-1 min-w-0">
-                  <p className="text-sm font-semibold text-[var(--seller-ink)]">{pkg.label}</p>
-                  <p className="text-[11px] text-[var(--seller-muted)]">{pkg.clips}</p>
-                </div>
-                <div className="text-right shrink-0">
-                  <p className="text-lg font-bold text-[var(--seller-ink)]">{pkg.gtq}</p>
-                  <p className="text-[10px] text-[var(--seller-muted)]">{pkg.usd} USD</p>
-                </div>
+              <Trash2 className="h-3.5 w-3.5" />
+              Eliminar proyecto
+            </button>
+          ) : (
+            <div className="space-y-2">
+              <p className="text-sm font-medium text-[var(--seller-ink)]">
+                ¿Eliminar este proyecto?
+              </p>
+              <p className="text-xs text-[var(--seller-muted)]">
+                Esta acción no se puede deshacer.
+              </p>
+              <div className="flex gap-2">
                 <button
-                  onClick={() => handlePay(pkg.id)}
-                  disabled={!!loadingId}
-                  className="shrink-0 inline-flex items-center gap-1.5 rounded-xl bg-[var(--seller-accent)] px-3.5 py-2 text-xs font-semibold text-white transition hover:opacity-90 disabled:opacity-50"
+                  onClick={handleDelete}
+                  className="rounded-xl bg-red-500 px-3 py-1.5 text-xs font-semibold text-white"
                 >
-                  {loadingId === pkg.id ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Zap className="h-3.5 w-3.5" />}
-                  Pagar
+                  Eliminar
+                </button>
+                <button
+                  onClick={() => setConfirmDelete(false)}
+                  className="rounded-xl border border-[var(--seller-line)] bg-white px-3 py-1.5 text-xs font-medium text-[var(--seller-ink)]"
+                >
+                  Cancelar
                 </button>
               </div>
             </div>
-          ))}
-        </div>
-
-        {checkoutError && (
-          <p className="px-6 pb-3 text-xs text-center text-red-500">{checkoutError}</p>
-        )}
-
-        {/* Footer */}
-        <div className="border-t border-[var(--seller-line)] px-6 py-4">
-          <p className="text-[11px] text-center text-[var(--seller-muted)]">
-            Serás redirigido a PayPal para completar el pago de forma segura.
-            Puedes pagar con tarjeta de crédito o débito sin necesitar cuenta PayPal.
-            Tus créditos se activan automáticamente al confirmar el pago.
-          </p>
+          )}
         </div>
       </div>
     </div>

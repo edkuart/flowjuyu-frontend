@@ -2,10 +2,15 @@
 
 import { useState } from "react"
 import { useRouter } from "next/navigation"
-import { Button } from "@/components/ui/button"
-import { Input } from "@/components/ui/input"
-import { Textarea } from "@/components/ui/textarea"
-import { Label } from "@/components/ui/label"
+import {
+  Wrench,
+  BadgeCheck,
+  Zap,
+  MessageCircle,
+  CheckCircle2,
+  Send,
+  AlertCircle,
+} from "lucide-react"
 import { PageBackNav } from "@/components/ui/PageBackNav"
 import { authFetch } from "@/lib/authFetch"
 import { toast } from "sonner"
@@ -19,33 +24,33 @@ const TIPO_CONFIG: Record<string, {
   description: string
   placeholder_asunto: string
   placeholder_mensaje: string
-  icon: string
+  icon: React.ReactNode
 }> = {
   soporte: {
     label:               "Soporte general",
     description:         "Problemas con tu cuenta, productos o pagos.",
-    icon:                "🛠️",
+    icon:                <Wrench className="h-4 w-4" />,
     placeholder_asunto:  "Ej: No puedo subir mis productos",
     placeholder_mensaje: "Describe tu problema con el mayor detalle posible. ¿Cuándo empezó? ¿Qué intentaste hacer?",
   },
   verificacion: {
     label:               "Verificación KYC",
     description:         "Validación de identidad y documentos DPI.",
-    icon:                "🪪",
+    icon:                <BadgeCheck className="h-4 w-4" />,
     placeholder_asunto:  "Ej: Mis documentos fueron rechazados",
     placeholder_mensaje: "Describe qué documento tienes problemas para subir o qué error ves al intentarlo.",
   },
   incidencia: {
     label:               "Incidencia técnica",
     description:         "Errores o fallos en la plataforma.",
-    icon:                "⚡",
+    icon:                <Zap className="h-4 w-4" />,
     placeholder_asunto:  "Ej: La página no carga correctamente",
     placeholder_mensaje: "¿Qué acción realizabas? ¿Qué error aparece? Puedes copiar el mensaje de error aquí.",
   },
   otro: {
     label:               "Otro",
     description:         "Consultas generales o cualquier otra solicitud.",
-    icon:                "💬",
+    icon:                <MessageCircle className="h-4 w-4" />,
     placeholder_asunto:  "Ej: Quiero saber más sobre el plan Founder",
     placeholder_mensaje: "Cuéntanos cómo podemos ayudarte.",
   },
@@ -88,62 +93,77 @@ export default function NewSellerTicketPage() {
   }
 
   return (
-    <div className="min-h-screen bg-[#f8f5ef] px-4 py-8">
-      <div className="max-w-2xl mx-auto space-y-5">
+    <div className="min-h-screen bg-[#f8f5ef]">
+      <div className="mx-auto max-w-2xl space-y-5 px-4 py-6 sm:px-6 sm:py-10">
 
-        {/* ── Back ──────────────────────────────────────────────────────────── */}
+        {/* ── Back ──────────────────────────────────────────────────── */}
         <PageBackNav
           variant="panel"
           onClick={() => router.push("/seller/tickets")}
           label="Volver a mis tickets"
           meta="Soporte"
-          title={<p className="truncate text-[15px] font-semibold text-[#14231c]">Crear nuevo ticket</p>}
+          title={<p className="truncate text-[15px] font-semibold text-[var(--seller-ink)]">Crear nuevo ticket</p>}
         />
 
-        {/* ── Header ────────────────────────────────────────────────────────── */}
-        <div className="bg-white rounded-3xl shadow-sm p-6">
-          <h1 className="text-xl font-bold">Crear nuevo ticket</h1>
-          <p className="text-sm text-muted-foreground mt-1">
+        {/* ── Header editorial ──────────────────────────────────────── */}
+        <div>
+          <p className="text-[10px] font-bold tracking-[0.22em] text-[var(--seller-accent)] uppercase">
+            Soporte · Flowjuyu Seller
+          </p>
+          <h1 className="mt-1.5 text-[28px] leading-[1.05] font-bold tracking-tight text-[var(--seller-ink)]">
+            Nuevo ticket
+          </h1>
+          <p className="mt-1.5 max-w-[42ch] text-sm leading-relaxed text-[var(--seller-muted)]">
             Cuéntanos tu problema y te ayudaremos lo antes posible.
           </p>
         </div>
 
-        {/* ── Tipo selector ─────────────────────────────────────────────────── */}
-        <div className="bg-white rounded-3xl shadow-sm p-6 space-y-3">
-          <Label className="text-sm font-semibold">Tipo de solicitud</Label>
+        {/* ── Tipo selector ─────────────────────────────────────────── */}
+        <section className="rounded-3xl border border-[var(--seller-line)] bg-white p-5">
+          <p className="mb-3 text-[10px] font-bold tracking-[0.18em] text-[var(--seller-muted)] uppercase">
+            Tipo de solicitud
+          </p>
           <div className="grid grid-cols-2 gap-3">
             {Object.entries(TIPO_CONFIG).map(([key, info]) => (
               <button
                 key={key}
                 type="button"
                 onClick={() => setTipo(key)}
-                className={`text-left rounded-2xl border p-4 transition text-sm ${
+                className={`text-left rounded-2xl border p-5 transition-all duration-150 ${
                   tipo === key
-                    ? "border-amber-400 bg-amber-50 text-amber-900"
-                    : "border-border bg-background hover:bg-muted/40 text-foreground"
+                    ? "border-[var(--seller-accent)] bg-[color:color-mix(in_srgb,var(--seller-accent)_7%,white)] ring-2 ring-[var(--seller-accent)] ring-offset-1"
+                    : "border-[var(--seller-line)] bg-white hover:border-[var(--seller-accent)]/40 hover:bg-[var(--seller-panel)]"
                 }`}
               >
-                <div className="flex items-center gap-2 mb-1">
-                  <span>{info.icon}</span>
-                  <p className="font-semibold text-sm">{info.label}</p>
-                </div>
-                <p className={`text-xs ${tipo === key ? "text-amber-700" : "text-muted-foreground"}`}>
+                <span className={`mb-3 flex h-9 w-9 items-center justify-center rounded-xl transition ${
+                  tipo === key
+                    ? "bg-[var(--seller-accent)] text-white"
+                    : "bg-[color:color-mix(in_srgb,var(--seller-accent)_8%,white)] text-[var(--seller-accent)]"
+                }`}>
+                  {info.icon}
+                </span>
+                <p className="text-sm font-semibold leading-snug text-[var(--seller-ink)]">{info.label}</p>
+                <p className={`mt-1.5 text-xs leading-relaxed ${
+                  tipo === key ? "text-[var(--seller-accent)]" : "text-[var(--seller-muted)]"
+                }`}>
                   {info.description}
                 </p>
               </button>
             ))}
           </div>
-        </div>
+        </section>
 
-        {/* ── KYC helper ────────────────────────────────────────────────────── */}
+        {/* ── KYC helper ────────────────────────────────────────────── */}
         {tipo === "verificacion" && (
-          <div className="bg-purple-50 border border-purple-200 rounded-2xl p-4 flex items-start gap-3">
-            <span className="text-xl shrink-0">🪪</span>
+          <div className="flex items-start gap-3 rounded-2xl border border-purple-200 bg-purple-50 px-4 py-3.5">
+            <span className="mt-0.5 flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-purple-100 text-purple-700">
+              <BadgeCheck className="h-4 w-4" />
+            </span>
             <div>
-              <p className="font-semibold text-purple-900 text-sm">
+              <p className="text-sm font-semibold text-purple-900">
                 Este ticket es para validación de identidad
               </p>
-              <p className="text-xs text-purple-700 mt-1">
+              <p className="mt-0.5 text-xs text-purple-700">
                 Asegúrate de tener tus documentos listos: DPI frontal, reverso y selfie.
                 Podrás subirlos desde tu perfil de vendedor.
               </p>
@@ -151,46 +171,58 @@ export default function NewSellerTicketPage() {
           </div>
         )}
 
-        {/* ── Form fields ───────────────────────────────────────────────────── */}
-        <div className="bg-white rounded-3xl shadow-sm p-6 space-y-5">
+        {/* ── Form fields ───────────────────────────────────────────── */}
+        <section className="space-y-5 rounded-3xl border border-[var(--seller-line)] bg-white p-5">
 
           {/* Asunto */}
           <div className="space-y-1.5">
-            <Label className="text-sm font-semibold">Asunto</Label>
-            <Input
+            <label className="block text-[10px] font-bold tracking-[0.18em] text-[var(--seller-muted)] uppercase">
+              Asunto
+            </label>
+            <input
               value={asunto}
               onChange={(e) => setAsunto(e.target.value)}
               placeholder={tipoInfo.placeholder_asunto}
-              className="rounded-xl"
+              className="w-full rounded-xl border border-[var(--seller-line)] bg-white px-4 py-3 text-sm text-[var(--seller-ink)] placeholder:text-[var(--seller-faint-text)] outline-none transition focus:border-[var(--seller-accent)] focus:ring-2 focus:ring-[color:color-mix(in_srgb,var(--seller-accent)_20%,transparent)]"
             />
             {asunto.trim().length > 0 && asunto.trim().length <= 3 && (
-              <p className="text-xs text-red-500">El asunto es demasiado corto</p>
+              <p className="flex items-center gap-1 text-xs text-red-600">
+                <AlertCircle className="h-3 w-3" />
+                El asunto es demasiado corto
+              </p>
             )}
           </div>
 
           {/* Descripción */}
           <div className="space-y-1.5">
-            <Label className="text-sm font-semibold">Descripción</Label>
-            <Textarea
+            <label className="block text-[10px] font-bold tracking-[0.18em] text-[var(--seller-muted)] uppercase">
+              Descripción
+            </label>
+            <textarea
               value={mensaje}
               onChange={(e) => setMensaje(e.target.value)}
               placeholder={tipoInfo.placeholder_mensaje}
-              className="rounded-xl resize-none"
               rows={5}
+              className="w-full resize-none rounded-xl border border-[var(--seller-line)] bg-white px-4 py-3 text-sm text-[var(--seller-ink)] placeholder:text-[var(--seller-faint-text)] outline-none transition focus:border-[var(--seller-accent)] focus:ring-2 focus:ring-[color:color-mix(in_srgb,var(--seller-accent)_20%,transparent)]"
             />
             {mensaje.trim().length > 0 && mensaje.trim().length <= 10 && (
-              <p className="text-xs text-red-500">La descripción es muy corta</p>
+              <p className="flex items-center gap-1 text-xs text-red-600">
+                <AlertCircle className="h-3 w-3" />
+                La descripción es muy corta
+              </p>
             )}
           </div>
 
           {/* Prioridad */}
           <div className="space-y-2">
-            <Label className="text-sm font-semibold">Prioridad</Label>
-            <div className="flex gap-3">
+            <label className="block text-[10px] font-bold tracking-[0.18em] text-[var(--seller-muted)] uppercase">
+              Prioridad
+            </label>
+            <div className="flex gap-2">
               {[
-                { value: "baja",  label: "Baja",  active: "border-green-400 bg-green-50 text-green-800"    },
-                { value: "media", label: "Media", active: "border-yellow-400 bg-yellow-50 text-yellow-800"  },
-                { value: "alta",  label: "Alta",  active: "border-red-400 bg-red-50 text-red-800"           },
+                { value: "baja",  label: "Baja",  active: "border-emerald-500 bg-emerald-50 text-emerald-800 ring-2 ring-emerald-200" },
+                { value: "media", label: "Media", active: "border-amber-400 bg-amber-50 text-amber-800 ring-2 ring-amber-200"          },
+                { value: "alta",  label: "Alta",  active: "border-red-400 bg-red-50 text-red-800 ring-2 ring-red-200"                  },
               ].map((p) => (
                 <button
                   key={p.value}
@@ -199,7 +231,7 @@ export default function NewSellerTicketPage() {
                   className={`flex-1 rounded-xl border px-3 py-2.5 text-sm font-medium transition ${
                     prioridad === p.value
                       ? p.active
-                      : "border-border bg-background text-muted-foreground hover:bg-muted/40"
+                      : "border-[var(--seller-line)] bg-white text-[var(--seller-muted)] hover:bg-[var(--seller-panel)] hover:text-[var(--seller-ink)]"
                   }`}
                 >
                   {p.label}
@@ -208,36 +240,48 @@ export default function NewSellerTicketPage() {
             </div>
           </div>
 
-        </div>
+        </section>
 
-        {/* ── Submit ────────────────────────────────────────────────────────── */}
-        <div className="bg-white rounded-3xl shadow-sm p-6 space-y-4">
-          <div className="flex items-center gap-2 text-sm text-muted-foreground">
-            <span className="text-green-500 font-bold">✓</span>
+        {/* ── Submit ────────────────────────────────────────────────── */}
+        <section className="space-y-4 rounded-3xl border border-[var(--seller-line)] bg-white p-5">
+          <div className="flex items-center gap-2 text-sm text-[var(--seller-muted)]">
+            <CheckCircle2 className="h-4 w-4 text-emerald-500" />
             Nuestro equipo responderá en menos de 24 horas
           </div>
           <div className="flex gap-3">
-            <Button
+            <button
+              type="button"
               onClick={handleSubmit}
               disabled={loading || !isValid}
-              className="flex-1 bg-amber-500 hover:bg-amber-600 text-white disabled:opacity-50 rounded-xl"
+              className="group relative flex flex-1 items-center justify-center gap-2 overflow-hidden rounded-2xl bg-[var(--seller-accent)] px-6 py-3.5 text-sm font-bold text-white shadow-[0_10px_24px_-14px_rgba(15,61,58,0.5)] transition-all hover:shadow-[0_14px_28px_-12px_rgba(15,61,58,0.6)] active:scale-[0.99] disabled:opacity-50 disabled:shadow-none"
             >
-              {loading ? "Creando..." : "Crear ticket"}
-            </Button>
-            <Button
-              variant="outline"
+              <span
+                aria-hidden
+                className="absolute inset-0 -translate-x-full bg-gradient-to-r from-transparent via-white/15 to-transparent transition-transform duration-700 group-hover:translate-x-full"
+              />
+              <Send className="h-4 w-4" />
+              {loading ? "Creando ticket…" : "Crear ticket"}
+            </button>
+            <button
+              type="button"
               onClick={() => router.push("/seller/tickets")}
-              className="rounded-xl"
+              className="rounded-2xl border border-[var(--seller-line-strong)] px-4 py-3.5 text-sm font-medium text-[var(--seller-text)] transition hover:bg-[var(--seller-panel)]"
             >
               Cancelar
-            </Button>
+            </button>
           </div>
           {!isValid && (asunto.trim().length > 0 || mensaje.trim().length > 0) && (
-            <p className="text-xs text-muted-foreground text-center">
-              Completa el asunto (mín. 4 caracteres) y la descripción (mín. 11 caracteres) para continuar
+            <p className="text-center text-xs text-[var(--seller-muted)]">
+              Completa el asunto (mín. 4 car.) y la descripción (mín. 11 car.) para continuar
             </p>
           )}
-        </div>
+        </section>
+
+        <p className="px-2 pb-4 text-center text-[11px] leading-relaxed text-[var(--seller-muted)]">
+          Al enviar este ticket aceptas que el equipo de{" "}
+          <span className="font-medium text-[var(--seller-ink)]">Flowjuyu Support</span>{" "}
+          se comunique contigo por esta vía.
+        </p>
 
       </div>
     </div>

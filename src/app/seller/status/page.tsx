@@ -209,7 +209,7 @@ export default function SellerStatusPage() {
         {/* Actions */}
         <div className="space-y-2">
           <Link
-            href="/help/contact"
+            href="/seller/tickets"
             className="flex items-center justify-between rounded-2xl border border-[var(--seller-line)] bg-white px-5 py-4 transition hover:border-[var(--seller-line-strong)] hover:shadow-sm"
           >
             <span className="flex items-center gap-3">

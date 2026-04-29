@@ -47,17 +47,29 @@ export interface AiCreditPurchaseRequest {
   package_slug?: string;
 }
 
+export type AiCreditPaymentProviderId = "recurrente" | "paypal" | "stripe";
+
+export interface AiCreditPaymentProvider {
+  id: AiCreditPaymentProviderId;
+  label: string;
+  description: string;
+  available: boolean;
+  preferred?: boolean;
+  unavailableReason?: string;
+}
+
 export const AI_CREDIT_COSTS: Record<
   string,
   { label: string; credits: number }
 > = {
-  content_caption: { label: "Caption de producto", credits: 2 },
+  content_caption: { label: "Caption de producto", credits: 1 },
   content_description: { label: "Descripción de producto", credits: 2 },
-  content_image_prompt: { label: "Brief de fotografía", credits: 2 },
-  canvas_ai: { label: "Canvas / Colección con IA", credits: 8 },
-  video_10s_kling: { label: "Video 10s (Kling)", credits: 5 },
-  video_10s_luma: { label: "Video 10s (Luma Dream)", credits: 10 },
-  video_10s_runway: { label: "Video 10s (Runway Premium)", credits: 20 },
+  content_image_prompt: { label: "Brief de fotografía", credits: 1 },
+  canvas_ai: { label: "Canvas IA base", credits: 5 },
+  canvas_ai_with_image: { label: "Canvas IA con imagen de fondo", credits: 11 },
+  video_10s_kling: { label: "Video 10s (Kling)", credits: 7 },
+  video_10s_luma: { label: "Video 10s (Luma Dream)", credits: 14 },
+  video_10s_runway: { label: "Video 10s (Runway Premium)", credits: 31 },
 };
 
 // ─── Balance ──────────────────────────────────────────────────────────────────
@@ -133,11 +145,25 @@ export async function createAiCreditPurchaseRequest(body: {
 
 export async function createAiCreditCheckout(body: {
   packageId: number;
-}): Promise<{ url: string; sessionId: string; requestId: string }> {
+  provider?: AiCreditPaymentProviderId;
+  returnTo?: string;
+  source?: string;
+}): Promise<{
+  url: string;
+  sessionId: string;
+  requestId: string;
+  provider: AiCreditPaymentProviderId;
+  requiresCapture: boolean;
+}> {
   const res = await apiFetch(`${BASE}/checkout`, {
     method: "POST",
     headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ packageId: body.packageId }),
+    body: JSON.stringify({
+      packageId: body.packageId,
+      provider: body.provider,
+      returnTo: body.returnTo,
+      source: body.source,
+    }),
   });
   const data = await res.json().catch(() => ({}));
   if (!res.ok) {
@@ -147,8 +173,49 @@ export async function createAiCreditCheckout(body: {
     );
   }
   return {
-    url: (data as Record<string, string>).url,
-    sessionId: (data as Record<string, string>).sessionId,
-    requestId: (data as Record<string, string>).requestId,
+    url: data.url as string,
+    sessionId: data.sessionId as string,
+    requestId: data.requestId as string,
+    provider: data.provider as AiCreditPaymentProviderId,
+    requiresCapture: Boolean(data.requiresCapture),
+  };
+}
+
+export async function fetchAiCreditPaymentOptions(): Promise<
+  AiCreditPaymentProvider[]
+> {
+  const res = await apiFetch(`${BASE}/payment-options`);
+  const data = await res.json().catch(() => ({}));
+  if (!res.ok) {
+    throw new Error(
+      ((data as Record<string, unknown>).message as string) ||
+        "Error cargando métodos de pago",
+    );
+  }
+  return (data.providers ?? []) as AiCreditPaymentProvider[];
+}
+
+export async function captureAiCreditPayment(body: {
+  provider: "paypal";
+  orderId: string;
+}): Promise<{
+  outcome: "processed" | "duplicate" | "ignored";
+  detail?: string;
+}> {
+  const res = await apiFetch(`${BASE}/capture`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ provider: body.provider, order_id: body.orderId }),
+  });
+  const data = await res.json().catch(() => ({}));
+  if (!res.ok) {
+    throw new Error(
+      ((data as Record<string, unknown>).message as string) ||
+        "Error al confirmar el pago",
+    );
+  }
+  return data as {
+    outcome: "processed" | "duplicate" | "ignored";
+    detail?: string;
   };
 }

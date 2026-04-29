@@ -3,11 +3,17 @@
 import React, { useEffect, useRef, useState } from "react"
 import { useParams, useRouter } from "next/navigation"
 import Link from "next/link"
-import { Button } from "@/components/ui/button"
-import { Badge } from "@/components/ui/badge"
+import {
+  Loader2,
+  AlertTriangle,
+  BadgeCheck,
+  Send,
+  MessageSquare,
+  CheckCircle2,
+} from "lucide-react"
+import { SellerPill } from "@/components/seller/ui/SellerPrimitives"
 import { PageBackNav } from "@/components/ui/PageBackNav"
 import { authFetch } from "@/lib/authFetch"
-import { Loader2 } from "lucide-react"
 import { toast } from "sonner"
 
 const API = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8800"
@@ -43,31 +49,38 @@ const STATUS_LABEL: Record<string, string> = {
   cerrado:           "Solicitud completada",
 }
 
-const STATUS_BADGE: Record<string, string> = {
-  abierto:           "bg-green-100 text-green-700 border-0",
-  en_proceso:        "bg-blue-100 text-blue-700 border-0",
-  esperando_usuario: "bg-yellow-100 text-yellow-800 border-0",
-  cerrado:           "bg-gray-100 text-gray-500 border-0",
+const STATUS_TONE: Record<string, "success" | "warning" | "danger" | "neutral"> = {
+  abierto:           "success",
+  en_proceso:        "neutral",
+  esperando_usuario: "warning",
+  cerrado:           "neutral",
 }
 
 const STATUS_DOT: Record<string, string> = {
-  abierto:           "bg-green-500",
+  abierto:           "bg-emerald-500",
   en_proceso:        "bg-blue-500",
-  esperando_usuario: "bg-yellow-500",
+  esperando_usuario: "bg-amber-500",
   cerrado:           "bg-gray-400",
 }
 
 const TIPO_LABEL: Record<string, string> = {
   soporte:      "Soporte",
-  verificacion: "Verificación KYC",
+  verificacion: "KYC",
   incidencia:   "Incidencia",
   otro:         "Otro",
 }
 
-const PRIORITY_BADGE: Record<string, string> = {
-  alta:  "bg-red-100 text-red-700 border-0",
-  media: "bg-yellow-100 text-yellow-700 border-0",
-  baja:  "bg-green-100 text-green-700 border-0",
+const TIPO_STYLE: Record<string, string> = {
+  verificacion: "bg-purple-50 text-purple-700 ring-1 ring-purple-100",
+  incidencia:   "bg-red-50 text-red-600 ring-1 ring-red-100",
+  soporte:      "bg-[color:color-mix(in_srgb,var(--seller-accent)_8%,white)] text-[var(--seller-accent)] ring-1 ring-[color:color-mix(in_srgb,var(--seller-accent)_15%,white)]",
+  otro:         "bg-gray-50 text-gray-500 ring-1 ring-gray-100",
+}
+
+const PRIORITY_STYLE: Record<string, string> = {
+  alta:  "bg-red-50 text-red-600 ring-1 ring-red-100",
+  media: "bg-amber-50 text-amber-700 ring-1 ring-amber-100",
+  baja:  "bg-emerald-50 text-emerald-700 ring-1 ring-emerald-100",
 }
 
 const REPLY_PLACEHOLDER: Record<string, string> = {
@@ -145,21 +158,28 @@ export default function SellerTicketDetailPage() {
     }
   }
 
-  // ── Loading ──────────────────────────────────────────────────────────────────
+  // ── Loading / Not found ────────────────────────────────────────────────────
 
   if (loading) {
     return (
-      <div className="min-h-screen bg-[#f8f5ef] flex items-center justify-center">
-        <Loader2 className="w-6 h-6 animate-spin text-amber-500" />
+      <div className="flex min-h-screen items-center justify-center bg-[#f8f5ef]">
+        <div className="flex h-14 w-14 items-center justify-center rounded-2xl bg-[color:color-mix(in_srgb,var(--seller-accent)_8%,white)]">
+          <Loader2 className="h-6 w-6 animate-spin text-[var(--seller-accent)]" />
+        </div>
       </div>
     )
   }
 
   if (!ticket) {
     return (
-      <div className="min-h-screen bg-[#f8f5ef] flex flex-col items-center justify-center gap-4">
-        <p className="text-sm text-muted-foreground">Ticket no encontrado.</p>
-        <Button variant="outline" onClick={() => router.push("/seller/tickets")}>Volver</Button>
+      <div className="flex min-h-screen flex-col items-center justify-center gap-4 bg-[#f8f5ef] px-4">
+        <p className="text-sm text-[var(--seller-muted)]">Ticket no encontrado.</p>
+        <button
+          onClick={() => router.push("/seller/tickets")}
+          className="rounded-xl border border-[var(--seller-line-strong)] px-4 py-2 text-sm font-medium text-[var(--seller-ink)] transition hover:bg-[var(--seller-panel)]"
+        >
+          Volver a mis tickets
+        </button>
       </div>
     )
   }
@@ -170,61 +190,57 @@ export default function SellerTicketDetailPage() {
   const placeholder = REPLY_PLACEHOLDER[ticket.estado] ?? "Escribe tu mensaje..."
 
   return (
-    <div className="min-h-screen bg-[#f8f5ef] px-4 py-8">
-      <div className="max-w-3xl mx-auto space-y-5">
+    <div className="min-h-screen bg-[#f8f5ef]">
+      <div className="mx-auto max-w-2xl space-y-5 px-4 py-6 sm:px-6 sm:py-10">
 
-        {/* ── Back ──────────────────────────────────────────────────────────── */}
+        {/* ── Back ──────────────────────────────────────────────────── */}
         <PageBackNav
           variant="panel"
           onClick={() => router.push("/seller/tickets")}
           label="Volver a mis tickets"
           meta="Soporte"
-          title={<p className="truncate text-[15px] font-semibold text-[#14231c]">Ticket #{ticket.id}</p>}
+          title={<p className="truncate text-[15px] font-semibold text-[var(--seller-ink)]">Ticket #{ticket.id}</p>}
         />
 
-        {/* ── Header card ───────────────────────────────────────────────────── */}
-        <div className="bg-white rounded-3xl shadow-sm p-6 space-y-4">
-          <div className="flex items-start justify-between flex-wrap gap-3">
-            <div>
-              <p className="text-xs text-muted-foreground font-mono">Ticket #{ticket.id}</p>
-              <h1 className="text-xl font-bold mt-0.5">{ticket.asunto}</h1>
+        {/* ── Header card ───────────────────────────────────────────── */}
+        <section className="space-y-4 rounded-3xl border border-[var(--seller-line)] bg-white p-5">
+          <div className="flex flex-wrap items-start justify-between gap-3">
+            <div className="min-w-0">
+              <p className="font-mono text-[10px] text-[var(--seller-faint-text)]">Ticket #{ticket.id}</p>
+              <h1 className="mt-1 text-xl font-bold tracking-tight text-[var(--seller-ink)]">{ticket.asunto}</h1>
             </div>
             <div className="flex flex-wrap gap-2">
-              <Badge className={STATUS_BADGE[ticket.estado] ?? "border-0"}>
+              <SellerPill tone={STATUS_TONE[ticket.estado] ?? "neutral"}>
                 {ticket.estado === "esperando_usuario" ? "Acción requerida" :
                  ticket.estado === "abierto"           ? "Abierto" :
                  ticket.estado === "en_proceso"        ? "En proceso" : "Cerrado"}
-              </Badge>
-              <Badge className={`border-0 ${
-                isKyc                      ? "bg-purple-100 text-purple-700" :
-                ticket.tipo === "incidencia" ? "bg-red-100 text-red-700" :
-                "bg-gray-100 text-gray-600"
-              }`}>
+              </SellerPill>
+              <span className={`rounded-md px-2 py-0.5 text-[10px] font-semibold ${TIPO_STYLE[ticket.tipo] ?? TIPO_STYLE.otro}`}>
                 {TIPO_LABEL[ticket.tipo] ?? ticket.tipo}
-              </Badge>
-              <Badge className={PRIORITY_BADGE[ticket.prioridad] ?? "border-0"}>
+              </span>
+              <span className={`rounded-md px-2 py-0.5 text-[10px] font-semibold ${PRIORITY_STYLE[ticket.prioridad] ?? PRIORITY_STYLE.media}`}>
                 Prioridad {ticket.prioridad}
-              </Badge>
+              </span>
             </div>
           </div>
 
-          {/* Status explanation */}
-          <div className="flex items-center gap-2.5 text-sm text-muted-foreground bg-muted/40 rounded-xl px-4 py-3">
-            <span className={`w-2 h-2 rounded-full shrink-0 ${STATUS_DOT[ticket.estado] ?? "bg-gray-400"}`} />
-            <span>{STATUS_LABEL[ticket.estado] ?? ticket.estado}</span>
-            <span className="ml-auto text-xs">
-              {timeAgo(ticket.createdAt)}
-            </span>
+          {/* Status bar */}
+          <div className="flex items-center gap-2.5 rounded-xl bg-[var(--seller-panel)] px-4 py-3 text-sm text-[var(--seller-muted)]">
+            <span className={`h-2 w-2 shrink-0 rounded-full ${STATUS_DOT[ticket.estado] ?? "bg-gray-400"}`} />
+            <span className="flex-1">{STATUS_LABEL[ticket.estado] ?? ticket.estado}</span>
+            <span className="text-xs text-[var(--seller-faint-text)]">{timeAgo(ticket.createdAt)}</span>
           </div>
-        </div>
+        </section>
 
-        {/* ── Action required ───────────────────────────────────────────────── */}
+        {/* ── Acción requerida ──────────────────────────────────────── */}
         {needsAction && (
-          <div className="bg-yellow-50 border border-yellow-200 rounded-3xl p-5 flex items-start gap-3">
-            <span className="text-yellow-500 text-xl shrink-0 mt-0.5">⚠️</span>
+          <div className="flex items-start gap-3 rounded-2xl border border-amber-200 bg-amber-50 px-4 py-3.5">
+            <span className="mt-0.5 flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-amber-100 text-amber-700">
+              <AlertTriangle className="h-4 w-4" />
+            </span>
             <div>
-              <p className="font-semibold text-yellow-800">Acción requerida</p>
-              <p className="text-sm text-yellow-700 mt-1">
+              <p className="text-sm font-semibold text-amber-800">Acción requerida</p>
+              <p className="mt-0.5 text-xs text-amber-700">
                 Necesitamos información adicional para continuar con tu solicitud.
                 Por favor responde al mensaje del equipo de soporte.
               </p>
@@ -232,14 +248,16 @@ export default function SellerTicketDetailPage() {
           </div>
         )}
 
-        {/* ── KYC smart panel ───────────────────────────────────────────────── */}
+        {/* ── KYC panel ─────────────────────────────────────────────── */}
         {isKyc && !isClosed && (
-          <div className="bg-purple-50 border border-purple-200 rounded-3xl p-6 space-y-4">
+          <section className="space-y-4 rounded-3xl border border-purple-200 bg-purple-50 p-5">
             <div className="flex items-center gap-3">
-              <span className="text-2xl shrink-0">🪪</span>
+              <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-2xl bg-purple-100 text-purple-700">
+                <BadgeCheck className="h-5 w-5" />
+              </span>
               <div>
                 <p className="font-semibold text-purple-900">Verificación de identidad</p>
-                <p className="text-sm text-purple-700 mt-0.5">Completa estos pasos para activar tu tienda</p>
+                <p className="mt-0.5 text-xs text-purple-700">Completa estos pasos para activar tu tienda</p>
               </div>
             </div>
             <ul className="space-y-2.5">
@@ -249,35 +267,42 @@ export default function SellerTicketDetailPage() {
                 "Sube selfie sosteniendo tu DPI",
               ].map((step, i) => (
                 <li key={i} className="flex items-center gap-3 text-sm text-purple-800">
-                  <span className="w-6 h-6 rounded-full bg-purple-200 flex items-center justify-center text-xs font-bold shrink-0 text-purple-800">
+                  <span className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-purple-200 text-xs font-bold text-purple-800">
                     {i + 1}
                   </span>
                   {step}
                 </li>
               ))}
             </ul>
-            <Link href="/seller/account">
-              <Button className="bg-purple-600 hover:bg-purple-700 text-white w-full mt-1">
-                👉 Completar verificación
-              </Button>
+            <Link
+              href="/seller/account"
+              className="flex w-full items-center justify-center gap-2 rounded-2xl bg-purple-600 px-4 py-3 text-sm font-bold text-white transition hover:bg-purple-700 active:scale-[0.99]"
+            >
+              <CheckCircle2 className="h-4 w-4" />
+              Completar verificación
             </Link>
-          </div>
+          </section>
         )}
 
-        {/* ── Conversation ──────────────────────────────────────────────────── */}
-        <div className="bg-white rounded-3xl shadow-sm overflow-hidden">
-          <div className="px-6 py-4 border-b flex items-center justify-between">
-            <p className="font-semibold text-sm">Conversación</p>
-            <span className="text-xs text-muted-foreground">
+        {/* ── Conversación ──────────────────────────────────────────── */}
+        <section className="overflow-hidden rounded-3xl border border-[var(--seller-line)] bg-white">
+          <div className="flex items-center justify-between border-b border-[var(--seller-line)] px-5 py-3.5">
+            <div className="flex items-center gap-2">
+              <MessageSquare className="h-4 w-4 text-[var(--seller-accent)]" />
+              <p className="text-sm font-semibold text-[var(--seller-ink)]">Conversación</p>
+            </div>
+            <span className="text-xs text-[var(--seller-muted)]">
               {messages.length} mensaje{messages.length !== 1 ? "s" : ""}
             </span>
           </div>
 
-          <div className="px-6 py-5 space-y-1 min-h-[200px] max-h-[480px] overflow-y-auto">
+          <div className="min-h-[200px] max-h-[480px] overflow-y-auto space-y-1 px-5 py-5">
             {messages.length === 0 ? (
-              <div className="flex flex-col items-center justify-center py-12 text-center gap-3">
-                <span className="text-4xl">💬</span>
-                <p className="text-sm text-muted-foreground">
+              <div className="flex flex-col items-center justify-center gap-3 py-12 text-center">
+                <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-[color:color-mix(in_srgb,var(--seller-accent)_8%,white)]">
+                  <MessageSquare className="h-5 w-5 text-[var(--seller-accent)]" />
+                </div>
+                <p className="text-sm text-[var(--seller-muted)]">
                   Aún no hay mensajes. Nuestro equipo responderá pronto.
                 </p>
               </div>
@@ -293,20 +318,18 @@ export default function SellerTicketDetailPage() {
                     className={`flex flex-col ${isAdmin ? "items-start" : "items-end"} ${sameAuthor ? "mt-1" : "mt-4"}`}
                   >
                     {!sameAuthor && (
-                      <span className="text-[10px] font-medium text-muted-foreground mb-1 px-1">
+                      <span className="mb-1 px-1 text-[10px] font-medium text-[var(--seller-faint-text)]">
                         {isAdmin ? "Equipo Flowjuyu" : "Tú"}
                       </span>
                     )}
-                    <div
-                      className={`max-w-[78%] px-4 py-3 rounded-2xl text-sm shadow-sm ${
-                        isAdmin
-                          ? "bg-amber-50 border border-amber-200 text-amber-900 rounded-tl-sm"
-                          : "bg-neutral-800 text-white rounded-tr-sm"
-                      }`}
-                    >
+                    <div className={`max-w-[78%] rounded-2xl px-4 py-3 text-sm ${
+                      isAdmin
+                        ? "rounded-tl-sm border border-[var(--seller-line)] bg-[var(--seller-panel)] text-[var(--seller-ink)]"
+                        : "rounded-tr-sm bg-[var(--seller-accent)] text-white"
+                    }`}>
                       <p className="whitespace-pre-wrap break-words">{msg.mensaje}</p>
                       <time
-                        className={`block text-[10px] mt-1 ${isAdmin ? "text-amber-600/70" : "text-white/60"}`}
+                        className={`mt-1 block text-[10px] ${isAdmin ? "text-[var(--seller-faint-text)]" : "text-white/60"}`}
                         title={new Date(msg.createdAt).toLocaleString("es-GT")}
                       >
                         {timeAgo(msg.createdAt)}
@@ -319,39 +342,49 @@ export default function SellerTicketDetailPage() {
             <div ref={messagesEndRef} />
           </div>
 
-          {/* Reply box */}
+          {/* Reply / Closed */}
           {!isClosed ? (
-            <div className="px-6 pb-6 pt-4 border-t space-y-3 bg-[#fafaf8]">
+            <div className="space-y-3 border-t border-[var(--seller-line)] bg-[var(--seller-panel)] px-5 py-4">
               <textarea
                 value={reply}
                 onChange={(e) => setReply(e.target.value)}
                 onKeyDown={(e) => { if (e.key === "Enter" && (e.ctrlKey || e.metaKey)) handleReply() }}
                 placeholder={placeholder}
-                className="w-full border rounded-2xl px-4 py-3 text-sm resize-none focus:outline-none focus:ring-2 focus:ring-amber-400/40 bg-white"
                 rows={3}
+                className="w-full resize-none rounded-xl border border-[var(--seller-line)] bg-white px-4 py-3 text-sm text-[var(--seller-ink)] placeholder:text-[var(--seller-faint-text)] outline-none transition focus:border-[var(--seller-accent)] focus:ring-2 focus:ring-[color:color-mix(in_srgb,var(--seller-accent)_20%,transparent)]"
               />
               <div className="flex items-center justify-between">
-                <span className="text-[10px] text-muted-foreground">Ctrl+Enter para enviar</span>
-                <Button
+                <span className="text-[10px] text-[var(--seller-faint-text)]">Ctrl+Enter para enviar</span>
+                <button
+                  type="button"
                   onClick={handleReply}
                   disabled={sending || !reply.trim()}
-                  className="bg-amber-500 hover:bg-amber-600 text-white gap-2"
+                  className="inline-flex items-center gap-2 rounded-xl bg-[var(--seller-accent)] px-4 py-2.5 text-sm font-semibold text-white shadow-[0_8px_20px_-12px_rgba(15,61,58,0.5)] transition hover:shadow-[0_10px_24px_-10px_rgba(15,61,58,0.6)] active:scale-[0.99] disabled:opacity-50 disabled:shadow-none"
                 >
-                  {sending && <Loader2 className="w-4 h-4 animate-spin" />}
+                  {sending
+                    ? <Loader2 className="h-4 w-4 animate-spin" />
+                    : <Send className="h-4 w-4" />
+                  }
                   Enviar respuesta
-                </Button>
+                </button>
               </div>
             </div>
           ) : (
-            <div className="px-6 py-5 border-t bg-muted/20 text-center text-sm text-muted-foreground">
-              Este ticket está cerrado. Crea un nuevo ticket si necesitas más ayuda.
+            <div className="border-t border-[var(--seller-line)] bg-[var(--seller-panel)] px-5 py-4 text-center text-sm text-[var(--seller-muted)]">
+              Este ticket está cerrado.{" "}
+              <Link href="/seller/tickets/new" className="font-medium text-[var(--seller-ink)] underline-offset-2 hover:underline">
+                Crea un nuevo ticket
+              </Link>{" "}
+              si necesitas más ayuda.
             </div>
           )}
-        </div>
+        </section>
 
-        {/* ── Trust footer ──────────────────────────────────────────────────── */}
-        <p className="text-center text-xs text-muted-foreground pb-4">
-          Nuestro equipo responderá en menos de 24 horas · Flowjuyu Support
+        {/* ── Footer ────────────────────────────────────────────────── */}
+        <p className="px-2 pb-4 text-center text-[11px] leading-relaxed text-[var(--seller-muted)]">
+          Nuestro equipo responderá en menos de{" "}
+          <span className="font-medium text-[var(--seller-ink)]">24 horas</span>
+          {" "}· Flowjuyu Support
         </p>
 
       </div>

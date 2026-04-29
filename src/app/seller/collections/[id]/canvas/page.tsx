@@ -4,14 +4,45 @@ import { useEffect, useRef, useState, useCallback } from "react";
 import Link from "next/link";
 import { useParams } from "next/navigation";
 import {
-  ArrowLeft, Save, Eye, EyeOff, X, Search, GripVertical,
-  Check, Loader2, MousePointer2, Type, Square, ImageIcon,
-  AlignLeft, AlignCenter, AlignRight, Copy,
-  ChevronUp, ChevronDown, FlipHorizontal, FlipVertical,
-  Grid3x3, Undo2, Redo2, Lock, Unlock,
-  AlignHorizontalJustifyStart, AlignHorizontalJustifyCenter, AlignHorizontalJustifyEnd,
-  AlignVerticalJustifyStart, AlignVerticalJustifyCenter, AlignVerticalJustifyEnd,
-  Minus, Plus, Sparkles, RefreshCw, Hand, Package, Download,
+  ArrowLeft,
+  Save,
+  Eye,
+  EyeOff,
+  X,
+  Search,
+  GripVertical,
+  Check,
+  Loader2,
+  MousePointer2,
+  Type,
+  Square,
+  ImageIcon,
+  AlignLeft,
+  AlignCenter,
+  AlignRight,
+  Copy,
+  ChevronUp,
+  ChevronDown,
+  FlipHorizontal,
+  FlipVertical,
+  Grid3x3,
+  Undo2,
+  Redo2,
+  Lock,
+  Unlock,
+  AlignHorizontalJustifyStart,
+  AlignHorizontalJustifyCenter,
+  AlignHorizontalJustifyEnd,
+  AlignVerticalJustifyStart,
+  AlignVerticalJustifyCenter,
+  AlignVerticalJustifyEnd,
+  Minus,
+  Plus,
+  Sparkles,
+  RefreshCw,
+  Hand,
+  Package,
+  Download,
 } from "lucide-react";
 import { apiFetch, invalidateCache } from "@/lib/api";
 import { useAuth } from "@/context/AuthContext";
@@ -21,6 +52,7 @@ import {
   SellerSurfaceCard,
 } from "@/components/seller/ui/SellerPrimitives";
 import CollectionArtworkPreview from "@/components/seller/CollectionArtworkPreview";
+import AiCreditTopUpModal from "@/components/seller/ai/AiCreditTopUpModal";
 import { PageBackNav } from "@/components/ui/PageBackNav";
 import { FloatingActionDock } from "@/components/ui/FloatingActionDock";
 import {
@@ -35,7 +67,19 @@ import {
 // ─── Types ────────────────────────────────────────────────────────────────────
 
 type EntranceAnim = "none" | "fadeIn" | "slideUp" | "slideLeft" | "zoomIn";
-type MotionAnim   = "none" | "float" | "pulse" | "spin" | "shake" | "bounce" | "heartbeat" | "swing" | "wiggle" | "breathe" | "rubber-band" | "tilt";
+type MotionAnim =
+  | "none"
+  | "float"
+  | "pulse"
+  | "spin"
+  | "shake"
+  | "bounce"
+  | "heartbeat"
+  | "swing"
+  | "wiggle"
+  | "breathe"
+  | "rubber-band"
+  | "tilt";
 type HistoryEntry = { undo: () => void; redo: () => void };
 
 type ContentText = {
@@ -70,7 +114,18 @@ type ContentText = {
 
 type ContentShape = {
   group_id?: string | null;
-  shapeType: "rectangle" | "circle" | "triangle" | "star" | "line" | "capsule" | "arch" | "blob" | "sparkle" | "wave" | "diamond";
+  shapeType:
+    | "rectangle"
+    | "circle"
+    | "triangle"
+    | "star"
+    | "line"
+    | "capsule"
+    | "arch"
+    | "blob"
+    | "sparkle"
+    | "wave"
+    | "diamond";
   fillColor: string;
   gradientEnabled?: boolean;
   gradientColor2?: string;
@@ -172,7 +227,12 @@ type CollectionData = {
   items?: CanvasItem[];
 };
 
-type Product = { id: string; nombre: string; imagen_url: string | null; precio: number; };
+type Product = {
+  id: string;
+  nombre: string;
+  imagen_url: string | null;
+  precio: number;
+};
 type ActiveTool = "select" | "text" | "shape" | "image" | "decor" | "hand";
 type SelectSidebarTab = "products" | "templates" | "layers";
 type MobilePanel = "tools" | "library" | "properties" | null;
@@ -209,40 +269,40 @@ const GOOGLE_FONTS_URL =
   "https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,400;0,700;1,400&family=Montserrat:wght@400;600;700&family=Lato:ital,wght@0,400;0,700;1,400&family=Raleway:wght@400;600;700&family=Oswald:wght@400;600;700&family=Pacifico&family=Dancing+Script:wght@400;700&family=Nunito:wght@400;600;700&family=Bebas+Neue&family=Satisfy&family=Abril+Fatface&family=Josefin+Sans:ital,wght@0,400;0,700;1,400&family=Inter:wght@400;500;600;700&family=Poppins:ital,wght@0,400;0,600;0,700;1,400&family=Work+Sans:wght@400;600;700&family=DM+Sans:ital,wght@0,400;0,500;0,700&family=Manrope:wght@400;600;700&family=Cormorant+Garamond:ital,wght@0,400;0,600;1,400&family=Lora:ital,wght@0,400;0,600;1,400&family=EB+Garamond:ital,wght@0,400;0,600;1,400&family=Libre+Baskerville:ital,wght@0,400;0,700;1,400&family=Righteous&family=Fredoka+One&family=Russo+One&family=Baloo+2:wght@400;600;700&family=Great+Vibes&family=Sacramento&family=Space+Mono:ital,wght@0,400;0,700&display=swap";
 
 const GOOGLE_FONTS = [
-  { label: "Sistema",             value: "inherit" },
+  { label: "Sistema", value: "inherit" },
   // ── Sans-serif moderna ──
-  { label: "Inter",               value: "'Inter', sans-serif" },
-  { label: "Poppins",             value: "'Poppins', sans-serif" },
-  { label: "Montserrat",          value: "'Montserrat', sans-serif" },
-  { label: "DM Sans",             value: "'DM Sans', sans-serif" },
-  { label: "Manrope",             value: "'Manrope', sans-serif" },
-  { label: "Work Sans",           value: "'Work Sans', sans-serif" },
-  { label: "Nunito",              value: "'Nunito', sans-serif" },
-  { label: "Lato",                value: "'Lato', sans-serif" },
-  { label: "Raleway",             value: "'Raleway', sans-serif" },
-  { label: "Josefin Sans",        value: "'Josefin Sans', sans-serif" },
+  { label: "Inter", value: "'Inter', sans-serif" },
+  { label: "Poppins", value: "'Poppins', sans-serif" },
+  { label: "Montserrat", value: "'Montserrat', sans-serif" },
+  { label: "DM Sans", value: "'DM Sans', sans-serif" },
+  { label: "Manrope", value: "'Manrope', sans-serif" },
+  { label: "Work Sans", value: "'Work Sans', sans-serif" },
+  { label: "Nunito", value: "'Nunito', sans-serif" },
+  { label: "Lato", value: "'Lato', sans-serif" },
+  { label: "Raleway", value: "'Raleway', sans-serif" },
+  { label: "Josefin Sans", value: "'Josefin Sans', sans-serif" },
   // ── Display / impacto ──
-  { label: "Oswald",              value: "'Oswald', sans-serif" },
-  { label: "Bebas Neue",          value: "'Bebas Neue', sans-serif" },
-  { label: "Russo One",           value: "'Russo One', sans-serif" },
-  { label: "Righteous",           value: "'Righteous', sans-serif" },
-  { label: "Fredoka One",         value: "'Fredoka One', sans-serif" },
-  { label: "Baloo 2",             value: "'Baloo 2', sans-serif" },
+  { label: "Oswald", value: "'Oswald', sans-serif" },
+  { label: "Bebas Neue", value: "'Bebas Neue', sans-serif" },
+  { label: "Russo One", value: "'Russo One', sans-serif" },
+  { label: "Righteous", value: "'Righteous', sans-serif" },
+  { label: "Fredoka One", value: "'Fredoka One', sans-serif" },
+  { label: "Baloo 2", value: "'Baloo 2', sans-serif" },
   // ── Serif editorial ──
-  { label: "Playfair Display",    value: "'Playfair Display', serif" },
-  { label: "Cormorant Garamond",  value: "'Cormorant Garamond', serif" },
-  { label: "Lora",                value: "'Lora', serif" },
-  { label: "EB Garamond",         value: "'EB Garamond', serif" },
-  { label: "Libre Baskerville",   value: "'Libre Baskerville', serif" },
-  { label: "Abril Fatface",       value: "'Abril Fatface', serif" },
+  { label: "Playfair Display", value: "'Playfair Display', serif" },
+  { label: "Cormorant Garamond", value: "'Cormorant Garamond', serif" },
+  { label: "Lora", value: "'Lora', serif" },
+  { label: "EB Garamond", value: "'EB Garamond', serif" },
+  { label: "Libre Baskerville", value: "'Libre Baskerville', serif" },
+  { label: "Abril Fatface", value: "'Abril Fatface', serif" },
   // ── Script / caligrafía ──
-  { label: "Great Vibes",         value: "'Great Vibes', cursive" },
-  { label: "Sacramento",          value: "'Sacramento', cursive" },
-  { label: "Dancing Script",      value: "'Dancing Script', cursive" },
-  { label: "Pacifico",            value: "'Pacifico', cursive" },
-  { label: "Satisfy",             value: "'Satisfy', cursive" },
+  { label: "Great Vibes", value: "'Great Vibes', cursive" },
+  { label: "Sacramento", value: "'Sacramento', cursive" },
+  { label: "Dancing Script", value: "'Dancing Script', cursive" },
+  { label: "Pacifico", value: "'Pacifico', cursive" },
+  { label: "Satisfy", value: "'Satisfy', cursive" },
   // ── Monoespaciada ──
-  { label: "Space Mono",          value: "'Space Mono', monospace" },
+  { label: "Space Mono", value: "'Space Mono', monospace" },
 ];
 
 // ─── Constants ────────────────────────────────────────────────────────────────
@@ -319,46 +379,46 @@ const DEFAULT_IMAGE: ContentImage = {
 };
 
 const ENTRANCE_ANIMS: { value: EntranceAnim; label: string }[] = [
-  { value: "none",      label: "Sin entrada" },
-  { value: "fadeIn",    label: "Aparecer" },
-  { value: "slideUp",   label: "Subir" },
+  { value: "none", label: "Sin entrada" },
+  { value: "fadeIn", label: "Aparecer" },
+  { value: "slideUp", label: "Subir" },
   { value: "slideLeft", label: "Deslizar" },
-  { value: "zoomIn",    label: "Zoom" },
+  { value: "zoomIn", label: "Zoom" },
 ];
 
 const MOTION_ANIMS: { value: MotionAnim; label: string }[] = [
-  { value: "none",        label: "Sin movimiento" },
-  { value: "float",       label: "Flotar" },
-  { value: "pulse",       label: "Pulso" },
-  { value: "spin",        label: "Rotar" },
-  { value: "shake",       label: "Vibrar" },
-  { value: "bounce",      label: "Rebotar" },
-  { value: "heartbeat",   label: "Latido" },
-  { value: "swing",       label: "Columpio" },
-  { value: "wiggle",      label: "Bamboleo" },
-  { value: "breathe",     label: "Respirar" },
+  { value: "none", label: "Sin movimiento" },
+  { value: "float", label: "Flotar" },
+  { value: "pulse", label: "Pulso" },
+  { value: "spin", label: "Rotar" },
+  { value: "shake", label: "Vibrar" },
+  { value: "bounce", label: "Rebotar" },
+  { value: "heartbeat", label: "Latido" },
+  { value: "swing", label: "Columpio" },
+  { value: "wiggle", label: "Bamboleo" },
+  { value: "breathe", label: "Respirar" },
   { value: "rubber-band", label: "Elástico" },
-  { value: "tilt",        label: "Inclinar" },
+  { value: "tilt", label: "Inclinar" },
 ];
 
 const MOTION_DURATION: Record<MotionAnim, string> = {
-  none:         "",
-  float:        "3s ease-in-out infinite",
-  pulse:        "2s ease-in-out infinite",
-  spin:         "4s linear infinite",
-  shake:        "0.5s ease-in-out infinite",
-  bounce:       "1s ease-in-out infinite",
-  heartbeat:    "1.2s ease-in-out infinite",
-  swing:        "2s ease-in-out infinite",
-  wiggle:       "1s ease-in-out infinite",
-  breathe:      "4s ease-in-out infinite",
+  none: "",
+  float: "3s ease-in-out infinite",
+  pulse: "2s ease-in-out infinite",
+  spin: "4s linear infinite",
+  shake: "0.5s ease-in-out infinite",
+  bounce: "1s ease-in-out infinite",
+  heartbeat: "1.2s ease-in-out infinite",
+  swing: "2s ease-in-out infinite",
+  wiggle: "1s ease-in-out infinite",
+  breathe: "4s ease-in-out infinite",
   "rubber-band": "1.2s ease-in-out infinite",
-  tilt:         "3s ease-in-out infinite",
+  tilt: "3s ease-in-out infinite",
 };
 
 const GRID_OPTIONS = [
   { label: "Off", value: 0 },
-  { label: "8px",  value: 8 },
+  { label: "8px", value: 8 },
   { label: "16px", value: 16 },
   { label: "32px", value: 32 },
 ];
@@ -370,15 +430,21 @@ type BackgroundGradientState = {
   type: "linear" | "radial";
 };
 
-type BgTextureId = "none" | "dots" | "grid" | "lines" | "diagonal" | "crosshatch";
+type BgTextureId =
+  | "none"
+  | "dots"
+  | "grid"
+  | "lines"
+  | "diagonal"
+  | "crosshatch";
 type BgTextureState = { patternId: BgTextureId; scale: number };
 
 const BG_TEXTURES: { id: BgTextureId; label: string }[] = [
-  { id: "none",       label: "Sin textura" },
-  { id: "dots",       label: "Puntos" },
-  { id: "grid",       label: "Cuadrícula" },
-  { id: "lines",      label: "Líneas" },
-  { id: "diagonal",   label: "Diagonal" },
+  { id: "none", label: "Sin textura" },
+  { id: "dots", label: "Puntos" },
+  { id: "grid", label: "Cuadrícula" },
+  { id: "lines", label: "Líneas" },
+  { id: "diagonal", label: "Diagonal" },
   { id: "crosshatch", label: "Cruzado" },
 ];
 
@@ -875,16 +941,16 @@ const MOBILE_EDITOR_EFFECTIVE_SCALE_MIN = 0.1;
 
 const SHAPE_TYPES: { value: ContentShape["shapeType"]; label: string }[] = [
   { value: "rectangle", label: "Rect." },
-  { value: "circle",    label: "Círculo" },
-  { value: "triangle",  label: "Triáng." },
-  { value: "star",      label: "Estrella" },
-  { value: "line",      label: "Línea" },
-  { value: "capsule",   label: "Cápsula" },
-  { value: "arch",      label: "Arco" },
-  { value: "blob",      label: "Blob" },
-  { value: "sparkle",   label: "Sparkle" },
-  { value: "wave",      label: "Onda" },
-  { value: "diamond",   label: "Diamante" },
+  { value: "circle", label: "Círculo" },
+  { value: "triangle", label: "Triáng." },
+  { value: "star", label: "Estrella" },
+  { value: "line", label: "Línea" },
+  { value: "capsule", label: "Cápsula" },
+  { value: "arch", label: "Arco" },
+  { value: "blob", label: "Blob" },
+  { value: "sparkle", label: "Sparkle" },
+  { value: "wave", label: "Onda" },
+  { value: "diamond", label: "Diamante" },
 ];
 
 const DECORATIVE_SHAPE_TYPES: ContentShape["shapeType"][] = [
@@ -907,12 +973,18 @@ function getShapeBackground(sc: ContentShape): string {
   return sc.fillColor || "#0F3D3A";
 }
 
-function getShapeClipPath(shapeType: ContentShape["shapeType"]): string | undefined {
+function getShapeClipPath(
+  shapeType: ContentShape["shapeType"],
+): string | undefined {
   if (shapeType === "triangle") return "polygon(50% 0%, 0% 100%, 100% 100%)";
-  if (shapeType === "star") return "polygon(50% 0%, 61% 35%, 98% 35%, 68% 57%, 79% 91%, 50% 70%, 21% 91%, 32% 57%, 2% 35%, 39% 35%)";
-  if (shapeType === "sparkle") return "polygon(50% 0%, 59% 34%, 84% 16%, 66% 41%, 100% 50%, 66% 59%, 84% 84%, 59% 66%, 50% 100%, 41% 66%, 16% 84%, 34% 59%, 0% 50%, 34% 41%, 16% 16%, 41% 34%)";
-  if (shapeType === "wave") return "polygon(0% 46%, 8% 39%, 16% 37%, 25% 41%, 33% 49%, 42% 58%, 50% 61%, 58% 57%, 67% 47%, 75% 38%, 84% 35%, 92% 39%, 100% 46%, 100% 100%, 0% 100%)";
-  if (shapeType === "diamond") return "polygon(50% 0%, 100% 50%, 50% 100%, 0% 50%)";
+  if (shapeType === "star")
+    return "polygon(50% 0%, 61% 35%, 98% 35%, 68% 57%, 79% 91%, 50% 70%, 21% 91%, 32% 57%, 2% 35%, 39% 35%)";
+  if (shapeType === "sparkle")
+    return "polygon(50% 0%, 59% 34%, 84% 16%, 66% 41%, 100% 50%, 66% 59%, 84% 84%, 59% 66%, 50% 100%, 41% 66%, 16% 84%, 34% 59%, 0% 50%, 34% 41%, 16% 16%, 41% 34%)";
+  if (shapeType === "wave")
+    return "polygon(0% 46%, 8% 39%, 16% 37%, 25% 41%, 33% 49%, 42% 58%, 50% 61%, 58% 57%, 67% 47%, 75% 38%, 84% 35%, 92% 39%, 100% 46%, 100% 100%, 0% 100%)";
+  if (shapeType === "diamond")
+    return "polygon(50% 0%, 100% 50%, 50% 100%, 0% 50%)";
   return undefined;
 }
 
@@ -921,15 +993,34 @@ function getShapeBorderRadius(sc: ContentShape): string {
   if (sc.shapeType === "capsule") return "999px";
   if (sc.shapeType === "arch") return "999px 999px 18px 18px";
   if (sc.shapeType === "blob") return "58% 42% 57% 43% / 39% 44% 56% 61%";
-  if (sc.shapeType === "triangle" || sc.shapeType === "star" || sc.shapeType === "line" || sc.shapeType === "sparkle" || sc.shapeType === "wave" || sc.shapeType === "diamond") return "0";
+  if (
+    sc.shapeType === "triangle" ||
+    sc.shapeType === "star" ||
+    sc.shapeType === "line" ||
+    sc.shapeType === "sparkle" ||
+    sc.shapeType === "wave" ||
+    sc.shapeType === "diamond"
+  )
+    return "0";
   return `${sc.borderRadius ?? 8}px`;
 }
 
 function isBorderFriendlyShape(shapeType: ContentShape["shapeType"]): boolean {
-  return shapeType === "rectangle" || shapeType === "circle" || shapeType === "line" || shapeType === "capsule" || shapeType === "arch" || shapeType === "blob";
+  return (
+    shapeType === "rectangle" ||
+    shapeType === "circle" ||
+    shapeType === "line" ||
+    shapeType === "capsule" ||
+    shapeType === "arch" ||
+    shapeType === "blob"
+  );
 }
 
-function buildTransform(rotation: number, flipX: boolean, flipY: boolean): string | undefined {
+function buildTransform(
+  rotation: number,
+  flipX: boolean,
+  flipY: boolean,
+): string | undefined {
   const parts: string[] = [];
   if (rotation) parts.push(`rotate(${rotation}deg)`);
   if (flipX) parts.push("scaleX(-1)");
@@ -942,21 +1033,53 @@ function snapToGrid(v: number, grid: number): number {
   return Math.round(v / grid) * grid;
 }
 
-function buildBoxShadow(c: { shadowEnabled?: boolean; shadowX?: number; shadowY?: number; shadowBlur?: number; shadowSpread?: number; shadowColor?: string } | null | undefined): string | undefined {
+function buildBoxShadow(
+  c:
+    | {
+        shadowEnabled?: boolean;
+        shadowX?: number;
+        shadowY?: number;
+        shadowBlur?: number;
+        shadowSpread?: number;
+        shadowColor?: string;
+      }
+    | null
+    | undefined,
+): string | undefined {
   if (!c?.shadowEnabled) return undefined;
   return `${c.shadowX ?? 4}px ${c.shadowY ?? 4}px ${c.shadowBlur ?? 8}px ${c.shadowSpread ?? 0}px ${c.shadowColor ?? "rgba(0,0,0,0.3)"}`;
 }
 
-function buildCssFilter(c: { filterBrightness?: number; filterContrast?: number; filterSaturation?: number; filterHue?: number; filterBlur?: number; filterSepia?: number; filterGrayscale?: number } | null | undefined): string | undefined {
+function buildCssFilter(
+  c:
+    | {
+        filterBrightness?: number;
+        filterContrast?: number;
+        filterSaturation?: number;
+        filterHue?: number;
+        filterBlur?: number;
+        filterSepia?: number;
+        filterGrayscale?: number;
+      }
+    | null
+    | undefined,
+): string | undefined {
   if (!c) return undefined;
   const parts: string[] = [];
-  if (c.filterBrightness !== undefined && c.filterBrightness !== 100) parts.push(`brightness(${c.filterBrightness}%)`);
-  if (c.filterContrast   !== undefined && c.filterContrast   !== 100) parts.push(`contrast(${c.filterContrast}%)`);
-  if (c.filterSaturation !== undefined && c.filterSaturation !== 100) parts.push(`saturate(${c.filterSaturation}%)`);
-  if (c.filterHue        !== undefined && c.filterHue        !== 0)   parts.push(`hue-rotate(${c.filterHue}deg)`);
-  if (c.filterBlur       !== undefined && c.filterBlur       !== 0)   parts.push(`blur(${c.filterBlur}px)`);
-  if (c.filterSepia      !== undefined && c.filterSepia      !== 0)   parts.push(`sepia(${c.filterSepia}%)`);
-  if (c.filterGrayscale  !== undefined && c.filterGrayscale  !== 0)   parts.push(`grayscale(${c.filterGrayscale}%)`);
+  if (c.filterBrightness !== undefined && c.filterBrightness !== 100)
+    parts.push(`brightness(${c.filterBrightness}%)`);
+  if (c.filterContrast !== undefined && c.filterContrast !== 100)
+    parts.push(`contrast(${c.filterContrast}%)`);
+  if (c.filterSaturation !== undefined && c.filterSaturation !== 100)
+    parts.push(`saturate(${c.filterSaturation}%)`);
+  if (c.filterHue !== undefined && c.filterHue !== 0)
+    parts.push(`hue-rotate(${c.filterHue}deg)`);
+  if (c.filterBlur !== undefined && c.filterBlur !== 0)
+    parts.push(`blur(${c.filterBlur}px)`);
+  if (c.filterSepia !== undefined && c.filterSepia !== 0)
+    parts.push(`sepia(${c.filterSepia}%)`);
+  if (c.filterGrayscale !== undefined && c.filterGrayscale !== 0)
+    parts.push(`grayscale(${c.filterGrayscale}%)`);
   return parts.length > 0 ? parts.join(" ") : undefined;
 }
 
@@ -984,7 +1107,12 @@ function injectSellerProductsIntoSnapshot(
     if (item.element_type !== "product") return item;
     const p = withImages[idx % withImages.length];
     idx++;
-    return { ...item, product_image: p.imagen_url, product_name: p.nombre, product_price: p.precio };
+    return {
+      ...item,
+      product_image: p.imagen_url,
+      product_name: p.nombre,
+      product_price: p.precio,
+    };
   });
 }
 
@@ -1002,12 +1130,18 @@ function getTemplateMeta(name: string) {
   const variant = variantRaw || "Base";
 
   const descriptions: Record<string, string> = {
-    "Maison Editorial": "Lanzamiento premium con aire editorial y pieza hero dominante.",
-    "Signature Drop": "Campana de drop con tension visual, contraste y energia comercial.",
-    "Crafted Heritage": "Narrativa de oficio, origen y textura para colecciones artesanales premium.",
-    "Modern Atelier": "Moda refinada con composicion limpia, serena y contemporanea.",
-    "Premium Offer": "Oferta elegante con foco en conversion sin perder valor de marca.",
-    "Lookbook Grid": "Vitrina de varias piezas con ritmo editorial y lectura clara.",
+    "Maison Editorial":
+      "Lanzamiento premium con aire editorial y pieza hero dominante.",
+    "Signature Drop":
+      "Campana de drop con tension visual, contraste y energia comercial.",
+    "Crafted Heritage":
+      "Narrativa de oficio, origen y textura para colecciones artesanales premium.",
+    "Modern Atelier":
+      "Moda refinada con composicion limpia, serena y contemporanea.",
+    "Premium Offer":
+      "Oferta elegante con foco en conversion sin perder valor de marca.",
+    "Lookbook Grid":
+      "Vitrina de varias piezas con ritmo editorial y lectura clara.",
   };
 
   const tones: Record<string, string> = {
@@ -1023,7 +1157,9 @@ function getTemplateMeta(name: string) {
     family,
     variant,
     tone: tones[family] ?? "Premium",
-    description: descriptions[family] ?? "Plantilla premium para lanzamientos de coleccion.",
+    description:
+      descriptions[family] ??
+      "Plantilla premium para lanzamientos de coleccion.",
   };
 }
 
@@ -1032,111 +1168,182 @@ function getTemplateMeta(name: string) {
 export default function CollectionEditorPage() {
   const { id } = useParams<{ id: string }>();
   const collectionId = Number(id);
+  const [showAiTopUp, setShowAiTopUp] = useState(false);
   const { ready: authReady, token: authToken, refreshAuth } = useAuth();
 
-  const [collection, setCollection]         = useState<CollectionData | null>(null);
-  const [items, setItems]                   = useState<CanvasItem[]>([]);
-  const [products, setProducts]             = useState<Product[]>([]);
-  const [templates, setTemplates]           = useState<CollectionTemplate[]>([]);
-  const [loading, setLoading]               = useState(true);
-  const [saving, setSaving]                 = useState(false);
-  const [saved, setSaved]                   = useState(false);
+  const [collection, setCollection] = useState<CollectionData | null>(null);
+  const [items, setItems] = useState<CanvasItem[]>([]);
+  const [products, setProducts] = useState<Product[]>([]);
+  const [templates, setTemplates] = useState<CollectionTemplate[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [saving, setSaving] = useState(false);
+  const [saved, setSaved] = useState(false);
   const [templateSaving, setTemplateSaving] = useState(false);
-  const [templateApplyingId, setTemplateApplyingId] = useState<number | null>(null);
-  const [templatePreviewLoadingId, setTemplatePreviewLoadingId] = useState<number | null>(null);
-  const [previewTemplate, setPreviewTemplate] = useState<CollectionTemplate | null>(null);
+  const [templateApplyingId, setTemplateApplyingId] = useState<number | null>(
+    null,
+  );
+  const [templatePreviewLoadingId, setTemplatePreviewLoadingId] = useState<
+    number | null
+  >(null);
+  const [previewTemplate, setPreviewTemplate] =
+    useState<CollectionTemplate | null>(null);
   const [previewScale, setPreviewScale] = useState(1);
   const [editorCanvasScale, setEditorCanvasScale] = useState(1);
   const [editorZoom, setEditorZoom] = useState(1);
   const [previewZoom, setPreviewZoom] = useState(1);
   const [selectedItemId, setSelectedItemId] = useState<number | null>(null);
-  const [search, setSearch]                 = useState("");
-  const [activeTool, setActiveTool]         = useState<ActiveTool>("select");
+  const [search, setSearch] = useState("");
+  const [activeTool, setActiveTool] = useState<ActiveTool>("select");
   const [isSpacePanning, setIsSpacePanning] = useState(false);
-  const [selectedItemIds, setSelectedItemIds] = useState<Set<number>>(new Set());
+  const [selectedItemIds, setSelectedItemIds] = useState<Set<number>>(
+    new Set(),
+  );
   const [isBackgroundSelected, setIsBackgroundSelected] = useState(false);
-  const [selectSidebarTab, setSelectSidebarTab] = useState<SelectSidebarTab>("products");
-  const [templateScopeFilter, setTemplateScopeFilter] = useState<TemplateScopeFilter>("all");
-  const [name, setName]                     = useState("");
-  const [templateName, setTemplateName]     = useState("");
+  const [selectSidebarTab, setSelectSidebarTab] =
+    useState<SelectSidebarTab>("products");
+  const [templateScopeFilter, setTemplateScopeFilter] =
+    useState<TemplateScopeFilter>("all");
+  const [name, setName] = useState("");
+  const [templateName, setTemplateName] = useState("");
   const [templateIsPublic, setTemplateIsPublic] = useState(true);
   const [showTemplateModal, setShowTemplateModal] = useState(false);
-  const [templateError, setTemplateError]   = useState<string | null>(null);
-  const [originalCanvasSize, setOriginalCanvasSize] = useState<{ width: number; height: number } | null>(null);
-  const [bgColor, setBgColor]               = useState("#FFFFFF");
-  const [bgGradient, setBgGradient]         = useState<BackgroundGradientState>({
-    enabled: false, color2: "#AADDCC", angle: 135, type: "linear" as "linear" | "radial",
+  const [templateError, setTemplateError] = useState<string | null>(null);
+  const [originalCanvasSize, setOriginalCanvasSize] = useState<{
+    width: number;
+    height: number;
+  } | null>(null);
+  const [bgColor, setBgColor] = useState("#FFFFFF");
+  const [bgGradient, setBgGradient] = useState<BackgroundGradientState>({
+    enabled: false,
+    color2: "#AADDCC",
+    angle: 135,
+    type: "linear" as "linear" | "radial",
   });
-  const [bgTexture, setBgTexture]           = useState<BgTextureState>({ patternId: "none", scale: 22 });
-  const [textDefaults, setTextDefaults]     = useState<ContentText>({ ...DEFAULT_TEXT });
-  const [shapeDefaults, setShapeDefaults]   = useState<ContentShape>({ ...DEFAULT_SHAPE });
-  const [gridSnap, setGridSnap]             = useState(0);
-  const [imageUploading, setImageUploading]     = useState(false);
+  const [bgTexture, setBgTexture] = useState<BgTextureState>({
+    patternId: "none",
+    scale: 22,
+  });
+  const [textDefaults, setTextDefaults] = useState<ContentText>({
+    ...DEFAULT_TEXT,
+  });
+  const [shapeDefaults, setShapeDefaults] = useState<ContentShape>({
+    ...DEFAULT_SHAPE,
+  });
+  const [gridSnap, setGridSnap] = useState(0);
+  const [imageUploading, setImageUploading] = useState(false);
   const [bgImageUploading, setBgImageUploading] = useState(false);
-  const [editingTextId, setEditingTextId]       = useState<number | null>(null);
+  const [editingTextId, setEditingTextId] = useState<number | null>(null);
   const [mobileTextEditorDraft, setMobileTextEditorDraft] = useState("");
-  const [lockedItemIds, setLockedItemIds]       = useState<Set<number>>(new Set());
-  const [productSwapOpen, setProductSwapOpen]   = useState(false);
+  const [lockedItemIds, setLockedItemIds] = useState<Set<number>>(new Set());
+  const [productSwapOpen, setProductSwapOpen] = useState(false);
   const [productSwapSearch, setProductSwapSearch] = useState("");
 
   // AI canvas generation
-  const [aiModalOpen, setAiModalOpen]           = useState(false);
-  const [aiStep, setAiStep]                     = useState<1 | 2 | 3>(1);
-  const [aiSelectedProductIds, setAiSelectedProductIds] = useState<Set<string>>(new Set());
-  const [aiProductCount, setAiProductCount]     = useState(3);
-  const [aiTitle, setAiTitle]                   = useState("");
-  const [aiTagline, setAiTagline]               = useState("");
-  const [aiPrompt, setAiPrompt]                 = useState("");
-  const [aiCta, setAiCta]                       = useState("");
-  const [aiStyle, setAiStyle]                   = useState<"minimal" | "bold" | "editorial" | "playful" | "luxury" | "artisanal">("minimal");
-  const [aiPalette, setAiPalette]               = useState<"auto" | "neutral" | "earth" | "dark" | "vibrant">("auto");
-  const [aiLayout, setAiLayout]                 = useState<"hero" | "grid" | "asymmetric" | "collage">("hero");
+  const [aiModalOpen, setAiModalOpen] = useState(false);
+  const [aiStep, setAiStep] = useState<1 | 2 | 3>(1);
+  const [aiSelectedProductIds, setAiSelectedProductIds] = useState<Set<string>>(
+    new Set(),
+  );
+  const [aiProductCount, setAiProductCount] = useState(3);
+  const [aiTitle, setAiTitle] = useState("");
+  const [aiTagline, setAiTagline] = useState("");
+  const [aiPrompt, setAiPrompt] = useState("");
+  const [aiCta, setAiCta] = useState("");
+  const [aiStyle, setAiStyle] = useState<
+    "minimal" | "bold" | "editorial" | "playful" | "luxury" | "artisanal"
+  >("minimal");
+  const [aiPalette, setAiPalette] = useState<
+    "auto" | "neutral" | "earth" | "dark" | "vibrant"
+  >("auto");
+  const [aiLayout, setAiLayout] = useState<
+    "hero" | "grid" | "asymmetric" | "collage"
+  >("hero");
   const [aiGenerateBgImage, setAiGenerateBgImage] = useState(false);
-  const [aiLoading, setAiLoading]               = useState(false);
-  const [aiError, setAiError]                   = useState<string | null>(null);
-  const [aiNoCredits, setAiNoCredits]           = useState(false);
+  const [aiLoading, setAiLoading] = useState(false);
+  const [aiError, setAiError] = useState<string | null>(null);
+  const [aiNoCredits, setAiNoCredits] = useState(false);
   const [aiCreditsBalance, setAiCreditsBalance] = useState<number | null>(null);
+  const aiCanvasCost = aiGenerateBgImage ? 11 : 5;
 
   // Export
-  const [exportOpen, setExportOpen]       = useState(false);
-  const [exportFormat, setExportFormat]   = useState<"png" | "jpeg">("png");
+  const [exportOpen, setExportOpen] = useState(false);
+  const [exportFormat, setExportFormat] = useState<"png" | "jpeg">("png");
   const [exportQuality, setExportQuality] = useState(95);
-  const [exporting, setExporting]         = useState(false);
-  const exportBtnRef                      = useRef<HTMLDivElement>(null);
+  const [exporting, setExporting] = useState(false);
+  const exportBtnRef = useRef<HTMLDivElement>(null);
 
   // Undo/redo state (buttons only; logic is all in refs)
   const [canUndo, setCanUndo] = useState(false);
   const [canRedo, setCanRedo] = useState(false);
   const [mobilePanel, setMobilePanel] = useState<MobilePanel>(null);
-  const [mobileCanvasControlsOpen, setMobileCanvasControlsOpen] = useState(false);
+  const [mobileCanvasControlsOpen, setMobileCanvasControlsOpen] =
+    useState(false);
   const [isMobileViewport, setIsMobileViewport] = useState(false);
   const [mobileViewportWidth, setMobileViewportWidth] = useState(0);
 
-  const canvasRef       = useRef<HTMLDivElement>(null);
+  const canvasRef = useRef<HTMLDivElement>(null);
   const canvasAreaRef = useRef<HTMLDivElement>(null);
   const canvasViewportRef = useRef<HTMLDivElement>(null);
-  const panStartRef = useRef<{ x: number; y: number; scrollLeft: number; scrollTop: number } | null>(null);
+  const panStartRef = useRef<{
+    x: number;
+    y: number;
+    scrollLeft: number;
+    scrollTop: number;
+  } | null>(null);
   const leftPanelRef = useRef<HTMLDivElement>(null);
   const rightPanelRef = useRef<HTMLDivElement>(null);
-  const imageInputRef   = useRef<HTMLInputElement>(null);
+  const imageInputRef = useRef<HTMLInputElement>(null);
   const bgImageInputRef = useRef<HTMLInputElement>(null);
-  const canvasSettingsSaveTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const canvasSettingsSaveTimerRef = useRef<ReturnType<
+    typeof setTimeout
+  > | null>(null);
   const canvasLayoutSnapshotsRef = useRef<Record<string, CanvasItem[]>>({});
-  const dragState      = useRef<{ itemId: number; startPX: number; startPY: number; origX: number; origY: number; groupMembers?: { id: number; origX: number; origY: number }[] } | null>(null);
-  const resizeState    = useRef<{ itemId: number; corner: "nw"|"ne"|"sw"|"se"; startPX: number; startPY: number; origX: number; origY: number; origW: number; origH: number } | null>(null);
-  const debounceTimers = useRef<Record<string, ReturnType<typeof setTimeout>>>({});
-  const itemsRef       = useRef<CanvasItem[]>([]);
-  itemsRef.current     = items;
+  const dragState = useRef<{
+    itemId: number;
+    startPX: number;
+    startPY: number;
+    origX: number;
+    origY: number;
+    groupMembers?: { id: number; origX: number; origY: number }[];
+  } | null>(null);
+  const resizeState = useRef<{
+    itemId: number;
+    corner: "nw" | "ne" | "sw" | "se";
+    startPX: number;
+    startPY: number;
+    origX: number;
+    origY: number;
+    origW: number;
+    origH: number;
+  } | null>(null);
+  const debounceTimers = useRef<Record<string, ReturnType<typeof setTimeout>>>(
+    {},
+  );
+  const itemsRef = useRef<CanvasItem[]>([]);
+  itemsRef.current = items;
 
   // Undo/redo refs
-  const historyRef     = useRef<HistoryEntry[]>([]);
-  const historyIdxRef  = useRef(-1);
+  const historyRef = useRef<HistoryEntry[]>([]);
+  const historyIdxRef = useRef(-1);
   // Content snapshot: captured on item select, compared on deselect
-  const selectedContentSnapshot = useRef<{ itemId: number; content: any } | null>(null);
+  const selectedContentSnapshot = useRef<{
+    itemId: number;
+    content: any;
+  } | null>(null);
   // Position snapshot for X/Y/W/H input blur
-  const posSnapshot = useRef<{ itemId: number; pos_x: number; pos_y: number; width: number; height: number } | null>(null);
+  const posSnapshot = useRef<{
+    itemId: number;
+    pos_x: number;
+    pos_y: number;
+    width: number;
+    height: number;
+  } | null>(null);
 
-  function buildTextureBackground(tex: BgTextureState, baseColor: string, base: string): string {
+  function buildTextureBackground(
+    tex: BgTextureState,
+    baseColor: string,
+    base: string,
+  ): string {
     if (tex.patternId === "none") return base;
     const r = parseInt(baseColor.slice(1, 3), 16) || 0;
     const g = parseInt(baseColor.slice(3, 5), 16) || 0;
@@ -1166,72 +1373,128 @@ export default function CollectionEditorPage() {
       : `linear-gradient(${bgGradient.angle}deg, ${bgColor}, ${bgGradient.color2})`
     : bgColor;
 
-  const computedBg = bgTexture.patternId !== "none"
-    ? buildTextureBackground(bgTexture, bgColor, baseBackground)
-    : baseBackground;
+  const computedBg =
+    bgTexture.patternId !== "none"
+      ? buildTextureBackground(bgTexture, bgColor, baseBackground)
+      : baseBackground;
 
   const isPreviewingTemplate = previewTemplate !== null;
-  const displayCanvasWidth = previewTemplate?.canvas_width ?? collection?.canvas_width ?? 800;
-  const displayCanvasHeight = previewTemplate?.canvas_height ?? collection?.canvas_height ?? 600;
+  const displayCanvasWidth =
+    previewTemplate?.canvas_width ?? collection?.canvas_width ?? 800;
+  const displayCanvasHeight =
+    previewTemplate?.canvas_height ?? collection?.canvas_height ?? 600;
   const displayBackground = previewTemplate
-    ? (previewTemplate.background_style || previewTemplate.background_color || "#FFFFFF")
+    ? previewTemplate.background_style ||
+      previewTemplate.background_color ||
+      "#FFFFFF"
     : computedBg;
-  const displayBackgroundImageUrl = previewTemplate?.background_image_url ?? collection?.background_image_url ?? null;
+  const displayBackgroundImageUrl =
+    previewTemplate?.background_image_url ??
+    collection?.background_image_url ??
+    null;
   const displayItems = previewTemplate?.items_snapshot
     ? injectSellerProductsIntoSnapshot(previewTemplate.items_snapshot, products)
     : items;
   const runtimeViewportWidth =
-    mobileViewportWidth || (typeof window !== "undefined" ? window.innerWidth : 0);
-  const isCompactPreviewViewport = isPreviewingTemplate && runtimeViewportWidth > 0 && runtimeViewportWidth < 768;
-  const mobilePreviewFitScale =
-    isCompactPreviewViewport
-      ? Math.min(
-          Math.max(
-            (Math.min(runtimeViewportWidth, canvasAreaRef.current?.clientWidth || runtimeViewportWidth) - 56) /
-              displayCanvasWidth,
-            0.12,
-          ),
-          1,
-        )
-      : null;
+    mobileViewportWidth ||
+    (typeof window !== "undefined" ? window.innerWidth : 0);
+  const isCompactPreviewViewport =
+    isPreviewingTemplate &&
+    runtimeViewportWidth > 0 &&
+    runtimeViewportWidth < 768;
+  const mobilePreviewFitScale = isCompactPreviewViewport
+    ? Math.min(
+        Math.max(
+          (Math.min(
+            runtimeViewportWidth,
+            canvasAreaRef.current?.clientWidth || runtimeViewportWidth,
+          ) -
+            56) /
+            displayCanvasWidth,
+          0.12,
+        ),
+        1,
+      )
+    : null;
   const previewBaseScale = isPreviewingTemplate
     ? (mobilePreviewFitScale ?? previewScale)
     : 1;
   const effectivePreviewScale = isPreviewingTemplate
     ? previewBaseScale * previewZoom
     : 1;
-  const effectiveCanvasScale = isPreviewingTemplate ? effectivePreviewScale : editorCanvasScale * editorZoom;
-  const previewChromePadding = isPreviewingTemplate ? (isCompactPreviewViewport ? 20 : 52) : 0;
-  const previewStageWidth = (displayCanvasWidth * effectivePreviewScale) + previewChromePadding;
-  const previewStageHeight = (displayCanvasHeight * effectivePreviewScale) + previewChromePadding;
-  const compactPreviewCanvasWidth = Math.max(160, Math.round(displayCanvasWidth * effectivePreviewScale));
-  const compactPreviewCanvasHeight = Math.max(90, Math.round(displayCanvasHeight * effectivePreviewScale));
+  const effectiveCanvasScale = isPreviewingTemplate
+    ? effectivePreviewScale
+    : editorCanvasScale * editorZoom;
+  const previewChromePadding = isPreviewingTemplate
+    ? isCompactPreviewViewport
+      ? 20
+      : 52
+    : 0;
+  const previewStageWidth =
+    displayCanvasWidth * effectivePreviewScale + previewChromePadding;
+  const previewStageHeight =
+    displayCanvasHeight * effectivePreviewScale + previewChromePadding;
+  const compactPreviewCanvasWidth = Math.max(
+    160,
+    Math.round(displayCanvasWidth * effectivePreviewScale),
+  );
+  const compactPreviewCanvasHeight = Math.max(
+    90,
+    Math.round(displayCanvasHeight * effectivePreviewScale),
+  );
   const isEditorFitMode = !isPreviewingTemplate && editorZoom === 1;
-  const isMobileToolsPanelOpen = mobilePanel === "tools" || mobilePanel === "library";
-  const minEditorEffectiveScale = isMobileViewport ? MOBILE_EDITOR_EFFECTIVE_SCALE_MIN : EDITOR_ZOOM_MIN;
-  const minPreviewEffectiveScale = isMobileViewport ? MOBILE_EDITOR_EFFECTIVE_SCALE_MIN : EDITOR_ZOOM_MIN;
-  const editorZoomMax = Math.max(EDITOR_ZOOM_MAX, Number((1 / Math.max(editorCanvasScale, 0.01)).toFixed(2)));
-  const previewZoomMax = Math.max(EDITOR_ZOOM_MAX, Number((1 / Math.max(previewBaseScale, 0.01)).toFixed(2)));
-  const minEffectiveEditorScale = Math.max(minEditorEffectiveScale, editorCanvasScale * EDITOR_ZOOM_MIN);
-  const minEffectivePreviewScale = Math.max(minPreviewEffectiveScale, previewBaseScale * EDITOR_ZOOM_MIN);
-  const maxEffectiveEditorScale = Math.max(1, editorCanvasScale * editorZoomMax);
-  const maxEffectivePreviewScale = Math.max(1, previewBaseScale * previewZoomMax);
-  const displayEditorZoomLabel = `${Math.round((editorCanvasScale * editorZoom) * 100)}%`;
+  const isMobileToolsPanelOpen =
+    mobilePanel === "tools" || mobilePanel === "library";
+  const minEditorEffectiveScale = isMobileViewport
+    ? MOBILE_EDITOR_EFFECTIVE_SCALE_MIN
+    : EDITOR_ZOOM_MIN;
+  const minPreviewEffectiveScale = isMobileViewport
+    ? MOBILE_EDITOR_EFFECTIVE_SCALE_MIN
+    : EDITOR_ZOOM_MIN;
+  const editorZoomMax = Math.max(
+    EDITOR_ZOOM_MAX,
+    Number((1 / Math.max(editorCanvasScale, 0.01)).toFixed(2)),
+  );
+  const previewZoomMax = Math.max(
+    EDITOR_ZOOM_MAX,
+    Number((1 / Math.max(previewBaseScale, 0.01)).toFixed(2)),
+  );
+  const minEffectiveEditorScale = Math.max(
+    minEditorEffectiveScale,
+    editorCanvasScale * EDITOR_ZOOM_MIN,
+  );
+  const minEffectivePreviewScale = Math.max(
+    minPreviewEffectiveScale,
+    previewBaseScale * EDITOR_ZOOM_MIN,
+  );
+  const maxEffectiveEditorScale = Math.max(
+    1,
+    editorCanvasScale * editorZoomMax,
+  );
+  const maxEffectivePreviewScale = Math.max(
+    1,
+    previewBaseScale * previewZoomMax,
+  );
+  const displayEditorZoomLabel = `${Math.round(editorCanvasScale * editorZoom * 100)}%`;
   const displayPreviewZoomLabel = `${Math.round(effectivePreviewScale * 100)}%`;
-  const activeZoomLabel = isPreviewingTemplate ? displayPreviewZoomLabel : displayEditorZoomLabel;
+  const activeZoomLabel = isPreviewingTemplate
+    ? displayPreviewZoomLabel
+    : displayEditorZoomLabel;
   const canZoomOut = isPreviewingTemplate
     ? effectivePreviewScale > minEffectivePreviewScale
-    : (editorCanvasScale * editorZoom) > minEffectiveEditorScale;
+    : editorCanvasScale * editorZoom > minEffectiveEditorScale;
   const canZoomIn = isPreviewingTemplate
     ? effectivePreviewScale < maxEffectivePreviewScale
-    : (editorCanvasScale * editorZoom) < maxEffectiveEditorScale;
+    : editorCanvasScale * editorZoom < maxEffectiveEditorScale;
   const canvasPresetOptions = [
     ...(originalCanvasSize
-      ? [{
-          label: "Orig.",
-          w: originalCanvasSize.width,
-          h: originalCanvasSize.height,
-        }]
+      ? [
+          {
+            label: "Orig.",
+            w: originalCanvasSize.width,
+            h: originalCanvasSize.height,
+          },
+        ]
       : []),
     { label: "800²", w: 800, h: 800 },
     { label: "8×12", w: 800, h: 1200 },
@@ -1240,13 +1503,19 @@ export default function CollectionEditorPage() {
   ];
   const mobileEditingTextItem =
     isMobileViewport && editingTextId !== null
-      ? items.find((item) => item.id === editingTextId && item.element_type === "text") ?? null
+      ? (items.find(
+          (item) => item.id === editingTextId && item.element_type === "text",
+        ) ?? null)
       : null;
-  const mobileEditingTextContent = mobileEditingTextItem?.content as ContentText | null;
+  const mobileEditingTextContent =
+    mobileEditingTextItem?.content as ContentText | null;
 
-  const scrollSectionIntoView = useCallback((ref: React.RefObject<HTMLElement | HTMLDivElement | null>) => {
-    ref.current?.scrollIntoView({ behavior: "smooth", block: "start" });
-  }, []);
+  const scrollSectionIntoView = useCallback(
+    (ref: React.RefObject<HTMLElement | HTMLDivElement | null>) => {
+      ref.current?.scrollIntoView({ behavior: "smooth", block: "start" });
+    },
+    [],
+  );
 
   const resetCanvasViewport = useCallback(() => {
     const viewport = canvasViewportRef.current;
@@ -1260,81 +1529,110 @@ export default function CollectionEditorPage() {
     });
   }, []);
 
-  const persistCollectionCanvasSettings = useCallback(async (overrides?: {
-    name?: string;
-    backgroundColor?: string;
-    backgroundGradient?: BackgroundGradientState;
-    backgroundTexture?: BgTextureState;
-    backgroundImageUrl?: string | null;
-    canvasWidth?: number;
-    canvasHeight?: number;
-  }) => {
-    if (!collection) return;
+  const persistCollectionCanvasSettings = useCallback(
+    async (overrides?: {
+      name?: string;
+      backgroundColor?: string;
+      backgroundGradient?: BackgroundGradientState;
+      backgroundTexture?: BgTextureState;
+      backgroundImageUrl?: string | null;
+      canvasWidth?: number;
+      canvasHeight?: number;
+    }) => {
+      if (!collection) return;
 
-    const nextName = overrides?.name ?? name;
-    const nextBackgroundColor = overrides?.backgroundColor ?? bgColor;
-    const nextBackgroundGradient = overrides?.backgroundGradient ?? bgGradient;
-    const nextBackgroundTexture = overrides?.backgroundTexture ?? bgTexture;
-    const nextBase = nextBackgroundGradient.enabled
-      ? nextBackgroundGradient.type === "radial"
-        ? `radial-gradient(circle, ${nextBackgroundColor}, ${nextBackgroundGradient.color2})`
-        : `linear-gradient(${nextBackgroundGradient.angle}deg, ${nextBackgroundColor}, ${nextBackgroundGradient.color2})`
-      : nextBackgroundColor;
-    const nextBackgroundStyle = (nextBackgroundGradient.enabled || nextBackgroundTexture.patternId !== "none")
-      ? buildTextureBackground(nextBackgroundTexture, nextBackgroundColor, nextBase)
-      : null;
-    const nextBackgroundImageUrl =
-      overrides && "backgroundImageUrl" in overrides
-        ? overrides.backgroundImageUrl ?? null
-        : collection.background_image_url;
-    const nextCanvasWidth = overrides?.canvasWidth ?? collection.canvas_width;
-    const nextCanvasHeight = overrides?.canvasHeight ?? collection.canvas_height;
+      const nextName = overrides?.name ?? name;
+      const nextBackgroundColor = overrides?.backgroundColor ?? bgColor;
+      const nextBackgroundGradient =
+        overrides?.backgroundGradient ?? bgGradient;
+      const nextBackgroundTexture = overrides?.backgroundTexture ?? bgTexture;
+      const nextBase = nextBackgroundGradient.enabled
+        ? nextBackgroundGradient.type === "radial"
+          ? `radial-gradient(circle, ${nextBackgroundColor}, ${nextBackgroundGradient.color2})`
+          : `linear-gradient(${nextBackgroundGradient.angle}deg, ${nextBackgroundColor}, ${nextBackgroundGradient.color2})`
+        : nextBackgroundColor;
+      const nextBackgroundStyle =
+        nextBackgroundGradient.enabled ||
+        nextBackgroundTexture.patternId !== "none"
+          ? buildTextureBackground(
+              nextBackgroundTexture,
+              nextBackgroundColor,
+              nextBase,
+            )
+          : null;
+      const nextBackgroundImageUrl =
+        overrides && "backgroundImageUrl" in overrides
+          ? (overrides.backgroundImageUrl ?? null)
+          : collection.background_image_url;
+      const nextCanvasWidth = overrides?.canvasWidth ?? collection.canvas_width;
+      const nextCanvasHeight =
+        overrides?.canvasHeight ?? collection.canvas_height;
 
-    setSaving(true);
-    try {
-      await apiFetch(`/api/collections/${collectionId}`, {
-        method: "PUT",
-        body: JSON.stringify({
-          name: nextName,
-          background_color: nextBackgroundColor,
-          background_style: nextBackgroundStyle,
-          background_image_url: nextBackgroundImageUrl,
-          canvas_width: nextCanvasWidth,
-          canvas_height: nextCanvasHeight,
-        }),
-      });
+      setSaving(true);
+      try {
+        await apiFetch(`/api/collections/${collectionId}`, {
+          method: "PUT",
+          body: JSON.stringify({
+            name: nextName,
+            background_color: nextBackgroundColor,
+            background_style: nextBackgroundStyle,
+            background_image_url: nextBackgroundImageUrl,
+            canvas_width: nextCanvasWidth,
+            canvas_height: nextCanvasHeight,
+          }),
+        });
 
-      setCollection((prev) => prev ? {
-        ...prev,
-        name: nextName,
-        background_color: nextBackgroundColor,
-        background_style: nextBackgroundStyle,
-        background_image_url: nextBackgroundImageUrl,
-        canvas_width: nextCanvasWidth,
-        canvas_height: nextCanvasHeight,
-      } : prev);
-      setSaved(true);
-      setTimeout(() => setSaved(false), 2000);
-    } finally {
-      setSaving(false);
-    }
-  }, [bgColor, bgGradient, bgTexture, buildTextureBackground, collection, collectionId, name]);
+        setCollection((prev) =>
+          prev
+            ? {
+                ...prev,
+                name: nextName,
+                background_color: nextBackgroundColor,
+                background_style: nextBackgroundStyle,
+                background_image_url: nextBackgroundImageUrl,
+                canvas_width: nextCanvasWidth,
+                canvas_height: nextCanvasHeight,
+              }
+            : prev,
+        );
+        setSaved(true);
+        setTimeout(() => setSaved(false), 2000);
+      } finally {
+        setSaving(false);
+      }
+    },
+    [
+      bgColor,
+      bgGradient,
+      bgTexture,
+      buildTextureBackground,
+      collection,
+      collectionId,
+      name,
+    ],
+  );
 
-  const queueCanvasSettingsSave = useCallback((overrides?: Parameters<typeof persistCollectionCanvasSettings>[0]) => {
-    if (canvasSettingsSaveTimerRef.current) {
-      clearTimeout(canvasSettingsSaveTimerRef.current);
-    }
+  const queueCanvasSettingsSave = useCallback(
+    (overrides?: Parameters<typeof persistCollectionCanvasSettings>[0]) => {
+      if (canvasSettingsSaveTimerRef.current) {
+        clearTimeout(canvasSettingsSaveTimerRef.current);
+      }
 
-    canvasSettingsSaveTimerRef.current = setTimeout(() => {
-      void persistCollectionCanvasSettings(overrides);
-    }, 300);
-  }, [persistCollectionCanvasSettings]);
+      canvasSettingsSaveTimerRef.current = setTimeout(() => {
+        void persistCollectionCanvasSettings(overrides);
+      }, 300);
+    },
+    [persistCollectionCanvasSettings],
+  );
 
-  useEffect(() => () => {
-    if (canvasSettingsSaveTimerRef.current) {
-      clearTimeout(canvasSettingsSaveTimerRef.current);
-    }
-  }, []);
+  useEffect(
+    () => () => {
+      if (canvasSettingsSaveTimerRef.current) {
+        clearTimeout(canvasSettingsSaveTimerRef.current);
+      }
+    },
+    [],
+  );
 
   useEffect(() => {
     if (!mobileEditingTextItem) {
@@ -1342,7 +1640,9 @@ export default function CollectionEditorPage() {
       return;
     }
 
-    setMobileTextEditorDraft((mobileEditingTextItem.content as ContentText)?.text ?? "");
+    setMobileTextEditorDraft(
+      (mobileEditingTextItem.content as ContentText)?.text ?? "",
+    );
   }, [mobileEditingTextItem]);
 
   const flushPendingCanvasSettingsSave = useCallback(async () => {
@@ -1371,68 +1671,95 @@ export default function CollectionEditorPage() {
     if (pendingItemIds.length === 0) return;
 
     const uniqueItemIds = Array.from(new Set(pendingItemIds));
-    await Promise.all(uniqueItemIds.map((itemId) => {
-      const item = itemsRef.current.find((candidate) => candidate.id === itemId);
-      if (!item) return Promise.resolve();
+    await Promise.all(
+      uniqueItemIds.map((itemId) => {
+        const item = itemsRef.current.find(
+          (candidate) => candidate.id === itemId,
+        );
+        if (!item) return Promise.resolve();
 
-      return apiFetch(`/api/collections/${collectionId}/items/${itemId}`, {
+        return apiFetch(`/api/collections/${collectionId}/items/${itemId}`, {
+          method: "PUT",
+          body: JSON.stringify({ content: item.content }),
+        });
+      }),
+    );
+  }, [collectionId]);
+
+  const persistItemContentImmediately = useCallback(
+    async (
+      itemId: number,
+      newContent: ContentText | ContentShape | ContentImage | ContentProduct,
+    ) => {
+      const key = String(itemId);
+      if (debounceTimers.current[key]) {
+        clearTimeout(debounceTimers.current[key]);
+        delete debounceTimers.current[key];
+      }
+
+      setItems((prev) =>
+        prev.map((item) =>
+          item.id === itemId ? { ...item, content: newContent } : item,
+        ),
+      );
+      await apiFetch(`/api/collections/${collectionId}/items/${itemId}`, {
         method: "PUT",
-        body: JSON.stringify({ content: item.content }),
+        body: JSON.stringify({ content: newContent }),
       });
-    }));
-  }, [collectionId]);
-
-  const persistItemContentImmediately = useCallback(async (
-    itemId: number,
-    newContent: ContentText | ContentShape | ContentImage | ContentProduct,
-  ) => {
-    const key = String(itemId);
-    if (debounceTimers.current[key]) {
-      clearTimeout(debounceTimers.current[key]);
-      delete debounceTimers.current[key];
-    }
-
-    setItems((prev) => prev.map((item) => item.id === itemId ? { ...item, content: newContent } : item));
-    await apiFetch(`/api/collections/${collectionId}/items/${itemId}`, {
-      method: "PUT",
-      body: JSON.stringify({ content: newContent }),
-    });
-  }, [collectionId]);
+    },
+    [collectionId],
+  );
 
   useEffect(() => {
     if (!collection || isPreviewingTemplate) return;
-    canvasLayoutSnapshotsRef.current[getCanvasSnapshotKey(collection.canvas_width, collection.canvas_height)] = cloneCanvasItems(items);
+    canvasLayoutSnapshotsRef.current[
+      getCanvasSnapshotKey(collection.canvas_width, collection.canvas_height)
+    ] = cloneCanvasItems(items);
   }, [collection, isPreviewingTemplate, items]);
 
-  const handleBackgroundColorChange = useCallback((nextColor: string) => {
-    setBgColor(nextColor);
-    queueCanvasSettingsSave({ backgroundColor: nextColor });
-  }, [queueCanvasSettingsSave]);
+  const handleBackgroundColorChange = useCallback(
+    (nextColor: string) => {
+      setBgColor(nextColor);
+      queueCanvasSettingsSave({ backgroundColor: nextColor });
+    },
+    [queueCanvasSettingsSave],
+  );
 
-  const handleBackgroundGradientChange = useCallback((updater: (current: BackgroundGradientState) => BackgroundGradientState) => {
-    setBgGradient((current) => {
-      const nextGradient = updater(current);
-      queueCanvasSettingsSave({ backgroundGradient: nextGradient });
-      return nextGradient;
-    });
-  }, [queueCanvasSettingsSave]);
+  const handleBackgroundGradientChange = useCallback(
+    (
+      updater: (current: BackgroundGradientState) => BackgroundGradientState,
+    ) => {
+      setBgGradient((current) => {
+        const nextGradient = updater(current);
+        queueCanvasSettingsSave({ backgroundGradient: nextGradient });
+        return nextGradient;
+      });
+    },
+    [queueCanvasSettingsSave],
+  );
 
-  const handleBgTextureChange = useCallback((update: Partial<BgTextureState>) => {
-    setBgTexture((prev) => {
-      const next = { ...prev, ...update };
-      queueCanvasSettingsSave({ backgroundTexture: next });
-      return next;
-    });
-  }, [queueCanvasSettingsSave]);
+  const handleBgTextureChange = useCallback(
+    (update: Partial<BgTextureState>) => {
+      setBgTexture((prev) => {
+        const next = { ...prev, ...update };
+        queueCanvasSettingsSave({ backgroundTexture: next });
+        return next;
+      });
+    },
+    [queueCanvasSettingsSave],
+  );
 
-  const clientPointToCanvasPoint = useCallback((clientX: number, clientY: number) => {
-    if (!canvasRef.current) return null;
-    const rect = canvasRef.current.getBoundingClientRect();
-    return {
-      x: (clientX - rect.left) / effectiveCanvasScale,
-      y: (clientY - rect.top) / effectiveCanvasScale,
-    };
-  }, [effectiveCanvasScale]);
+  const clientPointToCanvasPoint = useCallback(
+    (clientX: number, clientY: number) => {
+      if (!canvasRef.current) return null;
+      const rect = canvasRef.current.getBoundingClientRect();
+      return {
+        x: (clientX - rect.left) / effectiveCanvasScale,
+        y: (clientY - rect.top) / effectiveCanvasScale,
+      };
+    },
+    [effectiveCanvasScale],
+  );
 
   useEffect(() => {
     if (!isPreviewingTemplate) {
@@ -1446,12 +1773,17 @@ export default function CollectionEditorPage() {
       const viewport = canvasViewportRef.current;
       if (!viewport) return;
 
-      const mobileViewport = window.innerWidth < 768 || viewport.clientWidth < 768;
+      const mobileViewport =
+        window.innerWidth < 768 || viewport.clientWidth < 768;
       const viewportPadding = mobileViewport ? 28 : 116;
-      const widthRatio = (viewport.clientWidth - viewportPadding) / displayCanvasWidth;
-      const heightRatio = (viewport.clientHeight - viewportPadding) / displayCanvasHeight;
+      const widthRatio =
+        (viewport.clientWidth - viewportPadding) / displayCanvasWidth;
+      const heightRatio =
+        (viewport.clientHeight - viewportPadding) / displayCanvasHeight;
       const nextScale = Math.min(widthRatio, heightRatio, 1);
-      setPreviewScale(Number.isFinite(nextScale) && nextScale > 0 ? nextScale : 1);
+      setPreviewScale(
+        Number.isFinite(nextScale) && nextScale > 0 ? nextScale : 1,
+      );
       viewport.scrollTo({ left: 0, top: 0 });
     };
 
@@ -1496,18 +1828,27 @@ export default function CollectionEditorPage() {
     const tryUpdateEditorScale = () => {
       if (cancelled) return;
       const viewport = canvasViewportRef.current;
-      if (!viewport) { rafId = requestAnimationFrame(tryUpdateEditorScale); return; }
+      if (!viewport) {
+        rafId = requestAnimationFrame(tryUpdateEditorScale);
+        return;
+      }
 
       const vw = viewport.clientWidth;
       const vh = viewport.clientHeight;
 
       // Retry until viewport has real dimensions (layout not ready yet)
-      if (vw === 0 || vh === 0) { rafId = requestAnimationFrame(tryUpdateEditorScale); return; }
+      if (vw === 0 || vh === 0) {
+        rafId = requestAnimationFrame(tryUpdateEditorScale);
+        return;
+      }
 
       const mobileViewport = window.innerWidth < 768 || vw < 768;
       if (mobileViewport) {
         // vw - 24 accounts for the viewport's own p-3 padding (12px each side)
-        const fitScale = Math.min(Math.max(180, vw - 24) / displayCanvasWidth, 1);
+        const fitScale = Math.min(
+          Math.max(180, vw - 24) / displayCanvasWidth,
+          1,
+        );
         setEditorCanvasScale(Math.max(MOBILE_EDITOR_BASE_SCALE_MIN, fitScale));
       } else {
         const pad = 64;
@@ -1540,7 +1881,12 @@ export default function CollectionEditorPage() {
     if (isEditorFitMode) {
       resetCanvasViewport();
     }
-  }, [displayCanvasHeight, displayCanvasWidth, isEditorFitMode, resetCanvasViewport]);
+  }, [
+    displayCanvasHeight,
+    displayCanvasWidth,
+    isEditorFitMode,
+    resetCanvasViewport,
+  ]);
 
   useEffect(() => {
     const syncResponsiveEditorState = () => {
@@ -1555,20 +1901,39 @@ export default function CollectionEditorPage() {
 
     syncResponsiveEditorState();
     window.addEventListener("resize", syncResponsiveEditorState);
-    return () => window.removeEventListener("resize", syncResponsiveEditorState);
+    return () =>
+      window.removeEventListener("resize", syncResponsiveEditorState);
   }, []);
 
-  const handleEditorZoomChange = useCallback((nextZoom: number) => {
-    const maxZoom = Math.max(EDITOR_ZOOM_MAX, Number((1 / Math.max(editorCanvasScale, 0.01)).toFixed(2)));
-    const clamped = Math.min(maxZoom, Math.max(EDITOR_ZOOM_MIN, Number(nextZoom.toFixed(2))));
-    setEditorZoom(clamped);
-  }, [editorCanvasScale]);
+  const handleEditorZoomChange = useCallback(
+    (nextZoom: number) => {
+      const maxZoom = Math.max(
+        EDITOR_ZOOM_MAX,
+        Number((1 / Math.max(editorCanvasScale, 0.01)).toFixed(2)),
+      );
+      const clamped = Math.min(
+        maxZoom,
+        Math.max(EDITOR_ZOOM_MIN, Number(nextZoom.toFixed(2))),
+      );
+      setEditorZoom(clamped);
+    },
+    [editorCanvasScale],
+  );
 
-  const handlePreviewZoomChange = useCallback((nextZoom: number) => {
-    const maxZoom = Math.max(EDITOR_ZOOM_MAX, Number((1 / Math.max(previewBaseScale, 0.01)).toFixed(2)));
-    const clamped = Math.min(maxZoom, Math.max(EDITOR_ZOOM_MIN, Number(nextZoom.toFixed(2))));
-    setPreviewZoom(clamped);
-  }, [previewBaseScale]);
+  const handlePreviewZoomChange = useCallback(
+    (nextZoom: number) => {
+      const maxZoom = Math.max(
+        EDITOR_ZOOM_MAX,
+        Number((1 / Math.max(previewBaseScale, 0.01)).toFixed(2)),
+      );
+      const clamped = Math.min(
+        maxZoom,
+        Math.max(EDITOR_ZOOM_MIN, Number(nextZoom.toFixed(2))),
+      );
+      setPreviewZoom(clamped);
+    },
+    [previewBaseScale],
+  );
 
   const handleResetEditorZoom = useCallback(() => {
     setEditorZoom(1);
@@ -1596,34 +1961,71 @@ export default function CollectionEditorPage() {
     handlePreviewZoomChange(previewZoom + EDITOR_ZOOM_STEP);
   }, [handlePreviewZoomChange, previewZoom]);
 
-  const handleViewportZoomChange = useCallback((nextScale: number) => {
-    if (isPreviewingTemplate) {
-      const clampedEffectiveScale = Math.min(maxEffectivePreviewScale, Math.max(minEffectivePreviewScale, Number(nextScale.toFixed(2))));
-      setPreviewZoom(Number((clampedEffectiveScale / Math.max(previewBaseScale, 0.01)).toFixed(2)));
-      return;
-    }
+  const handleViewportZoomChange = useCallback(
+    (nextScale: number) => {
+      if (isPreviewingTemplate) {
+        const clampedEffectiveScale = Math.min(
+          maxEffectivePreviewScale,
+          Math.max(minEffectivePreviewScale, Number(nextScale.toFixed(2))),
+        );
+        setPreviewZoom(
+          Number(
+            (clampedEffectiveScale / Math.max(previewBaseScale, 0.01)).toFixed(
+              2,
+            ),
+          ),
+        );
+        return;
+      }
 
-    const clampedEffectiveScale = Math.min(maxEffectiveEditorScale, Math.max(minEffectiveEditorScale, Number(nextScale.toFixed(2))));
-    setEditorZoom(Number((clampedEffectiveScale / Math.max(editorCanvasScale, 0.01)).toFixed(2)));
-  }, [
-    editorCanvasScale,
-    isPreviewingTemplate,
-    minEffectiveEditorScale,
-    minEffectivePreviewScale,
-    maxEffectiveEditorScale,
-    maxEffectivePreviewScale,
-    previewBaseScale,
-  ]);
+      const clampedEffectiveScale = Math.min(
+        maxEffectiveEditorScale,
+        Math.max(minEffectiveEditorScale, Number(nextScale.toFixed(2))),
+      );
+      setEditorZoom(
+        Number(
+          (clampedEffectiveScale / Math.max(editorCanvasScale, 0.01)).toFixed(
+            2,
+          ),
+        ),
+      );
+    },
+    [
+      editorCanvasScale,
+      isPreviewingTemplate,
+      minEffectiveEditorScale,
+      minEffectivePreviewScale,
+      maxEffectiveEditorScale,
+      maxEffectivePreviewScale,
+      previewBaseScale,
+    ],
+  );
 
   const handleViewportZoomOut = useCallback(() => {
-    const currentScale = isPreviewingTemplate ? effectivePreviewScale : (editorCanvasScale * editorZoom);
+    const currentScale = isPreviewingTemplate
+      ? effectivePreviewScale
+      : editorCanvasScale * editorZoom;
     handleViewportZoomChange(currentScale - VIEWPORT_ZOOM_STEP);
-  }, [editorCanvasScale, editorZoom, effectivePreviewScale, handleViewportZoomChange, isPreviewingTemplate]);
+  }, [
+    editorCanvasScale,
+    editorZoom,
+    effectivePreviewScale,
+    handleViewportZoomChange,
+    isPreviewingTemplate,
+  ]);
 
   const handleViewportZoomIn = useCallback(() => {
-    const currentScale = isPreviewingTemplate ? effectivePreviewScale : (editorCanvasScale * editorZoom);
+    const currentScale = isPreviewingTemplate
+      ? effectivePreviewScale
+      : editorCanvasScale * editorZoom;
     handleViewportZoomChange(currentScale + VIEWPORT_ZOOM_STEP);
-  }, [editorCanvasScale, editorZoom, effectivePreviewScale, handleViewportZoomChange, isPreviewingTemplate]);
+  }, [
+    editorCanvasScale,
+    editorZoom,
+    effectivePreviewScale,
+    handleViewportZoomChange,
+    isPreviewingTemplate,
+  ]);
 
   const handleViewportZoomReset = useCallback(() => {
     if (isPreviewingTemplate) {
@@ -1640,7 +2042,10 @@ export default function CollectionEditorPage() {
     historyRef.current = historyRef.current.slice(0, historyIdxRef.current + 1);
     historyRef.current.push(cmd);
     historyIdxRef.current = historyRef.current.length - 1;
-    if (historyRef.current.length > 50) { historyRef.current.shift(); historyIdxRef.current--; }
+    if (historyRef.current.length > 50) {
+      historyRef.current.shift();
+      historyIdxRef.current--;
+    }
     setCanUndo(true);
     setCanRedo(false);
   }, []);
@@ -1667,21 +2072,34 @@ export default function CollectionEditorPage() {
     const prev = selectedContentSnapshot.current;
     if (prev) {
       const item = itemsRef.current.find((i) => i.id === prev.itemId);
-      if (item && JSON.stringify(item.content) !== JSON.stringify(prev.content)) {
+      if (
+        item &&
+        JSON.stringify(item.content) !== JSON.stringify(prev.content)
+      ) {
         const itemId = prev.itemId;
         const prevContent = prev.content;
         const newContent = item.content;
         record({
           undo: () => {
-            setItems((p) => p.map((i) => i.id === itemId ? { ...i, content: prevContent } : i));
+            setItems((p) =>
+              p.map((i) =>
+                i.id === itemId ? { ...i, content: prevContent } : i,
+              ),
+            );
             apiFetch(`/api/collections/${collectionId}/items/${itemId}`, {
-              method: "PUT", body: JSON.stringify({ content: prevContent }),
+              method: "PUT",
+              body: JSON.stringify({ content: prevContent }),
             });
           },
           redo: () => {
-            setItems((p) => p.map((i) => i.id === itemId ? { ...i, content: newContent } : i));
+            setItems((p) =>
+              p.map((i) =>
+                i.id === itemId ? { ...i, content: newContent } : i,
+              ),
+            );
             apiFetch(`/api/collections/${collectionId}/items/${itemId}`, {
-              method: "PUT", body: JSON.stringify({ content: newContent }),
+              method: "PUT",
+              body: JSON.stringify({ content: newContent }),
             });
           },
         });
@@ -1690,7 +2108,10 @@ export default function CollectionEditorPage() {
     if (selectedItemId !== null) {
       const item = itemsRef.current.find((i) => i.id === selectedItemId);
       selectedContentSnapshot.current = item
-        ? { itemId: selectedItemId, content: JSON.parse(JSON.stringify(item.content)) }
+        ? {
+            itemId: selectedItemId,
+            content: JSON.parse(JSON.stringify(item.content)),
+          }
         : null;
     } else {
       selectedContentSnapshot.current = null;
@@ -1716,21 +2137,29 @@ export default function CollectionEditorPage() {
 
   // ── Load data ──────────────────────────────────────────────────────────────
   const loadCollection = useCallback(async () => {
-    const colRes = await apiFetch(`/api/collections/${collectionId}`).then((r) => r.json());
+    const colRes = await apiFetch(`/api/collections/${collectionId}`).then(
+      (r) => r.json(),
+    );
     const col: CollectionData | undefined = colRes?.data;
     if (!col) return;
 
     setCollection(col);
     setItems(col.items ?? []);
-    setOriginalCanvasSize((prev) => prev ?? { width: col.canvas_width, height: col.canvas_height });
+    setOriginalCanvasSize(
+      (prev) => prev ?? { width: col.canvas_width, height: col.canvas_height },
+    );
     setName(col.name);
     setBgColor(col.background_color ?? "#FFFFFF");
 
     const bs = col.background_style;
     // Detect a real background gradient (not a texture pattern layer).
     // Texture patterns use rgba() stops with pixel values; real gradients use hex colors.
-    const hasLinearGradient = bs ? /linear-gradient\(\s*\d+deg\s*,\s*#/.test(bs) : false;
-    const hasRadialGradient = bs ? /radial-gradient\(\s*circle\s*,\s*#/.test(bs) : false;
+    const hasLinearGradient = bs
+      ? /linear-gradient\(\s*\d+deg\s*,\s*#/.test(bs)
+      : false;
+    const hasRadialGradient = bs
+      ? /radial-gradient\(\s*circle\s*,\s*#/.test(bs)
+      : false;
     if (bs && (hasLinearGradient || hasRadialGradient)) {
       const rgbToHex = (c: string): string => {
         const m = c.match(/rgb\(\s*(\d+)\s*,\s*(\d+)\s*,\s*(\d+)/i);
@@ -1738,8 +2167,11 @@ export default function CollectionEditorPage() {
         return `#${Number(m[1]).toString(16).padStart(2, "0")}${Number(m[2]).toString(16).padStart(2, "0")}${Number(m[3]).toString(16).padStart(2, "0")}`;
       };
       // Extract only hex colors (skip rgba texture stops)
-      const hexColors = [...bs.matchAll(/#[0-9a-fA-F]{3,8}\b/g)].map((m) => m[0]);
-      const color2 = hexColors.length >= 2 ? hexColors[hexColors.length - 1] : "#AADDCC";
+      const hexColors = [...bs.matchAll(/#[0-9a-fA-F]{3,8}\b/g)].map(
+        (m) => m[0],
+      );
+      const color2 =
+        hexColors.length >= 2 ? hexColors[hexColors.length - 1] : "#AADDCC";
       const angleMatch = bs.match(/(\d+)deg/);
       const angle = angleMatch ? Number(angleMatch[1]) : 135;
       if (hasLinearGradient) {
@@ -1748,18 +2180,36 @@ export default function CollectionEditorPage() {
         setBgGradient({ enabled: true, type: "radial", angle: 135, color2 });
       }
     } else {
-      setBgGradient({ enabled: false, color2: "#AADDCC", angle: 135, type: "linear" });
+      setBgGradient({
+        enabled: false,
+        color2: "#AADDCC",
+        angle: 135,
+        type: "linear",
+      });
     }
     // Detect texture pattern (best-effort — restores patternId only)
     if (bs) {
       if (bs.startsWith("radial-gradient(circle,") && bs.includes("1.5px")) {
         setBgTexture((p) => ({ ...p, patternId: "dots" }));
-      } else if (bs.startsWith("linear-gradient(") && bs.includes("/ ") && !hasLinearGradient) {
+      } else if (
+        bs.startsWith("linear-gradient(") &&
+        bs.includes("/ ") &&
+        !hasLinearGradient
+      ) {
         setBgTexture((p) => ({ ...p, patternId: "grid" }));
       } else if (bs.startsWith("repeating-linear-gradient(0deg")) {
         setBgTexture((p) => ({ ...p, patternId: "lines" }));
-      } else if (bs.startsWith("repeating-linear-gradient(45deg") && !bs.startsWith("repeating-linear-gradient(45deg, transparent 0, transparent") || bs.includes("repeating-linear-gradient(-45deg")) {
-        setBgTexture((p) => ({ ...p, patternId: bs.includes("-45deg") ? "crosshatch" : "diagonal" }));
+      } else if (
+        (bs.startsWith("repeating-linear-gradient(45deg") &&
+          !bs.startsWith(
+            "repeating-linear-gradient(45deg, transparent 0, transparent",
+          )) ||
+        bs.includes("repeating-linear-gradient(-45deg")
+      ) {
+        setBgTexture((p) => ({
+          ...p,
+          patternId: bs.includes("-45deg") ? "crosshatch" : "diagonal",
+        }));
       } else {
         setBgTexture((p) => ({ ...p, patternId: "none" }));
       }
@@ -1767,15 +2217,22 @@ export default function CollectionEditorPage() {
   }, [collectionId]);
 
   const loadProducts = useCallback(async () => {
-    const prodRes = await apiFetch("/api/seller/products").then((r) => r.json());
+    const prodRes = await apiFetch("/api/seller/products").then((r) =>
+      r.json(),
+    );
     const rawProducts: any = prodRes?.data ?? prodRes?.productos;
-    const raw: Product[] = Array.isArray(rawProducts) ? rawProducts
-      : Array.isArray(prodRes) ? prodRes : [];
+    const raw: Product[] = Array.isArray(rawProducts)
+      ? rawProducts
+      : Array.isArray(prodRes)
+        ? prodRes
+        : [];
     setProducts(raw.filter((p: any) => p.activo !== false));
   }, []);
 
   const loadTemplates = useCallback(async () => {
-    const templatesRes = await apiFetch("/api/collections/templates/mine").then((r) => r.json());
+    const templatesRes = await apiFetch("/api/collections/templates/mine").then(
+      (r) => r.json(),
+    );
     setTemplates(Array.isArray(templatesRes?.data) ? templatesRes.data : []);
   }, []);
 
@@ -1785,12 +2242,18 @@ export default function CollectionEditorPage() {
     let cancelled = false;
 
     const bootstrap = async () => {
-      const storedToken = typeof window !== "undefined" ? window.localStorage.getItem("token") : null;
+      const storedToken =
+        typeof window !== "undefined"
+          ? window.localStorage.getItem("token")
+          : null;
       let usableToken = authToken ?? storedToken;
 
       if (!usableToken) {
         await refreshAuth();
-        usableToken = typeof window !== "undefined" ? window.localStorage.getItem("token") : null;
+        usableToken =
+          typeof window !== "undefined"
+            ? window.localStorage.getItem("token")
+            : null;
       }
 
       if (!usableToken) {
@@ -1812,84 +2275,134 @@ export default function CollectionEditorPage() {
     return () => {
       cancelled = true;
     };
-  }, [authReady, authToken, loadCollection, loadProducts, loadTemplates, refreshAuth]);
+  }, [
+    authReady,
+    authToken,
+    loadCollection,
+    loadProducts,
+    loadTemplates,
+    refreshAuth,
+  ]);
 
   // ── Save ──────────────────────────────────────────────────────────────────
 
   // ── Publish ────────────────────────────────────────────────────────────────
 
   const handleTogglePublish = useCallback(async () => {
-    const res = await apiFetch(`/api/collections/${collectionId}/publish`, { method: "PATCH" });
+    const res = await apiFetch(`/api/collections/${collectionId}/publish`, {
+      method: "PATCH",
+    });
     const data = await res.json();
-    if (data.ok) setCollection((p) => p ? { ...p, status: data.data.status } : p);
+    if (data.ok)
+      setCollection((p) => (p ? { ...p, status: data.data.status } : p));
   }, [collectionId]);
 
   // ── Image upload ───────────────────────────────────────────────────────────
 
-  const handleImageFileChange = useCallback(async (e: React.ChangeEvent<HTMLInputElement>) => {
-    if (!collection) return;
-    const file = e.target.files?.[0];
-    if (!file) return;
-    e.target.value = "";
+  const handleImageFileChange = useCallback(
+    async (e: React.ChangeEvent<HTMLInputElement>) => {
+      if (!collection) return;
+      const file = e.target.files?.[0];
+      if (!file) return;
+      e.target.value = "";
 
-    setImageUploading(true);
-    try {
-      const form = new FormData();
-      form.append("image", file);
-      const res = await apiFetch(`/api/collections/${collectionId}/images`, { method: "POST", body: form });
-      const data = await res.json();
-      if (!data.ok) throw new Error(data.message);
+      setImageUploading(true);
+      try {
+        const form = new FormData();
+        form.append("image", file);
+        const res = await apiFetch(`/api/collections/${collectionId}/images`, {
+          method: "POST",
+          body: form,
+        });
+        const data = await res.json();
+        if (!data.ok) throw new Error(data.message);
 
-      const pos_x = snapToGrid(Math.round((collection.canvas_width - 200) / 2), gridSnap);
-      const pos_y = snapToGrid(Math.round((collection.canvas_height - 200) / 2), gridSnap);
-      const content: ContentImage = { ...DEFAULT_IMAGE, url: data.url };
+        const pos_x = snapToGrid(
+          Math.round((collection.canvas_width - 200) / 2),
+          gridSnap,
+        );
+        const pos_y = snapToGrid(
+          Math.round((collection.canvas_height - 200) / 2),
+          gridSnap,
+        );
+        const content: ContentImage = { ...DEFAULT_IMAGE, url: data.url };
 
-      const addRes = await apiFetch(`/api/collections/${collectionId}/items`, {
-        method: "POST",
-        body: JSON.stringify({ element_type: "image", content, pos_x, pos_y, width: 200, height: 200, z_index: itemsRef.current.length }),
-      });
-      const addData = await addRes.json();
-      if (addData.ok) {
-        setItems((prev) => [...prev, {
-          id: addData.data.id, element_type: "image", content,
-          product_id: null, pos_x, pos_y, width: 200, height: 200,
-          z_index: prev.length,
-          product_name: null, product_image: null, product_price: null,
-        }]);
-        setSelectedItemId(addData.data.id);
-        setActiveTool("select");
+        const addRes = await apiFetch(
+          `/api/collections/${collectionId}/items`,
+          {
+            method: "POST",
+            body: JSON.stringify({
+              element_type: "image",
+              content,
+              pos_x,
+              pos_y,
+              width: 200,
+              height: 200,
+              z_index: itemsRef.current.length,
+            }),
+          },
+        );
+        const addData = await addRes.json();
+        if (addData.ok) {
+          setItems((prev) => [
+            ...prev,
+            {
+              id: addData.data.id,
+              element_type: "image",
+              content,
+              product_id: null,
+              pos_x,
+              pos_y,
+              width: 200,
+              height: 200,
+              z_index: prev.length,
+              product_name: null,
+              product_image: null,
+              product_price: null,
+            },
+          ]);
+          setSelectedItemId(addData.data.id);
+          setActiveTool("select");
+        }
+      } catch (err) {
+        console.error("[image upload]", err);
+        alert("Error al subir imagen");
+      } finally {
+        setImageUploading(false);
       }
-    } catch (err) {
-      console.error("[image upload]", err);
-      alert("Error al subir imagen");
-    } finally {
-      setImageUploading(false);
-    }
-  }, [collection, collectionId, gridSnap]);
+    },
+    [collection, collectionId, gridSnap],
+  );
 
-  const handleBackgroundImageFileChange = useCallback(async (e: React.ChangeEvent<HTMLInputElement>) => {
-    if (!collection) return;
-    const file = e.target.files?.[0];
-    if (!file) return;
-    e.target.value = "";
+  const handleBackgroundImageFileChange = useCallback(
+    async (e: React.ChangeEvent<HTMLInputElement>) => {
+      if (!collection) return;
+      const file = e.target.files?.[0];
+      if (!file) return;
+      e.target.value = "";
 
-    setBgImageUploading(true);
-    try {
-      const form = new FormData();
-      form.append("image", file);
-      const uploadRes = await apiFetch(`/api/collections/${collectionId}/images`, { method: "POST", body: form });
-      const uploadData = await uploadRes.json();
-      if (!uploadData.ok) throw new Error(uploadData.message);
+      setBgImageUploading(true);
+      try {
+        const form = new FormData();
+        form.append("image", file);
+        const uploadRes = await apiFetch(
+          `/api/collections/${collectionId}/images`,
+          { method: "POST", body: form },
+        );
+        const uploadData = await uploadRes.json();
+        if (!uploadData.ok) throw new Error(uploadData.message);
 
-      const nextUrl = uploadData.url as string;
-      await persistCollectionCanvasSettings({ backgroundImageUrl: nextUrl });
-    } catch (err) {
-      console.error("[background image upload]", err);
-      alert("Error al subir el fondo");
-    } finally {
-      setBgImageUploading(false);
-    }
-  }, [collection, collectionId, persistCollectionCanvasSettings]);
+        const nextUrl = uploadData.url as string;
+        await persistCollectionCanvasSettings({ backgroundImageUrl: nextUrl });
+      } catch (err) {
+        console.error("[background image upload]", err);
+        alert("Error al subir el fondo");
+      } finally {
+        setBgImageUploading(false);
+      }
+    },
+    [collection, collectionId, persistCollectionCanvasSettings],
+  );
 
   const handleRemoveBackgroundImage = useCallback(async () => {
     if (!collection?.background_image_url) return;
@@ -1919,12 +2432,16 @@ export default function CollectionEditorPage() {
           canvas_width: collection.canvas_width,
           canvas_height: collection.canvas_height,
           background_color: bgColor,
-          background_style: (bgGradient.enabled || bgTexture.patternId !== "none") ? computedBg : null,
+          background_style:
+            bgGradient.enabled || bgTexture.patternId !== "none"
+              ? computedBg
+              : null,
           background_image_url: collection.background_image_url,
         }),
       });
       const data = await res.json();
-      if (!data.ok) throw new Error(data.message ?? "No se pudo guardar la plantilla");
+      if (!data.ok)
+        throw new Error(data.message ?? "No se pudo guardar la plantilla");
 
       invalidateCache("/api/collections/templates/mine");
       setShowTemplateModal(false);
@@ -1937,7 +2454,17 @@ export default function CollectionEditorPage() {
     } finally {
       setTemplateSaving(false);
     }
-  }, [bgColor, bgGradient.enabled, collection, collectionId, computedBg, items, loadTemplates, templateIsPublic, templateName]);
+  }, [
+    bgColor,
+    bgGradient.enabled,
+    collection,
+    collectionId,
+    computedBg,
+    items,
+    loadTemplates,
+    templateIsPublic,
+    templateName,
+  ]);
 
   const handleAiGenerate = useCallback(async () => {
     if (!collection || !aiPrompt.trim()) return;
@@ -1945,28 +2472,34 @@ export default function CollectionEditorPage() {
     setAiError(null);
     setAiNoCredits(false);
 
-    const prevItems      = [...items];
-    const prevBgColor    = bgColor;
+    const prevItems = [...items];
+    const prevBgColor = bgColor;
     const prevBgGradient = { ...bgGradient };
-    const prevBgTexture  = { ...bgTexture };
+    const prevBgTexture = { ...bgTexture };
     const prevBgImageUrl = collection.background_image_url;
 
     try {
-      const res = await apiFetch(`/api/collections/${collectionId}/ai-generate`, {
-        method: "POST",
-        body: JSON.stringify({
-          prompt: aiPrompt.trim(),
-          title: aiTitle.trim() || name,
-          tagline: aiTagline.trim() || undefined,
-          cta: aiCta.trim() || undefined,
-          style: aiStyle,
-          palette: aiPalette,
-          layout: aiLayout,
-          product_count: aiProductCount,
-          selected_product_ids: aiSelectedProductIds.size > 0 ? [...aiSelectedProductIds] : undefined,
-          generate_bg_image: aiGenerateBgImage,
-        }),
-      });
+      const res = await apiFetch(
+        `/api/collections/${collectionId}/ai-generate`,
+        {
+          method: "POST",
+          body: JSON.stringify({
+            prompt: aiPrompt.trim(),
+            title: aiTitle.trim() || name,
+            tagline: aiTagline.trim() || undefined,
+            cta: aiCta.trim() || undefined,
+            style: aiStyle,
+            palette: aiPalette,
+            layout: aiLayout,
+            product_count: aiProductCount,
+            selected_product_ids:
+              aiSelectedProductIds.size > 0
+                ? [...aiSelectedProductIds]
+                : undefined,
+            generate_bg_image: aiGenerateBgImage,
+          }),
+        },
+      );
       const data = await res.json();
       if (!data.ok) {
         if (data.code === "INSUFFICIENT_CREDITS") setAiNoCredits(true);
@@ -1982,9 +2515,13 @@ export default function CollectionEditorPage() {
           setBgColor(prevBgColor);
           setBgGradient(prevBgGradient);
           setBgTexture(prevBgTexture);
-          setCollection((prev) => prev ? { ...prev, background_image_url: prevBgImageUrl } : prev);
+          setCollection((prev) =>
+            prev ? { ...prev, background_image_url: prevBgImageUrl } : prev,
+          );
         },
-        redo: () => { loadCollection(); },
+        redo: () => {
+          loadCollection();
+        },
       });
 
       setAiModalOpen(false);
@@ -1994,13 +2531,37 @@ export default function CollectionEditorPage() {
       setMobilePanel(null);
       resetCanvasViewport();
       // Refresh balance shown in topbar after deduction
-      apiFetch("/api/seller/ai-credits/balance").then((r) => r.json()).then((d) => setAiCreditsBalance(d.balance ?? null)).catch(() => {});
+      apiFetch("/api/seller/ai-credits/balance")
+        .then((r) => r.json())
+        .then((d) => setAiCreditsBalance(d.balance ?? null))
+        .catch(() => {});
     } catch (err: any) {
       setAiError(err?.message ?? "Error al generar el canvas con IA");
     } finally {
       setAiLoading(false);
     }
-  }, [aiCta, aiGenerateBgImage, aiLayout, aiPalette, aiProductCount, aiPrompt, aiSelectedProductIds, aiStyle, aiTagline, aiTitle, bgColor, bgGradient, bgTexture, collection, collectionId, items, loadCollection, name, record, resetCanvasViewport]);
+  }, [
+    aiCta,
+    aiGenerateBgImage,
+    aiLayout,
+    aiPalette,
+    aiProductCount,
+    aiPrompt,
+    aiSelectedProductIds,
+    aiStyle,
+    aiTagline,
+    aiTitle,
+    bgColor,
+    bgGradient,
+    bgTexture,
+    collection,
+    collectionId,
+    items,
+    loadCollection,
+    name,
+    record,
+    resetCanvasViewport,
+  ]);
 
   const handleExport = useCallback(async () => {
     setExporting(true);
@@ -2009,7 +2570,7 @@ export default function CollectionEditorPage() {
       const H = displayCanvasHeight;
 
       const canvas = document.createElement("canvas");
-      canvas.width  = W;
+      canvas.width = W;
       canvas.height = H;
       // Cast to non-null after guard — TypeScript doesn't propagate narrowing into nested closures
       const ctx = canvas.getContext("2d") as CanvasRenderingContext2D;
@@ -2021,32 +2582,60 @@ export default function CollectionEditorPage() {
       // but we keep this for safety with older WebViews / server-side).
       function resolveColor(color: string | undefined | null): string {
         if (!color) return "#000000";
-        const m = color.match(/^oklch\(\s*([\d.]+%?)\s+([\d.]+)\s+([\d.]+)(?:\s*\/\s*([\d.]+%?))?\s*\)$/i);
+        const m = color.match(
+          /^oklch\(\s*([\d.]+%?)\s+([\d.]+)\s+([\d.]+)(?:\s*\/\s*([\d.]+%?))?\s*\)$/i,
+        );
         if (!m) return color;
-        let L = parseFloat(m[1]); if (m[1].endsWith("%")) L /= 100;
+        let L = parseFloat(m[1]);
+        if (m[1].endsWith("%")) L /= 100;
         const C = parseFloat(m[2]);
-        const H = parseFloat(m[3]) * Math.PI / 180;
-        const alpha = m[4] ? parseFloat(m[4]) / (m[4].endsWith("%") ? 100 : 1) : 1;
-        const a = C * Math.cos(H), b = C * Math.sin(H);
+        const H = (parseFloat(m[3]) * Math.PI) / 180;
+        const alpha = m[4]
+          ? parseFloat(m[4]) / (m[4].endsWith("%") ? 100 : 1)
+          : 1;
+        const a = C * Math.cos(H),
+          b = C * Math.sin(H);
         const l_ = L + 0.3963377774 * a + 0.2158037573 * b;
         const m_ = L - 0.1055613458 * a - 0.0638541728 * b;
-        const s_ = L - 0.0894841775 * a - 1.2914855480 * b;
+        const s_ = L - 0.0894841775 * a - 1.291485548 * b;
         const toLinear = (x: number) => x * x * x;
-        const rl = toLinear(l_), rm = toLinear(m_), rs = toLinear(s_);
-        const toSRGB = (c: number) => { c = Math.max(0, Math.min(1, c)); return c <= 0.0031308 ? 12.92 * c : 1.055 * c ** (1 / 2.4) - 0.055; };
-        const r = Math.round(toSRGB(+4.0767416621 * rl - 3.3077115913 * rm + 0.2309699292 * rs) * 255);
-        const g = Math.round(toSRGB(-1.2684380046 * rl + 2.6097574011 * rm - 0.3413193965 * rs) * 255);
-        const bv = Math.round(toSRGB(-0.0041960863 * rl - 0.7034186147 * rm + 1.7076147010 * rs) * 255);
-        const h = (n: number) => Math.max(0, Math.min(255, n)).toString(16).padStart(2, "0");
-        return alpha < 1 ? `rgba(${Math.max(0,Math.min(255,r))},${Math.max(0,Math.min(255,g))},${Math.max(0,Math.min(255,bv))},${alpha.toFixed(3)})` : `#${h(r)}${h(g)}${h(bv)}`;
+        const rl = toLinear(l_),
+          rm = toLinear(m_),
+          rs = toLinear(s_);
+        const toSRGB = (c: number) => {
+          c = Math.max(0, Math.min(1, c));
+          return c <= 0.0031308 ? 12.92 * c : 1.055 * c ** (1 / 2.4) - 0.055;
+        };
+        const r = Math.round(
+          toSRGB(+4.0767416621 * rl - 3.3077115913 * rm + 0.2309699292 * rs) *
+            255,
+        );
+        const g = Math.round(
+          toSRGB(-1.2684380046 * rl + 2.6097574011 * rm - 0.3413193965 * rs) *
+            255,
+        );
+        const bv = Math.round(
+          toSRGB(-0.0041960863 * rl - 0.7034186147 * rm + 1.707614701 * rs) *
+            255,
+        );
+        const h = (n: number) =>
+          Math.max(0, Math.min(255, n)).toString(16).padStart(2, "0");
+        return alpha < 1
+          ? `rgba(${Math.max(0, Math.min(255, r))},${Math.max(0, Math.min(255, g))},${Math.max(0, Math.min(255, bv))},${alpha.toFixed(3)})`
+          : `#${h(r)}${h(g)}${h(bv)}`;
       }
 
       const loadImg = (url: string): Promise<HTMLImageElement | null> =>
         new Promise((res) => {
           const img = new Image();
           img.crossOrigin = "anonymous";
-          img.onload  = () => res(img);
-          img.onerror = () => { img.crossOrigin = ""; img.src = url; img.onerror = () => res(null); img.onload = () => res(img); };
+          img.onload = () => res(img);
+          img.onerror = () => {
+            img.crossOrigin = "";
+            img.src = url;
+            img.onerror = () => res(null);
+            img.onload = () => res(img);
+          };
           img.src = url;
         });
 
@@ -2054,10 +2643,10 @@ export default function CollectionEditorPage() {
         const rad = Math.min(Math.abs(r), w / 2, h / 2);
         ctx.beginPath();
         ctx.moveTo(x + rad, y);
-        ctx.arcTo(x + w, y,     x + w, y + h, rad);
-        ctx.arcTo(x + w, y + h, x,     y + h, rad);
-        ctx.arcTo(x,     y + h, x,     y,     rad);
-        ctx.arcTo(x,     y,     x + w, y,     rad);
+        ctx.arcTo(x + w, y, x + w, y + h, rad);
+        ctx.arcTo(x + w, y + h, x, y + h, rad);
+        ctx.arcTo(x, y + h, x, y, rad);
+        ctx.arcTo(x, y, x + w, y, rad);
         ctx.closePath();
       }
 
@@ -2068,12 +2657,21 @@ export default function CollectionEditorPage() {
       if (!previewTemplate && bgGradient.enabled && bgGradient.color2) {
         let grad: CanvasGradient;
         if (bgGradient.type === "radial") {
-          grad = ctx.createRadialGradient(W / 2, H / 2, 0, W / 2, H / 2, Math.max(W, H) / 2);
+          grad = ctx.createRadialGradient(
+            W / 2,
+            H / 2,
+            0,
+            W / 2,
+            H / 2,
+            Math.max(W, H) / 2,
+          );
         } else {
           const rad = ((bgGradient.angle - 90) * Math.PI) / 180;
           grad = ctx.createLinearGradient(
-            W / 2 + Math.cos(rad + Math.PI) * W / 2, H / 2 + Math.sin(rad + Math.PI) * H / 2,
-            W / 2 + Math.cos(rad) * W / 2,           H / 2 + Math.sin(rad) * H / 2,
+            W / 2 + (Math.cos(rad + Math.PI) * W) / 2,
+            H / 2 + (Math.sin(rad + Math.PI) * H) / 2,
+            W / 2 + (Math.cos(rad) * W) / 2,
+            H / 2 + (Math.sin(rad) * H) / 2,
           );
         }
         grad.addColorStop(0, resolveColor(bgColor));
@@ -2082,57 +2680,102 @@ export default function CollectionEditorPage() {
         ctx.fillRect(0, 0, W, H);
       } else if (previewTemplate?.background_style) {
         const bs = previewTemplate.background_style;
-        const linM = bs.match(/linear-gradient\((\d+)deg,\s*([^,]+),\s*([^)]+)\)/);
-        const radM = bs.match(/radial-gradient\(circle,\s*([^,]+),\s*([^)]+)\)/);
+        const linM = bs.match(
+          /linear-gradient\((\d+)deg,\s*([^,]+),\s*([^)]+)\)/,
+        );
+        const radM = bs.match(
+          /radial-gradient\(circle,\s*([^,]+),\s*([^)]+)\)/,
+        );
         if (linM) {
           const ang = ((parseInt(linM[1]) - 90) * Math.PI) / 180;
           const g = ctx.createLinearGradient(
-            W / 2 + Math.cos(ang + Math.PI) * W / 2, H / 2 + Math.sin(ang + Math.PI) * H / 2,
-            W / 2 + Math.cos(ang) * W / 2,           H / 2 + Math.sin(ang) * H / 2,
+            W / 2 + (Math.cos(ang + Math.PI) * W) / 2,
+            H / 2 + (Math.sin(ang + Math.PI) * H) / 2,
+            W / 2 + (Math.cos(ang) * W) / 2,
+            H / 2 + (Math.sin(ang) * H) / 2,
           );
-          g.addColorStop(0, resolveColor(linM[2].trim())); g.addColorStop(1, resolveColor(linM[3].trim()));
-          ctx.fillStyle = g; ctx.fillRect(0, 0, W, H);
+          g.addColorStop(0, resolveColor(linM[2].trim()));
+          g.addColorStop(1, resolveColor(linM[3].trim()));
+          ctx.fillStyle = g;
+          ctx.fillRect(0, 0, W, H);
         } else if (radM) {
-          const g = ctx.createRadialGradient(W / 2, H / 2, 0, W / 2, H / 2, Math.max(W, H) / 2);
-          g.addColorStop(0, resolveColor(radM[1].trim())); g.addColorStop(1, resolveColor(radM[2].trim()));
-          ctx.fillStyle = g; ctx.fillRect(0, 0, W, H);
+          const g = ctx.createRadialGradient(
+            W / 2,
+            H / 2,
+            0,
+            W / 2,
+            H / 2,
+            Math.max(W, H) / 2,
+          );
+          g.addColorStop(0, resolveColor(radM[1].trim()));
+          g.addColorStop(1, resolveColor(radM[2].trim()));
+          ctx.fillStyle = g;
+          ctx.fillRect(0, 0, W, H);
         }
       }
 
       // Texture overlay (editor only)
       if (!previewTemplate && bgTexture.patternId !== "none") {
-        const rgb  = bgColor.match(/^#([a-f\d]{2})([a-f\d]{2})([a-f\d]{2})$/i);
-        const r0   = rgb ? parseInt(rgb[1], 16) : 255;
-        const g0   = rgb ? parseInt(rgb[2], 16) : 255;
-        const b0   = rgb ? parseInt(rgb[3], 16) : 255;
+        const rgb = bgColor.match(/^#([a-f\d]{2})([a-f\d]{2})([a-f\d]{2})$/i);
+        const r0 = rgb ? parseInt(rgb[1], 16) : 255;
+        const g0 = rgb ? parseInt(rgb[2], 16) : 255;
+        const b0 = rgb ? parseInt(rgb[3], 16) : 255;
         const luma = (r0 * 299 + g0 * 587 + b0 * 114) / 1000;
-        const tc   = luma > 135 ? "rgba(0,0,0,0.10)" : "rgba(255,255,255,0.14)";
-        const s    = bgTexture.scale;
+        const tc = luma > 135 ? "rgba(0,0,0,0.10)" : "rgba(255,255,255,0.14)";
+        const s = bgTexture.scale;
         ctx.save();
         ctx.strokeStyle = tc;
-        ctx.fillStyle   = tc;
-        ctx.lineWidth   = 1;
+        ctx.fillStyle = tc;
+        ctx.lineWidth = 1;
         switch (bgTexture.patternId) {
           case "dots":
             for (let px = s / 2; px < W; px += s)
               for (let py = s / 2; py < H; py += s) {
-                ctx.beginPath(); ctx.arc(px, py, 1.5, 0, Math.PI * 2); ctx.fill();
+                ctx.beginPath();
+                ctx.arc(px, py, 1.5, 0, Math.PI * 2);
+                ctx.fill();
               }
             break;
           case "grid":
-            for (let px = 0; px <= W; px += s) { ctx.beginPath(); ctx.moveTo(px, 0); ctx.lineTo(px, H); ctx.stroke(); }
-            for (let py = 0; py <= H; py += s) { ctx.beginPath(); ctx.moveTo(0, py); ctx.lineTo(W, py); ctx.stroke(); }
+            for (let px = 0; px <= W; px += s) {
+              ctx.beginPath();
+              ctx.moveTo(px, 0);
+              ctx.lineTo(px, H);
+              ctx.stroke();
+            }
+            for (let py = 0; py <= H; py += s) {
+              ctx.beginPath();
+              ctx.moveTo(0, py);
+              ctx.lineTo(W, py);
+              ctx.stroke();
+            }
             break;
           case "lines":
-            for (let py = 0; py <= H; py += s) { ctx.beginPath(); ctx.moveTo(0, py); ctx.lineTo(W, py); ctx.stroke(); }
+            for (let py = 0; py <= H; py += s) {
+              ctx.beginPath();
+              ctx.moveTo(0, py);
+              ctx.lineTo(W, py);
+              ctx.stroke();
+            }
             break;
           case "diagonal":
-            for (let d = -H; d < W + H; d += s) { ctx.beginPath(); ctx.moveTo(d, 0); ctx.lineTo(d + H, H); ctx.stroke(); }
+            for (let d = -H; d < W + H; d += s) {
+              ctx.beginPath();
+              ctx.moveTo(d, 0);
+              ctx.lineTo(d + H, H);
+              ctx.stroke();
+            }
             break;
           case "crosshatch":
             for (let d = -H; d < W + H; d += s) {
-              ctx.beginPath(); ctx.moveTo(d, 0);     ctx.lineTo(d + H, H); ctx.stroke();
-              ctx.beginPath(); ctx.moveTo(d + H, 0); ctx.lineTo(d, H);     ctx.stroke();
+              ctx.beginPath();
+              ctx.moveTo(d, 0);
+              ctx.lineTo(d + H, H);
+              ctx.stroke();
+              ctx.beginPath();
+              ctx.moveTo(d + H, 0);
+              ctx.lineTo(d, H);
+              ctx.stroke();
             }
             break;
         }
@@ -2146,14 +2789,22 @@ export default function CollectionEditorPage() {
       }
 
       // ── 2. Items ─────────────────────────────────────────────────────────
-      const sorted = [...displayItems].sort((a, b) => (a.z_index ?? 0) - (b.z_index ?? 0));
+      const sorted = [...displayItems].sort(
+        (a, b) => (a.z_index ?? 0) - (b.z_index ?? 0),
+      );
 
       for (const item of sorted) {
-        const { pos_x: ix, pos_y: iy, width: iw, height: ih, element_type } = item;
+        const {
+          pos_x: ix,
+          pos_y: iy,
+          width: iw,
+          height: ih,
+          element_type,
+        } = item;
         const c = item.content as Record<string, unknown> | null;
         const rotation = Number(c?.rotation ?? 0);
-        const flipX    = Boolean(c?.flipX);
-        const flipY    = Boolean(c?.flipY);
+        const flipX = Boolean(c?.flipX);
+        const flipY = Boolean(c?.flipY);
 
         ctx.save();
 
@@ -2167,131 +2818,251 @@ export default function CollectionEditorPage() {
 
         const hasShadow = Boolean(c?.shadowEnabled) || Boolean(c?.shadow);
         if (hasShadow) {
-          ctx.shadowColor   = resolveColor(String(c?.shadowColor ?? "#00000066"));
+          ctx.shadowColor = resolveColor(String(c?.shadowColor ?? "#00000066"));
           ctx.shadowOffsetX = Number(c?.shadowX ?? 4);
           ctx.shadowOffsetY = Number(c?.shadowY ?? 4);
-          ctx.shadowBlur    = Number(c?.shadowBlur ?? 8);
+          ctx.shadowBlur = Number(c?.shadowBlur ?? 8);
         }
 
         // ── image / product ───────────────────────────────────────────────
         if (element_type === "image" || element_type === "product") {
-          const imgUrl   = element_type === "image" ? String((c as ContentImage | null)?.url ?? "") : (item.product_image ?? "");
-          const br       = Number(c?.borderRadius ?? (element_type === "product" ? 8 : 0));
-          const fit      = String(c?.objectFit ?? "cover") as "cover" | "contain";
+          const imgUrl =
+            element_type === "image"
+              ? String((c as ContentImage | null)?.url ?? "")
+              : (item.product_image ?? "");
+          const br = Number(
+            c?.borderRadius ?? (element_type === "product" ? 8 : 0),
+          );
+          const fit = String(c?.objectFit ?? "cover") as "cover" | "contain";
           ctx.globalAlpha = Number(c?.opacity ?? 1);
 
           if (imgUrl) {
             const img = await loadImg(imgUrl);
             if (img) {
               ctx.save();
-              const cssFilter = buildCssFilter(c as Parameters<typeof buildCssFilter>[0]);
+              const cssFilter = buildCssFilter(
+                c as Parameters<typeof buildCssFilter>[0],
+              );
               if (cssFilter) ctx.filter = cssFilter;
-              if (br > 0) { drawRR(ix, iy, iw, ih, br); ctx.clip(); }
+              if (br > 0) {
+                drawRR(ix, iy, iw, ih, br);
+                ctx.clip();
+              }
               if (fit === "cover") {
                 const scale = Math.max(iw / img.width, ih / img.height);
-                ctx.drawImage(img, ix - (img.width * scale - iw) / 2, iy - (img.height * scale - ih) / 2, img.width * scale, img.height * scale);
+                ctx.drawImage(
+                  img,
+                  ix - (img.width * scale - iw) / 2,
+                  iy - (img.height * scale - ih) / 2,
+                  img.width * scale,
+                  img.height * scale,
+                );
               } else {
                 const scale = Math.min(iw / img.width, ih / img.height);
-                ctx.drawImage(img, ix + (iw - img.width * scale) / 2, iy + (ih - img.height * scale) / 2, img.width * scale, img.height * scale);
+                ctx.drawImage(
+                  img,
+                  ix + (iw - img.width * scale) / 2,
+                  iy + (ih - img.height * scale) / 2,
+                  img.width * scale,
+                  img.height * scale,
+                );
               }
               ctx.restore();
             }
           }
 
-        // ── shape ─────────────────────────────────────────────────────────
+          // ── shape ─────────────────────────────────────────────────────────
         } else if (element_type === "shape") {
           const sc = c as ContentShape | null;
           if (sc) {
             ctx.globalAlpha = sc.opacity ?? 1;
-            let fill: CanvasGradient | string = resolveColor(sc.fillColor) || "#0F3D3A";
+            let fill: CanvasGradient | string =
+              resolveColor(sc.fillColor) || "#0F3D3A";
             if (sc.gradientEnabled && sc.gradientColor2) {
               if (sc.gradientType === "radial") {
-                const g = ctx.createRadialGradient(ix + iw / 2, iy + ih / 2, 0, ix + iw / 2, iy + ih / 2, Math.max(iw, ih) / 2);
-                g.addColorStop(0, resolveColor(sc.fillColor)); g.addColorStop(1, resolveColor(sc.gradientColor2)); fill = g;
+                const g = ctx.createRadialGradient(
+                  ix + iw / 2,
+                  iy + ih / 2,
+                  0,
+                  ix + iw / 2,
+                  iy + ih / 2,
+                  Math.max(iw, ih) / 2,
+                );
+                g.addColorStop(0, resolveColor(sc.fillColor));
+                g.addColorStop(1, resolveColor(sc.gradientColor2));
+                fill = g;
               } else {
                 const ang = ((sc.gradientAngle ?? 90) * Math.PI) / 180;
-                const g = ctx.createLinearGradient(ix + iw / 2 - Math.cos(ang) * iw / 2, iy + ih / 2 - Math.sin(ang) * ih / 2, ix + iw / 2 + Math.cos(ang) * iw / 2, iy + ih / 2 + Math.sin(ang) * ih / 2);
-                g.addColorStop(0, resolveColor(sc.fillColor)); g.addColorStop(1, resolveColor(sc.gradientColor2)); fill = g;
+                const g = ctx.createLinearGradient(
+                  ix + iw / 2 - (Math.cos(ang) * iw) / 2,
+                  iy + ih / 2 - (Math.sin(ang) * ih) / 2,
+                  ix + iw / 2 + (Math.cos(ang) * iw) / 2,
+                  iy + ih / 2 + (Math.sin(ang) * ih) / 2,
+                );
+                g.addColorStop(0, resolveColor(sc.fillColor));
+                g.addColorStop(1, resolveColor(sc.gradientColor2));
+                fill = g;
               }
             }
             ctx.fillStyle = fill;
 
             switch (sc.shapeType) {
               case "rectangle":
-                sc.borderRadius > 0 ? (drawRR(ix, iy, iw, ih, sc.borderRadius), ctx.fill()) : ctx.fillRect(ix, iy, iw, ih);
+                sc.borderRadius > 0
+                  ? (drawRR(ix, iy, iw, ih, sc.borderRadius), ctx.fill())
+                  : ctx.fillRect(ix, iy, iw, ih);
                 break;
               case "circle":
-                ctx.beginPath(); ctx.ellipse(ix + iw / 2, iy + ih / 2, iw / 2, ih / 2, 0, 0, Math.PI * 2); ctx.fill(); break;
+                ctx.beginPath();
+                ctx.ellipse(
+                  ix + iw / 2,
+                  iy + ih / 2,
+                  iw / 2,
+                  ih / 2,
+                  0,
+                  0,
+                  Math.PI * 2,
+                );
+                ctx.fill();
+                break;
               case "triangle":
-                ctx.beginPath(); ctx.moveTo(ix + iw / 2, iy); ctx.lineTo(ix + iw, iy + ih); ctx.lineTo(ix, iy + ih); ctx.closePath(); ctx.fill(); break;
+                ctx.beginPath();
+                ctx.moveTo(ix + iw / 2, iy);
+                ctx.lineTo(ix + iw, iy + ih);
+                ctx.lineTo(ix, iy + ih);
+                ctx.closePath();
+                ctx.fill();
+                break;
               case "star": {
-                const cx2 = ix + iw / 2, cy2 = iy + ih / 2, oR = Math.min(iw, ih) / 2, iR = oR * 0.4;
+                const cx2 = ix + iw / 2,
+                  cy2 = iy + ih / 2,
+                  oR = Math.min(iw, ih) / 2,
+                  iR = oR * 0.4;
                 ctx.beginPath();
                 for (let i = 0; i < 10; i++) {
                   const a = (i * Math.PI) / 5 - Math.PI / 2;
                   const rr = i % 2 === 0 ? oR : iR;
-                  i === 0 ? ctx.moveTo(cx2 + rr * Math.cos(a), cy2 + rr * Math.sin(a)) : ctx.lineTo(cx2 + rr * Math.cos(a), cy2 + rr * Math.sin(a));
+                  i === 0
+                    ? ctx.moveTo(cx2 + rr * Math.cos(a), cy2 + rr * Math.sin(a))
+                    : ctx.lineTo(
+                        cx2 + rr * Math.cos(a),
+                        cy2 + rr * Math.sin(a),
+                      );
                 }
-                ctx.closePath(); ctx.fill(); break;
+                ctx.closePath();
+                ctx.fill();
+                break;
               }
               case "line":
                 ctx.shadowColor = "transparent";
-                ctx.strokeStyle = resolveColor(sc.fillColor) || "#0F3D3A"; ctx.lineWidth = ih;
-                ctx.beginPath(); ctx.moveTo(ix, iy + ih / 2); ctx.lineTo(ix + iw, iy + ih / 2); ctx.stroke(); break;
+                ctx.strokeStyle = resolveColor(sc.fillColor) || "#0F3D3A";
+                ctx.lineWidth = ih;
+                ctx.beginPath();
+                ctx.moveTo(ix, iy + ih / 2);
+                ctx.lineTo(ix + iw, iy + ih / 2);
+                ctx.stroke();
+                break;
               case "capsule":
-                drawRR(ix, iy, iw, ih, Math.min(iw, ih) / 2); ctx.fill(); break;
+                drawRR(ix, iy, iw, ih, Math.min(iw, ih) / 2);
+                ctx.fill();
+                break;
               case "diamond":
-                ctx.beginPath(); ctx.moveTo(ix + iw / 2, iy); ctx.lineTo(ix + iw, iy + ih / 2); ctx.lineTo(ix + iw / 2, iy + ih); ctx.lineTo(ix, iy + ih / 2); ctx.closePath(); ctx.fill(); break;
+                ctx.beginPath();
+                ctx.moveTo(ix + iw / 2, iy);
+                ctx.lineTo(ix + iw, iy + ih / 2);
+                ctx.lineTo(ix + iw / 2, iy + ih);
+                ctx.lineTo(ix, iy + ih / 2);
+                ctx.closePath();
+                ctx.fill();
+                break;
               case "arch":
-                ctx.beginPath(); ctx.arc(ix + iw / 2, iy + ih * 0.6, Math.min(iw, ih) * 0.45, Math.PI, 0); ctx.lineTo(ix + iw, iy + ih); ctx.lineTo(ix, iy + ih); ctx.closePath(); ctx.fill(); break;
+                ctx.beginPath();
+                ctx.arc(
+                  ix + iw / 2,
+                  iy + ih * 0.6,
+                  Math.min(iw, ih) * 0.45,
+                  Math.PI,
+                  0,
+                );
+                ctx.lineTo(ix + iw, iy + ih);
+                ctx.lineTo(ix, iy + ih);
+                ctx.closePath();
+                ctx.fill();
+                break;
               default:
-                ctx.beginPath(); ctx.ellipse(ix + iw / 2, iy + ih / 2, iw / 2, ih / 2, 0, 0, Math.PI * 2); ctx.fill(); break;
+                ctx.beginPath();
+                ctx.ellipse(
+                  ix + iw / 2,
+                  iy + ih / 2,
+                  iw / 2,
+                  ih / 2,
+                  0,
+                  0,
+                  Math.PI * 2,
+                );
+                ctx.fill();
+                break;
             }
 
             if ((sc.strokeWidth ?? 0) > 0 && sc.strokeColor) {
               ctx.shadowColor = "transparent";
-              ctx.strokeStyle = resolveColor(sc.strokeColor); ctx.lineWidth = sc.strokeWidth!;
+              ctx.strokeStyle = resolveColor(sc.strokeColor);
+              ctx.lineWidth = sc.strokeWidth!;
               if (sc.shapeType === "rectangle") {
-                sc.borderRadius > 0 ? (drawRR(ix, iy, iw, ih, sc.borderRadius), ctx.stroke()) : ctx.strokeRect(ix, iy, iw, ih);
+                sc.borderRadius > 0
+                  ? (drawRR(ix, iy, iw, ih, sc.borderRadius), ctx.stroke())
+                  : ctx.strokeRect(ix, iy, iw, ih);
               } else if (sc.shapeType === "circle") {
-                ctx.beginPath(); ctx.ellipse(ix + iw / 2, iy + ih / 2, iw / 2, ih / 2, 0, 0, Math.PI * 2); ctx.stroke();
+                ctx.beginPath();
+                ctx.ellipse(
+                  ix + iw / 2,
+                  iy + ih / 2,
+                  iw / 2,
+                  ih / 2,
+                  0,
+                  0,
+                  Math.PI * 2,
+                );
+                ctx.stroke();
               }
             }
           }
 
-        // ── text ──────────────────────────────────────────────────────────
+          // ── text ──────────────────────────────────────────────────────────
         } else if (element_type === "text") {
           const tc = c as ContentText | null;
           if (tc) {
-            const fontSize   = tc.fontSize || 24;
-            const fontFamily = tc.fontFamily ? `"${tc.fontFamily}"` : "sans-serif";
-            const align      = tc.textAlign || "center";
-            const lh         = (tc.lineHeight ?? 1.2) * fontSize;
-            const padX       = tc.paddingX ?? 10;
-            const padY       = tc.paddingY ?? 8;
-            const ls         = tc.letterSpacing ?? 0;
+            const fontSize = tc.fontSize || 24;
+            const fontFamily = tc.fontFamily
+              ? `"${tc.fontFamily}"`
+              : "sans-serif";
+            const align = tc.textAlign || "center";
+            const lh = (tc.lineHeight ?? 1.2) * fontSize;
+            const padX = tc.paddingX ?? 10;
+            const padY = tc.paddingY ?? 8;
+            const ls = tc.letterSpacing ?? 0;
 
             if (tc.bgColor) {
               ctx.save();
               ctx.shadowColor = "transparent";
               ctx.globalAlpha = tc.bgOpacity ?? 0.6;
-              ctx.fillStyle   = resolveColor(tc.bgColor);
+              ctx.fillStyle = resolveColor(tc.bgColor);
               ctx.fillRect(ix, iy, iw, ih);
               ctx.restore();
             }
 
-            ctx.font         = `${tc.fontStyle || "normal"} ${tc.fontWeight || "bold"} ${fontSize}px ${fontFamily}`;
+            ctx.font = `${tc.fontStyle || "normal"} ${tc.fontWeight || "bold"} ${fontSize}px ${fontFamily}`;
             // Use "middle" baseline so we can center text vertically the same
             // way the canvas editor does with flexbox alignItems:"center".
             ctx.textBaseline = "middle";
-            ctx.textAlign    = align;
-            ctx.globalAlpha  = 1;
+            ctx.textAlign = align;
+            ctx.globalAlpha = 1;
 
             if (tc.shadow) {
-              ctx.shadowColor   = resolveColor(tc.shadowColor) ?? "#000000";
+              ctx.shadowColor = resolveColor(tc.shadowColor) ?? "#000000";
               ctx.shadowOffsetX = tc.shadowX ?? 2;
               ctx.shadowOffsetY = tc.shadowY ?? 2;
-              ctx.shadowBlur    = tc.shadowBlur ?? 4;
+              ctx.shadowBlur = tc.shadowBlur ?? 4;
             }
 
             const lines = (tc.text || "").split("\n");
@@ -2301,15 +3072,34 @@ export default function CollectionEditorPage() {
             lines.forEach((line, li) => {
               // Middle of line `li` when the block is vertically centered in ih
               const ty = iy + ih / 2 + (li - (n - 1) / 2) * lh;
-              let tx = align === "center" ? ix + iw / 2 : align === "right" ? ix + iw - padX : ix + padX;
+              let tx =
+                align === "center"
+                  ? ix + iw / 2
+                  : align === "right"
+                    ? ix + iw - padX
+                    : ix + padX;
 
               if (tc.outline) {
                 ctx.strokeStyle = resolveColor(tc.outlineColor) ?? "#000";
-                ctx.lineWidth   = (tc.outlineWidth ?? 1) * 2;
+                ctx.lineWidth = (tc.outlineWidth ?? 1) * 2;
                 if (ls > 0) {
-                  const totalW = [...line].reduce((s, ch) => s + ctx.measureText(ch).width, 0) + ls * Math.max(line.length - 1, 0);
-                  let curX = align === "center" ? ix + (iw - totalW) / 2 : align === "right" ? ix + iw - padX - totalW : ix + padX;
-                  for (const ch of line) { ctx.textAlign = "left"; ctx.strokeText(ch, curX, ty); curX += ctx.measureText(ch).width + ls; }
+                  const totalW =
+                    [...line].reduce(
+                      (s, ch) => s + ctx.measureText(ch).width,
+                      0,
+                    ) +
+                    ls * Math.max(line.length - 1, 0);
+                  let curX =
+                    align === "center"
+                      ? ix + (iw - totalW) / 2
+                      : align === "right"
+                        ? ix + iw - padX - totalW
+                        : ix + padX;
+                  for (const ch of line) {
+                    ctx.textAlign = "left";
+                    ctx.strokeText(ch, curX, ty);
+                    curX += ctx.measureText(ch).width + ls;
+                  }
                   ctx.textAlign = align;
                 } else {
                   ctx.strokeText(line, tx, ty);
@@ -2318,10 +3108,23 @@ export default function CollectionEditorPage() {
 
               ctx.fillStyle = resolveColor(tc.color) || "#1a1a1a";
               if (ls > 0 && line.length > 0) {
-                const totalW = [...line].reduce((s, ch) => s + ctx.measureText(ch).width, 0) + ls * Math.max(line.length - 1, 0);
-                let curX = align === "center" ? ix + (iw - totalW) / 2 : align === "right" ? ix + iw - padX - totalW : ix + padX;
+                const totalW =
+                  [...line].reduce(
+                    (s, ch) => s + ctx.measureText(ch).width,
+                    0,
+                  ) +
+                  ls * Math.max(line.length - 1, 0);
+                let curX =
+                  align === "center"
+                    ? ix + (iw - totalW) / 2
+                    : align === "right"
+                      ? ix + iw - padX - totalW
+                      : ix + padX;
                 ctx.textAlign = "left";
-                for (const ch of line) { ctx.fillText(ch, curX, ty); curX += ctx.measureText(ch).width + ls; }
+                for (const ch of line) {
+                  ctx.fillText(ch, curX, ty);
+                  curX += ctx.measureText(ch).width + ls;
+                }
                 ctx.textAlign = align;
               } else {
                 ctx.fillText(line, tx, ty);
@@ -2335,59 +3138,80 @@ export default function CollectionEditorPage() {
 
       // ── 3. Download ───────────────────────────────────────────────────────
       const mimeType = exportFormat === "jpeg" ? "image/jpeg" : "image/png";
-      const quality  = exportFormat === "jpeg" ? exportQuality / 100 : undefined;
+      const quality = exportFormat === "jpeg" ? exportQuality / 100 : undefined;
       const filename = `${(name || "canvas").replace(/\s+/g, "-").toLowerCase()}.${exportFormat}`;
-      const dataUrl  = canvas.toDataURL(mimeType, quality);
-      const blob     = await fetch(dataUrl).then((r) => r.blob());
-      const blobUrl  = URL.createObjectURL(blob);
-      const link     = document.createElement("a");
-      link.href      = blobUrl;
-      link.download  = filename;
+      const dataUrl = canvas.toDataURL(mimeType, quality);
+      const blob = await fetch(dataUrl).then((r) => r.blob());
+      const blobUrl = URL.createObjectURL(blob);
+      const link = document.createElement("a");
+      link.href = blobUrl;
+      link.download = filename;
       document.body.appendChild(link);
       link.click();
       document.body.removeChild(link);
       setTimeout(() => URL.revokeObjectURL(blobUrl), 500);
       setExportOpen(false);
-
     } catch (err) {
       console.error("[Canvas Export]", err);
       alert("No se pudo exportar la imagen. Intenta de nuevo.");
     } finally {
       setExporting(false);
     }
-  }, [bgColor, bgGradient, bgTexture, displayBackgroundImageUrl, displayCanvasHeight, displayCanvasWidth, displayItems, exportFormat, exportQuality, name, previewTemplate]);
+  }, [
+    bgColor,
+    bgGradient,
+    bgTexture,
+    displayBackgroundImageUrl,
+    displayCanvasHeight,
+    displayCanvasWidth,
+    displayItems,
+    exportFormat,
+    exportQuality,
+    name,
+    previewTemplate,
+  ]);
 
-  const handlePreviewTemplate = useCallback(async (template: CollectionTemplate) => {
-    setTemplatePreviewLoadingId(template.id);
-    setPreviewZoom(1);
-    setTemplateError(null);
-    try {
-      const res = await apiFetch(`/api/collections/templates/${template.id}`);
-      const data = await res.json();
-      if (!data.ok) throw new Error(data.message ?? "No se pudo cargar la plantilla");
+  const handlePreviewTemplate = useCallback(
+    async (template: CollectionTemplate) => {
+      setTemplatePreviewLoadingId(template.id);
+      setPreviewZoom(1);
+      setTemplateError(null);
+      try {
+        const res = await apiFetch(`/api/collections/templates/${template.id}`);
+        const data = await res.json();
+        if (!data.ok)
+          throw new Error(data.message ?? "No se pudo cargar la plantilla");
 
-      const normalizedPreview = {
-        ...data.data,
-        items_snapshot: Array.isArray(data.data?.items_snapshot)
-          ? data.data.items_snapshot.map((item: CanvasItem, index: number) => ({
-              ...item,
-              id: Number.isFinite(item?.id) ? item.id : -((template.id * 1000) + index + 1),
-            }))
-          : [],
-      };
+        const normalizedPreview = {
+          ...data.data,
+          items_snapshot: Array.isArray(data.data?.items_snapshot)
+            ? data.data.items_snapshot.map(
+                (item: CanvasItem, index: number) => ({
+                  ...item,
+                  id: Number.isFinite(item?.id)
+                    ? item.id
+                    : -(template.id * 1000 + index + 1),
+                }),
+              )
+            : [],
+        };
 
-      setPreviewTemplate(normalizedPreview);
-      setSelectedItemId(null);
-      setEditingTextId(null);
-      setActiveTool("select");
-      setMobilePanel(null);
-      resetCanvasViewport();
-    } catch (err: any) {
-      setTemplateError(err?.message ?? "No se pudo cargar la vista previa");
-    } finally {
-      setTemplatePreviewLoadingId((prev) => prev === template.id ? null : prev);
-    }
-  }, [resetCanvasViewport]);
+        setPreviewTemplate(normalizedPreview);
+        setSelectedItemId(null);
+        setEditingTextId(null);
+        setActiveTool("select");
+        setMobilePanel(null);
+        resetCanvasViewport();
+      } catch (err: any) {
+        setTemplateError(err?.message ?? "No se pudo cargar la vista previa");
+      } finally {
+        setTemplatePreviewLoadingId((prev) =>
+          prev === template.id ? null : prev,
+        );
+      }
+    },
+    [resetCanvasViewport],
+  );
 
   const handleCancelTemplatePreview = useCallback(() => {
     setPreviewTemplate(null);
@@ -2399,35 +3223,44 @@ export default function CollectionEditorPage() {
     resetCanvasViewport();
   }, [resetCanvasViewport]);
 
-  const handleApplyTemplate = useCallback(async (templateId: number) => {
-    setTemplateApplyingId(templateId);
-    setTemplateError(null);
-    try {
-      const res = await apiFetch(`/api/collections/${collectionId}/apply-template`, {
-        method: "POST",
-        body: JSON.stringify({ template_id: templateId }),
-      });
-      const data = await res.json();
-      if (!data.ok) throw new Error(data.message ?? "No se pudo aplicar la plantilla");
+  const handleApplyTemplate = useCallback(
+    async (templateId: number) => {
+      setTemplateApplyingId(templateId);
+      setTemplateError(null);
+      try {
+        const res = await apiFetch(
+          `/api/collections/${collectionId}/apply-template`,
+          {
+            method: "POST",
+            body: JSON.stringify({ template_id: templateId }),
+          },
+        );
+        const data = await res.json();
+        if (!data.ok)
+          throw new Error(data.message ?? "No se pudo aplicar la plantilla");
 
-      invalidateCache(`/api/collections/${collectionId}`);
-      await loadCollection();
-      setPreviewTemplate(null);
-      setSelectedItemId(null);
-      setEditingTextId(null);
-      setActiveTool("select");
-      setMobilePanel(null);
-      resetCanvasViewport();
+        invalidateCache(`/api/collections/${collectionId}`);
+        await loadCollection();
+        setPreviewTemplate(null);
+        setSelectedItemId(null);
+        setEditingTextId(null);
+        setActiveTool("select");
+        setMobilePanel(null);
+        resetCanvasViewport();
 
-      if (data?.data?.skipped_products > 0) {
-        alert(`Plantilla aplicada. ${data.data.skipped_products} producto(s) no eran válidos para esta tienda y se omitieron.`);
+        if (data?.data?.skipped_products > 0) {
+          alert(
+            `Plantilla aplicada. ${data.data.skipped_products} producto(s) no eran válidos para esta tienda y se omitieron.`,
+          );
+        }
+      } catch (err: any) {
+        setTemplateError(err?.message ?? "No se pudo aplicar la plantilla");
+      } finally {
+        setTemplateApplyingId(null);
       }
-    } catch (err: any) {
-      setTemplateError(err?.message ?? "No se pudo aplicar la plantilla");
-    } finally {
-      setTemplateApplyingId(null);
-    }
-  }, [collectionId, loadCollection, resetCanvasViewport]);
+    },
+    [collectionId, loadCollection, resetCanvasViewport],
+  );
 
   // ── Drag product from sidebar → canvas ─────────────────────────────────────
 
@@ -2436,56 +3269,110 @@ export default function CollectionEditorPage() {
     e.dataTransfer.setData("text/plain", JSON.stringify(product));
   };
 
-  const handleCanvasDragOver = (e: React.DragEvent) => { e.preventDefault(); e.dataTransfer.dropEffect = "copy"; };
+  const handleCanvasDragOver = (e: React.DragEvent) => {
+    e.preventDefault();
+    e.dataTransfer.dropEffect = "copy";
+  };
 
   const handleCanvasDrop = async (e: React.DragEvent) => {
     e.preventDefault();
     const point = clientPointToCanvasPoint(e.clientX, e.clientY);
     if (!point) return;
     let product: Product;
-    try { product = JSON.parse(e.dataTransfer.getData("text/plain")); } catch { return; }
+    try {
+      product = JSON.parse(e.dataTransfer.getData("text/plain"));
+    } catch {
+      return;
+    }
     const pos_x = snapToGrid(Math.max(0, point.x - 75), gridSnap);
     const pos_y = snapToGrid(Math.max(0, point.y - 75), gridSnap);
     const res = await apiFetch(`/api/collections/${collectionId}/items`, {
       method: "POST",
-      body: JSON.stringify({ element_type: "product", product_id: product.id, pos_x, pos_y, width: 150, height: 150, z_index: itemsRef.current.length }),
+      body: JSON.stringify({
+        element_type: "product",
+        product_id: product.id,
+        pos_x,
+        pos_y,
+        width: 150,
+        height: 150,
+        z_index: itemsRef.current.length,
+      }),
     });
     const data = await res.json();
     if (data.ok) {
-      setItems((prev) => [...prev, {
-        id: data.data.id, element_type: "product", content: null,
-        product_id: product.id, pos_x, pos_y, width: 150, height: 150,
-        z_index: prev.length,
-        product_name: product.nombre, product_image: product.imagen_url, product_price: product.precio,
-      }]);
+      setItems((prev) => [
+        ...prev,
+        {
+          id: data.data.id,
+          element_type: "product",
+          content: null,
+          product_id: product.id,
+          pos_x,
+          pos_y,
+          width: 150,
+          height: 150,
+          z_index: prev.length,
+          product_name: product.nombre,
+          product_image: product.imagen_url,
+          product_price: product.precio,
+        },
+      ]);
     }
   };
 
   // ── Canvas click → place text / shape ─────────────────────────────────────
 
   const handleCanvasClick = async (e: React.MouseEvent) => {
-    if (activeTool === "select" || activeTool === "image" || activeTool === "decor" || activeTool === "hand") return;
+    if (
+      activeTool === "select" ||
+      activeTool === "image" ||
+      activeTool === "decor" ||
+      activeTool === "hand"
+    )
+      return;
     if ((e.target as HTMLElement).closest("[data-canvas-item]")) return;
     const point = clientPointToCanvasPoint(e.clientX, e.clientY);
     if (!point) return;
     const pos_x = snapToGrid(Math.max(0, point.x - 100), gridSnap);
     const pos_y = snapToGrid(Math.max(0, point.y - 35), gridSnap);
     const element_type = activeTool;
-    const content = element_type === "text" ? { ...textDefaults } : { ...shapeDefaults };
-    const isLine = element_type === "shape" && shapeDefaults.shapeType === "line";
-    const width  = element_type === "text" ? 220 : 150;
-    const height = element_type === "text" ? 70  : isLine ? 8 : 150;
+    const content =
+      element_type === "text" ? { ...textDefaults } : { ...shapeDefaults };
+    const isLine =
+      element_type === "shape" && shapeDefaults.shapeType === "line";
+    const width = element_type === "text" ? 220 : 150;
+    const height = element_type === "text" ? 70 : isLine ? 8 : 150;
     const res = await apiFetch(`/api/collections/${collectionId}/items`, {
       method: "POST",
-      body: JSON.stringify({ element_type, content, pos_x, pos_y, width, height, z_index: itemsRef.current.length }),
+      body: JSON.stringify({
+        element_type,
+        content,
+        pos_x,
+        pos_y,
+        width,
+        height,
+        z_index: itemsRef.current.length,
+      }),
     });
     const data = await res.json();
     if (data.ok) {
-      setItems((prev) => [...prev, {
-        id: data.data.id, element_type, content,
-        product_id: null, pos_x, pos_y, width, height, z_index: prev.length,
-        product_name: null, product_image: null, product_price: null,
-      }]);
+      setItems((prev) => [
+        ...prev,
+        {
+          id: data.data.id,
+          element_type,
+          content,
+          product_id: null,
+          pos_x,
+          pos_y,
+          width,
+          height,
+          z_index: prev.length,
+          product_name: null,
+          product_image: null,
+          product_price: null,
+        },
+      ]);
       setSelectedItemId(data.data.id);
       setActiveTool("select");
     }
@@ -2493,45 +3380,69 @@ export default function CollectionEditorPage() {
 
   // ── Content update (debounced save) ───────────────────────────────────────
 
-  const handleSwapProduct = useCallback(async (itemId: number, product: Product) => {
-    setItems((prev) => prev.map((i) => i.id === itemId ? {
-      ...i,
-      product_id: product.id,
-      product_name: product.nombre,
-      product_image: product.imagen_url,
-      product_price: product.precio,
-    } : i));
-    setProductSwapOpen(false);
-    setProductSwapSearch("");
-    await apiFetch(`/api/collections/${collectionId}/items/${itemId}`, {
-      method: "PUT",
-      body: JSON.stringify({ product_id: product.id }),
-    });
-  }, [collectionId]);
-
-  const updateItemContent = useCallback((itemId: number, newContent: ContentText | ContentShape | ContentImage | ContentProduct) => {
-    setItems((prev) => prev.map((i) => i.id === itemId ? { ...i, content: newContent } : i));
-    const key = String(itemId);
-    if (debounceTimers.current[key]) clearTimeout(debounceTimers.current[key]);
-    debounceTimers.current[key] = setTimeout(() => {
-      apiFetch(`/api/collections/${collectionId}/items/${itemId}`, {
-        method: "PUT", body: JSON.stringify({ content: newContent }),
+  const handleSwapProduct = useCallback(
+    async (itemId: number, product: Product) => {
+      setItems((prev) =>
+        prev.map((i) =>
+          i.id === itemId
+            ? {
+                ...i,
+                product_id: product.id,
+                product_name: product.nombre,
+                product_image: product.imagen_url,
+                product_price: product.precio,
+              }
+            : i,
+        ),
+      );
+      setProductSwapOpen(false);
+      setProductSwapSearch("");
+      await apiFetch(`/api/collections/${collectionId}/items/${itemId}`, {
+        method: "PUT",
+        body: JSON.stringify({ product_id: product.id }),
       });
-      delete debounceTimers.current[key];
-    }, 600);
-  }, [collectionId]);
+    },
+    [collectionId],
+  );
 
-  const openTextEditor = useCallback((itemId: number) => {
-    const item = itemsRef.current.find((candidate) => candidate.id === itemId);
-    if (!item || item.element_type !== "text") return;
+  const updateItemContent = useCallback(
+    (
+      itemId: number,
+      newContent: ContentText | ContentShape | ContentImage | ContentProduct,
+    ) => {
+      setItems((prev) =>
+        prev.map((i) => (i.id === itemId ? { ...i, content: newContent } : i)),
+      );
+      const key = String(itemId);
+      if (debounceTimers.current[key])
+        clearTimeout(debounceTimers.current[key]);
+      debounceTimers.current[key] = setTimeout(() => {
+        apiFetch(`/api/collections/${collectionId}/items/${itemId}`, {
+          method: "PUT",
+          body: JSON.stringify({ content: newContent }),
+        });
+        delete debounceTimers.current[key];
+      }, 600);
+    },
+    [collectionId],
+  );
 
-    setSelectedItemId(itemId);
-    if (isMobileViewport) {
-      setMobilePanel("properties");
-      setMobileTextEditorDraft(((item.content as ContentText)?.text) ?? "");
-    }
-    setEditingTextId(itemId);
-  }, [isMobileViewport]);
+  const openTextEditor = useCallback(
+    (itemId: number) => {
+      const item = itemsRef.current.find(
+        (candidate) => candidate.id === itemId,
+      );
+      if (!item || item.element_type !== "text") return;
+
+      setSelectedItemId(itemId);
+      if (isMobileViewport) {
+        setMobilePanel("properties");
+        setMobileTextEditorDraft((item.content as ContentText)?.text ?? "");
+      }
+      setEditingTextId(itemId);
+    },
+    [isMobileViewport],
+  );
 
   const handleMobileTextEditorConfirm = useCallback(async () => {
     if (!mobileEditingTextItem || !mobileEditingTextContent) {
@@ -2539,10 +3450,18 @@ export default function CollectionEditorPage() {
       return;
     }
 
-    const nextContent: ContentText = { ...mobileEditingTextContent, text: mobileTextEditorDraft };
+    const nextContent: ContentText = {
+      ...mobileEditingTextContent,
+      text: mobileTextEditorDraft,
+    };
     await persistItemContentImmediately(mobileEditingTextItem.id, nextContent);
     setEditingTextId(null);
-  }, [mobileEditingTextContent, mobileEditingTextItem, mobileTextEditorDraft, persistItemContentImmediately]);
+  }, [
+    mobileEditingTextContent,
+    mobileEditingTextItem,
+    mobileTextEditorDraft,
+    persistItemContentImmediately,
+  ]);
 
   const handleMobileTextEditorOpenChange = useCallback((open: boolean) => {
     if (open) return;
@@ -2557,98 +3476,174 @@ export default function CollectionEditorPage() {
     }
     await flushPendingItemContentSaves();
     await flushPendingCanvasSettingsSave();
-  }, [flushPendingCanvasSettingsSave, flushPendingItemContentSaves, handleMobileTextEditorConfirm, mobileEditingTextItem]);
+  }, [
+    flushPendingCanvasSettingsSave,
+    flushPendingItemContentSaves,
+    handleMobileTextEditorConfirm,
+    mobileEditingTextItem,
+  ]);
 
   // ── Position/size change from X/Y/W/H inputs ─────────────────────────────
 
-  const handlePositionChange = useCallback((itemId: number, field: "pos_x" | "pos_y" | "width" | "height", rawValue: number) => {
-    let value = rawValue;
-    if (field === "width" || field === "height") value = Math.max(10, value);
-    if (field === "pos_x" || field === "pos_y") value = Math.max(0, value);
-    setItems((prev) => prev.map((i) => i.id === itemId ? { ...i, [field]: value } : i));
-  }, []);
+  const handlePositionChange = useCallback(
+    (
+      itemId: number,
+      field: "pos_x" | "pos_y" | "width" | "height",
+      rawValue: number,
+    ) => {
+      let value = rawValue;
+      if (field === "width" || field === "height") value = Math.max(10, value);
+      if (field === "pos_x" || field === "pos_y") value = Math.max(0, value);
+      setItems((prev) =>
+        prev.map((i) => (i.id === itemId ? { ...i, [field]: value } : i)),
+      );
+    },
+    [],
+  );
 
   const handlePosInputFocus = useCallback((itemId: number) => {
     if (posSnapshot.current?.itemId === itemId) return;
     const item = itemsRef.current.find((i) => i.id === itemId);
-    if (item) posSnapshot.current = { itemId, pos_x: item.pos_x, pos_y: item.pos_y, width: item.width, height: item.height };
+    if (item)
+      posSnapshot.current = {
+        itemId,
+        pos_x: item.pos_x,
+        pos_y: item.pos_y,
+        width: item.width,
+        height: item.height,
+      };
   }, []);
 
-  const handlePosInputBlur = useCallback((itemId: number) => {
-    if (!posSnapshot.current || posSnapshot.current.itemId !== itemId) return;
-    const prev = { ...posSnapshot.current };
-    posSnapshot.current = null;
-    const item = itemsRef.current.find((i) => i.id === itemId);
-    if (!item) return;
-    const curr = { pos_x: item.pos_x, pos_y: item.pos_y, width: item.width, height: item.height };
-    apiFetch(`/api/collections/${collectionId}/items/${itemId}`, { method: "PUT", body: JSON.stringify(curr) });
-    if (prev.pos_x !== curr.pos_x || prev.pos_y !== curr.pos_y || prev.width !== curr.width || prev.height !== curr.height) {
-      record({
-        undo: () => {
-          setItems((p) => p.map((i) => i.id === itemId ? { ...i, ...prev } : i));
-          apiFetch(`/api/collections/${collectionId}/items/${itemId}`, { method: "PUT", body: JSON.stringify(prev) });
-        },
-        redo: () => {
-          setItems((p) => p.map((i) => i.id === itemId ? { ...i, ...curr } : i));
-          apiFetch(`/api/collections/${collectionId}/items/${itemId}`, { method: "PUT", body: JSON.stringify(curr) });
-        },
+  const handlePosInputBlur = useCallback(
+    (itemId: number) => {
+      if (!posSnapshot.current || posSnapshot.current.itemId !== itemId) return;
+      const prev = { ...posSnapshot.current };
+      posSnapshot.current = null;
+      const item = itemsRef.current.find((i) => i.id === itemId);
+      if (!item) return;
+      const curr = {
+        pos_x: item.pos_x,
+        pos_y: item.pos_y,
+        width: item.width,
+        height: item.height,
+      };
+      apiFetch(`/api/collections/${collectionId}/items/${itemId}`, {
+        method: "PUT",
+        body: JSON.stringify(curr),
       });
-    }
-  }, [collectionId, record]);
+      if (
+        prev.pos_x !== curr.pos_x ||
+        prev.pos_y !== curr.pos_y ||
+        prev.width !== curr.width ||
+        prev.height !== curr.height
+      ) {
+        record({
+          undo: () => {
+            setItems((p) =>
+              p.map((i) => (i.id === itemId ? { ...i, ...prev } : i)),
+            );
+            apiFetch(`/api/collections/${collectionId}/items/${itemId}`, {
+              method: "PUT",
+              body: JSON.stringify(prev),
+            });
+          },
+          redo: () => {
+            setItems((p) =>
+              p.map((i) => (i.id === itemId ? { ...i, ...curr } : i)),
+            );
+            apiFetch(`/api/collections/${collectionId}/items/${itemId}`, {
+              method: "PUT",
+              body: JSON.stringify(curr),
+            });
+          },
+        });
+      }
+    },
+    [collectionId, record],
+  );
 
-  const handleAddGraphicPreset = useCallback(async (preset: GraphicPreset) => {
-    const nextWidth = Math.min(preset.width, Math.max(120, Math.floor((collection?.canvas_width ?? 800) * 0.42)));
-    const aspectRatio = preset.height / preset.width;
-    const nextHeight = Math.max(80, Math.round(nextWidth * aspectRatio));
-    const pos_x = snapToGrid(Math.max(24, Math.round(((collection?.canvas_width ?? 800) - nextWidth) / 2)), gridSnap);
-    const pos_y = snapToGrid(Math.max(24, Math.round(((collection?.canvas_height ?? 600) - nextHeight) / 2)), gridSnap);
-    const content: ContentImage = {
-      ...DEFAULT_IMAGE,
-      url: svgToDataUrl(preset.svg),
-      objectFit: preset.objectFit ?? "contain",
-      borderRadius: 0,
-      opacity: 1,
-    };
+  const handleAddGraphicPreset = useCallback(
+    async (preset: GraphicPreset) => {
+      const nextWidth = Math.min(
+        preset.width,
+        Math.max(120, Math.floor((collection?.canvas_width ?? 800) * 0.42)),
+      );
+      const aspectRatio = preset.height / preset.width;
+      const nextHeight = Math.max(80, Math.round(nextWidth * aspectRatio));
+      const pos_x = snapToGrid(
+        Math.max(
+          24,
+          Math.round(((collection?.canvas_width ?? 800) - nextWidth) / 2),
+        ),
+        gridSnap,
+      );
+      const pos_y = snapToGrid(
+        Math.max(
+          24,
+          Math.round(((collection?.canvas_height ?? 600) - nextHeight) / 2),
+        ),
+        gridSnap,
+      );
+      const content: ContentImage = {
+        ...DEFAULT_IMAGE,
+        url: svgToDataUrl(preset.svg),
+        objectFit: preset.objectFit ?? "contain",
+        borderRadius: 0,
+        opacity: 1,
+      };
 
-    const res = await apiFetch(`/api/collections/${collectionId}/items`, {
-      method: "POST",
-      body: JSON.stringify({
-        element_type: "image",
-        content,
-        pos_x,
-        pos_y,
-        width: nextWidth,
-        height: nextHeight,
-        z_index: itemsRef.current.length,
-      }),
-    });
-    const data = await res.json();
-    if (data.ok) {
-      setItems((prev) => [...prev, {
-        id: data.data.id,
-        element_type: "image",
-        content,
-        product_id: null,
-        pos_x,
-        pos_y,
-        width: nextWidth,
-        height: nextHeight,
-        z_index: prev.length,
-        product_name: null,
-        product_image: null,
-        product_price: null,
-      }]);
-      setSelectedItemId(data.data.id);
-      setActiveTool("select");
-      setMobilePanel(null);
-    }
-  }, [collection?.canvas_height, collection?.canvas_width, collectionId, gridSnap]);
+      const res = await apiFetch(`/api/collections/${collectionId}/items`, {
+        method: "POST",
+        body: JSON.stringify({
+          element_type: "image",
+          content,
+          pos_x,
+          pos_y,
+          width: nextWidth,
+          height: nextHeight,
+          z_index: itemsRef.current.length,
+        }),
+      });
+      const data = await res.json();
+      if (data.ok) {
+        setItems((prev) => [
+          ...prev,
+          {
+            id: data.data.id,
+            element_type: "image",
+            content,
+            product_id: null,
+            pos_x,
+            pos_y,
+            width: nextWidth,
+            height: nextHeight,
+            z_index: prev.length,
+            product_name: null,
+            product_image: null,
+            product_price: null,
+          },
+        ]);
+        setSelectedItemId(data.data.id);
+        setActiveTool("select");
+        setMobilePanel(null);
+      }
+    },
+    [
+      collection?.canvas_height,
+      collection?.canvas_width,
+      collectionId,
+      gridSnap,
+    ],
+  );
 
   // ── Canvas item: move ──────────────────────────────────────────────────────
 
   const handleItemPointerDown = (e: React.PointerEvent, itemId: number) => {
     if (activeTool !== "select") return;
-    if (lockedItemIds.has(itemId)) { setSelectedItemId(itemId); return; }
+    if (lockedItemIds.has(itemId)) {
+      setSelectedItemId(itemId);
+      return;
+    }
     e.stopPropagation();
     (e.currentTarget as HTMLElement).setPointerCapture(e.pointerId);
     const item = itemsRef.current.find((i) => i.id === itemId);
@@ -2657,7 +3652,8 @@ export default function CollectionEditorPage() {
     if (e.shiftKey) {
       setSelectedItemIds((prev) => {
         const next = new Set(prev);
-        if (next.has(itemId)) next.delete(itemId); else next.add(itemId);
+        if (next.has(itemId)) next.delete(itemId);
+        else next.add(itemId);
         return next;
       });
       setSelectedItemId(itemId);
@@ -2668,54 +3664,107 @@ export default function CollectionEditorPage() {
     const groupId = (item.content as ContentText)?.group_id;
     const groupMembers = groupId
       ? itemsRef.current
-          .filter((i) => i.id !== itemId && (i.content as ContentText)?.group_id === groupId && !lockedItemIds.has(i.id))
+          .filter(
+            (i) =>
+              i.id !== itemId &&
+              (i.content as ContentText)?.group_id === groupId &&
+              !lockedItemIds.has(i.id),
+          )
           .map((i) => ({ id: i.id, origX: i.pos_x, origY: i.pos_y }))
       : undefined;
 
-    dragState.current = { itemId, startPX: e.clientX, startPY: e.clientY, origX: item.pos_x, origY: item.pos_y, groupMembers };
+    dragState.current = {
+      itemId,
+      startPX: e.clientX,
+      startPY: e.clientY,
+      origX: item.pos_x,
+      origY: item.pos_y,
+      groupMembers,
+    };
     setSelectedItemId(itemId);
-    setSelectedItemIds(new Set([itemId, ...(groupMembers?.map((m) => m.id) ?? [])]));
+    setSelectedItemIds(
+      new Set([itemId, ...(groupMembers?.map((m) => m.id) ?? [])]),
+    );
     setIsBackgroundSelected(false);
   };
 
   const handleCanvasPointerMove = (e: React.PointerEvent) => {
     if (!collection) return;
     if (resizeState.current) {
-      const { itemId, corner, startPX, startPY, origX, origY, origW, origH } = resizeState.current;
+      const { itemId, corner, startPX, startPY, origX, origY, origW, origH } =
+        resizeState.current;
       const dx = (e.clientX - startPX) / effectiveCanvasScale;
       const dy = (e.clientY - startPY) / effectiveCanvasScale;
       const MIN = 40;
-      setItems((prev) => prev.map((item) => {
-        if (item.id !== itemId) return item;
-        let pos_x = item.pos_x, pos_y = item.pos_y, width = item.width, height = item.height;
-        switch (corner) {
-          case "se": width = Math.max(MIN, origW + dx); height = Math.max(MIN, origH + dy); break;
-          case "sw": width = Math.max(MIN, origW - dx); pos_x = origX + origW - width; height = Math.max(MIN, origH + dy); break;
-          case "ne": width = Math.max(MIN, origW + dx); height = Math.max(MIN, origH - dy); pos_y = origY + origH - height; break;
-          case "nw": width = Math.max(MIN, origW - dx); pos_x = origX + origW - width; height = Math.max(MIN, origH - dy); pos_y = origY + origH - height; break;
-        }
-        return { ...item, pos_x, pos_y, width, height };
-      }));
+      setItems((prev) =>
+        prev.map((item) => {
+          if (item.id !== itemId) return item;
+          let pos_x = item.pos_x,
+            pos_y = item.pos_y,
+            width = item.width,
+            height = item.height;
+          switch (corner) {
+            case "se":
+              width = Math.max(MIN, origW + dx);
+              height = Math.max(MIN, origH + dy);
+              break;
+            case "sw":
+              width = Math.max(MIN, origW - dx);
+              pos_x = origX + origW - width;
+              height = Math.max(MIN, origH + dy);
+              break;
+            case "ne":
+              width = Math.max(MIN, origW + dx);
+              height = Math.max(MIN, origH - dy);
+              pos_y = origY + origH - height;
+              break;
+            case "nw":
+              width = Math.max(MIN, origW - dx);
+              pos_x = origX + origW - width;
+              height = Math.max(MIN, origH - dy);
+              pos_y = origY + origH - height;
+              break;
+          }
+          return { ...item, pos_x, pos_y, width, height };
+        }),
+      );
       return;
     }
     if (!dragState.current) return;
-    const { itemId, startPX, startPY, origX, origY, groupMembers } = dragState.current;
+    const { itemId, startPX, startPY, origX, origY, groupMembers } =
+      dragState.current;
     const dx = (e.clientX - startPX) / effectiveCanvasScale;
     const dy = (e.clientY - startPY) / effectiveCanvasScale;
-    setItems((prev) => prev.map((item) => {
-      if (item.id === itemId) return {
-        ...item,
-        pos_x: Math.max(0, Math.min(collection.canvas_width - item.width, origX + dx)),
-        pos_y: Math.max(0, Math.min(collection.canvas_height - item.height, origY + dy)),
-      };
-      const gm = groupMembers?.find((m) => m.id === item.id);
-      if (gm) return {
-        ...item,
-        pos_x: Math.max(0, Math.min(collection.canvas_width - item.width, gm.origX + dx)),
-        pos_y: Math.max(0, Math.min(collection.canvas_height - item.height, gm.origY + dy)),
-      };
-      return item;
-    }));
+    setItems((prev) =>
+      prev.map((item) => {
+        if (item.id === itemId)
+          return {
+            ...item,
+            pos_x: Math.max(
+              0,
+              Math.min(collection.canvas_width - item.width, origX + dx),
+            ),
+            pos_y: Math.max(
+              0,
+              Math.min(collection.canvas_height - item.height, origY + dy),
+            ),
+          };
+        const gm = groupMembers?.find((m) => m.id === item.id);
+        if (gm)
+          return {
+            ...item,
+            pos_x: Math.max(
+              0,
+              Math.min(collection.canvas_width - item.width, gm.origX + dx),
+            ),
+            pos_y: Math.max(
+              0,
+              Math.min(collection.canvas_height - item.height, gm.origY + dy),
+            ),
+          };
+        return item;
+      }),
+    );
   };
 
   const handleCanvasPointerUp = async () => {
@@ -2727,20 +3776,52 @@ export default function CollectionEditorPage() {
         const snX = snapToGrid(item.pos_x, gridSnap);
         const snY = snapToGrid(item.pos_y, gridSnap);
         if (snX !== item.pos_x || snY !== item.pos_y) {
-          setItems((prev) => prev.map((i) => i.id === itemId ? { ...i, pos_x: snX, pos_y: snY } : i));
+          setItems((prev) =>
+            prev.map((i) =>
+              i.id === itemId ? { ...i, pos_x: snX, pos_y: snY } : i,
+            ),
+          );
         }
-        const curr = { pos_x: snX, pos_y: snY, width: item.width, height: item.height };
-        apiFetch(`/api/collections/${collectionId}/items/${itemId}`, { method: "PUT", body: JSON.stringify(curr) });
-        if (snX !== origX || snY !== origY || item.width !== origW || item.height !== origH) {
-          const prev = { pos_x: origX, pos_y: origY, width: origW, height: origH };
+        const curr = {
+          pos_x: snX,
+          pos_y: snY,
+          width: item.width,
+          height: item.height,
+        };
+        apiFetch(`/api/collections/${collectionId}/items/${itemId}`, {
+          method: "PUT",
+          body: JSON.stringify(curr),
+        });
+        if (
+          snX !== origX ||
+          snY !== origY ||
+          item.width !== origW ||
+          item.height !== origH
+        ) {
+          const prev = {
+            pos_x: origX,
+            pos_y: origY,
+            width: origW,
+            height: origH,
+          };
           record({
             undo: () => {
-              setItems((p) => p.map((i) => i.id === itemId ? { ...i, ...prev } : i));
-              apiFetch(`/api/collections/${collectionId}/items/${itemId}`, { method: "PUT", body: JSON.stringify(prev) });
+              setItems((p) =>
+                p.map((i) => (i.id === itemId ? { ...i, ...prev } : i)),
+              );
+              apiFetch(`/api/collections/${collectionId}/items/${itemId}`, {
+                method: "PUT",
+                body: JSON.stringify(prev),
+              });
             },
             redo: () => {
-              setItems((p) => p.map((i) => i.id === itemId ? { ...i, ...curr } : i));
-              apiFetch(`/api/collections/${collectionId}/items/${itemId}`, { method: "PUT", body: JSON.stringify(curr) });
+              setItems((p) =>
+                p.map((i) => (i.id === itemId ? { ...i, ...curr } : i)),
+              );
+              apiFetch(`/api/collections/${collectionId}/items/${itemId}`, {
+                method: "PUT",
+                body: JSON.stringify(curr),
+              });
             },
           });
         }
@@ -2755,10 +3836,15 @@ export default function CollectionEditorPage() {
       const snX = snapToGrid(item.pos_x, gridSnap);
       const snY = snapToGrid(item.pos_y, gridSnap);
       if (snX !== item.pos_x || snY !== item.pos_y) {
-        setItems((prev) => prev.map((i) => i.id === itemId ? { ...i, pos_x: snX, pos_y: snY } : i));
+        setItems((prev) =>
+          prev.map((i) =>
+            i.id === itemId ? { ...i, pos_x: snX, pos_y: snY } : i,
+          ),
+        );
       }
       apiFetch(`/api/collections/${collectionId}/items/${itemId}`, {
-        method: "PUT", body: JSON.stringify({ pos_x: snX, pos_y: snY, z_index: item.z_index }),
+        method: "PUT",
+        body: JSON.stringify({ pos_x: snX, pos_y: snY, z_index: item.z_index }),
       });
       // Persist group members' new positions
       if (groupMembers?.length) {
@@ -2768,10 +3854,15 @@ export default function CollectionEditorPage() {
           const gmSnX = snapToGrid(gmItem.pos_x, gridSnap);
           const gmSnY = snapToGrid(gmItem.pos_y, gridSnap);
           if (gmSnX !== gmItem.pos_x || gmSnY !== gmItem.pos_y) {
-            setItems((prev) => prev.map((i) => i.id === gm.id ? { ...i, pos_x: gmSnX, pos_y: gmSnY } : i));
+            setItems((prev) =>
+              prev.map((i) =>
+                i.id === gm.id ? { ...i, pos_x: gmSnX, pos_y: gmSnY } : i,
+              ),
+            );
           }
           apiFetch(`/api/collections/${collectionId}/items/${gm.id}`, {
-            method: "PUT", body: JSON.stringify({ pos_x: gmSnX, pos_y: gmSnY }),
+            method: "PUT",
+            body: JSON.stringify({ pos_x: gmSnX, pos_y: gmSnY }),
           });
         });
       }
@@ -2780,58 +3871,95 @@ export default function CollectionEditorPage() {
         const curr = { pos_x: snX, pos_y: snY };
         record({
           undo: () => {
-            setItems((p) => p.map((i) => i.id === itemId ? { ...i, ...prev } : i));
-            apiFetch(`/api/collections/${collectionId}/items/${itemId}`, { method: "PUT", body: JSON.stringify({ ...prev, z_index: item.z_index }) });
+            setItems((p) =>
+              p.map((i) => (i.id === itemId ? { ...i, ...prev } : i)),
+            );
+            apiFetch(`/api/collections/${collectionId}/items/${itemId}`, {
+              method: "PUT",
+              body: JSON.stringify({ ...prev, z_index: item.z_index }),
+            });
           },
           redo: () => {
-            setItems((p) => p.map((i) => i.id === itemId ? { ...i, ...curr } : i));
-            apiFetch(`/api/collections/${collectionId}/items/${itemId}`, { method: "PUT", body: JSON.stringify({ ...curr, z_index: item.z_index }) });
+            setItems((p) =>
+              p.map((i) => (i.id === itemId ? { ...i, ...curr } : i)),
+            );
+            apiFetch(`/api/collections/${collectionId}/items/${itemId}`, {
+              method: "PUT",
+              body: JSON.stringify({ ...curr, z_index: item.z_index }),
+            });
           },
         });
       }
     }
   };
 
-  const handleResizePointerDown = (e: React.PointerEvent, itemId: number, corner: "nw"|"ne"|"sw"|"se") => {
+  const handleResizePointerDown = (
+    e: React.PointerEvent,
+    itemId: number,
+    corner: "nw" | "ne" | "sw" | "se",
+  ) => {
     if (lockedItemIds.has(itemId)) return;
     e.stopPropagation();
     (e.currentTarget as HTMLElement).setPointerCapture(e.pointerId);
     const item = itemsRef.current.find((i) => i.id === itemId);
     if (!item) return;
-    resizeState.current = { itemId, corner, startPX: e.clientX, startPY: e.clientY, origX: item.pos_x, origY: item.pos_y, origW: item.width, origH: item.height };
+    resizeState.current = {
+      itemId,
+      corner,
+      startPX: e.clientX,
+      startPY: e.clientY,
+      origX: item.pos_x,
+      origY: item.pos_y,
+      origW: item.width,
+      origH: item.height,
+    };
   };
 
   const handleRemoveItem = async (itemId: number) => {
-    await apiFetch(`/api/collections/${collectionId}/items/${itemId}`, { method: "DELETE" });
+    await apiFetch(`/api/collections/${collectionId}/items/${itemId}`, {
+      method: "DELETE",
+    });
     setItems((prev) => prev.filter((i) => i.id !== itemId));
     if (selectedItemId === itemId) setSelectedItemId(null);
   };
 
   // ── Duplicate ─────────────────────────────────────────────────────────────
 
-  const handleDuplicate = useCallback(async (itemId: number) => {
-    const item = itemsRef.current.find((i) => i.id === itemId);
-    if (!item) return;
-    const maxZ = Math.max(...itemsRef.current.map((i) => i.z_index), 0);
-    const res = await apiFetch(`/api/collections/${collectionId}/items`, {
-      method: "POST",
-      body: JSON.stringify({
-        element_type: item.element_type,
-        product_id: item.product_id,
-        content: item.content,
-        pos_x: item.pos_x + 20,
-        pos_y: item.pos_y + 20,
-        width: item.width,
-        height: item.height,
-        z_index: maxZ + 1,
-      }),
-    });
-    const data = await res.json();
-    if (data.ok) {
-      setItems((prev) => [...prev, { ...item, id: data.data.id, pos_x: item.pos_x + 20, pos_y: item.pos_y + 20, z_index: maxZ + 1 }]);
-      setSelectedItemId(data.data.id);
-    }
-  }, [collectionId]);
+  const handleDuplicate = useCallback(
+    async (itemId: number) => {
+      const item = itemsRef.current.find((i) => i.id === itemId);
+      if (!item) return;
+      const maxZ = Math.max(...itemsRef.current.map((i) => i.z_index), 0);
+      const res = await apiFetch(`/api/collections/${collectionId}/items`, {
+        method: "POST",
+        body: JSON.stringify({
+          element_type: item.element_type,
+          product_id: item.product_id,
+          content: item.content,
+          pos_x: item.pos_x + 20,
+          pos_y: item.pos_y + 20,
+          width: item.width,
+          height: item.height,
+          z_index: maxZ + 1,
+        }),
+      });
+      const data = await res.json();
+      if (data.ok) {
+        setItems((prev) => [
+          ...prev,
+          {
+            ...item,
+            id: data.data.id,
+            pos_x: item.pos_x + 20,
+            pos_y: item.pos_y + 20,
+            z_index: maxZ + 1,
+          },
+        ]);
+        setSelectedItemId(data.data.id);
+      }
+    },
+    [collectionId],
+  );
 
   // ── Z-order ───────────────────────────────────────────────────────────────
 
@@ -2841,140 +3969,212 @@ export default function CollectionEditorPage() {
       .map((item, index) => ({ ...item, z_index: index + 1 }));
   }, []);
 
-  const handleMoveLayer = useCallback((itemId: number, direction: "forward" | "backward") => {
-    const ordered = normalizeCanvasZOrder(itemsRef.current);
-    const currentIndex = ordered.findIndex((item) => item.id === itemId);
-    if (currentIndex === -1) return;
+  const handleMoveLayer = useCallback(
+    (itemId: number, direction: "forward" | "backward") => {
+      const ordered = normalizeCanvasZOrder(itemsRef.current);
+      const currentIndex = ordered.findIndex((item) => item.id === itemId);
+      if (currentIndex === -1) return;
 
-    const targetIndex = direction === "forward" ? currentIndex + 1 : currentIndex - 1;
-    if (targetIndex < 0 || targetIndex >= ordered.length) return;
+      const targetIndex =
+        direction === "forward" ? currentIndex + 1 : currentIndex - 1;
+      if (targetIndex < 0 || targetIndex >= ordered.length) return;
 
-    const reordered = [...ordered];
-    const [movedItem] = reordered.splice(currentIndex, 1);
-    reordered.splice(targetIndex, 0, movedItem);
-    const normalized = reordered.map((item, index) => ({ ...item, z_index: index + 1 }));
+      const reordered = [...ordered];
+      const [movedItem] = reordered.splice(currentIndex, 1);
+      reordered.splice(targetIndex, 0, movedItem);
+      const normalized = reordered.map((item, index) => ({
+        ...item,
+        z_index: index + 1,
+      }));
 
-    setItems(normalized);
-    normalized.forEach((item) => {
-      apiFetch(`/api/collections/${collectionId}/items/${item.id}`, {
-        method: "PUT",
-        body: JSON.stringify({ z_index: item.z_index }),
+      setItems(normalized);
+      normalized.forEach((item) => {
+        apiFetch(`/api/collections/${collectionId}/items/${item.id}`, {
+          method: "PUT",
+          body: JSON.stringify({ z_index: item.z_index }),
+        });
       });
-    });
-  }, [collectionId, normalizeCanvasZOrder]);
+    },
+    [collectionId, normalizeCanvasZOrder],
+  );
 
   // ── Group / ungroup ───────────────────────────────────────────────────────
 
   const handleGroup = useCallback(() => {
     if (selectedItemIds.size < 2) return;
     const groupId = crypto.randomUUID();
-    setItems((prev) => prev.map((item) => {
-      if (!selectedItemIds.has(item.id)) return item;
-      const newContent = { ...(item.content ?? {}), group_id: groupId };
-      apiFetch(`/api/collections/${collectionId}/items/${item.id}`, {
-        method: "PUT",
-        body: JSON.stringify({ content: newContent }),
-      });
-      return { ...item, content: newContent as typeof item.content };
-    }));
+    setItems((prev) =>
+      prev.map((item) => {
+        if (!selectedItemIds.has(item.id)) return item;
+        const newContent = { ...(item.content ?? {}), group_id: groupId };
+        apiFetch(`/api/collections/${collectionId}/items/${item.id}`, {
+          method: "PUT",
+          body: JSON.stringify({ content: newContent }),
+        });
+        return { ...item, content: newContent as typeof item.content };
+      }),
+    );
   }, [collectionId, selectedItemIds]);
 
-  const handleUngroup = useCallback((groupId: string) => {
-    setItems((prev) => prev.map((item) => {
-      if ((item.content as ContentText)?.group_id !== groupId) return item;
-      const { group_id: _removed, ...rest } = (item.content ?? {}) as Record<string, unknown>;
-      void _removed;
-      const newContent = Object.keys(rest).length > 0 ? rest : null;
-      apiFetch(`/api/collections/${collectionId}/items/${item.id}`, {
-        method: "PUT",
-        body: JSON.stringify({ content: newContent }),
-      });
-      return { ...item, content: newContent as typeof item.content };
-    }));
-    setSelectedItemIds(new Set());
-  }, [collectionId]);
+  const handleUngroup = useCallback(
+    (groupId: string) => {
+      setItems((prev) =>
+        prev.map((item) => {
+          if ((item.content as ContentText)?.group_id !== groupId) return item;
+          const { group_id: _removed, ...rest } = (item.content ??
+            {}) as Record<string, unknown>;
+          void _removed;
+          const newContent = Object.keys(rest).length > 0 ? rest : null;
+          apiFetch(`/api/collections/${collectionId}/items/${item.id}`, {
+            method: "PUT",
+            body: JSON.stringify({ content: newContent }),
+          });
+          return { ...item, content: newContent as typeof item.content };
+        }),
+      );
+      setSelectedItemIds(new Set());
+    },
+    [collectionId],
+  );
 
   // ── Align to canvas ───────────────────────────────────────────────────────
 
   type AlignDir = "left" | "center-h" | "right" | "top" | "center-v" | "bottom";
 
-  const alignItem = useCallback((itemId: number, dir: AlignDir) => {
-    if (!collection) return;
-    const item = itemsRef.current.find((i) => i.id === itemId);
-    if (!item) return;
-    let newX = item.pos_x, newY = item.pos_y;
-    const cw = collection.canvas_width, ch = collection.canvas_height;
-    switch (dir) {
-      case "left":     newX = 0; break;
-      case "center-h": newX = Math.round((cw - item.width)  / 2); break;
-      case "right":    newX = cw - item.width; break;
-      case "top":      newY = 0; break;
-      case "center-v": newY = Math.round((ch - item.height) / 2); break;
-      case "bottom":   newY = ch - item.height; break;
-    }
-    const prev = { pos_x: item.pos_x, pos_y: item.pos_y };
-    const curr = { pos_x: newX, pos_y: newY };
-    setItems((p) => p.map((i) => i.id === itemId ? { ...i, ...curr } : i));
-    apiFetch(`/api/collections/${collectionId}/items/${itemId}`, { method: "PUT", body: JSON.stringify(curr) });
-    record({
-      undo: () => {
-        setItems((p) => p.map((i) => i.id === itemId ? { ...i, ...prev } : i));
-        apiFetch(`/api/collections/${collectionId}/items/${itemId}`, { method: "PUT", body: JSON.stringify(prev) });
-      },
-      redo: () => {
-        setItems((p) => p.map((i) => i.id === itemId ? { ...i, ...curr } : i));
-        apiFetch(`/api/collections/${collectionId}/items/${itemId}`, { method: "PUT", body: JSON.stringify(curr) });
-      },
-    });
-  }, [collection, collectionId, record]);
+  const alignItem = useCallback(
+    (itemId: number, dir: AlignDir) => {
+      if (!collection) return;
+      const item = itemsRef.current.find((i) => i.id === itemId);
+      if (!item) return;
+      let newX = item.pos_x,
+        newY = item.pos_y;
+      const cw = collection.canvas_width,
+        ch = collection.canvas_height;
+      switch (dir) {
+        case "left":
+          newX = 0;
+          break;
+        case "center-h":
+          newX = Math.round((cw - item.width) / 2);
+          break;
+        case "right":
+          newX = cw - item.width;
+          break;
+        case "top":
+          newY = 0;
+          break;
+        case "center-v":
+          newY = Math.round((ch - item.height) / 2);
+          break;
+        case "bottom":
+          newY = ch - item.height;
+          break;
+      }
+      const prev = { pos_x: item.pos_x, pos_y: item.pos_y };
+      const curr = { pos_x: newX, pos_y: newY };
+      setItems((p) => p.map((i) => (i.id === itemId ? { ...i, ...curr } : i)));
+      apiFetch(`/api/collections/${collectionId}/items/${itemId}`, {
+        method: "PUT",
+        body: JSON.stringify(curr),
+      });
+      record({
+        undo: () => {
+          setItems((p) =>
+            p.map((i) => (i.id === itemId ? { ...i, ...prev } : i)),
+          );
+          apiFetch(`/api/collections/${collectionId}/items/${itemId}`, {
+            method: "PUT",
+            body: JSON.stringify(prev),
+          });
+        },
+        redo: () => {
+          setItems((p) =>
+            p.map((i) => (i.id === itemId ? { ...i, ...curr } : i)),
+          );
+          apiFetch(`/api/collections/${collectionId}/items/${itemId}`, {
+            method: "PUT",
+            body: JSON.stringify(curr),
+          });
+        },
+      });
+    },
+    [collection, collectionId, record],
+  );
 
   // ── Canvas resize ─────────────────────────────────────────────────────────
 
-  const handleCanvasResize = useCallback(async (width: number, height: number) => {
-    if (!collection) return;
-    if (collection.canvas_width === width && collection.canvas_height === height) return;
+  const handleCanvasResize = useCallback(
+    async (width: number, height: number) => {
+      if (!collection) return;
+      if (
+        collection.canvas_width === width &&
+        collection.canvas_height === height
+      )
+        return;
 
-    const currentWidth = collection.canvas_width;
-    const currentHeight = collection.canvas_height;
-    const currentKey = getCanvasSnapshotKey(currentWidth, currentHeight);
-    const nextKey = getCanvasSnapshotKey(width, height);
-    canvasLayoutSnapshotsRef.current[currentKey] = cloneCanvasItems(itemsRef.current);
+      const currentWidth = collection.canvas_width;
+      const currentHeight = collection.canvas_height;
+      const currentKey = getCanvasSnapshotKey(currentWidth, currentHeight);
+      const nextKey = getCanvasSnapshotKey(width, height);
+      canvasLayoutSnapshotsRef.current[currentKey] = cloneCanvasItems(
+        itemsRef.current,
+      );
 
-    const savedSnapshot = canvasLayoutSnapshotsRef.current[nextKey];
-    const resizedItems = savedSnapshot
-      ? cloneCanvasItems(savedSnapshot)
-      : itemsRef.current.map((item) => {
-          const nextPosX = Math.round((item.pos_x / Math.max(currentWidth, 1)) * width);
-          const nextPosY = Math.round((item.pos_y / Math.max(currentHeight, 1)) * height);
-          const nextItemWidth = Math.max(24, Math.round((item.width / Math.max(currentWidth, 1)) * width));
-          const nextItemHeight = Math.max(24, Math.round((item.height / Math.max(currentHeight, 1)) * height));
+      const savedSnapshot = canvasLayoutSnapshotsRef.current[nextKey];
+      const resizedItems = savedSnapshot
+        ? cloneCanvasItems(savedSnapshot)
+        : itemsRef.current.map((item) => {
+            const nextPosX = Math.round(
+              (item.pos_x / Math.max(currentWidth, 1)) * width,
+            );
+            const nextPosY = Math.round(
+              (item.pos_y / Math.max(currentHeight, 1)) * height,
+            );
+            const nextItemWidth = Math.max(
+              24,
+              Math.round((item.width / Math.max(currentWidth, 1)) * width),
+            );
+            const nextItemHeight = Math.max(
+              24,
+              Math.round((item.height / Math.max(currentHeight, 1)) * height),
+            );
 
-          return {
-            ...item,
-            pos_x: Math.max(0, Math.min(width - nextItemWidth, nextPosX)),
-            pos_y: Math.max(0, Math.min(height - nextItemHeight, nextPosY)),
-            width: nextItemWidth,
-            height: nextItemHeight,
-          };
-        });
+            return {
+              ...item,
+              pos_x: Math.max(0, Math.min(width - nextItemWidth, nextPosX)),
+              pos_y: Math.max(0, Math.min(height - nextItemHeight, nextPosY)),
+              width: nextItemWidth,
+              height: nextItemHeight,
+            };
+          });
 
-    canvasLayoutSnapshotsRef.current[nextKey] = cloneCanvasItems(resizedItems);
-    setItems(resizedItems);
-    setCollection((prev) => prev ? { ...prev, canvas_width: width, canvas_height: height } : prev);
+      canvasLayoutSnapshotsRef.current[nextKey] =
+        cloneCanvasItems(resizedItems);
+      setItems(resizedItems);
+      setCollection((prev) =>
+        prev ? { ...prev, canvas_width: width, canvas_height: height } : prev,
+      );
 
-    await persistCollectionCanvasSettings({ canvasWidth: width, canvasHeight: height });
-    await Promise.all(resizedItems.map((item) =>
-      apiFetch(`/api/collections/${collectionId}/items/${item.id}`, {
-        method: "PUT",
-        body: JSON.stringify({
-          pos_x: item.pos_x,
-          pos_y: item.pos_y,
-          width: item.width,
-          height: item.height,
-        }),
-      }),
-    ));
-  }, [collection, collectionId, persistCollectionCanvasSettings]);
+      await persistCollectionCanvasSettings({
+        canvasWidth: width,
+        canvasHeight: height,
+      });
+      await Promise.all(
+        resizedItems.map((item) =>
+          apiFetch(`/api/collections/${collectionId}/items/${item.id}`, {
+            method: "PUT",
+            body: JSON.stringify({
+              pos_x: item.pos_x,
+              pos_y: item.pos_y,
+              width: item.width,
+              height: item.height,
+            }),
+          }),
+        ),
+      );
+    },
+    [collection, collectionId, persistCollectionCanvasSettings],
+  );
 
   // ── Keyboard shortcuts ─────────────────────────────────────────────────────
 
@@ -2982,7 +4182,11 @@ export default function CollectionEditorPage() {
     const onKey = (e: KeyboardEvent) => {
       const tag = (e.target as HTMLElement).tagName;
       if (tag === "INPUT" || tag === "TEXTAREA" || tag === "SELECT") return;
-      if ((e.key === "Delete" || e.key === "Backspace") && selectedItemId !== null) handleRemoveItem(selectedItemId);
+      if (
+        (e.key === "Delete" || e.key === "Backspace") &&
+        selectedItemId !== null
+      )
+        handleRemoveItem(selectedItemId);
       if (e.key === "Escape") {
         setEditingTextId(null);
         setSelectedItemId(null);
@@ -2990,14 +4194,32 @@ export default function CollectionEditorPage() {
         setIsBackgroundSelected(false);
         setActiveTool("select");
       }
-      if (e.ctrlKey && e.key === "d") { e.preventDefault(); if (selectedItemId !== null) handleDuplicate(selectedItemId); }
-      if (e.ctrlKey && e.key === "z") { e.preventDefault(); doUndo(); }
-      if (e.ctrlKey && (e.key === "y" || e.key === "Y")) { e.preventDefault(); doRedo(); }
-      if ((e.key === "h" || e.key === "H") && !e.ctrlKey) { setActiveTool("hand"); setSelectedItemId(null); }
-      if (e.key === " " && !e.repeat) { e.preventDefault(); setIsSpacePanning(true); }
+      if (e.ctrlKey && e.key === "d") {
+        e.preventDefault();
+        if (selectedItemId !== null) handleDuplicate(selectedItemId);
+      }
+      if (e.ctrlKey && e.key === "z") {
+        e.preventDefault();
+        doUndo();
+      }
+      if (e.ctrlKey && (e.key === "y" || e.key === "Y")) {
+        e.preventDefault();
+        doRedo();
+      }
+      if ((e.key === "h" || e.key === "H") && !e.ctrlKey) {
+        setActiveTool("hand");
+        setSelectedItemId(null);
+      }
+      if (e.key === " " && !e.repeat) {
+        e.preventDefault();
+        setIsSpacePanning(true);
+      }
     };
     const onKeyUp = (e: KeyboardEvent) => {
-      if (e.key === " ") { setIsSpacePanning(false); panStartRef.current = null; }
+      if (e.key === " ") {
+        setIsSpacePanning(false);
+        panStartRef.current = null;
+      }
     };
     window.addEventListener("keydown", onKey);
     window.addEventListener("keyup", onKeyUp);
@@ -3009,29 +4231,55 @@ export default function CollectionEditorPage() {
 
   // ─── Computed shortcuts ───────────────────────────────────────────────────
 
-  const selectedItem     = items.find((i) => i.id === selectedItemId) ?? null;
-  const filteredProducts = products.filter((p) => p.nombre.toLowerCase().includes(search.toLowerCase()));
+  const selectedItem = items.find((i) => i.id === selectedItemId) ?? null;
+  const filteredProducts = products.filter((p) =>
+    p.nombre.toLowerCase().includes(search.toLowerCase()),
+  );
   const currentCanvasWidth = collection?.canvas_width ?? 800;
   const currentCanvasHeight = collection?.canvas_height ?? 600;
-  const currentCanvasFormat = getCanvasFormatLabel(currentCanvasWidth, currentCanvasHeight);
+  const currentCanvasFormat = getCanvasFormatLabel(
+    currentCanvasWidth,
+    currentCanvasHeight,
+  );
   const templatePriority: Record<string, number> = {
     "Crafted Heritage": 0,
     "Lookbook Grid": 1,
   };
-  const mineTemplatesCount = templates.filter((template) => template.owner_scope === "mine").length;
-  const systemTemplatesCount = templates.filter((template) => template.owner_scope !== "mine").length;
+  const mineTemplatesCount = templates.filter(
+    (template) => template.owner_scope === "mine",
+  ).length;
+  const systemTemplatesCount = templates.filter(
+    (template) => template.owner_scope !== "mine",
+  ).length;
   const visibleTemplates = templates.filter((template) => {
     if (templateScopeFilter === "mine") return template.owner_scope === "mine";
-    if (templateScopeFilter === "system") return template.owner_scope !== "mine";
+    if (templateScopeFilter === "system")
+      return template.owner_scope !== "mine";
     return true;
   });
   const sortedTemplates = [...visibleTemplates].sort((a, b) => {
     const metaA = getTemplateMeta(a.name);
     const metaB = getTemplateMeta(b.name);
-    const exactSizeA = a.canvas_width === currentCanvasWidth && a.canvas_height === currentCanvasHeight ? 0 : 1;
-    const exactSizeB = b.canvas_width === currentCanvasWidth && b.canvas_height === currentCanvasHeight ? 0 : 1;
-    const formatA = getCanvasFormatLabel(a.canvas_width, a.canvas_height) === currentCanvasFormat ? 0 : 1;
-    const formatB = getCanvasFormatLabel(b.canvas_width, b.canvas_height) === currentCanvasFormat ? 0 : 1;
+    const exactSizeA =
+      a.canvas_width === currentCanvasWidth &&
+      a.canvas_height === currentCanvasHeight
+        ? 0
+        : 1;
+    const exactSizeB =
+      b.canvas_width === currentCanvasWidth &&
+      b.canvas_height === currentCanvasHeight
+        ? 0
+        : 1;
+    const formatA =
+      getCanvasFormatLabel(a.canvas_width, a.canvas_height) ===
+      currentCanvasFormat
+        ? 0
+        : 1;
+    const formatB =
+      getCanvasFormatLabel(b.canvas_width, b.canvas_height) ===
+      currentCanvasFormat
+        ? 0
+        : 1;
     const priorityA = templatePriority[metaA.family] ?? 99;
     const priorityB = templatePriority[metaB.family] ?? 99;
     return (
@@ -3050,18 +4298,27 @@ export default function CollectionEditorPage() {
     const family = getTemplateMeta(template.name).family;
     return !(family in templatePriority);
   });
-  const renderTemplateLibraryArtwork = (template: CollectionTemplate, highlightNew = false) => {
-    const miniScale = Math.min(148 / template.canvas_width, 112 / template.canvas_height);
+  const renderTemplateLibraryArtwork = (
+    template: CollectionTemplate,
+    highlightNew = false,
+  ) => {
+    const miniScale = Math.min(
+      148 / template.canvas_width,
+      112 / template.canvas_height,
+    );
     const miniWidth = Math.max(98, template.canvas_width * miniScale);
     const miniHeight = Math.max(74, template.canvas_height * miniScale);
-    const hasTemplateItems = Array.isArray(template.items_snapshot) && template.items_snapshot.length > 0;
-    const backgroundStyle = template.background_style || template.background_color || "#FFFFFF";
+    const hasTemplateItems =
+      Array.isArray(template.items_snapshot) &&
+      template.items_snapshot.length > 0;
+    const backgroundStyle =
+      template.background_style || template.background_color || "#FFFFFF";
 
     return (
       <div className="relative h-24 w-full overflow-hidden border-b border-neutral-100 bg-[linear-gradient(180deg,#FAF8F4_0%,#F2EEE6_100%)] md:h-32">
-        <div className="absolute inset-x-3 bottom-2 top-2 rounded-[18px] border border-white/80 bg-white/45 shadow-[inset_0_1px_0_rgba(255,255,255,0.8)] backdrop-blur-[2px] md:inset-x-4 md:bottom-3 md:top-3 md:rounded-[20px]" />
+        <div className="absolute inset-x-3 top-2 bottom-2 rounded-[18px] border border-white/80 bg-white/45 shadow-[inset_0_1px_0_rgba(255,255,255,0.8)] backdrop-blur-[2px] md:inset-x-4 md:top-3 md:bottom-3 md:rounded-[20px]" />
         <div
-          className="absolute left-1/2 top-1/2 overflow-hidden rounded-xl border border-white/80 shadow-[0_18px_40px_rgba(15,61,58,0.18)]"
+          className="absolute top-1/2 left-1/2 overflow-hidden rounded-xl border border-white/80 shadow-[0_18px_40px_rgba(15,61,58,0.18)]"
           style={{
             width: miniWidth,
             height: miniHeight,
@@ -3080,7 +4337,10 @@ export default function CollectionEditorPage() {
           {hasTemplateItems && (
             <CollectionArtworkPreview
               name={template.name}
-              items={injectSellerProductsIntoSnapshot(template.items_snapshot ?? [], products)}
+              items={injectSellerProductsIntoSnapshot(
+                template.items_snapshot ?? [],
+                products,
+              )}
               backgroundStyle="transparent"
               canvasWidth={template.canvas_width}
               canvasHeight={template.canvas_height}
@@ -3091,15 +4351,15 @@ export default function CollectionEditorPage() {
             />
           )}
         </div>
-        <div className="pointer-events-none absolute left-2 top-2 rounded-full border border-white/70 bg-white/85 px-2 py-1 text-[9px] font-semibold uppercase tracking-[0.16em] text-neutral-500 shadow-sm md:left-3 md:top-3 md:text-[10px] md:tracking-[0.18em]">
+        <div className="pointer-events-none absolute top-2 left-2 rounded-full border border-white/70 bg-white/85 px-2 py-1 text-[9px] font-semibold tracking-[0.16em] text-neutral-500 uppercase shadow-sm md:top-3 md:left-3 md:text-[10px] md:tracking-[0.18em]">
           {getCanvasFormatLabel(template.canvas_width, template.canvas_height)}
         </div>
         {highlightNew ? (
-          <div className="pointer-events-none absolute bottom-2 right-2 rounded-full bg-[#0F3D3A] px-2 py-1 text-[9px] font-medium text-white shadow-sm md:text-[10px]">
+          <div className="pointer-events-none absolute right-2 bottom-2 rounded-full bg-[#0F3D3A] px-2 py-1 text-[9px] font-medium text-white shadow-sm md:text-[10px]">
             Nuevo
           </div>
         ) : (
-          <div className="pointer-events-none absolute bottom-2 right-2 rounded-full bg-black/65 px-2 py-1 text-[9px] font-medium text-white shadow-sm md:text-[10px]">
+          <div className="pointer-events-none absolute right-2 bottom-2 rounded-full bg-black/65 px-2 py-1 text-[9px] font-medium text-white shadow-sm md:text-[10px]">
             {template.canvas_width}x{template.canvas_height}
           </div>
         )}
@@ -3109,8 +4369,8 @@ export default function CollectionEditorPage() {
 
   function getItemTransform(item: CanvasItem): string | undefined {
     const rotation = (item.content as any)?.rotation ?? 0;
-    const flipX    = (item.content as any)?.flipX ?? false;
-    const flipY    = (item.content as any)?.flipY ?? false;
+    const flipX = (item.content as any)?.flipX ?? false;
+    const flipY = (item.content as any)?.flipY ?? false;
     return buildTransform(rotation, flipX, flipY);
   }
 
@@ -3121,43 +4381,72 @@ export default function CollectionEditorPage() {
   }
 
   const ENTRANCE_DURATION: Record<EntranceAnim, string> = {
-    none:      "",
-    fadeIn:    "0.6s ease both",
-    slideUp:   "0.55s cubic-bezier(0.22,1,0.36,1) both",
+    none: "",
+    fadeIn: "0.6s ease both",
+    slideUp: "0.55s cubic-bezier(0.22,1,0.36,1) both",
     slideLeft: "0.55s cubic-bezier(0.22,1,0.36,1) both",
-    zoomIn:    "0.5s cubic-bezier(0.34,1.56,0.64,1) both",
+    zoomIn: "0.5s cubic-bezier(0.34,1.56,0.64,1) both",
   };
 
-  function getEntranceStyle(item: CanvasItem, delayMs: number): React.CSSProperties {
+  function getEntranceStyle(
+    item: CanvasItem,
+    delayMs: number,
+  ): React.CSSProperties {
     const a: EntranceAnim = (item.content as any)?.animation ?? "none";
     if (!a || a === "none") return {};
-    return { animation: `canvas-${a} ${ENTRANCE_DURATION[a]}`, animationDelay: `${delayMs}ms` };
+    return {
+      animation: `canvas-${a} ${ENTRANCE_DURATION[a]}`,
+      animationDelay: `${delayMs}ms`,
+    };
   }
 
   const effectiveGridScale = Math.max(effectiveCanvasScale, 0.01);
-  const gridLineThickness = Math.min(4, Math.max(1, Math.ceil(1 / effectiveGridScale)));
+  const gridLineThickness = Math.min(
+    4,
+    Math.max(1, Math.ceil(1 / effectiveGridScale)),
+  );
   const majorGridStep = gridSnap > 0 ? gridSnap * 4 : 0;
   const showMajorGrid = gridSnap >= 8;
   const minorGridOpacity = effectiveGridScale < 0.75 ? 0.18 : 0.12;
   const majorGridOpacity = effectiveGridScale < 0.75 ? 0.34 : 0.22;
-  const gridOverlayStyle: React.CSSProperties = gridSnap > 0 ? {
-    backgroundImage: `
+  const gridOverlayStyle: React.CSSProperties =
+    gridSnap > 0
+      ? {
+          backgroundImage: `
       linear-gradient(to right, rgba(99,102,241,${minorGridOpacity}) ${gridLineThickness}px, transparent ${gridLineThickness}px),
       linear-gradient(to bottom, rgba(99,102,241,${minorGridOpacity}) ${gridLineThickness}px, transparent ${gridLineThickness}px)
-      ${showMajorGrid ? `,
+      ${
+        showMajorGrid
+          ? `,
       linear-gradient(to right, rgba(99,102,241,${majorGridOpacity}) ${gridLineThickness}px, transparent ${gridLineThickness}px),
-      linear-gradient(to bottom, rgba(99,102,241,${majorGridOpacity}) ${gridLineThickness}px, transparent ${gridLineThickness}px)` : ""}
+      linear-gradient(to bottom, rgba(99,102,241,${majorGridOpacity}) ${gridLineThickness}px, transparent ${gridLineThickness}px)`
+          : ""
+      }
     `,
-    backgroundSize: showMajorGrid
-      ? `${gridSnap}px ${gridSnap}px, ${gridSnap}px ${gridSnap}px, ${majorGridStep}px ${majorGridStep}px, ${majorGridStep}px ${majorGridStep}px`
-      : `${gridSnap}px ${gridSnap}px, ${gridSnap}px ${gridSnap}px`,
-    backgroundPosition: "top left",
-  } : {};
+          backgroundSize: showMajorGrid
+            ? `${gridSnap}px ${gridSnap}px, ${gridSnap}px ${gridSnap}px, ${majorGridStep}px ${majorGridStep}px, ${majorGridStep}px ${majorGridStep}px`
+            : `${gridSnap}px ${gridSnap}px, ${gridSnap}px ${gridSnap}px`,
+          backgroundPosition: "top left",
+        }
+      : {};
 
   // ─── Loading guards ───────────────────────────────────────────────────────
 
-  if (loading) return <div className="flex h-64 items-center justify-center"><Loader2 className="h-8 w-8 animate-spin text-neutral-400" /></div>;
-  if (!collection) return <div className="py-20 text-center text-neutral-500">Colección no encontrada. <Link href="/seller/collections" className="underline">Volver</Link></div>;
+  if (loading)
+    return (
+      <div className="flex h-64 items-center justify-center">
+        <Loader2 className="h-8 w-8 animate-spin text-neutral-400" />
+      </div>
+    );
+  if (!collection)
+    return (
+      <div className="py-20 text-center text-neutral-500">
+        Colección no encontrada.{" "}
+        <Link href="/seller/collections" className="underline">
+          Volver
+        </Link>
+      </div>
+    );
 
   // ─── Render ───────────────────────────────────────────────────────────────
 
@@ -3165,7 +4454,9 @@ export default function CollectionEditorPage() {
     <div className="flex flex-col gap-4">
       {/* Canvas animation keyframes — dangerouslySetInnerHTML is required so Next.js
           production builds do not strip or hoist the raw CSS text incorrectly. */}
-      <style dangerouslySetInnerHTML={{ __html: `
+      <style
+        dangerouslySetInnerHTML={{
+          __html: `
         @keyframes canvas-float      { 0%,100%{transform:translateY(0)}   50%{transform:translateY(-10px)} }
         @keyframes canvas-pulse      { 0%,100%{transform:scale(1)}        50%{transform:scale(1.06)} }
         @keyframes canvas-spin       { from{transform:rotate(0deg)}       to{transform:rotate(360deg)} }
@@ -3181,7 +4472,9 @@ export default function CollectionEditorPage() {
         @keyframes canvas-slideUp    { from{opacity:0;transform:translateY(24px)} to{opacity:1;transform:translateY(0)} }
         @keyframes canvas-slideLeft  { from{opacity:0;transform:translateX(24px)} to{opacity:1;transform:translateX(0)} }
         @keyframes canvas-zoomIn     { from{opacity:0;transform:scale(0.72)} to{opacity:1;transform:scale(1)} }
-      ` }} />
+      `,
+        }}
+      />
 
       {/* Hidden image input */}
       <input
@@ -3203,22 +4496,35 @@ export default function CollectionEditorPage() {
       <SellerSurfaceCard className="flex flex-wrap items-center gap-2 rounded-xl px-3 py-3 sm:gap-3 sm:px-4">
         <PageBackNav
           onClick={() => {
-            window.location.href = "/seller/collections"
+            window.location.href = "/seller/collections";
           }}
           label="Colecciones"
         />
         <div className="hidden h-5 w-px bg-neutral-200 sm:block" />
-        <input value={name} onChange={(e) => setName(e.target.value)} placeholder="Nombre" maxLength={120}
-          className="order-last w-full min-w-0 bg-transparent text-base font-semibold text-neutral-800 outline-none placeholder:text-neutral-400 sm:order-none sm:flex-1" />
+        <input
+          value={name}
+          onChange={(e) => setName(e.target.value)}
+          placeholder="Nombre"
+          maxLength={120}
+          className="order-last w-full min-w-0 bg-transparent text-base font-semibold text-neutral-800 outline-none placeholder:text-neutral-400 sm:order-none sm:flex-1"
+        />
 
         {/* Undo/Redo buttons */}
         <div className="ml-auto flex items-center gap-1 border-l border-neutral-200 pl-2 sm:ml-0 sm:pl-3">
-          <button onClick={doUndo} disabled={!canUndo} title="Deshacer (Ctrl+Z)"
-            className="flex h-7 w-7 items-center justify-center rounded-lg border border-neutral-200 text-neutral-500 transition hover:bg-neutral-50 disabled:opacity-30">
+          <button
+            onClick={doUndo}
+            disabled={!canUndo}
+            title="Deshacer (Ctrl+Z)"
+            className="flex h-7 w-7 items-center justify-center rounded-lg border border-neutral-200 text-neutral-500 transition hover:bg-neutral-50 disabled:opacity-30"
+          >
             <Undo2 className="h-3.5 w-3.5" />
           </button>
-          <button onClick={doRedo} disabled={!canRedo} title="Rehacer (Ctrl+Y)"
-            className="flex h-7 w-7 items-center justify-center rounded-lg border border-neutral-200 text-neutral-500 transition hover:bg-neutral-50 disabled:opacity-30">
+          <button
+            onClick={doRedo}
+            disabled={!canRedo}
+            title="Rehacer (Ctrl+Y)"
+            className="flex h-7 w-7 items-center justify-center rounded-lg border border-neutral-200 text-neutral-500 transition hover:bg-neutral-50 disabled:opacity-30"
+          >
             <Redo2 className="h-3.5 w-3.5" />
           </button>
         </div>
@@ -3234,12 +4540,21 @@ export default function CollectionEditorPage() {
             setAiError(null);
             // Pre-select products already on canvas
             const onCanvasIds = new Set(
-              items.filter((i) => i.element_type === "product" && i.product_id).map((i) => i.product_id as string)
+              items
+                .filter((i) => i.element_type === "product" && i.product_id)
+                .map((i) => i.product_id as string),
             );
-            setAiSelectedProductIds(onCanvasIds.size > 0 ? onCanvasIds : new Set(products.slice(0, 3).map((p) => p.id)));
+            setAiSelectedProductIds(
+              onCanvasIds.size > 0
+                ? onCanvasIds
+                : new Set(products.slice(0, 3).map((p) => p.id)),
+            );
             setAiProductCount(Math.min(6, Math.max(1, onCanvasIds.size || 3)));
             setAiModalOpen(true);
-            apiFetch("/api/seller/ai-credits/balance").then((r) => r.json()).then((d) => setAiCreditsBalance(d.balance ?? null)).catch(() => {});
+            apiFetch("/api/seller/ai-credits/balance")
+              .then((r) => r.json())
+              .then((d) => setAiCreditsBalance(d.balance ?? null))
+              .catch(() => {});
           }}
           title="Generar canvas con IA"
           className="flex items-center gap-1.5 rounded-lg border border-[var(--seller-accent)] bg-[color:color-mix(in_srgb,var(--seller-accent)_8%,white)] px-3 py-1.5 text-xs font-semibold text-[var(--seller-accent)] transition hover:bg-[color:color-mix(in_srgb,var(--seller-accent)_15%,white)]"
@@ -3249,12 +4564,29 @@ export default function CollectionEditorPage() {
           <span className="sm:hidden">IA</span>
         </button>
 
-        <SellerPill tone={collection.status === "published" ? "success" : "warning"} className="shrink-0 px-2.5 py-0.5 text-[11px] uppercase tracking-wide">
+        <SellerPill
+          tone={collection.status === "published" ? "success" : "warning"}
+          className="shrink-0 px-2.5 py-0.5 text-[11px] tracking-wide uppercase"
+        >
           {collection.status === "published" ? "Publicada" : "Borrador"}
         </SellerPill>
-        <button onClick={handleTogglePublish}
-          className="flex items-center gap-1.5 rounded-lg border border-neutral-200 px-3 py-1.5 text-xs font-medium text-neutral-600 transition hover:bg-neutral-50">
-          {collection.status === "published" ? <><EyeOff className="h-3.5 w-3.5" /> <span className="hidden sm:inline">Despublicar</span><span className="sm:hidden">Estado</span></> : <><Eye className="h-3.5 w-3.5" /> <span className="hidden sm:inline">Publicar</span><span className="sm:hidden">Estado</span></>}
+        <button
+          onClick={handleTogglePublish}
+          className="flex items-center gap-1.5 rounded-lg border border-neutral-200 px-3 py-1.5 text-xs font-medium text-neutral-600 transition hover:bg-neutral-50"
+        >
+          {collection.status === "published" ? (
+            <>
+              <EyeOff className="h-3.5 w-3.5" />{" "}
+              <span className="hidden sm:inline">Despublicar</span>
+              <span className="sm:hidden">Estado</span>
+            </>
+          ) : (
+            <>
+              <Eye className="h-3.5 w-3.5" />{" "}
+              <span className="hidden sm:inline">Publicar</span>
+              <span className="sm:hidden">Estado</span>
+            </>
+          )}
         </button>
         <button
           onClick={() => {
@@ -3273,20 +4605,28 @@ export default function CollectionEditorPage() {
         {/* Export button + dropdown (desktop) / direct action (mobile) */}
         <div ref={exportBtnRef} className="relative">
           <button
-            onClick={() => isMobileViewport ? void handleExport() : setExportOpen((o) => !o)}
+            onClick={() =>
+              isMobileViewport ? void handleExport() : setExportOpen((o) => !o)
+            }
             title="Exportar canvas como imagen"
             className="flex items-center gap-1.5 rounded-lg border border-neutral-200 px-3 py-1.5 text-xs font-medium text-neutral-600 transition hover:bg-neutral-50"
           >
-            {exporting ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Download className="h-3.5 w-3.5" />}
+            {exporting ? (
+              <Loader2 className="h-3.5 w-3.5 animate-spin" />
+            ) : (
+              <Download className="h-3.5 w-3.5" />
+            )}
             <span className="hidden sm:inline">Exportar</span>
           </button>
 
           {exportOpen && (
             <div
-              className="absolute right-0 top-full z-50 mt-1.5 w-56 rounded-2xl border border-neutral-100 bg-white p-4 shadow-xl"
+              className="absolute top-full right-0 z-50 mt-1.5 w-56 rounded-2xl border border-neutral-100 bg-white p-4 shadow-xl"
               onMouseLeave={() => setExportOpen(false)}
             >
-              <p className="mb-3 text-xs font-semibold text-neutral-700">Exportar imagen</p>
+              <p className="mb-3 text-xs font-semibold text-neutral-700">
+                Exportar imagen
+              </p>
 
               {/* Format */}
               <div className="mb-3 grid grid-cols-2 gap-1.5">
@@ -3309,7 +4649,10 @@ export default function CollectionEditorPage() {
                     <span className="font-semibold">{exportQuality}%</span>
                   </div>
                   <input
-                    type="range" min={60} max={100} step={5}
+                    type="range"
+                    min={60}
+                    max={100}
+                    step={5}
                     value={exportQuality}
                     onChange={(e) => setExportQuality(Number(e.target.value))}
                     className="w-full accent-[var(--seller-accent)]"
@@ -3326,16 +4669,29 @@ export default function CollectionEditorPage() {
                 disabled={exporting}
                 className="flex w-full items-center justify-center gap-1.5 rounded-xl bg-[#0F3D3A] py-2 text-xs font-semibold text-white transition hover:bg-[#14544f] disabled:opacity-60"
               >
-                {exporting ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Download className="h-3.5 w-3.5" />}
+                {exporting ? (
+                  <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                ) : (
+                  <Download className="h-3.5 w-3.5" />
+                )}
                 {exporting ? "Exportando..." : "Descargar"}
               </button>
             </div>
           )}
         </div>
 
-        <SellerActionButton onClick={handleSave} disabled={saving}
-          className="px-4 py-1.5 text-xs font-medium disabled:opacity-60">
-          {saving ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : saved ? <Check className="h-3.5 w-3.5" /> : <Save className="h-3.5 w-3.5" />}
+        <SellerActionButton
+          onClick={handleSave}
+          disabled={saving}
+          className="px-4 py-1.5 text-xs font-medium disabled:opacity-60"
+        >
+          {saving ? (
+            <Loader2 className="h-3.5 w-3.5 animate-spin" />
+          ) : saved ? (
+            <Check className="h-3.5 w-3.5" />
+          ) : (
+            <Save className="h-3.5 w-3.5" />
+          )}
           {saved ? "Guardado" : "Guardar"}
         </SellerActionButton>
       </SellerSurfaceCard>
@@ -3343,9 +4699,13 @@ export default function CollectionEditorPage() {
       {isPreviewingTemplate && previewTemplate && (
         <div className="flex flex-col gap-3 rounded-xl border border-[var(--seller-line-strong)] bg-[color:color-mix(in_srgb,var(--seller-accent)_8%,white)] px-4 py-3 sm:flex-row sm:flex-wrap sm:items-center sm:justify-between">
           <div className="min-w-0">
-            <p className="text-sm font-semibold text-[var(--seller-accent)]">Vista previa de plantilla</p>
+            <p className="text-sm font-semibold text-[var(--seller-accent)]">
+              Vista previa de plantilla
+            </p>
             <p className="text-xs text-[var(--seller-text)]">
-              Estás viendo <span className="font-semibold">{previewTemplate.name}</span>. Tu canvas actual sigue intacto hasta que pulses aplicar.
+              Estás viendo{" "}
+              <span className="font-semibold">{previewTemplate.name}</span>. Tu
+              canvas actual sigue intacto hasta que pulses aplicar.
             </p>
           </div>
           <div className="flex flex-col gap-2 sm:flex-row sm:items-center">
@@ -3360,7 +4720,11 @@ export default function CollectionEditorPage() {
               disabled={templateApplyingId === previewTemplate.id}
               className="seller-button-primary flex items-center justify-center gap-1.5 rounded-xl px-4 py-2.5 text-sm font-medium text-white transition disabled:opacity-60"
             >
-              {templateApplyingId === previewTemplate.id ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Copy className="h-3.5 w-3.5" />}
+              {templateApplyingId === previewTemplate.id ? (
+                <Loader2 className="h-3.5 w-3.5 animate-spin" />
+              ) : (
+                <Copy className="h-3.5 w-3.5" />
+              )}
               Usar plantilla
             </button>
           </div>
@@ -3375,27 +4739,30 @@ export default function CollectionEditorPage() {
         />
       )}
 
-      <div className={`grid gap-1.5 md:hidden ${isPreviewingTemplate ? "grid-cols-2" : "grid-cols-5"}`}>
+      <div
+        className={`grid gap-1.5 md:hidden ${isPreviewingTemplate ? "grid-cols-2" : "grid-cols-5"}`}
+      >
         {!isPreviewingTemplate && (
           <>
             <button
               onClick={() => {
                 setSelectedItemId(null);
-                setMobilePanel((prev) => prev === "tools" ? null : "tools");
+                setMobilePanel((prev) => (prev === "tools" ? null : "tools"));
               }}
-              className={`min-w-0 rounded-xl border px-1 py-2 text-[10px] font-medium leading-none transition ${mobilePanel === "tools" ? "border-[var(--seller-accent)] bg-[var(--seller-accent)] text-white" : "border-[var(--seller-line-strong)] bg-white text-[var(--seller-text)] hover:bg-[var(--seller-panel)]"}`}
+              className={`min-w-0 rounded-xl border px-1 py-2 text-[10px] leading-none font-medium transition ${mobilePanel === "tools" ? "border-[var(--seller-accent)] bg-[var(--seller-accent)] text-white" : "border-[var(--seller-line-strong)] bg-white text-[var(--seller-text)] hover:bg-[var(--seller-panel)]"}`}
             >
               Herram.
             </button>
             <button
               onClick={() => {
-                const sameTab = mobilePanel === "library" && selectSidebarTab === "products";
+                const sameTab =
+                  mobilePanel === "library" && selectSidebarTab === "products";
                 setActiveTool("select");
                 setSelectSidebarTab("products");
                 setMobileCanvasControlsOpen(false);
                 setMobilePanel(sameTab ? null : "library");
               }}
-              className={`min-w-0 rounded-xl border px-1 py-2 text-[10px] font-medium leading-none transition ${mobilePanel === "library" && selectSidebarTab === "products" ? "border-[var(--seller-accent)] bg-[var(--seller-accent)] text-white" : "border-[var(--seller-line-strong)] bg-white text-[var(--seller-text)] hover:bg-[var(--seller-panel)]"}`}
+              className={`min-w-0 rounded-xl border px-1 py-2 text-[10px] leading-none font-medium transition ${mobilePanel === "library" && selectSidebarTab === "products" ? "border-[var(--seller-accent)] bg-[var(--seller-accent)] text-white" : "border-[var(--seller-line-strong)] bg-white text-[var(--seller-text)] hover:bg-[var(--seller-panel)]"}`}
             >
               Prod.
             </button>
@@ -3403,44 +4770,51 @@ export default function CollectionEditorPage() {
         )}
         <button
           onClick={() => {
-            const sameTab = mobilePanel === "library" && selectSidebarTab === "templates";
+            const sameTab =
+              mobilePanel === "library" && selectSidebarTab === "templates";
             setActiveTool("select");
             setSelectSidebarTab("templates");
             setMobileCanvasControlsOpen(false);
             setMobilePanel(sameTab ? null : "library");
           }}
-          className={`min-w-0 rounded-xl border px-1 py-2 text-[10px] font-medium leading-none transition ${mobilePanel === "library" && selectSidebarTab === "templates" ? "border-[var(--seller-accent)] bg-[var(--seller-accent)] text-white" : "border-[var(--seller-line-strong)] bg-white text-[var(--seller-text)] hover:bg-[var(--seller-panel)]"}`}
+          className={`min-w-0 rounded-xl border px-1 py-2 text-[10px] leading-none font-medium transition ${mobilePanel === "library" && selectSidebarTab === "templates" ? "border-[var(--seller-accent)] bg-[var(--seller-accent)] text-white" : "border-[var(--seller-line-strong)] bg-white text-[var(--seller-text)] hover:bg-[var(--seller-panel)]"}`}
         >
           Plant.
         </button>
         {!isPreviewingTemplate && (
           <button
             onClick={() => {
-              const sameTab = mobilePanel === "library" && selectSidebarTab === "layers";
+              const sameTab =
+                mobilePanel === "library" && selectSidebarTab === "layers";
               setActiveTool("select");
               setSelectSidebarTab("layers");
               setMobileCanvasControlsOpen(false);
               setMobilePanel(sameTab ? null : "library");
             }}
-            className={`min-w-0 rounded-xl border px-1 py-2 text-[10px] font-medium leading-none transition ${mobilePanel === "library" && selectSidebarTab === "layers" ? "border-[var(--seller-accent)] bg-[var(--seller-accent)] text-white" : "border-[var(--seller-line-strong)] bg-white text-[var(--seller-text)] hover:bg-[var(--seller-panel)]"}`}
+            className={`min-w-0 rounded-xl border px-1 py-2 text-[10px] leading-none font-medium transition ${mobilePanel === "library" && selectSidebarTab === "layers" ? "border-[var(--seller-accent)] bg-[var(--seller-accent)] text-white" : "border-[var(--seller-line-strong)] bg-white text-[var(--seller-text)] hover:bg-[var(--seller-panel)]"}`}
           >
             Capas
           </button>
         )}
         <button
-          onClick={() => setMobilePanel((prev) => prev === "properties" ? null : "properties")}
-          className={`relative min-w-0 rounded-xl border px-1 py-2 text-[10px] font-medium leading-none transition ${
+          onClick={() =>
+            setMobilePanel((prev) =>
+              prev === "properties" ? null : "properties",
+            )
+          }
+          className={`relative min-w-0 rounded-xl border px-1 py-2 text-[10px] leading-none font-medium transition ${
             mobilePanel === "properties"
               ? "border-[var(--seller-accent)] bg-[var(--seller-accent)] text-white"
-              : (selectedItemId !== null || isBackgroundSelected)
+              : selectedItemId !== null || isBackgroundSelected
                 ? "border-[var(--seller-accent)] bg-[color:color-mix(in_srgb,var(--seller-accent)_10%,white)] text-[var(--seller-accent)]"
                 : "border-[var(--seller-line-strong)] bg-white text-[var(--seller-text)] hover:bg-[var(--seller-panel)]"
           }`}
         >
           Props.
-          {(selectedItemId !== null || isBackgroundSelected) && mobilePanel !== "properties" && (
-            <span className="absolute right-1.5 top-1.5 h-1.5 w-1.5 rounded-full bg-[var(--seller-accent)]" />
-          )}
+          {(selectedItemId !== null || isBackgroundSelected) &&
+            mobilePanel !== "properties" && (
+              <span className="absolute top-1.5 right-1.5 h-1.5 w-1.5 rounded-full bg-[var(--seller-accent)]" />
+            )}
         </button>
       </div>
 
@@ -3450,12 +4824,14 @@ export default function CollectionEditorPage() {
           isPreviewingTemplate && isCompactPreviewViewport ? "pb-6" : ""
         }`}
       >
-
         {/* ── Left sidebar ── */}
-        <aside ref={leftPanelRef} className={`${isMobileToolsPanelOpen ? "fixed inset-x-3 bottom-20 top-40 z-40 flex" : "hidden"} order-2 h-auto w-full shrink-0 flex-col overflow-hidden rounded-2xl border border-[var(--seller-line-strong)] bg-white shadow-[0_24px_60px_rgba(15,61,58,0.18)] md:static md:inset-auto md:order-none md:flex md:max-h-none md:w-56 md:rounded-xl md:shadow-none md:z-auto`}>
+        <aside
+          ref={leftPanelRef}
+          className={`${isMobileToolsPanelOpen ? "fixed inset-x-3 top-40 bottom-20 z-40 flex" : "hidden"} order-2 h-auto w-full shrink-0 flex-col overflow-hidden rounded-2xl border border-[var(--seller-line-strong)] bg-white shadow-[0_24px_60px_rgba(15,61,58,0.18)] md:static md:inset-auto md:z-auto md:order-none md:flex md:max-h-none md:w-56 md:rounded-xl md:shadow-none`}
+        >
           <div className="border-b border-neutral-100 p-3">
             <div className="mb-2 flex items-center justify-between gap-2">
-              <p className="text-[11px] font-semibold uppercase tracking-widest text-neutral-400">
+              <p className="text-[11px] font-semibold tracking-widest text-neutral-400 uppercase">
                 {mobilePanel === "library" ? "Biblioteca" : "Herramienta"}
               </p>
               <button
@@ -3467,24 +4843,51 @@ export default function CollectionEditorPage() {
             </div>
             {mobilePanel !== "library" && (
               <div className="grid grid-cols-3 gap-1">
-                {([
-                  { tool: "select" as ActiveTool, icon: MousePointer2, label: "Mover" },
-                  { tool: "hand"   as ActiveTool, icon: Hand,           label: "Mano" },
-                  { tool: "text"   as ActiveTool, icon: Type,           label: "Texto" },
-                  { tool: "shape"  as ActiveTool, icon: Square,         label: "Forma" },
-                  { tool: "image"  as ActiveTool, icon: ImageIcon,      label: "Imagen" },
-                  { tool: "decor"  as ActiveTool, icon: Sparkles,       label: "Decor" },
-                ] as const).map(({ tool, icon: Icon, label }) => (
-                  <button key={tool} onClick={() => { setActiveTool(tool); setSelectedItemId(null); setMobilePanel("tools"); }}
-                    className={`flex flex-col items-center gap-1 rounded-lg py-2 text-[10px] font-medium transition ${activeTool === tool ? "bg-[var(--seller-accent)] text-white" : "bg-[var(--seller-panel)] text-[var(--seller-muted)] hover:bg-[var(--seller-panel-soft)]"}`}>
-                    <Icon className="h-3.5 w-3.5" />{label}
+                {(
+                  [
+                    {
+                      tool: "select" as ActiveTool,
+                      icon: MousePointer2,
+                      label: "Mover",
+                    },
+                    { tool: "hand" as ActiveTool, icon: Hand, label: "Mano" },
+                    { tool: "text" as ActiveTool, icon: Type, label: "Texto" },
+                    {
+                      tool: "shape" as ActiveTool,
+                      icon: Square,
+                      label: "Forma",
+                    },
+                    {
+                      tool: "image" as ActiveTool,
+                      icon: ImageIcon,
+                      label: "Imagen",
+                    },
+                    {
+                      tool: "decor" as ActiveTool,
+                      icon: Sparkles,
+                      label: "Decor",
+                    },
+                  ] as const
+                ).map(({ tool, icon: Icon, label }) => (
+                  <button
+                    key={tool}
+                    onClick={() => {
+                      setActiveTool(tool);
+                      setSelectedItemId(null);
+                      setMobilePanel("tools");
+                    }}
+                    className={`flex flex-col items-center gap-1 rounded-lg py-2 text-[10px] font-medium transition ${activeTool === tool ? "bg-[var(--seller-accent)] text-white" : "bg-[var(--seller-panel)] text-[var(--seller-muted)] hover:bg-[var(--seller-panel-soft)]"}`}
+                  >
+                    <Icon className="h-3.5 w-3.5" />
+                    {label}
                   </button>
                 ))}
               </div>
             )}
-      </div>
+          </div>
 
-          {(activeTool === "select" || activeTool === "hand") && (!isMobileViewport || mobilePanel === "library") ? (
+          {(activeTool === "select" || activeTool === "hand") &&
+          (!isMobileViewport || mobilePanel === "library") ? (
             <>
               <div className="border-b border-neutral-100 px-3 pt-3 pb-2">
                 <div className="mb-2 grid grid-cols-3 gap-1">
@@ -3509,20 +4912,30 @@ export default function CollectionEditorPage() {
                 </div>
                 {selectSidebarTab === "products" ? (
                   <>
-                    <p className="mb-2 text-[11px] font-semibold uppercase tracking-widest text-neutral-400">Mis productos</p>
+                    <p className="mb-2 text-[11px] font-semibold tracking-widest text-neutral-400 uppercase">
+                      Mis productos
+                    </p>
                     <div className="relative">
-                      <Search className="absolute left-2.5 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-neutral-400" />
-                      <input value={search} onChange={(e) => setSearch(e.target.value)} placeholder="Buscar..."
-                        className="w-full rounded-lg border border-neutral-200 py-1.5 pl-8 pr-3 text-xs outline-none focus:border-[#0F3D3A]" />
+                      <Search className="absolute top-1/2 left-2.5 h-3.5 w-3.5 -translate-y-1/2 text-neutral-400" />
+                      <input
+                        value={search}
+                        onChange={(e) => setSearch(e.target.value)}
+                        placeholder="Buscar..."
+                        className="w-full rounded-lg border border-neutral-200 py-1.5 pr-3 pl-8 text-xs outline-none focus:border-[#0F3D3A]"
+                      />
                     </div>
                   </>
                 ) : (
                   <>
                     <div className="flex items-center justify-between gap-2">
-                      <p className="text-[11px] font-semibold uppercase tracking-widest text-neutral-400">Plantillas</p>
+                      <p className="text-[11px] font-semibold tracking-widest text-neutral-400 uppercase">
+                        Plantillas
+                      </p>
                       <button
                         onClick={() => {
-                          setTemplateName(name ? `${name} plantilla` : "Nueva plantilla");
+                          setTemplateName(
+                            name ? `${name} plantilla` : "Nueva plantilla",
+                          );
                           setTemplateError(null);
                           setShowTemplateModal(true);
                         }}
@@ -3532,14 +4945,17 @@ export default function CollectionEditorPage() {
                       </button>
                     </div>
                     <p className="mt-1 text-[11px] leading-relaxed text-neutral-400">
-                      {sortedTemplates.length} visibles · {mineTemplatesCount} mias · {systemTemplatesCount} sistema
+                      {sortedTemplates.length} visibles · {mineTemplatesCount}{" "}
+                      mias · {systemTemplatesCount} sistema
                     </p>
                     <div className="mt-2 grid grid-cols-3 gap-1">
-                      {([
-                        { value: "all", label: "Todas" },
-                        { value: "mine", label: "Mias" },
-                        { value: "system", label: "Sistema" },
-                      ] as const).map((option) => (
+                      {(
+                        [
+                          { value: "all", label: "Todas" },
+                          { value: "mine", label: "Mias" },
+                          { value: "system", label: "Sistema" },
+                        ] as const
+                      ).map((option) => (
                         <button
                           key={option.value}
                           onClick={() => setTemplateScopeFilter(option.value)}
@@ -3559,15 +4975,35 @@ export default function CollectionEditorPage() {
               <div className="flex-1 space-y-1.5 overflow-y-auto p-2">
                 {selectSidebarTab === "products" ? (
                   <>
-                    {filteredProducts.length === 0 && <p className="py-8 text-center text-xs text-neutral-400">Sin resultados</p>}
+                    {filteredProducts.length === 0 && (
+                      <p className="py-8 text-center text-xs text-neutral-400">
+                        Sin resultados
+                      </p>
+                    )}
                     {filteredProducts.map((p) => (
-                      <div key={p.id} draggable onDragStart={(e) => handleSidebarDragStart(e, p)}
-                        className="flex cursor-grab items-center gap-2 rounded-lg border border-neutral-100 bg-neutral-50 p-2 transition hover:bg-white active:cursor-grabbing">
+                      <div
+                        key={p.id}
+                        draggable
+                        onDragStart={(e) => handleSidebarDragStart(e, p)}
+                        className="flex cursor-grab items-center gap-2 rounded-lg border border-neutral-100 bg-neutral-50 p-2 transition hover:bg-white active:cursor-grabbing"
+                      >
                         <GripVertical className="h-3.5 w-3.5 shrink-0 text-neutral-300" />
-                        {p.imagen_url ? <img src={p.imagen_url} alt={p.nombre} className="h-9 w-9 shrink-0 rounded-md object-cover" /> : <div className="h-9 w-9 shrink-0 rounded-md bg-neutral-200" />}
+                        {p.imagen_url ? (
+                          <img
+                            src={p.imagen_url}
+                            alt={p.nombre}
+                            className="h-9 w-9 shrink-0 rounded-md object-cover"
+                          />
+                        ) : (
+                          <div className="h-9 w-9 shrink-0 rounded-md bg-neutral-200" />
+                        )}
                         <div className="min-w-0">
-                          <p className="truncate text-xs font-medium text-neutral-700">{p.nombre}</p>
-                          <p className="text-[11px] text-neutral-400">Q{Number(p.precio).toFixed(2)}</p>
+                          <p className="truncate text-xs font-medium text-neutral-700">
+                            {p.nombre}
+                          </p>
+                          <p className="text-[11px] text-neutral-400">
+                            Q{Number(p.precio).toFixed(2)}
+                          </p>
                         </div>
                       </div>
                     ))}
@@ -3591,55 +5027,94 @@ export default function CollectionEditorPage() {
                     {featuredTemplates.length > 0 && (
                       <div className="space-y-2 pb-1">
                         <div className="flex items-center justify-between gap-2 px-1">
-                          <p className="text-[11px] font-semibold uppercase tracking-widest text-[#0F3D3A]">Nuevas</p>
-                          <span className="text-[10px] text-neutral-400">recientes</span>
+                          <p className="text-[11px] font-semibold tracking-widest text-[#0F3D3A] uppercase">
+                            Nuevas
+                          </p>
+                          <span className="text-[10px] text-neutral-400">
+                            recientes
+                          </span>
                         </div>
                         {featuredTemplates.map((template) => {
                           const templateMeta = getTemplateMeta(template.name);
-                          const ownerScope = template.owner_scope === "mine" ? "mine" : "system";
+                          const ownerScope =
+                            template.owner_scope === "mine" ? "mine" : "system";
 
                           return (
-                            <div key={`featured-${template.id}`} className="overflow-hidden rounded-2xl border border-[#0F3D3A]/15 bg-[color:color-mix(in_srgb,#0F3D3A_3%,white)] shadow-[0_8px_30px_rgba(15,61,58,0.06)]">
+                            <div
+                              key={`featured-${template.id}`}
+                              className="overflow-hidden rounded-2xl border border-[#0F3D3A]/15 bg-[color:color-mix(in_srgb,#0F3D3A_3%,white)] shadow-[0_8px_30px_rgba(15,61,58,0.06)]"
+                            >
                               {renderTemplateLibraryArtwork(template, true)}
                               <div className="space-y-2 p-2.5 md:space-y-2.5 md:p-3">
                                 <div>
                                   <div className="mb-1.5 flex flex-wrap gap-1.5 md:mb-2">
-                                    <span className="rounded-full bg-[#EAF3F1] px-2 py-1 text-[9px] font-semibold uppercase tracking-[0.14em] text-[#0F3D3A] md:text-[10px]">
+                                    <span className="rounded-full bg-[#EAF3F1] px-2 py-1 text-[9px] font-semibold tracking-[0.14em] text-[#0F3D3A] uppercase md:text-[10px]">
                                       {templateMeta.tone}
                                     </span>
-                                    <span className="rounded-full bg-neutral-100 px-2 py-1 text-[9px] font-semibold uppercase tracking-[0.14em] text-neutral-500 md:text-[10px]">
+                                    <span className="rounded-full bg-neutral-100 px-2 py-1 text-[9px] font-semibold tracking-[0.14em] text-neutral-500 uppercase md:text-[10px]">
                                       {templateMeta.variant}
                                     </span>
-                                    <span className={`rounded-full px-2 py-1 text-[9px] font-semibold uppercase tracking-[0.14em] md:text-[10px] ${
-                                      ownerScope === "mine"
-                                        ? "bg-[#EEF6FF] text-[#1D4ED8]"
-                                        : "bg-[#FFF5E8] text-[#9A5B13]"
-                                    }`}>
-                                      {ownerScope === "mine" ? "Mia" : "Sistema"}
+                                    <span
+                                      className={`rounded-full px-2 py-1 text-[9px] font-semibold tracking-[0.14em] uppercase md:text-[10px] ${
+                                        ownerScope === "mine"
+                                          ? "bg-[#EEF6FF] text-[#1D4ED8]"
+                                          : "bg-[#FFF5E8] text-[#9A5B13]"
+                                      }`}
+                                    >
+                                      {ownerScope === "mine"
+                                        ? "Mia"
+                                        : "Sistema"}
                                     </span>
                                   </div>
-                                  <p className="line-clamp-1 text-xs font-semibold text-neutral-800">{templateMeta.family}</p>
-                                  <p className="mt-1 text-[10px] text-neutral-400 md:mt-2 md:text-[11px]">{template.item_count} elementos</p>
+                                  <p className="line-clamp-1 text-xs font-semibold text-neutral-800">
+                                    {templateMeta.family}
+                                  </p>
+                                  <p className="mt-1 text-[10px] text-neutral-400 md:mt-2 md:text-[11px]">
+                                    {template.item_count} elementos
+                                  </p>
                                 </div>
                                 <div className="grid grid-cols-2 gap-2">
                                   <button
-                                    onClick={() => handlePreviewTemplate(template)}
-                                    disabled={templatePreviewLoadingId === template.id || templateApplyingId === template.id}
+                                    onClick={() =>
+                                      handlePreviewTemplate(template)
+                                    }
+                                    disabled={
+                                      templatePreviewLoadingId ===
+                                        template.id ||
+                                      templateApplyingId === template.id
+                                    }
                                     className={`flex items-center justify-center gap-1.5 rounded-lg border py-1.5 text-[11px] font-medium transition disabled:opacity-60 md:text-xs ${
                                       previewTemplate?.id === template.id
                                         ? "border-[#0F3D3A] bg-[#0F3D3A] text-white"
                                         : "border-neutral-200 text-neutral-700 hover:bg-neutral-50"
                                     }`}
                                   >
-                                    {templatePreviewLoadingId === template.id ? <Loader2 className="h-3 w-3 animate-spin" /> : <Eye className="h-3 w-3" />}
-                                    {previewTemplate?.id === template.id ? "Viendo" : "Preview"}
+                                    {templatePreviewLoadingId ===
+                                    template.id ? (
+                                      <Loader2 className="h-3 w-3 animate-spin" />
+                                    ) : (
+                                      <Eye className="h-3 w-3" />
+                                    )}
+                                    {previewTemplate?.id === template.id
+                                      ? "Viendo"
+                                      : "Preview"}
                                   </button>
                                   <button
-                                    onClick={() => handleApplyTemplate(template.id)}
-                                    disabled={templatePreviewLoadingId === template.id || templateApplyingId === template.id}
+                                    onClick={() =>
+                                      handleApplyTemplate(template.id)
+                                    }
+                                    disabled={
+                                      templatePreviewLoadingId ===
+                                        template.id ||
+                                      templateApplyingId === template.id
+                                    }
                                     className="flex items-center justify-center gap-1.5 rounded-lg border border-neutral-200 py-1.5 text-[11px] font-medium text-neutral-700 transition hover:bg-neutral-50 disabled:opacity-60 md:text-xs"
                                   >
-                                    {templateApplyingId === template.id ? <Loader2 className="h-3 w-3 animate-spin" /> : <Copy className="h-3 w-3" />}
+                                    {templateApplyingId === template.id ? (
+                                      <Loader2 className="h-3 w-3 animate-spin" />
+                                    ) : (
+                                      <Copy className="h-3 w-3" />
+                                    )}
                                     Aplicar
                                   </button>
                                 </div>
@@ -3651,51 +5126,79 @@ export default function CollectionEditorPage() {
                     )}
                     {regularTemplates.map((template) => {
                       const templateMeta = getTemplateMeta(template.name);
-                      const ownerScope = template.owner_scope === "mine" ? "mine" : "system";
+                      const ownerScope =
+                        template.owner_scope === "mine" ? "mine" : "system";
 
                       return (
-                        <div key={template.id} className="overflow-hidden rounded-2xl border border-neutral-200 bg-white shadow-[0_8px_30px_rgba(15,61,58,0.06)]">
+                        <div
+                          key={template.id}
+                          className="overflow-hidden rounded-2xl border border-neutral-200 bg-white shadow-[0_8px_30px_rgba(15,61,58,0.06)]"
+                        >
                           {renderTemplateLibraryArtwork(template)}
                           <div className="space-y-2 p-2.5 md:space-y-2.5 md:p-3">
                             <div>
                               <div className="mb-1.5 flex flex-wrap gap-1.5 md:mb-2">
-                                <span className="rounded-full bg-[#F3F7F6] px-2 py-1 text-[9px] font-semibold uppercase tracking-[0.14em] text-[#0F3D3A] md:text-[10px]">
+                                <span className="rounded-full bg-[#F3F7F6] px-2 py-1 text-[9px] font-semibold tracking-[0.14em] text-[#0F3D3A] uppercase md:text-[10px]">
                                   {templateMeta.tone}
                                 </span>
-                                <span className="rounded-full bg-neutral-100 px-2 py-1 text-[9px] font-semibold uppercase tracking-[0.14em] text-neutral-500 md:text-[10px]">
+                                <span className="rounded-full bg-neutral-100 px-2 py-1 text-[9px] font-semibold tracking-[0.14em] text-neutral-500 uppercase md:text-[10px]">
                                   {templateMeta.variant}
                                 </span>
-                                <span className={`rounded-full px-2 py-1 text-[9px] font-semibold uppercase tracking-[0.14em] md:text-[10px] ${
-                                  ownerScope === "mine"
-                                    ? "bg-[#EEF6FF] text-[#1D4ED8]"
-                                    : "bg-[#FFF5E8] text-[#9A5B13]"
-                                }`}>
+                                <span
+                                  className={`rounded-full px-2 py-1 text-[9px] font-semibold tracking-[0.14em] uppercase md:text-[10px] ${
+                                    ownerScope === "mine"
+                                      ? "bg-[#EEF6FF] text-[#1D4ED8]"
+                                      : "bg-[#FFF5E8] text-[#9A5B13]"
+                                  }`}
+                                >
                                   {ownerScope === "mine" ? "Mia" : "Sistema"}
                                 </span>
                               </div>
-                              <p className="line-clamp-1 text-xs font-semibold text-neutral-800">{templateMeta.family}</p>
-                              <p className="mt-1 hidden line-clamp-2 text-[11px] leading-relaxed text-neutral-500 md:block">{templateMeta.description}</p>
-                              <p className="mt-1 text-[10px] text-neutral-400 md:mt-2 md:text-[11px]">{template.item_count} elementos</p>
+                              <p className="line-clamp-1 text-xs font-semibold text-neutral-800">
+                                {templateMeta.family}
+                              </p>
+                              <p className="mt-1 line-clamp-2 hidden text-[11px] leading-relaxed text-neutral-500 md:block">
+                                {templateMeta.description}
+                              </p>
+                              <p className="mt-1 text-[10px] text-neutral-400 md:mt-2 md:text-[11px]">
+                                {template.item_count} elementos
+                              </p>
                             </div>
                             <div className="grid grid-cols-2 gap-2">
                               <button
                                 onClick={() => handlePreviewTemplate(template)}
-                                disabled={templatePreviewLoadingId === template.id || templateApplyingId === template.id}
+                                disabled={
+                                  templatePreviewLoadingId === template.id ||
+                                  templateApplyingId === template.id
+                                }
                                 className={`flex items-center justify-center gap-1.5 rounded-lg border py-1.5 text-[11px] font-medium transition disabled:opacity-60 md:text-xs ${
                                   previewTemplate?.id === template.id
                                     ? "border-[#0F3D3A] bg-[#0F3D3A] text-white"
                                     : "border-neutral-200 text-neutral-700 hover:bg-neutral-50"
                                 }`}
                               >
-                                {templatePreviewLoadingId === template.id ? <Loader2 className="h-3 w-3 animate-spin" /> : <Eye className="h-3 w-3" />}
-                                {previewTemplate?.id === template.id ? "Viendo" : "Preview"}
+                                {templatePreviewLoadingId === template.id ? (
+                                  <Loader2 className="h-3 w-3 animate-spin" />
+                                ) : (
+                                  <Eye className="h-3 w-3" />
+                                )}
+                                {previewTemplate?.id === template.id
+                                  ? "Viendo"
+                                  : "Preview"}
                               </button>
                               <button
                                 onClick={() => handleApplyTemplate(template.id)}
-                                disabled={templatePreviewLoadingId === template.id || templateApplyingId === template.id}
+                                disabled={
+                                  templatePreviewLoadingId === template.id ||
+                                  templateApplyingId === template.id
+                                }
                                 className="flex items-center justify-center gap-1.5 rounded-lg border border-neutral-200 py-1.5 text-[11px] font-medium text-neutral-700 transition hover:bg-neutral-50 disabled:opacity-60 md:text-xs"
                               >
-                                {templateApplyingId === template.id ? <Loader2 className="h-3 w-3 animate-spin" /> : <Copy className="h-3 w-3" />}
+                                {templateApplyingId === template.id ? (
+                                  <Loader2 className="h-3 w-3 animate-spin" />
+                                ) : (
+                                  <Copy className="h-3 w-3" />
+                                )}
                                 Aplicar
                               </button>
                             </div>
@@ -3707,7 +5210,7 @@ export default function CollectionEditorPage() {
                 ) : (
                   <>
                     <div className="mb-2 flex items-center justify-between px-1">
-                      <p className="text-[11px] font-semibold uppercase tracking-widest text-neutral-400">
+                      <p className="text-[11px] font-semibold tracking-widest text-neutral-400 uppercase">
                         {items.length} {items.length === 1 ? "capa" : "capas"}
                       </p>
                       {selectedItemIds.size >= 2 ? (
@@ -3717,46 +5220,74 @@ export default function CollectionEditorPage() {
                         >
                           Agrupar {selectedItemIds.size}
                         </button>
-                      ) : selectedItemId !== null && (() => {
-                        const sel = items.find((i) => i.id === selectedItemId);
-                        const gid = (sel?.content as ContentText)?.group_id;
-                        return gid ? (
-                          <button
-                            onClick={() => handleUngroup(gid)}
-                            className="rounded-lg border border-neutral-300 px-2 py-0.5 text-[10px] font-medium text-neutral-500 transition hover:bg-neutral-50"
-                          >
-                            Desagrupar
-                          </button>
-                        ) : null;
-                      })()}
+                      ) : (
+                        selectedItemId !== null &&
+                        (() => {
+                          const sel = items.find(
+                            (i) => i.id === selectedItemId,
+                          );
+                          const gid = (sel?.content as ContentText)?.group_id;
+                          return gid ? (
+                            <button
+                              onClick={() => handleUngroup(gid)}
+                              className="rounded-lg border border-neutral-300 px-2 py-0.5 text-[10px] font-medium text-neutral-500 transition hover:bg-neutral-50"
+                            >
+                              Desagrupar
+                            </button>
+                          ) : null;
+                        })()
+                      )}
                     </div>
                     {items.length === 0 && (
-                      <p className="py-6 text-center text-xs text-neutral-400">Canvas vacío</p>
+                      <p className="py-6 text-center text-xs text-neutral-400">
+                        Canvas vacío
+                      </p>
                     )}
                     {(() => {
-                      const maxZ = items.length > 0 ? Math.max(...items.map((i) => i.z_index)) : 0;
-                      const minZ = items.length > 0 ? Math.min(...items.map((i) => i.z_index)) : 0;
+                      const maxZ =
+                        items.length > 0
+                          ? Math.max(...items.map((i) => i.z_index))
+                          : 0;
+                      const minZ =
+                        items.length > 0
+                          ? Math.min(...items.map((i) => i.z_index))
+                          : 0;
                       return [...items]
                         .sort((a, b) => b.z_index - a.z_index)
                         .map((item) => {
                           const isItemSelected = selectedItemId === item.id;
                           const isItemLocked = lockedItemIds.has(item.id);
-                          const LayerIcon = item.element_type === "text" ? Type
-                            : item.element_type === "shape" ? Square
-                            : item.element_type === "product" ? Package
-                            : ImageIcon;
-                          const layerLabel = item.element_type === "product"
-                            ? (item.product_name ?? "Producto")
-                            : item.element_type === "text"
-                              ? ((item.content as ContentText)?.text?.slice(0, 16) || "Texto vacío")
+                          const LayerIcon =
+                            item.element_type === "text"
+                              ? Type
                               : item.element_type === "shape"
-                                ? ((item.content as ContentShape)?.shapeType ?? "Forma")
-                                : "Imagen";
-                          const itemGroupId = (item.content as ContentText)?.group_id;
+                                ? Square
+                                : item.element_type === "product"
+                                  ? Package
+                                  : ImageIcon;
+                          const layerLabel =
+                            item.element_type === "product"
+                              ? (item.product_name ?? "Producto")
+                              : item.element_type === "text"
+                                ? (item.content as ContentText)?.text?.slice(
+                                    0,
+                                    16,
+                                  ) || "Texto vacío"
+                                : item.element_type === "shape"
+                                  ? ((item.content as ContentShape)
+                                      ?.shapeType ?? "Forma")
+                                  : "Imagen";
+                          const itemGroupId = (item.content as ContentText)
+                            ?.group_id;
                           return (
                             <div
                               key={item.id}
-                              onClick={() => { setSelectedItemId(item.id); setActiveTool("select"); setSelectedItemIds(new Set([item.id])); setIsBackgroundSelected(false); }}
+                              onClick={() => {
+                                setSelectedItemId(item.id);
+                                setActiveTool("select");
+                                setSelectedItemIds(new Set([item.id]));
+                                setIsBackgroundSelected(false);
+                              }}
                               className={`flex cursor-pointer items-center gap-1.5 rounded-lg px-2 py-1.5 text-xs transition ${
                                 isItemSelected
                                   ? "bg-[color:color-mix(in_srgb,var(--seller-accent)_10%,white)] text-[var(--seller-accent)]"
@@ -3764,45 +5295,71 @@ export default function CollectionEditorPage() {
                               }`}
                             >
                               <LayerIcon className="h-3 w-3 shrink-0 opacity-60" />
-                              <span className="flex-1 truncate font-medium">{layerLabel}</span>
+                              <span className="flex-1 truncate font-medium">
+                                {layerLabel}
+                              </span>
                               {itemGroupId && (
-                                <span className="shrink-0 rounded-full bg-violet-100 px-1.5 py-0.5 text-[9px] font-semibold text-violet-600" title="Agrupado">G</span>
+                                <span
+                                  className="shrink-0 rounded-full bg-violet-100 px-1.5 py-0.5 text-[9px] font-semibold text-violet-600"
+                                  title="Agrupado"
+                                >
+                                  G
+                                </span>
                               )}
                               <button
                                 onClick={(e) => {
                                   e.stopPropagation();
                                   setLockedItemIds((prev) => {
                                     const next = new Set(prev);
-                                    if (next.has(item.id)) next.delete(item.id); else next.add(item.id);
+                                    if (next.has(item.id)) next.delete(item.id);
+                                    else next.add(item.id);
                                     return next;
                                   });
                                 }}
                                 className="shrink-0 rounded p-0.5 hover:bg-neutral-100"
-                                title={isItemLocked ? "Desbloquear" : "Bloquear"}
+                                title={
+                                  isItemLocked ? "Desbloquear" : "Bloquear"
+                                }
                               >
-                                {isItemLocked
-                                  ? <Lock className="h-3 w-3 text-amber-500" />
-                                  : <Unlock className="h-3 w-3 text-neutral-300" />}
+                                {isItemLocked ? (
+                                  <Lock className="h-3 w-3 text-amber-500" />
+                                ) : (
+                                  <Unlock className="h-3 w-3 text-neutral-300" />
+                                )}
                               </button>
                               <button
-                                onClick={(e) => { e.stopPropagation(); handleMoveLayer(item.id, "forward"); }}
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  handleMoveLayer(item.id, "forward");
+                                }}
                                 disabled={item.z_index >= maxZ}
                                 className="shrink-0 rounded p-0.5 hover:bg-neutral-100 disabled:opacity-30"
                                 title="Subir capa"
-                              ><ChevronUp className="h-3 w-3" /></button>
+                              >
+                                <ChevronUp className="h-3 w-3" />
+                              </button>
                               <button
-                                onClick={(e) => { e.stopPropagation(); handleMoveLayer(item.id, "backward"); }}
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  handleMoveLayer(item.id, "backward");
+                                }}
                                 disabled={item.z_index <= minZ}
                                 className="shrink-0 rounded p-0.5 hover:bg-neutral-100 disabled:opacity-30"
                                 title="Bajar capa"
-                              ><ChevronDown className="h-3 w-3" /></button>
+                              >
+                                <ChevronDown className="h-3 w-3" />
+                              </button>
                             </div>
                           );
                         });
                     })()}
                     {/* ── Fondo virtual layer ── */}
                     <div
-                      onClick={() => { setIsBackgroundSelected(true); setSelectedItemId(null); setSelectedItemIds(new Set()); }}
+                      onClick={() => {
+                        setIsBackgroundSelected(true);
+                        setSelectedItemId(null);
+                        setSelectedItemIds(new Set());
+                      }}
                       className={`mt-1 flex cursor-pointer items-center gap-1.5 rounded-lg border px-2 py-1.5 text-xs transition ${
                         isBackgroundSelected
                           ? "border-[var(--seller-accent)] bg-[color:color-mix(in_srgb,var(--seller-accent)_10%,white)] text-[var(--seller-accent)]"
@@ -3814,7 +5371,9 @@ export default function CollectionEditorPage() {
                         style={{ background: computedBg }}
                       />
                       <span className="flex-1 font-medium">Fondo</span>
-                      <span className="shrink-0 text-[9px] text-neutral-400">base</span>
+                      <span className="shrink-0 text-[9px] text-neutral-400">
+                        base
+                      </span>
                     </div>
                   </>
                 )}
@@ -3822,43 +5381,105 @@ export default function CollectionEditorPage() {
             </>
           ) : activeTool === "text" ? (
             <div className="flex-1 space-y-3 overflow-y-auto p-3">
-              <p className="text-xs leading-relaxed text-neutral-500">Haz clic en el canvas para colocar texto.</p>
+              <p className="text-xs leading-relaxed text-neutral-500">
+                Haz clic en el canvas para colocar texto.
+              </p>
               <div>
-                <label className="text-[11px] font-medium text-neutral-500">Fuente</label>
-                <select value={textDefaults.fontFamily ?? "inherit"}
-                  onChange={(e) => setTextDefaults((p) => ({ ...p, fontFamily: e.target.value }))}
-                  className="mt-1 w-full rounded-lg border border-neutral-200 px-2 py-1.5 text-xs outline-none">
-                  {GOOGLE_FONTS.map((f) => <option key={f.value} value={f.value}>{f.label}</option>)}
+                <label className="text-[11px] font-medium text-neutral-500">
+                  Fuente
+                </label>
+                <select
+                  value={textDefaults.fontFamily ?? "inherit"}
+                  onChange={(e) =>
+                    setTextDefaults((p) => ({
+                      ...p,
+                      fontFamily: e.target.value,
+                    }))
+                  }
+                  className="mt-1 w-full rounded-lg border border-neutral-200 px-2 py-1.5 text-xs outline-none"
+                >
+                  {GOOGLE_FONTS.map((f) => (
+                    <option key={f.value} value={f.value}>
+                      {f.label}
+                    </option>
+                  ))}
                 </select>
               </div>
               <div>
-                <label className="text-[11px] font-medium text-neutral-500">Tamaño</label>
-                <input type="number" min={10} max={120} value={textDefaults.fontSize}
-                  onChange={(e) => setTextDefaults((p) => ({ ...p, fontSize: Number(e.target.value) }))}
-                  className="mt-1 w-full rounded-lg border border-neutral-200 px-2 py-1 text-xs outline-none" />
+                <label className="text-[11px] font-medium text-neutral-500">
+                  Tamaño
+                </label>
+                <input
+                  type="number"
+                  min={10}
+                  max={120}
+                  value={textDefaults.fontSize}
+                  onChange={(e) =>
+                    setTextDefaults((p) => ({
+                      ...p,
+                      fontSize: Number(e.target.value),
+                    }))
+                  }
+                  className="mt-1 w-full rounded-lg border border-neutral-200 px-2 py-1 text-xs outline-none"
+                />
               </div>
               <div>
-                <label className="text-[11px] font-medium text-neutral-500">Color</label>
-                <input type="color" value={textDefaults.color}
-                  onChange={(e) => setTextDefaults((p) => ({ ...p, color: e.target.value }))}
-                  className="mt-1 h-8 w-full cursor-pointer rounded-lg border border-neutral-200" />
+                <label className="text-[11px] font-medium text-neutral-500">
+                  Color
+                </label>
+                <input
+                  type="color"
+                  value={textDefaults.color}
+                  onChange={(e) =>
+                    setTextDefaults((p) => ({ ...p, color: e.target.value }))
+                  }
+                  className="mt-1 h-8 w-full cursor-pointer rounded-lg border border-neutral-200"
+                />
               </div>
               <div className="flex gap-1.5">
-                <button onClick={() => setTextDefaults((p) => ({ ...p, fontWeight: p.fontWeight === "bold" ? "normal" : "bold" }))}
-                  className={`flex-1 rounded-lg border py-1.5 text-xs font-bold transition ${textDefaults.fontWeight === "bold" ? "border-[#0F3D3A] bg-[#0F3D3A] text-white" : "border-neutral-200 text-neutral-500"}`}>B</button>
-                <button onClick={() => setTextDefaults((p) => ({ ...p, fontStyle: p.fontStyle === "italic" ? "normal" : "italic" }))}
-                  className={`flex-1 rounded-lg border py-1.5 text-xs italic transition ${textDefaults.fontStyle === "italic" ? "border-[#0F3D3A] bg-[#0F3D3A] text-white" : "border-neutral-200 text-neutral-500"}`}>i</button>
+                <button
+                  onClick={() =>
+                    setTextDefaults((p) => ({
+                      ...p,
+                      fontWeight: p.fontWeight === "bold" ? "normal" : "bold",
+                    }))
+                  }
+                  className={`flex-1 rounded-lg border py-1.5 text-xs font-bold transition ${textDefaults.fontWeight === "bold" ? "border-[#0F3D3A] bg-[#0F3D3A] text-white" : "border-neutral-200 text-neutral-500"}`}
+                >
+                  B
+                </button>
+                <button
+                  onClick={() =>
+                    setTextDefaults((p) => ({
+                      ...p,
+                      fontStyle: p.fontStyle === "italic" ? "normal" : "italic",
+                    }))
+                  }
+                  className={`flex-1 rounded-lg border py-1.5 text-xs italic transition ${textDefaults.fontStyle === "italic" ? "border-[#0F3D3A] bg-[#0F3D3A] text-white" : "border-neutral-200 text-neutral-500"}`}
+                >
+                  i
+                </button>
               </div>
             </div>
           ) : activeTool === "shape" ? (
             <div className="flex-1 space-y-3 overflow-y-auto p-3">
-              <p className="text-xs leading-relaxed text-neutral-500">Haz clic en el canvas para colocar una forma o un decorativo editorial.</p>
+              <p className="text-xs leading-relaxed text-neutral-500">
+                Haz clic en el canvas para colocar una forma o un decorativo
+                editorial.
+              </p>
               <div>
-                <label className="mb-1 block text-[11px] font-medium text-neutral-500">Básicas</label>
+                <label className="mb-1 block text-[11px] font-medium text-neutral-500">
+                  Básicas
+                </label>
                 <div className="grid grid-cols-3 gap-1">
                   {SHAPE_TYPES.slice(0, 5).map((t) => (
-                    <button key={t.value} onClick={() => setShapeDefaults((p) => ({ ...p, shapeType: t.value }))}
-                      className={`rounded-lg border py-1.5 text-[10px] transition ${shapeDefaults.shapeType === t.value ? "border-[#0F3D3A] bg-[#0F3D3A] text-white" : "border-neutral-200 text-neutral-500"}`}>
+                    <button
+                      key={t.value}
+                      onClick={() =>
+                        setShapeDefaults((p) => ({ ...p, shapeType: t.value }))
+                      }
+                      className={`rounded-lg border py-1.5 text-[10px] transition ${shapeDefaults.shapeType === t.value ? "border-[#0F3D3A] bg-[#0F3D3A] text-white" : "border-neutral-200 text-neutral-500"}`}
+                    >
                       {t.label}
                     </button>
                   ))}
@@ -3866,43 +5487,89 @@ export default function CollectionEditorPage() {
               </div>
               <div>
                 <div className="mb-1 flex items-center justify-between gap-2">
-                  <label className="block text-[11px] font-medium text-neutral-500">Decorativos</label>
-                  <span className="text-[10px] text-neutral-400">ideal para plantillas premium</span>
+                  <label className="block text-[11px] font-medium text-neutral-500">
+                    Decorativos
+                  </label>
+                  <span className="text-[10px] text-neutral-400">
+                    ideal para plantillas premium
+                  </span>
                 </div>
                 <div className="grid grid-cols-3 gap-1">
-                  {SHAPE_TYPES.filter((t) => DECORATIVE_SHAPE_TYPES.includes(t.value)).map((t) => (
-                    <button key={t.value} onClick={() => setShapeDefaults((p) => ({ ...p, shapeType: t.value }))}
-                      className={`rounded-lg border py-1.5 text-[10px] transition ${shapeDefaults.shapeType === t.value ? "border-[#0F3D3A] bg-[#0F3D3A] text-white" : "border-neutral-200 text-neutral-500"}`}>
+                  {SHAPE_TYPES.filter((t) =>
+                    DECORATIVE_SHAPE_TYPES.includes(t.value),
+                  ).map((t) => (
+                    <button
+                      key={t.value}
+                      onClick={() =>
+                        setShapeDefaults((p) => ({ ...p, shapeType: t.value }))
+                      }
+                      className={`rounded-lg border py-1.5 text-[10px] transition ${shapeDefaults.shapeType === t.value ? "border-[#0F3D3A] bg-[#0F3D3A] text-white" : "border-neutral-200 text-neutral-500"}`}
+                    >
                       {t.label}
                     </button>
                   ))}
                 </div>
               </div>
               <div>
-                <label className="text-[11px] font-medium text-neutral-500">Color</label>
-                <input type="color" value={shapeDefaults.fillColor}
-                  onChange={(e) => setShapeDefaults((p) => ({ ...p, fillColor: e.target.value }))}
-                  className="mt-1 h-8 w-full cursor-pointer rounded-lg border border-neutral-200" />
+                <label className="text-[11px] font-medium text-neutral-500">
+                  Color
+                </label>
+                <input
+                  type="color"
+                  value={shapeDefaults.fillColor}
+                  onChange={(e) =>
+                    setShapeDefaults((p) => ({
+                      ...p,
+                      fillColor: e.target.value,
+                    }))
+                  }
+                  className="mt-1 h-8 w-full cursor-pointer rounded-lg border border-neutral-200"
+                />
               </div>
             </div>
           ) : activeTool === "decor" ? (
             <div className="flex-1 space-y-3 overflow-y-auto p-3">
-              <p className="text-xs leading-relaxed text-neutral-500">Inserta gráficos listos para enriquecer plantillas premium: editoriales, símbolos y emojis curados.</p>
-              {([
-                { group: "Editorial" as const, subtitle: "acentos suaves para composiciones premium" },
-                { group: "Simbolos" as const, subtitle: "elementos con narrativa, craft y marca" },
-                { group: "Outline" as const, subtitle: "línea fina para un look más lujo/editorial" },
-                { group: "Emoji" as const, subtitle: "emoji curado, menos infantil y más usable" },
-              ] as const).map(({ group, subtitle }) => {
-                const presets = GRAPHIC_PRESETS.filter((preset) => preset.group === group);
+              <p className="text-xs leading-relaxed text-neutral-500">
+                Inserta gráficos listos para enriquecer plantillas premium:
+                editoriales, símbolos y emojis curados.
+              </p>
+              {(
+                [
+                  {
+                    group: "Editorial" as const,
+                    subtitle: "acentos suaves para composiciones premium",
+                  },
+                  {
+                    group: "Simbolos" as const,
+                    subtitle: "elementos con narrativa, craft y marca",
+                  },
+                  {
+                    group: "Outline" as const,
+                    subtitle: "línea fina para un look más lujo/editorial",
+                  },
+                  {
+                    group: "Emoji" as const,
+                    subtitle: "emoji curado, menos infantil y más usable",
+                  },
+                ] as const
+              ).map(({ group, subtitle }) => {
+                const presets = GRAPHIC_PRESETS.filter(
+                  (preset) => preset.group === group,
+                );
                 return (
                   <div key={group}>
                     <div className="mb-2 flex items-center justify-between gap-2">
                       <div>
-                        <label className="block text-[11px] font-medium text-neutral-500">{group}</label>
-                        <p className="mt-0.5 text-[10px] leading-relaxed text-neutral-400">{subtitle}</p>
+                        <label className="block text-[11px] font-medium text-neutral-500">
+                          {group}
+                        </label>
+                        <p className="mt-0.5 text-[10px] leading-relaxed text-neutral-400">
+                          {subtitle}
+                        </p>
                       </div>
-                      <span className="text-[10px] text-neutral-400">{presets.length} piezas</span>
+                      <span className="text-[10px] text-neutral-400">
+                        {presets.length} piezas
+                      </span>
                     </div>
                     <div className="grid grid-cols-2 gap-2">
                       {presets.map((preset) => (
@@ -3920,7 +5587,9 @@ export default function CollectionEditorPage() {
                             />
                           </div>
                           <div className="border-t border-neutral-100 px-2.5 py-2">
-                            <p className="text-[11px] font-medium text-neutral-700">{preset.label}</p>
+                            <p className="text-[11px] font-medium text-neutral-700">
+                              {preset.label}
+                            </p>
                           </div>
                         </button>
                       ))}
@@ -3933,15 +5602,24 @@ export default function CollectionEditorPage() {
             /* ── Image tool sidebar ── */
             <div className="flex flex-1 flex-col items-center justify-center gap-3 p-4">
               <ImageIcon className="h-10 w-10 text-neutral-300" />
-              <p className="text-center text-xs leading-relaxed text-neutral-500">Sube una foto o ilustración para añadirla al canvas.</p>
+              <p className="text-center text-xs leading-relaxed text-neutral-500">
+                Sube una foto o ilustración para añadirla al canvas.
+              </p>
               <button
                 onClick={() => imageInputRef.current?.click()}
                 disabled={imageUploading}
-                className="flex w-full items-center justify-center gap-2 rounded-lg bg-[#0F3D3A] px-3 py-2 text-xs font-semibold text-white transition hover:bg-[#14544f] disabled:opacity-60">
-                {imageUploading ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <ImageIcon className="h-3.5 w-3.5" />}
+                className="flex w-full items-center justify-center gap-2 rounded-lg bg-[#0F3D3A] px-3 py-2 text-xs font-semibold text-white transition hover:bg-[#14544f] disabled:opacity-60"
+              >
+                {imageUploading ? (
+                  <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                ) : (
+                  <ImageIcon className="h-3.5 w-3.5" />
+                )}
                 {imageUploading ? "Subiendo…" : "Seleccionar imagen"}
               </button>
-              <p className="text-center text-[10px] text-neutral-400">jpg · png · webp · gif · máx 8 MB</p>
+              <p className="text-center text-[10px] text-neutral-400">
+                jpg · png · webp · gif · máx 8 MB
+              </p>
             </div>
           )}
         </aside>
@@ -3950,15 +5628,22 @@ export default function CollectionEditorPage() {
         <div
           ref={canvasAreaRef}
           className={`order-1 flex flex-col overflow-hidden rounded-xl border border-[var(--seller-line-strong)] bg-neutral-100 md:order-none ${
-            isPreviewingTemplate && isCompactPreviewViewport ? "min-h-0 flex-none" : "min-h-0 flex-1 md:min-h-[64vh]"
+            isPreviewingTemplate && isCompactPreviewViewport
+              ? "min-h-0 flex-none"
+              : "min-h-0 flex-1 md:min-h-[64vh]"
           }`}
         >
           {/* Toolbar */}
           <div className="flex flex-wrap items-center gap-2 border-b border-[var(--seller-line)] bg-white px-3 py-2.5 sm:gap-3 sm:px-4">
             <div className="flex w-full items-center justify-between gap-2 sm:hidden">
               <div className="min-w-0">
-                <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-neutral-400">Canvas</p>
-                <p className="mt-1 text-xs text-neutral-500">{displayCanvasWidth} × {displayCanvasHeight} · {bgGradient.enabled ? "degradado" : "color plano"}</p>
+                <p className="text-[11px] font-semibold tracking-[0.18em] text-neutral-400 uppercase">
+                  Canvas
+                </p>
+                <p className="mt-1 text-xs text-neutral-500">
+                  {displayCanvasWidth} × {displayCanvasHeight} ·{" "}
+                  {bgGradient.enabled ? "degradado" : "color plano"}
+                </p>
               </div>
               {!isPreviewingTemplate && (
                 <button
@@ -3970,165 +5655,245 @@ export default function CollectionEditorPage() {
               )}
             </div>
 
-            <div className={`${isPreviewingTemplate || mobileCanvasControlsOpen ? "flex" : "hidden"} w-full flex-wrap items-center gap-2 sm:flex sm:w-auto sm:gap-3`}>
-            {isPreviewingTemplate ? (
-              <>
-                <div className="flex items-center gap-1">
-                  <span className="text-[10px] text-neutral-400">Zoom:</span>
-                  <button
-                    onClick={handleViewportZoomOut}
-                    disabled={!canZoomOut}
-                    className="flex h-6 w-6 items-center justify-center rounded border border-neutral-200 text-neutral-500 transition hover:bg-neutral-50 disabled:opacity-40"
-                    title="Alejar"
-                  >
-                    <Minus className="h-3 w-3" />
-                  </button>
-                  <button
-                    onClick={handleViewportZoomReset}
-                    className="rounded px-2 py-0.5 text-[10px] font-medium text-neutral-500 transition hover:bg-neutral-100"
-                    title="Restablecer zoom"
-                  >
-                    {activeZoomLabel}
-                  </button>
-                  <button
-                    onClick={handleViewportZoomIn}
-                    disabled={!canZoomIn}
-                    className="flex h-6 w-6 items-center justify-center rounded border border-neutral-200 text-neutral-500 transition hover:bg-neutral-50 disabled:opacity-40"
-                    title="Acercar"
-                  >
-                    <Plus className="h-3 w-3" />
-                  </button>
-                </div>
-                <span className="w-full text-xs text-neutral-400 sm:w-auto">{displayCanvasWidth} × {displayCanvasHeight}</span>
-              </>
-            ) : (
-              <>
-                <label className="flex items-center gap-1.5 text-xs text-neutral-500">
-                  Fondo:
-                  <input type="color" value={bgColor} onChange={(e) => handleBackgroundColorChange(e.target.value)}
-                    className="h-6 w-10 cursor-pointer rounded border border-neutral-200" />
-                </label>
-                <label className="flex cursor-pointer items-center gap-1.5 text-xs text-neutral-500">
-                  <input type="checkbox" checked={bgGradient.enabled}
-                    onChange={(e) => handleBackgroundGradientChange((current) => ({ ...current, enabled: e.target.checked }))}
-                    className="rounded" />
-                  Degradado
-                </label>
-                {bgGradient.enabled && (
-                  <>
-                    <input type="color" value={bgGradient.color2}
-                      onChange={(e) => handleBackgroundGradientChange((current) => ({ ...current, color2: e.target.value }))}
-                      className="h-6 w-10 cursor-pointer rounded border border-neutral-200" title="Color 2" />
-                    <select value={bgGradient.type}
-                      onChange={(e) => handleBackgroundGradientChange((current) => ({ ...current, type: e.target.value as "linear" | "radial" }))}
-                      className="rounded-lg border border-neutral-200 px-2 py-1 text-xs outline-none">
-                      <option value="linear">Lineal</option>
-                      <option value="radial">Radial</option>
-                    </select>
-                    {bgGradient.type === "linear" && (
-                      <label className="flex items-center gap-1.5 text-xs text-neutral-500">
-                        {bgGradient.angle}°
-                        <input type="range" min={0} max={359} value={bgGradient.angle}
-                          onChange={(e) => handleBackgroundGradientChange((current) => ({ ...current, angle: Number(e.target.value) }))}
-                          className="w-20" />
-                      </label>
-                    )}
-                  </>
-                )}
-                <div className="flex items-center gap-1 border-l border-neutral-200 pl-3">
-                  <select
-                    value={bgTexture.patternId}
-                    onChange={(e) => handleBgTextureChange({ patternId: e.target.value as BgTextureId })}
-                    className="rounded-lg border border-neutral-200 px-2 py-1 text-xs text-neutral-600 outline-none"
-                    title="Textura de fondo"
-                  >
-                    {BG_TEXTURES.map(({ id, label }) => (
-                      <option key={id} value={id}>{label}</option>
-                    ))}
-                  </select>
-                </div>
-                <div className="flex items-center gap-1 border-l border-neutral-200 pl-3">
-                  <button
-                    onClick={() => bgImageInputRef.current?.click()}
-                    disabled={bgImageUploading}
-                    className="flex items-center gap-1.5 rounded-lg border border-neutral-200 px-2 py-1 text-xs text-neutral-600 transition hover:bg-neutral-50 disabled:opacity-60"
-                  >
-                    {bgImageUploading ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <ImageIcon className="h-3.5 w-3.5" />}
-                    {collection.background_image_url ? "Cambiar fondo" : "Subir fondo"}
-                  </button>
-                  {collection.background_image_url && (
+            <div
+              className={`${isPreviewingTemplate || mobileCanvasControlsOpen ? "flex" : "hidden"} w-full flex-wrap items-center gap-2 sm:flex sm:w-auto sm:gap-3`}
+            >
+              {isPreviewingTemplate ? (
+                <>
+                  <div className="flex items-center gap-1">
+                    <span className="text-[10px] text-neutral-400">Zoom:</span>
                     <button
-                      onClick={handleRemoveBackgroundImage}
-                      disabled={bgImageUploading}
-                      className="rounded-lg border border-neutral-200 px-2 py-1 text-xs text-neutral-600 transition hover:bg-neutral-50 disabled:opacity-60"
+                      onClick={handleViewportZoomOut}
+                      disabled={!canZoomOut}
+                      className="flex h-6 w-6 items-center justify-center rounded border border-neutral-200 text-neutral-500 transition hover:bg-neutral-50 disabled:opacity-40"
+                      title="Alejar"
                     >
-                      Quitar fondo
+                      <Minus className="h-3 w-3" />
                     </button>
-                  )}
-                </div>
-                <div className="flex items-center gap-1 border-l border-neutral-200 pl-3">
-                  <Grid3x3 className="h-3.5 w-3.5 text-neutral-400" />
-                  <div className="flex gap-0.5">
-                    {GRID_OPTIONS.map((g) => (
-                      <button key={g.value} onClick={() => setGridSnap(g.value)}
-                        className={`rounded px-1.5 py-0.5 text-[10px] font-medium transition ${gridSnap === g.value ? "bg-[var(--seller-accent)] text-white" : "bg-neutral-100 text-neutral-500 hover:bg-neutral-200"}`}>
-                        {g.label}
-                      </button>
-                    ))}
+                    <button
+                      onClick={handleViewportZoomReset}
+                      className="rounded px-2 py-0.5 text-[10px] font-medium text-neutral-500 transition hover:bg-neutral-100"
+                      title="Restablecer zoom"
+                    >
+                      {activeZoomLabel}
+                    </button>
+                    <button
+                      onClick={handleViewportZoomIn}
+                      disabled={!canZoomIn}
+                      className="flex h-6 w-6 items-center justify-center rounded border border-neutral-200 text-neutral-500 transition hover:bg-neutral-50 disabled:opacity-40"
+                      title="Acercar"
+                    >
+                      <Plus className="h-3 w-3" />
+                    </button>
                   </div>
-                </div>
-                <div className="flex items-center gap-1 border-l border-neutral-200 pl-3">
-                  <span className="text-[10px] text-neutral-400">Canvas:</span>
-                  {canvasPresetOptions.map((p, index) => {
-                    const active = collection.canvas_width === p.w && collection.canvas_height === p.h;
-                    return (
-                      <button key={`${p.label}-${p.w}-${p.h}-${index}`} onClick={() => handleCanvasResize(p.w, p.h)}
-                        className={`rounded px-1.5 py-0.5 text-[10px] font-medium transition ${active ? "bg-[var(--seller-accent)] text-white" : "bg-neutral-100 text-neutral-500 hover:bg-neutral-200"}`}>
-                        {p.label}
+                  <span className="w-full text-xs text-neutral-400 sm:w-auto">
+                    {displayCanvasWidth} × {displayCanvasHeight}
+                  </span>
+                </>
+              ) : (
+                <>
+                  <label className="flex items-center gap-1.5 text-xs text-neutral-500">
+                    Fondo:
+                    <input
+                      type="color"
+                      value={bgColor}
+                      onChange={(e) =>
+                        handleBackgroundColorChange(e.target.value)
+                      }
+                      className="h-6 w-10 cursor-pointer rounded border border-neutral-200"
+                    />
+                  </label>
+                  <label className="flex cursor-pointer items-center gap-1.5 text-xs text-neutral-500">
+                    <input
+                      type="checkbox"
+                      checked={bgGradient.enabled}
+                      onChange={(e) =>
+                        handleBackgroundGradientChange((current) => ({
+                          ...current,
+                          enabled: e.target.checked,
+                        }))
+                      }
+                      className="rounded"
+                    />
+                    Degradado
+                  </label>
+                  {bgGradient.enabled && (
+                    <>
+                      <input
+                        type="color"
+                        value={bgGradient.color2}
+                        onChange={(e) =>
+                          handleBackgroundGradientChange((current) => ({
+                            ...current,
+                            color2: e.target.value,
+                          }))
+                        }
+                        className="h-6 w-10 cursor-pointer rounded border border-neutral-200"
+                        title="Color 2"
+                      />
+                      <select
+                        value={bgGradient.type}
+                        onChange={(e) =>
+                          handleBackgroundGradientChange((current) => ({
+                            ...current,
+                            type: e.target.value as "linear" | "radial",
+                          }))
+                        }
+                        className="rounded-lg border border-neutral-200 px-2 py-1 text-xs outline-none"
+                      >
+                        <option value="linear">Lineal</option>
+                        <option value="radial">Radial</option>
+                      </select>
+                      {bgGradient.type === "linear" && (
+                        <label className="flex items-center gap-1.5 text-xs text-neutral-500">
+                          {bgGradient.angle}°
+                          <input
+                            type="range"
+                            min={0}
+                            max={359}
+                            value={bgGradient.angle}
+                            onChange={(e) =>
+                              handleBackgroundGradientChange((current) => ({
+                                ...current,
+                                angle: Number(e.target.value),
+                              }))
+                            }
+                            className="w-20"
+                          />
+                        </label>
+                      )}
+                    </>
+                  )}
+                  <div className="flex items-center gap-1 border-l border-neutral-200 pl-3">
+                    <select
+                      value={bgTexture.patternId}
+                      onChange={(e) =>
+                        handleBgTextureChange({
+                          patternId: e.target.value as BgTextureId,
+                        })
+                      }
+                      className="rounded-lg border border-neutral-200 px-2 py-1 text-xs text-neutral-600 outline-none"
+                      title="Textura de fondo"
+                    >
+                      {BG_TEXTURES.map(({ id, label }) => (
+                        <option key={id} value={id}>
+                          {label}
+                        </option>
+                      ))}
+                    </select>
+                  </div>
+                  <div className="flex items-center gap-1 border-l border-neutral-200 pl-3">
+                    <button
+                      onClick={() => bgImageInputRef.current?.click()}
+                      disabled={bgImageUploading}
+                      className="flex items-center gap-1.5 rounded-lg border border-neutral-200 px-2 py-1 text-xs text-neutral-600 transition hover:bg-neutral-50 disabled:opacity-60"
+                    >
+                      {bgImageUploading ? (
+                        <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                      ) : (
+                        <ImageIcon className="h-3.5 w-3.5" />
+                      )}
+                      {collection.background_image_url
+                        ? "Cambiar fondo"
+                        : "Subir fondo"}
+                    </button>
+                    {collection.background_image_url && (
+                      <button
+                        onClick={handleRemoveBackgroundImage}
+                        disabled={bgImageUploading}
+                        className="rounded-lg border border-neutral-200 px-2 py-1 text-xs text-neutral-600 transition hover:bg-neutral-50 disabled:opacity-60"
+                      >
+                        Quitar fondo
                       </button>
-                    );
-                  })}
-                </div>
-                <div className="flex items-center gap-1 border-l border-neutral-200 pl-3">
-                  <span className="text-[10px] text-neutral-400">Zoom:</span>
-                  <button
-                    onClick={handleViewportZoomOut}
-                    disabled={!canZoomOut}
-                    className="flex h-6 w-6 items-center justify-center rounded border border-neutral-200 text-neutral-500 transition hover:bg-neutral-50 disabled:opacity-40"
-                    title="Alejar"
-                  >
-                    <Minus className="h-3 w-3" />
-                  </button>
-                  <button
-                    onClick={handleViewportZoomReset}
-                    className="rounded px-2 py-0.5 text-[10px] font-medium text-neutral-500 transition hover:bg-neutral-100"
-                    title="Restablecer zoom"
-                  >
-                    {activeZoomLabel}
-                  </button>
-                  <button
-                    onClick={handleViewportZoomIn}
-                    disabled={!canZoomIn}
-                    className="flex h-6 w-6 items-center justify-center rounded border border-neutral-200 text-neutral-500 transition hover:bg-neutral-50 disabled:opacity-40"
-                    title="Acercar"
-                  >
-                    <Plus className="h-3 w-3" />
-                  </button>
-                </div>
-                <span className="w-full text-xs text-neutral-400 sm:w-auto">{displayCanvasWidth} × {displayCanvasHeight}</span>
-                {activeTool !== "select" && activeTool !== "image" && activeTool !== "decor" && (
-                  <span className="text-xs font-medium text-[#0F3D3A] sm:ml-auto">
-                    {activeTool === "text" ? "✏ Clic para texto" : activeTool === "hand" ? "☚ Arrastra para desplazar · Esc para volver" : "■ Clic para forma"}
+                    )}
+                  </div>
+                  <div className="flex items-center gap-1 border-l border-neutral-200 pl-3">
+                    <Grid3x3 className="h-3.5 w-3.5 text-neutral-400" />
+                    <div className="flex gap-0.5">
+                      {GRID_OPTIONS.map((g) => (
+                        <button
+                          key={g.value}
+                          onClick={() => setGridSnap(g.value)}
+                          className={`rounded px-1.5 py-0.5 text-[10px] font-medium transition ${gridSnap === g.value ? "bg-[var(--seller-accent)] text-white" : "bg-neutral-100 text-neutral-500 hover:bg-neutral-200"}`}
+                        >
+                          {g.label}
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+                  <div className="flex items-center gap-1 border-l border-neutral-200 pl-3">
+                    <span className="text-[10px] text-neutral-400">
+                      Canvas:
+                    </span>
+                    {canvasPresetOptions.map((p, index) => {
+                      const active =
+                        collection.canvas_width === p.w &&
+                        collection.canvas_height === p.h;
+                      return (
+                        <button
+                          key={`${p.label}-${p.w}-${p.h}-${index}`}
+                          onClick={() => handleCanvasResize(p.w, p.h)}
+                          className={`rounded px-1.5 py-0.5 text-[10px] font-medium transition ${active ? "bg-[var(--seller-accent)] text-white" : "bg-neutral-100 text-neutral-500 hover:bg-neutral-200"}`}
+                        >
+                          {p.label}
+                        </button>
+                      );
+                    })}
+                  </div>
+                  <div className="flex items-center gap-1 border-l border-neutral-200 pl-3">
+                    <span className="text-[10px] text-neutral-400">Zoom:</span>
+                    <button
+                      onClick={handleViewportZoomOut}
+                      disabled={!canZoomOut}
+                      className="flex h-6 w-6 items-center justify-center rounded border border-neutral-200 text-neutral-500 transition hover:bg-neutral-50 disabled:opacity-40"
+                      title="Alejar"
+                    >
+                      <Minus className="h-3 w-3" />
+                    </button>
+                    <button
+                      onClick={handleViewportZoomReset}
+                      className="rounded px-2 py-0.5 text-[10px] font-medium text-neutral-500 transition hover:bg-neutral-100"
+                      title="Restablecer zoom"
+                    >
+                      {activeZoomLabel}
+                    </button>
+                    <button
+                      onClick={handleViewportZoomIn}
+                      disabled={!canZoomIn}
+                      className="flex h-6 w-6 items-center justify-center rounded border border-neutral-200 text-neutral-500 transition hover:bg-neutral-50 disabled:opacity-40"
+                      title="Acercar"
+                    >
+                      <Plus className="h-3 w-3" />
+                    </button>
+                  </div>
+                  <span className="w-full text-xs text-neutral-400 sm:w-auto">
+                    {displayCanvasWidth} × {displayCanvasHeight}
                   </span>
-                )}
-                {selectedItemId && activeTool === "select" && (
-                  <span className="flex w-full items-center gap-2 text-xs text-neutral-400 sm:ml-auto sm:w-auto">
-                    <kbd className="rounded border border-neutral-200 bg-neutral-50 px-1.5 py-0.5 font-mono text-[10px]">Ctrl+Z</kbd> deshacer
-                    <kbd className="rounded border border-neutral-200 bg-neutral-50 px-1.5 py-0.5 font-mono text-[10px]">Delete</kbd> eliminar
-                  </span>
-                )}
-              </>
-            )}
+                  {activeTool !== "select" &&
+                    activeTool !== "image" &&
+                    activeTool !== "decor" && (
+                      <span className="text-xs font-medium text-[#0F3D3A] sm:ml-auto">
+                        {activeTool === "text"
+                          ? "✏ Clic para texto"
+                          : activeTool === "hand"
+                            ? "☚ Arrastra para desplazar · Esc para volver"
+                            : "■ Clic para forma"}
+                      </span>
+                    )}
+                  {selectedItemId && activeTool === "select" && (
+                    <span className="flex w-full items-center gap-2 text-xs text-neutral-400 sm:ml-auto sm:w-auto">
+                      <kbd className="rounded border border-neutral-200 bg-neutral-50 px-1.5 py-0.5 font-mono text-[10px]">
+                        Ctrl+Z
+                      </kbd>{" "}
+                      deshacer
+                      <kbd className="rounded border border-neutral-200 bg-neutral-50 px-1.5 py-0.5 font-mono text-[10px]">
+                        Delete
+                      </kbd>{" "}
+                      eliminar
+                    </span>
+                  )}
+                </>
+              )}
             </div>
           </div>
 
@@ -4167,381 +5932,653 @@ export default function CollectionEditorPage() {
               </div>
             </div>
           ) : (
-          <div
-            ref={canvasViewportRef}
-            className={`relative flex flex-1 items-center justify-center ${
-              isPreviewingTemplate ? "p-1.5 sm:p-5 lg:p-8" : "p-3 sm:p-5 lg:p-8"
-            } ${
-              isPreviewingTemplate
-                ? `${isCompactPreviewViewport ? "overflow-hidden" : "overflow-auto"} bg-[radial-gradient(circle_at_top,#F9F6EE_0%,#EFE6D8_48%,#E7DDD0_100%)]`
-                : isEditorFitMode
-                  ? "overflow-hidden"
-                  : "overflow-auto"
-            }`}
-            style={
-              isPreviewingTemplate
-                ? { alignItems: isCompactPreviewViewport ? "center" : "flex-start", justifyContent: isCompactPreviewViewport ? "center" : "flex-start" }
-                : {
-                    ...(!isEditorFitMode ? { alignItems: "flex-start", justifyContent: "flex-start" } : {}),
-                    cursor: (activeTool === "hand" || isSpacePanning) ? "grab" : undefined,
-                  }
-            }
-            onPointerDown={(e) => {
-              if (isPreviewingTemplate) return;
-              if (activeTool !== "hand" && !isSpacePanning) return;
-              const viewport = canvasViewportRef.current;
-              if (!viewport) return;
-              panStartRef.current = { x: e.clientX, y: e.clientY, scrollLeft: viewport.scrollLeft, scrollTop: viewport.scrollTop };
-              viewport.setPointerCapture(e.pointerId);
-              viewport.style.cursor = "grabbing";
-              e.preventDefault();
-            }}
-            onPointerMove={(e) => {
-              if (!panStartRef.current) return;
-              const viewport = canvasViewportRef.current;
-              if (!viewport) return;
-              viewport.scrollLeft = panStartRef.current.scrollLeft - (e.clientX - panStartRef.current.x);
-              viewport.scrollTop = panStartRef.current.scrollTop - (e.clientY - panStartRef.current.y);
-            }}
-            onPointerUp={() => {
-              panStartRef.current = null;
-              const viewport = canvasViewportRef.current;
-              if (viewport) viewport.style.cursor = (activeTool === "hand" || isSpacePanning) ? "grab" : "";
-            }}
-            onClick={() => { if (!isPreviewingTemplate && activeTool === "select") { setSelectedItemId(null); setEditingTextId(null); setSelectedItemIds(new Set()); setIsBackgroundSelected(false); } }}>
             <div
+              ref={canvasViewportRef}
+              className={`relative flex flex-1 items-center justify-center ${
+                isPreviewingTemplate
+                  ? "p-1.5 sm:p-5 lg:p-8"
+                  : "p-3 sm:p-5 lg:p-8"
+              } ${
+                isPreviewingTemplate
+                  ? `${isCompactPreviewViewport ? "overflow-hidden" : "overflow-auto"} bg-[radial-gradient(circle_at_top,#F9F6EE_0%,#EFE6D8_48%,#E7DDD0_100%)]`
+                  : isEditorFitMode
+                    ? "overflow-hidden"
+                    : "overflow-auto"
+              }`}
               style={
-                isPreviewingTemplate || editorCanvasScale !== 1 || editorZoom !== 1
+                isPreviewingTemplate
                   ? {
-                      width: isPreviewingTemplate ? previewStageWidth : isEditorFitMode ? "100%" : displayCanvasWidth * effectiveCanvasScale,
-                      height: isPreviewingTemplate ? previewStageHeight : displayCanvasHeight * effectiveCanvasScale,
-                      display: "flex",
-                      alignItems: isPreviewingTemplate ? (isCompactPreviewViewport ? "center" : "flex-start") : isEditorFitMode ? "center" : "flex-start",
-                      justifyContent: isPreviewingTemplate ? (isCompactPreviewViewport ? "center" : "flex-start") : isEditorFitMode ? "center" : "flex-start",
-                      maxWidth: "100%",
+                      alignItems: isCompactPreviewViewport
+                        ? "center"
+                        : "flex-start",
+                      justifyContent: isCompactPreviewViewport
+                        ? "center"
+                        : "flex-start",
                     }
-                  : undefined
+                  : {
+                      ...(!isEditorFitMode
+                        ? {
+                            alignItems: "flex-start",
+                            justifyContent: "flex-start",
+                          }
+                        : {}),
+                      cursor:
+                        activeTool === "hand" || isSpacePanning
+                          ? "grab"
+                          : undefined,
+                    }
               }
+              onPointerDown={(e) => {
+                if (isPreviewingTemplate) return;
+                if (activeTool !== "hand" && !isSpacePanning) return;
+                const viewport = canvasViewportRef.current;
+                if (!viewport) return;
+                panStartRef.current = {
+                  x: e.clientX,
+                  y: e.clientY,
+                  scrollLeft: viewport.scrollLeft,
+                  scrollTop: viewport.scrollTop,
+                };
+                viewport.setPointerCapture(e.pointerId);
+                viewport.style.cursor = "grabbing";
+                e.preventDefault();
+              }}
+              onPointerMove={(e) => {
+                if (!panStartRef.current) return;
+                const viewport = canvasViewportRef.current;
+                if (!viewport) return;
+                viewport.scrollLeft =
+                  panStartRef.current.scrollLeft -
+                  (e.clientX - panStartRef.current.x);
+                viewport.scrollTop =
+                  panStartRef.current.scrollTop -
+                  (e.clientY - panStartRef.current.y);
+              }}
+              onPointerUp={() => {
+                panStartRef.current = null;
+                const viewport = canvasViewportRef.current;
+                if (viewport)
+                  viewport.style.cursor =
+                    activeTool === "hand" || isSpacePanning ? "grab" : "";
+              }}
+              onClick={() => {
+                if (!isPreviewingTemplate && activeTool === "select") {
+                  setSelectedItemId(null);
+                  setEditingTextId(null);
+                  setSelectedItemIds(new Set());
+                  setIsBackgroundSelected(false);
+                }
+              }}
             >
-              {isPreviewingTemplate && (
-                <div
-                  className={`pointer-events-none absolute border border-white/80 bg-white/40 backdrop-blur-[3px] ${
-                    isCompactPreviewViewport
-                      ? "rounded-[20px] shadow-[0_18px_48px_rgba(15,61,58,0.12)]"
-                      : "rounded-[36px] shadow-[0_28px_90px_rgba(15,61,58,0.12)]"
-                  }`}
-                  style={{ width: previewStageWidth, height: previewStageHeight }}
-                />
-              )}
               <div
                 style={
-                  isPreviewingTemplate || editorCanvasScale !== 1 || editorZoom !== 1
+                  isPreviewingTemplate ||
+                  editorCanvasScale !== 1 ||
+                  editorZoom !== 1
                     ? {
-                        width: displayCanvasWidth * effectiveCanvasScale,
-                        height: displayCanvasHeight * effectiveCanvasScale,
-                        position: "relative",
+                        width: isPreviewingTemplate
+                          ? previewStageWidth
+                          : isEditorFitMode
+                            ? "100%"
+                            : displayCanvasWidth * effectiveCanvasScale,
+                        height: isPreviewingTemplate
+                          ? previewStageHeight
+                          : displayCanvasHeight * effectiveCanvasScale,
+                        display: "flex",
+                        alignItems: isPreviewingTemplate
+                          ? isCompactPreviewViewport
+                            ? "center"
+                            : "flex-start"
+                          : isEditorFitMode
+                            ? "center"
+                            : "flex-start",
+                        justifyContent: isPreviewingTemplate
+                          ? isCompactPreviewViewport
+                            ? "center"
+                            : "flex-start"
+                          : isEditorFitMode
+                            ? "center"
+                            : "flex-start",
+                        maxWidth: "100%",
                       }
                     : undefined
                 }
               >
-              <div ref={canvasRef}
-                className={`relative shrink-0 overflow-hidden ${isPreviewingTemplate ? "border border-white/80 shadow-[0_30px_80px_rgba(15,61,58,0.22)]" : "shadow-xl"}`}
-                style={{
-                  width: displayCanvasWidth, height: displayCanvasHeight,
-                  background: displayBackground,
-                  cursor: !isPreviewingTemplate && (activeTool === "text" || activeTool === "shape") ? "crosshair" : !isPreviewingTemplate && (activeTool === "hand" || isSpacePanning) ? "grab" : "default",
-                  ...((isPreviewingTemplate || editorCanvasScale !== 1 || editorZoom !== 1) ? {
-                    transform: `scale(${effectiveCanvasScale})`,
-                    transformOrigin: "top left",
-                    ...(isPreviewingTemplate ? { borderRadius: 24 } : {}),
-                  } : {}),
-                }}
-                onDragOver={isPreviewingTemplate ? undefined : handleCanvasDragOver}
-                onDrop={isPreviewingTemplate ? undefined : handleCanvasDrop}
-                onPointerMove={isPreviewingTemplate ? undefined : handleCanvasPointerMove}
-                onPointerUp={isPreviewingTemplate ? undefined : handleCanvasPointerUp}
-                onPointerLeave={isPreviewingTemplate ? undefined : handleCanvasPointerUp}
-                onClick={isPreviewingTemplate ? undefined : handleCanvasClick}
-              >
-              {displayBackgroundImageUrl && (
-                <img
-                  src={displayBackgroundImageUrl}
-                  alt=""
-                  className="pointer-events-none absolute inset-0 h-full w-full"
-                  style={{ zIndex: 0, objectFit: "cover" }}
-                  draggable={false}
-                />
-              )}
-              {!isPreviewingTemplate && gridSnap > 0 && (
-                <div
-                  className="pointer-events-none absolute inset-0"
-                  style={{ ...gridOverlayStyle, zIndex: 1 }}
-                />
-              )}
-              {displayItems.length === 0 && activeTool === "select" && (
-                <div className="pointer-events-none absolute inset-0 flex flex-col items-center justify-center gap-2 text-center">
-                  <p className="text-sm font-medium text-neutral-400">Canvas vacío</p>
-                  <p className="text-xs text-neutral-300">Arrastra productos o usa Texto / Forma / Imagen</p>
-                </div>
-              )}
-
-              {displayItems.map((item, itemIndex) => {
-                const isSelected    = selectedItemId === item.id || (selectedItemIds.size > 1 && selectedItemIds.has(item.id));
-                const isLocked      = lockedItemIds.has(item.id);
-                const tc            = item.content as ContentText;
-                const sc            = item.content as ContentShape;
-                const ic            = item.content as ContentImage;
-                const pc            = item.content as ContentProduct;
-                const motionStyle    = getMotionStyle(item);
-                const entranceStyle = isPreviewingTemplate
-                  ? getEntranceStyle(item, (item.z_index ?? 0) * 100)
-                  : {};
-                const isEditingText = editingTextId === item.id;
-
-                return (
+                {isPreviewingTemplate && (
                   <div
-                    key={`${item.id ?? "preview"}-${item.element_type}-${item.z_index}-${item.pos_x}-${item.pos_y}-${itemIndex}`}
-                    data-canvas-item="true"
+                    className={`pointer-events-none absolute border border-white/80 bg-white/40 backdrop-blur-[3px] ${
+                      isCompactPreviewViewport
+                        ? "rounded-[20px] shadow-[0_18px_48px_rgba(15,61,58,0.12)]"
+                        : "rounded-[36px] shadow-[0_28px_90px_rgba(15,61,58,0.12)]"
+                    }`}
                     style={{
-                      position: "absolute",
-                      left: item.pos_x, top: item.pos_y,
-                      width: item.width, height: item.height,
-                      zIndex: (item.z_index ?? 0) + 1,
-                      transform: getItemTransform(item),
-                      transformOrigin: "center center",
-                      cursor: !isPreviewingTemplate && activeTool === "select" ? (isLocked ? "default" : isEditingText ? "text" : "grab") : "default",
-                      touchAction: "none",
+                      width: previewStageWidth,
+                      height: previewStageHeight,
                     }}
-                    className={`group rounded-lg ${!isPreviewingTemplate && isSelected ? "ring-2 ring-[#0F3D3A] ring-offset-1 shadow-lg" : !isPreviewingTemplate ? "hover:shadow-md" : ""}`}
-                    onPointerDown={isPreviewingTemplate ? undefined : (e) => handleItemPointerDown(e, item.id)}
-                    onClick={isPreviewingTemplate ? undefined : (e) => {
-                      e.stopPropagation();
-                      if (activeTool !== "select") return;
-                      if (e.shiftKey) {
-                        setSelectedItemIds((prev) => {
-                          const next = new Set(prev);
-                          if (next.has(item.id)) next.delete(item.id); else next.add(item.id);
-                          return next;
-                        });
-                        setSelectedItemId(item.id);
-                        return;
-                      }
-                      if (isMobileViewport && item.element_type === "text" && selectedItemId === item.id) {
-                        openTextEditor(item.id);
-                        return;
-                      }
-                      setSelectedItemId(item.id);
-                      setSelectedItemIds(new Set([item.id]));
-                      setIsBackgroundSelected(false);
+                  />
+                )}
+                <div
+                  style={
+                    isPreviewingTemplate ||
+                    editorCanvasScale !== 1 ||
+                    editorZoom !== 1
+                      ? {
+                          width: displayCanvasWidth * effectiveCanvasScale,
+                          height: displayCanvasHeight * effectiveCanvasScale,
+                          position: "relative",
+                        }
+                      : undefined
+                  }
+                >
+                  <div
+                    ref={canvasRef}
+                    className={`relative shrink-0 overflow-hidden ${isPreviewingTemplate ? "border border-white/80 shadow-[0_30px_80px_rgba(15,61,58,0.22)]" : "shadow-xl"}`}
+                    style={{
+                      width: displayCanvasWidth,
+                      height: displayCanvasHeight,
+                      background: displayBackground,
+                      cursor:
+                        !isPreviewingTemplate &&
+                        (activeTool === "text" || activeTool === "shape")
+                          ? "crosshair"
+                          : !isPreviewingTemplate &&
+                              (activeTool === "hand" || isSpacePanning)
+                            ? "grab"
+                            : "default",
+                      ...(isPreviewingTemplate ||
+                      editorCanvasScale !== 1 ||
+                      editorZoom !== 1
+                        ? {
+                            transform: `scale(${effectiveCanvasScale})`,
+                            transformOrigin: "top left",
+                            ...(isPreviewingTemplate
+                              ? { borderRadius: 24 }
+                              : {}),
+                          }
+                        : {}),
                     }}
-                    onDoubleClick={isPreviewingTemplate ? undefined : (e) => {
-                      e.stopPropagation();
-                      if (item.element_type === "text" && activeTool === "select") {
-                        openTextEditor(item.id);
-                      }
-                    }}
+                    onDragOver={
+                      isPreviewingTemplate ? undefined : handleCanvasDragOver
+                    }
+                    onDrop={isPreviewingTemplate ? undefined : handleCanvasDrop}
+                    onPointerMove={
+                      isPreviewingTemplate ? undefined : handleCanvasPointerMove
+                    }
+                    onPointerUp={
+                      isPreviewingTemplate ? undefined : handleCanvasPointerUp
+                    }
+                    onPointerLeave={
+                      isPreviewingTemplate ? undefined : handleCanvasPointerUp
+                    }
+                    onClick={
+                      isPreviewingTemplate ? undefined : handleCanvasClick
+                    }
                   >
-                    {/* Entrance → Motion wrapper (separate divs so their transforms don't conflict) */}
-                    <div style={{ width: "100%", height: "100%", position: "relative", ...entranceStyle }}>
-                    <div style={{ width: "100%", height: "100%", position: "relative", ...motionStyle }}>
-                      {item.element_type === "product" && (
-                        item.product_image
-                          ? <img
-                              src={item.product_image}
-                              alt={item.product_name ?? ""}
-                              draggable={false}
+                    {displayBackgroundImageUrl && (
+                      <img
+                        src={displayBackgroundImageUrl}
+                        alt=""
+                        className="pointer-events-none absolute inset-0 h-full w-full"
+                        style={{ zIndex: 0, objectFit: "cover" }}
+                        draggable={false}
+                      />
+                    )}
+                    {!isPreviewingTemplate && gridSnap > 0 && (
+                      <div
+                        className="pointer-events-none absolute inset-0"
+                        style={{ ...gridOverlayStyle, zIndex: 1 }}
+                      />
+                    )}
+                    {displayItems.length === 0 && activeTool === "select" && (
+                      <div className="pointer-events-none absolute inset-0 flex flex-col items-center justify-center gap-2 text-center">
+                        <p className="text-sm font-medium text-neutral-400">
+                          Canvas vacío
+                        </p>
+                        <p className="text-xs text-neutral-300">
+                          Arrastra productos o usa Texto / Forma / Imagen
+                        </p>
+                      </div>
+                    )}
+
+                    {displayItems.map((item, itemIndex) => {
+                      const isSelected =
+                        selectedItemId === item.id ||
+                        (selectedItemIds.size > 1 &&
+                          selectedItemIds.has(item.id));
+                      const isLocked = lockedItemIds.has(item.id);
+                      const tc = item.content as ContentText;
+                      const sc = item.content as ContentShape;
+                      const ic = item.content as ContentImage;
+                      const pc = item.content as ContentProduct;
+                      const motionStyle = getMotionStyle(item);
+                      const entranceStyle = isPreviewingTemplate
+                        ? getEntranceStyle(item, (item.z_index ?? 0) * 100)
+                        : {};
+                      const isEditingText = editingTextId === item.id;
+
+                      return (
+                        <div
+                          key={`${item.id ?? "preview"}-${item.element_type}-${item.z_index}-${item.pos_x}-${item.pos_y}-${itemIndex}`}
+                          data-canvas-item="true"
+                          style={{
+                            position: "absolute",
+                            left: item.pos_x,
+                            top: item.pos_y,
+                            width: item.width,
+                            height: item.height,
+                            zIndex: (item.z_index ?? 0) + 1,
+                            transform: getItemTransform(item),
+                            transformOrigin: "center center",
+                            cursor:
+                              !isPreviewingTemplate && activeTool === "select"
+                                ? isLocked
+                                  ? "default"
+                                  : isEditingText
+                                    ? "text"
+                                    : "grab"
+                                : "default",
+                            touchAction: "none",
+                          }}
+                          className={`group rounded-lg ${!isPreviewingTemplate && isSelected ? "shadow-lg ring-2 ring-[#0F3D3A] ring-offset-1" : !isPreviewingTemplate ? "hover:shadow-md" : ""}`}
+                          onPointerDown={
+                            isPreviewingTemplate
+                              ? undefined
+                              : (e) => handleItemPointerDown(e, item.id)
+                          }
+                          onClick={
+                            isPreviewingTemplate
+                              ? undefined
+                              : (e) => {
+                                  e.stopPropagation();
+                                  if (activeTool !== "select") return;
+                                  if (e.shiftKey) {
+                                    setSelectedItemIds((prev) => {
+                                      const next = new Set(prev);
+                                      if (next.has(item.id))
+                                        next.delete(item.id);
+                                      else next.add(item.id);
+                                      return next;
+                                    });
+                                    setSelectedItemId(item.id);
+                                    return;
+                                  }
+                                  if (
+                                    isMobileViewport &&
+                                    item.element_type === "text" &&
+                                    selectedItemId === item.id
+                                  ) {
+                                    openTextEditor(item.id);
+                                    return;
+                                  }
+                                  setSelectedItemId(item.id);
+                                  setSelectedItemIds(new Set([item.id]));
+                                  setIsBackgroundSelected(false);
+                                }
+                          }
+                          onDoubleClick={
+                            isPreviewingTemplate
+                              ? undefined
+                              : (e) => {
+                                  e.stopPropagation();
+                                  if (
+                                    item.element_type === "text" &&
+                                    activeTool === "select"
+                                  ) {
+                                    openTextEditor(item.id);
+                                  }
+                                }
+                          }
+                        >
+                          {/* Entrance → Motion wrapper (separate divs so their transforms don't conflict) */}
+                          <div
+                            style={{
+                              width: "100%",
+                              height: "100%",
+                              position: "relative",
+                              ...entranceStyle,
+                            }}
+                          >
+                            <div
                               style={{
                                 width: "100%",
                                 height: "100%",
-                                objectFit: pc?.objectFit ?? "cover",
-                                borderRadius: pc?.borderRadius ?? 8,
-                                opacity: pc?.opacity ?? 1,
-                                boxShadow: buildBoxShadow(pc),
-                                filter: buildCssFilter(pc),
-                                display: "block",
+                                position: "relative",
+                                ...motionStyle,
                               }}
-                            />
-                          : <div className="flex h-full w-full items-center justify-center rounded-lg bg-neutral-200"><span className="text-xs text-neutral-400">Sin imagen</span></div>
-                      )}
-
-                      {item.element_type === "text" && (() => {
-                        const hasBg = tc?.bgColor && tc.bgColor !== "";
-                        return (
-                          <>
-                            <div style={{
-                              width: "100%", height: "100%",
-                              display: "flex", alignItems: "center",
-                              padding: `${tc?.paddingY ?? 8}px ${tc?.paddingX ?? 10}px`,
-                              color: tc?.color || "#1a1a1a",
-                              fontSize: tc?.fontSize || 24,
-                              fontFamily: tc?.fontFamily || "inherit",
-                              fontWeight: tc?.fontWeight || "bold",
-                              fontStyle: tc?.fontStyle || "normal",
-                              letterSpacing: `${tc?.letterSpacing ?? 0}px`,
-                              textAlign: tc?.textAlign || "center",
-                              justifyContent: tc?.textAlign === "right" ? "flex-end" : tc?.textAlign === "center" ? "center" : "flex-start",
-                              textShadow: tc?.shadow ? `${tc.shadowX ?? 2}px ${tc.shadowY ?? 2}px ${tc.shadowBlur ?? 4}px ${tc.shadowColor ?? "#000000"}` : undefined,
-                              WebkitTextStroke: tc?.outline ? `${tc.outlineWidth ?? 1}px ${tc.outlineColor ?? "#000000"}` : undefined,
-                              whiteSpace: "pre-wrap", wordBreak: "break-word",
-                              userSelect: "none", overflow: "hidden", lineHeight: tc?.lineHeight ?? 1.2,
-                              background: hasBg ? hexToRgba(tc.bgColor!, tc.bgOpacity ?? 0.6) : undefined,
-                              borderRadius: hasBg ? 8 : undefined,
-                              opacity: isEditingText ? 0.3 : 1,
-                            }}>
-                              {tc?.text || "Texto"}
-                            </div>
-                            {/* Inline text editor overlay */}
-                            {!isMobileViewport && isEditingText && (
-                              <textarea
-                                autoFocus
-                                value={tc?.text ?? ""}
-                                onChange={(e) => updateItemContent(item.id, { ...tc, text: e.target.value })}
-                                onBlur={() => setEditingTextId(null)}
-                                onKeyDown={(e) => {
-                                  if (e.key === "Escape") { e.stopPropagation(); setEditingTextId(null); }
-                                }}
-                                onPointerDown={(e) => e.stopPropagation()}
-                                onClick={(e) => e.stopPropagation()}
-                                style={{
-                                  position: "absolute", inset: 0, zIndex: 20,
-                                  width: "100%", height: "100%",
-                                  resize: "none", padding: `${tc?.paddingY ?? 8}px ${tc?.paddingX ?? 10}px`,
-                                  color: tc?.color || "#1a1a1a",
-                                  fontSize: tc?.fontSize || 24,
-                                  fontFamily: tc?.fontFamily || "inherit",
-                                  fontWeight: tc?.fontWeight || "bold",
-                                  fontStyle: tc?.fontStyle || "normal",
-                                  letterSpacing: `${tc?.letterSpacing ?? 0}px`,
-                                  textAlign: tc?.textAlign || "center",
-                                  background: hasBg ? hexToRgba(tc.bgColor!, tc.bgOpacity ?? 0.6) : "rgba(255,255,255,0.9)",
-                                  border: "2px dashed #0F3D3A",
-                                  borderRadius: 4, outline: "none",
-                                  lineHeight: tc?.lineHeight ?? 1.2, boxSizing: "border-box",
-                                }}
-                              />
-                            )}
-                          </>
-                        );
-                      })()}
-
-                      {item.element_type === "shape" && (
-                        <div style={{
-                          width: "100%", height: "100%",
-                          background: getShapeBackground(sc),
-                          borderRadius: getShapeBorderRadius(sc),
-                          clipPath: getShapeClipPath(sc?.shapeType),
-                          opacity: sc?.opacity ?? 1,
-                          boxShadow: buildBoxShadow(sc),
-                          border: (sc?.strokeWidth ?? 0) > 0 && isBorderFriendlyShape(sc?.shapeType ?? "rectangle")
-                            ? `${sc.strokeWidth}px solid ${sc.strokeColor ?? "#000000"}`
-                            : undefined,
-                          boxSizing: "border-box",
-                        }} />
-                      )}
-
-                      {item.element_type === "image" && (
-                        ic?.url
-                          ? <img src={ic.url} alt="" draggable={false}
-                              style={{
-                                width: "100%", height: "100%",
-                                objectFit: ic.objectFit ?? "cover",
-                                borderRadius: ic.borderRadius ?? 8,
-                                opacity: ic.opacity ?? 1,
-                                boxShadow: buildBoxShadow(ic),
-                                filter: buildCssFilter(ic),
-                                display: "block",
-                              }} />
-                          : <div className="flex h-full w-full items-center justify-center rounded-lg bg-neutral-200">
-                              <ImageIcon className="h-8 w-8 text-neutral-400" />
-                            </div>
-                      )}
-
-                      {item.element_type === "product" && (
-                        <div
-                          className="pointer-events-none absolute inset-x-0 bottom-0 bg-gradient-to-t from-black/60 to-transparent p-2 opacity-0 transition-opacity group-hover:opacity-100"
-                          style={{
-                            borderBottomLeftRadius: pc?.borderRadius ?? 8,
-                            borderBottomRightRadius: pc?.borderRadius ?? 8,
-                          }}
-                        >
-                          <p className="truncate text-[11px] font-medium text-white">{item.product_name}</p>
-                          <p className="text-[10px] text-white/80">Q{Number(item.product_price ?? 0).toFixed(2)}</p>
-                        </div>
-                      )}
-                    </div>
-
-                    {!isPreviewingTemplate && isSelected && activeTool === "select" && !isEditingText && (
-                      <>
-                        {/* Lock badge */}
-                        {isLocked && (
-                          <div className="pointer-events-none absolute -left-2 -top-2 z-10 flex h-5 w-5 items-center justify-center rounded-full bg-amber-400 text-white shadow">
-                            <Lock className="h-3 w-3" />
-                          </div>
-                        )}
-                        {!isLocked && (<>
-                          <button onPointerDown={(e) => e.stopPropagation()}
-                            onClick={(e) => { e.stopPropagation(); handleRemoveItem(item.id); }}
-                            className="absolute -right-2 -top-2 z-10 flex h-5 w-5 items-center justify-center rounded-full bg-red-500 text-white shadow hover:bg-red-600">
-                            <X className="h-3 w-3" />
-                          </button>
-                          <button onPointerDown={(e) => e.stopPropagation()}
-                            onClick={(e) => { e.stopPropagation(); handleDuplicate(item.id); }}
-                            title="Duplicar (Ctrl+D)"
-                            className="absolute -left-2 -top-2 z-10 flex h-5 w-5 items-center justify-center rounded-full bg-blue-500 text-white shadow hover:bg-blue-600">
-                            <Copy className="h-3 w-3" />
-                          </button>
-                          {(["nw","ne","sw","se"] as const).map((corner) => (
-                            <div key={corner} onPointerDown={(e) => handleResizePointerDown(e, item.id, corner)}
-                              style={{
-                                position: "absolute", width: 10, height: 10,
-                                background: "white", border: "2px solid #0F3D3A", borderRadius: 2, zIndex: 10,
-                                ...(corner === "nw" && { left: -5, top: -5, cursor: "nw-resize" }),
-                                ...(corner === "ne" && { right: -5, top: -5, cursor: "ne-resize" }),
-                                ...(corner === "sw" && { left: -5, bottom: -5, cursor: "sw-resize" }),
-                                ...(corner === "se" && { right: -5, bottom: -5, cursor: "se-resize" }),
-                              }}
-                            />
-                          ))}
-                          {/* Double-click hint for text */}
-                          {item.element_type === "text" && (
-                            <div className="pointer-events-none absolute inset-x-0 -bottom-5 flex justify-center">
-                              <span className="rounded bg-black/60 px-1.5 py-0.5 text-[9px] text-white">doble clic para editar</span>
-                            </div>
-                          )}
-                          {item.element_type === "product" && (
-                            <button
-                              onPointerDown={(e) => e.stopPropagation()}
-                              onClick={(e) => {
-                                e.stopPropagation();
-                                setProductSwapOpen((o) => !o);
-                                setMobilePanel("properties");
-                              }}
-                              className="absolute -bottom-5 inset-x-0 flex justify-center"
                             >
-                              <span className="rounded bg-[#0F3D3A]/80 px-1.5 py-0.5 text-[9px] text-white flex items-center gap-0.5">
-                                <RefreshCw className="h-2.5 w-2.5" /> cambiar producto
-                              </span>
-                            </button>
-                          )}
-                        </>)}
-                      </>
-                    )}
-                    </div>{/* /entrance wrapper */}
+                              {item.element_type === "product" &&
+                                (item.product_image ? (
+                                  <img
+                                    src={item.product_image}
+                                    alt={item.product_name ?? ""}
+                                    draggable={false}
+                                    style={{
+                                      width: "100%",
+                                      height: "100%",
+                                      objectFit: pc?.objectFit ?? "cover",
+                                      borderRadius: pc?.borderRadius ?? 8,
+                                      opacity: pc?.opacity ?? 1,
+                                      boxShadow: buildBoxShadow(pc),
+                                      filter: buildCssFilter(pc),
+                                      display: "block",
+                                    }}
+                                  />
+                                ) : (
+                                  <div className="flex h-full w-full items-center justify-center rounded-lg bg-neutral-200">
+                                    <span className="text-xs text-neutral-400">
+                                      Sin imagen
+                                    </span>
+                                  </div>
+                                ))}
+
+                              {item.element_type === "text" &&
+                                (() => {
+                                  const hasBg =
+                                    tc?.bgColor && tc.bgColor !== "";
+                                  return (
+                                    <>
+                                      <div
+                                        style={{
+                                          width: "100%",
+                                          height: "100%",
+                                          display: "flex",
+                                          alignItems: "center",
+                                          padding: `${tc?.paddingY ?? 8}px ${tc?.paddingX ?? 10}px`,
+                                          color: tc?.color || "#1a1a1a",
+                                          fontSize: tc?.fontSize || 24,
+                                          fontFamily:
+                                            tc?.fontFamily || "inherit",
+                                          fontWeight: tc?.fontWeight || "bold",
+                                          fontStyle: tc?.fontStyle || "normal",
+                                          letterSpacing: `${tc?.letterSpacing ?? 0}px`,
+                                          textAlign: tc?.textAlign || "center",
+                                          justifyContent:
+                                            tc?.textAlign === "right"
+                                              ? "flex-end"
+                                              : tc?.textAlign === "center"
+                                                ? "center"
+                                                : "flex-start",
+                                          textShadow: tc?.shadow
+                                            ? `${tc.shadowX ?? 2}px ${tc.shadowY ?? 2}px ${tc.shadowBlur ?? 4}px ${tc.shadowColor ?? "#000000"}`
+                                            : undefined,
+                                          WebkitTextStroke: tc?.outline
+                                            ? `${tc.outlineWidth ?? 1}px ${tc.outlineColor ?? "#000000"}`
+                                            : undefined,
+                                          whiteSpace: "pre-wrap",
+                                          wordBreak: "break-word",
+                                          userSelect: "none",
+                                          overflow: "hidden",
+                                          lineHeight: tc?.lineHeight ?? 1.2,
+                                          background: hasBg
+                                            ? hexToRgba(
+                                                tc.bgColor!,
+                                                tc.bgOpacity ?? 0.6,
+                                              )
+                                            : undefined,
+                                          borderRadius: hasBg ? 8 : undefined,
+                                          opacity: isEditingText ? 0.3 : 1,
+                                        }}
+                                      >
+                                        {tc?.text || "Texto"}
+                                      </div>
+                                      {/* Inline text editor overlay */}
+                                      {!isMobileViewport && isEditingText && (
+                                        <textarea
+                                          autoFocus
+                                          value={tc?.text ?? ""}
+                                          onChange={(e) =>
+                                            updateItemContent(item.id, {
+                                              ...tc,
+                                              text: e.target.value,
+                                            })
+                                          }
+                                          onBlur={() => setEditingTextId(null)}
+                                          onKeyDown={(e) => {
+                                            if (e.key === "Escape") {
+                                              e.stopPropagation();
+                                              setEditingTextId(null);
+                                            }
+                                          }}
+                                          onPointerDown={(e) =>
+                                            e.stopPropagation()
+                                          }
+                                          onClick={(e) => e.stopPropagation()}
+                                          style={{
+                                            position: "absolute",
+                                            inset: 0,
+                                            zIndex: 20,
+                                            width: "100%",
+                                            height: "100%",
+                                            resize: "none",
+                                            padding: `${tc?.paddingY ?? 8}px ${tc?.paddingX ?? 10}px`,
+                                            color: tc?.color || "#1a1a1a",
+                                            fontSize: tc?.fontSize || 24,
+                                            fontFamily:
+                                              tc?.fontFamily || "inherit",
+                                            fontWeight:
+                                              tc?.fontWeight || "bold",
+                                            fontStyle:
+                                              tc?.fontStyle || "normal",
+                                            letterSpacing: `${tc?.letterSpacing ?? 0}px`,
+                                            textAlign:
+                                              tc?.textAlign || "center",
+                                            background: hasBg
+                                              ? hexToRgba(
+                                                  tc.bgColor!,
+                                                  tc.bgOpacity ?? 0.6,
+                                                )
+                                              : "rgba(255,255,255,0.9)",
+                                            border: "2px dashed #0F3D3A",
+                                            borderRadius: 4,
+                                            outline: "none",
+                                            lineHeight: tc?.lineHeight ?? 1.2,
+                                            boxSizing: "border-box",
+                                          }}
+                                        />
+                                      )}
+                                    </>
+                                  );
+                                })()}
+
+                              {item.element_type === "shape" && (
+                                <div
+                                  style={{
+                                    width: "100%",
+                                    height: "100%",
+                                    background: getShapeBackground(sc),
+                                    borderRadius: getShapeBorderRadius(sc),
+                                    clipPath: getShapeClipPath(sc?.shapeType),
+                                    opacity: sc?.opacity ?? 1,
+                                    boxShadow: buildBoxShadow(sc),
+                                    border:
+                                      (sc?.strokeWidth ?? 0) > 0 &&
+                                      isBorderFriendlyShape(
+                                        sc?.shapeType ?? "rectangle",
+                                      )
+                                        ? `${sc.strokeWidth}px solid ${sc.strokeColor ?? "#000000"}`
+                                        : undefined,
+                                    boxSizing: "border-box",
+                                  }}
+                                />
+                              )}
+
+                              {item.element_type === "image" &&
+                                (ic?.url ? (
+                                  <img
+                                    src={ic.url}
+                                    alt=""
+                                    draggable={false}
+                                    style={{
+                                      width: "100%",
+                                      height: "100%",
+                                      objectFit: ic.objectFit ?? "cover",
+                                      borderRadius: ic.borderRadius ?? 8,
+                                      opacity: ic.opacity ?? 1,
+                                      boxShadow: buildBoxShadow(ic),
+                                      filter: buildCssFilter(ic),
+                                      display: "block",
+                                    }}
+                                  />
+                                ) : (
+                                  <div className="flex h-full w-full items-center justify-center rounded-lg bg-neutral-200">
+                                    <ImageIcon className="h-8 w-8 text-neutral-400" />
+                                  </div>
+                                ))}
+
+                              {item.element_type === "product" && (
+                                <div
+                                  className="pointer-events-none absolute inset-x-0 bottom-0 bg-gradient-to-t from-black/60 to-transparent p-2 opacity-0 transition-opacity group-hover:opacity-100"
+                                  style={{
+                                    borderBottomLeftRadius:
+                                      pc?.borderRadius ?? 8,
+                                    borderBottomRightRadius:
+                                      pc?.borderRadius ?? 8,
+                                  }}
+                                >
+                                  <p className="truncate text-[11px] font-medium text-white">
+                                    {item.product_name}
+                                  </p>
+                                  <p className="text-[10px] text-white/80">
+                                    Q
+                                    {Number(item.product_price ?? 0).toFixed(2)}
+                                  </p>
+                                </div>
+                              )}
+                            </div>
+
+                            {!isPreviewingTemplate &&
+                              isSelected &&
+                              activeTool === "select" &&
+                              !isEditingText && (
+                                <>
+                                  {/* Lock badge */}
+                                  {isLocked && (
+                                    <div className="pointer-events-none absolute -top-2 -left-2 z-10 flex h-5 w-5 items-center justify-center rounded-full bg-amber-400 text-white shadow">
+                                      <Lock className="h-3 w-3" />
+                                    </div>
+                                  )}
+                                  {!isLocked && (
+                                    <>
+                                      <button
+                                        onPointerDown={(e) =>
+                                          e.stopPropagation()
+                                        }
+                                        onClick={(e) => {
+                                          e.stopPropagation();
+                                          handleRemoveItem(item.id);
+                                        }}
+                                        className="absolute -top-2 -right-2 z-10 flex h-5 w-5 items-center justify-center rounded-full bg-red-500 text-white shadow hover:bg-red-600"
+                                      >
+                                        <X className="h-3 w-3" />
+                                      </button>
+                                      <button
+                                        onPointerDown={(e) =>
+                                          e.stopPropagation()
+                                        }
+                                        onClick={(e) => {
+                                          e.stopPropagation();
+                                          handleDuplicate(item.id);
+                                        }}
+                                        title="Duplicar (Ctrl+D)"
+                                        className="absolute -top-2 -left-2 z-10 flex h-5 w-5 items-center justify-center rounded-full bg-blue-500 text-white shadow hover:bg-blue-600"
+                                      >
+                                        <Copy className="h-3 w-3" />
+                                      </button>
+                                      {(["nw", "ne", "sw", "se"] as const).map(
+                                        (corner) => (
+                                          <div
+                                            key={corner}
+                                            onPointerDown={(e) =>
+                                              handleResizePointerDown(
+                                                e,
+                                                item.id,
+                                                corner,
+                                              )
+                                            }
+                                            style={{
+                                              position: "absolute",
+                                              width: 10,
+                                              height: 10,
+                                              background: "white",
+                                              border: "2px solid #0F3D3A",
+                                              borderRadius: 2,
+                                              zIndex: 10,
+                                              ...(corner === "nw" && {
+                                                left: -5,
+                                                top: -5,
+                                                cursor: "nw-resize",
+                                              }),
+                                              ...(corner === "ne" && {
+                                                right: -5,
+                                                top: -5,
+                                                cursor: "ne-resize",
+                                              }),
+                                              ...(corner === "sw" && {
+                                                left: -5,
+                                                bottom: -5,
+                                                cursor: "sw-resize",
+                                              }),
+                                              ...(corner === "se" && {
+                                                right: -5,
+                                                bottom: -5,
+                                                cursor: "se-resize",
+                                              }),
+                                            }}
+                                          />
+                                        ),
+                                      )}
+                                      {/* Double-click hint for text */}
+                                      {item.element_type === "text" && (
+                                        <div className="pointer-events-none absolute inset-x-0 -bottom-5 flex justify-center">
+                                          <span className="rounded bg-black/60 px-1.5 py-0.5 text-[9px] text-white">
+                                            doble clic para editar
+                                          </span>
+                                        </div>
+                                      )}
+                                      {item.element_type === "product" && (
+                                        <button
+                                          onPointerDown={(e) =>
+                                            e.stopPropagation()
+                                          }
+                                          onClick={(e) => {
+                                            e.stopPropagation();
+                                            setProductSwapOpen((o) => !o);
+                                            setMobilePanel("properties");
+                                          }}
+                                          className="absolute inset-x-0 -bottom-5 flex justify-center"
+                                        >
+                                          <span className="flex items-center gap-0.5 rounded bg-[#0F3D3A]/80 px-1.5 py-0.5 text-[9px] text-white">
+                                            <RefreshCw className="h-2.5 w-2.5" />{" "}
+                                            cambiar producto
+                                          </span>
+                                        </button>
+                                      )}
+                                    </>
+                                  )}
+                                </>
+                              )}
+                          </div>
+                          {/* /entrance wrapper */}
+                        </div>
+                      );
+                    })}
                   </div>
-                );
-              })}
-              </div>
+                </div>
               </div>
             </div>
-          </div>
           )}
         </div>
 
         {/* ── Right properties panel ── */}
-        <aside ref={rightPanelRef} className={`${mobilePanel === "properties" ? "fixed inset-x-3 bottom-20 top-40 z-40 flex" : "hidden"} order-3 h-auto w-full shrink-0 flex-col overflow-hidden rounded-2xl border border-neutral-200 bg-white shadow-[0_24px_60px_rgba(15,61,58,0.18)] md:static md:inset-auto md:order-none md:flex md:max-h-none md:w-60 md:rounded-xl md:shadow-none md:z-auto`}>
+        <aside
+          ref={rightPanelRef}
+          className={`${mobilePanel === "properties" ? "fixed inset-x-3 top-40 bottom-20 z-40 flex" : "hidden"} order-3 h-auto w-full shrink-0 flex-col overflow-hidden rounded-2xl border border-neutral-200 bg-white shadow-[0_24px_60px_rgba(15,61,58,0.18)] md:static md:inset-auto md:z-auto md:order-none md:flex md:max-h-none md:w-60 md:rounded-xl md:shadow-none`}
+        >
           <div className="border-b border-neutral-100 p-3">
             <div className="flex items-center justify-between gap-2">
-              <p className="text-[11px] font-semibold uppercase tracking-widest text-neutral-400">Propiedades</p>
+              <p className="text-[11px] font-semibold tracking-widest text-neutral-400 uppercase">
+                Propiedades
+              </p>
               <button
                 onClick={() => setMobilePanel(null)}
                 className="rounded-lg border border-neutral-200 p-1.5 text-neutral-400 transition hover:bg-neutral-50 md:hidden"
@@ -4554,24 +6591,41 @@ export default function CollectionEditorPage() {
           {isPreviewingTemplate ? (
             <div className="flex flex-1 flex-col overflow-y-auto">
               <div className="p-4">
-                <p className="text-sm font-semibold text-neutral-800">Preview activa</p>
+                <p className="text-sm font-semibold text-neutral-800">
+                  Preview activa
+                </p>
                 <p className="mt-2 text-xs leading-relaxed text-neutral-500">
-                  Estás viendo la plantilla sobre el canvas sin reemplazar tu diseño actual. Puedes inspeccionar composición, colores y proporciones antes de aplicarla.
+                  Estás viendo la plantilla sobre el canvas sin reemplazar tu
+                  diseño actual. Puedes inspeccionar composición, colores y
+                  proporciones antes de aplicarla.
                 </p>
                 {previewTemplate && (
                   <div className="mt-4 space-y-3 rounded-xl border border-neutral-200 bg-neutral-50 p-3">
-                    <p className="text-xs font-semibold text-neutral-700">{previewTemplate.name}</p>
+                    <p className="text-xs font-semibold text-neutral-700">
+                      {previewTemplate.name}
+                    </p>
                     <p className="mt-1 text-[11px] text-neutral-500">
-                      {previewTemplate.item_count} elementos · {previewTemplate.canvas_width} × {previewTemplate.canvas_height}
+                      {previewTemplate.item_count} elementos ·{" "}
+                      {previewTemplate.canvas_width} ×{" "}
+                      {previewTemplate.canvas_height}
                     </p>
                     <div className="grid grid-cols-2 gap-2 text-[11px] text-neutral-500">
                       <div className="rounded-lg border border-neutral-200 bg-white px-2.5 py-2">
-                        <p className="font-semibold text-neutral-700">Formato</p>
-                        <p className="mt-1">{getCanvasFormatLabel(previewTemplate.canvas_width, previewTemplate.canvas_height)}</p>
+                        <p className="font-semibold text-neutral-700">
+                          Formato
+                        </p>
+                        <p className="mt-1">
+                          {getCanvasFormatLabel(
+                            previewTemplate.canvas_width,
+                            previewTemplate.canvas_height,
+                          )}
+                        </p>
                       </div>
                       <div className="rounded-lg border border-neutral-200 bg-white px-2.5 py-2">
                         <p className="font-semibold text-neutral-700">Zoom</p>
-                        <p className="mt-1">{Math.round(effectivePreviewScale * 100)}%</p>
+                        <p className="mt-1">
+                          {Math.round(effectivePreviewScale * 100)}%
+                        </p>
                       </div>
                     </div>
                   </div>
@@ -4579,11 +6633,21 @@ export default function CollectionEditorPage() {
               </div>
               <div className="space-y-2 border-t border-neutral-100 px-4 py-3">
                 <button
-                  onClick={() => previewTemplate && handleApplyTemplate(previewTemplate.id)}
-                  disabled={!previewTemplate || templateApplyingId === previewTemplate.id}
+                  onClick={() =>
+                    previewTemplate && handleApplyTemplate(previewTemplate.id)
+                  }
+                  disabled={
+                    !previewTemplate ||
+                    templateApplyingId === previewTemplate.id
+                  }
                   className="flex w-full items-center justify-center gap-1.5 rounded-xl bg-[#0F3D3A] py-2.5 text-sm font-medium text-white transition hover:bg-[#14544f] disabled:opacity-60"
                 >
-                  {previewTemplate && templateApplyingId === previewTemplate.id ? <Loader2 className="h-4 w-4 animate-spin" /> : <Copy className="h-4 w-4" />}
+                  {previewTemplate &&
+                  templateApplyingId === previewTemplate.id ? (
+                    <Loader2 className="h-4 w-4 animate-spin" />
+                  ) : (
+                    <Copy className="h-4 w-4" />
+                  )}
                   Aplicar esta plantilla
                 </button>
                 <button
@@ -4596,8 +6660,12 @@ export default function CollectionEditorPage() {
             </div>
           ) : !selectedItem && selectedItemIds.size >= 2 ? (
             <div className="flex flex-1 flex-col gap-3 p-4">
-              <p className="text-xs font-semibold text-neutral-700">{selectedItemIds.size} elementos seleccionados</p>
-              <p className="text-[11px] leading-relaxed text-neutral-400">Shift+clic para agregar o quitar de la selección.</p>
+              <p className="text-xs font-semibold text-neutral-700">
+                {selectedItemIds.size} elementos seleccionados
+              </p>
+              <p className="text-[11px] leading-relaxed text-neutral-400">
+                Shift+clic para agregar o quitar de la selección.
+              </p>
               <button
                 onClick={() => handleGroup()}
                 className="flex w-full items-center justify-center gap-1.5 rounded-xl bg-[#0F3D3A] py-2 text-xs font-semibold text-white transition hover:bg-[#14544f]"
@@ -4605,7 +6673,10 @@ export default function CollectionEditorPage() {
                 Agrupar selección
               </button>
               <button
-                onClick={() => { setSelectedItemIds(new Set()); setSelectedItemId(null); }}
+                onClick={() => {
+                  setSelectedItemIds(new Set());
+                  setSelectedItemId(null);
+                }}
                 className="w-full rounded-xl border border-neutral-200 py-2 text-xs text-neutral-600 transition hover:bg-neutral-50"
               >
                 Deseleccionar todo
@@ -4614,14 +6685,20 @@ export default function CollectionEditorPage() {
           ) : isBackgroundSelected ? (
             <div className="flex-1 space-y-4 overflow-y-auto p-3">
               <div>
-                <p className="mb-2 text-[11px] font-semibold uppercase tracking-widest text-neutral-400">Fondo</p>
+                <p className="mb-2 text-[11px] font-semibold tracking-widest text-neutral-400 uppercase">
+                  Fondo
+                </p>
                 <div className="space-y-3">
                   <div>
-                    <label className="mb-1 block text-[11px] font-medium text-neutral-500">Color base</label>
+                    <label className="mb-1 block text-[11px] font-medium text-neutral-500">
+                      Color base
+                    </label>
                     <input
                       type="color"
                       value={bgColor}
-                      onChange={(e) => handleBackgroundColorChange(e.target.value)}
+                      onChange={(e) =>
+                        handleBackgroundColorChange(e.target.value)
+                      }
                       className="h-9 w-full cursor-pointer rounded-lg border border-neutral-200"
                     />
                   </div>
@@ -4629,7 +6706,12 @@ export default function CollectionEditorPage() {
                     <input
                       type="checkbox"
                       checked={bgGradient.enabled}
-                      onChange={(e) => handleBackgroundGradientChange((c) => ({ ...c, enabled: e.target.checked }))}
+                      onChange={(e) =>
+                        handleBackgroundGradientChange((c) => ({
+                          ...c,
+                          enabled: e.target.checked,
+                        }))
+                      }
                       className="rounded"
                     />
                     <span className="text-xs text-neutral-600">Degradado</span>
@@ -4637,19 +6719,33 @@ export default function CollectionEditorPage() {
                   {bgGradient.enabled && (
                     <>
                       <div>
-                        <label className="mb-1 block text-[11px] font-medium text-neutral-500">Color 2</label>
+                        <label className="mb-1 block text-[11px] font-medium text-neutral-500">
+                          Color 2
+                        </label>
                         <input
                           type="color"
                           value={bgGradient.color2}
-                          onChange={(e) => handleBackgroundGradientChange((c) => ({ ...c, color2: e.target.value }))}
+                          onChange={(e) =>
+                            handleBackgroundGradientChange((c) => ({
+                              ...c,
+                              color2: e.target.value,
+                            }))
+                          }
                           className="h-9 w-full cursor-pointer rounded-lg border border-neutral-200"
                         />
                       </div>
                       <div>
-                        <label className="mb-1 block text-[11px] font-medium text-neutral-500">Tipo</label>
+                        <label className="mb-1 block text-[11px] font-medium text-neutral-500">
+                          Tipo
+                        </label>
                         <select
                           value={bgGradient.type}
-                          onChange={(e) => handleBackgroundGradientChange((c) => ({ ...c, type: e.target.value as "linear" | "radial" }))}
+                          onChange={(e) =>
+                            handleBackgroundGradientChange((c) => ({
+                              ...c,
+                              type: e.target.value as "linear" | "radial",
+                            }))
+                          }
                           className="w-full rounded-lg border border-neutral-200 px-2 py-1.5 text-xs outline-none"
                         >
                           <option value="linear">Lineal</option>
@@ -4658,13 +6754,20 @@ export default function CollectionEditorPage() {
                       </div>
                       {bgGradient.type === "linear" && (
                         <div>
-                          <label className="mb-1 block text-[11px] font-medium text-neutral-500">Ángulo: {bgGradient.angle}°</label>
+                          <label className="mb-1 block text-[11px] font-medium text-neutral-500">
+                            Ángulo: {bgGradient.angle}°
+                          </label>
                           <input
                             type="range"
                             min={0}
                             max={359}
                             value={bgGradient.angle}
-                            onChange={(e) => handleBackgroundGradientChange((c) => ({ ...c, angle: Number(e.target.value) }))}
+                            onChange={(e) =>
+                              handleBackgroundGradientChange((c) => ({
+                                ...c,
+                                angle: Number(e.target.value),
+                              }))
+                            }
                             className="w-full"
                           />
                         </div>
@@ -4673,36 +6776,56 @@ export default function CollectionEditorPage() {
                   )}
                   {/* ── Textura ── */}
                   <div>
-                    <label className="mb-1.5 block text-[11px] font-medium text-neutral-500">Textura</label>
+                    <label className="mb-1.5 block text-[11px] font-medium text-neutral-500">
+                      Textura
+                    </label>
                     <div className="grid grid-cols-3 gap-1">
                       {BG_TEXTURES.map(({ id, label }) => {
                         const isActive = bgTexture.patternId === id;
-                        const previewBg = id === "none"
-                          ? bgColor
-                          : buildTextureBackground({ patternId: id, scale: bgTexture.scale }, bgColor, baseBackground);
+                        const previewBg =
+                          id === "none"
+                            ? bgColor
+                            : buildTextureBackground(
+                                { patternId: id, scale: bgTexture.scale },
+                                bgColor,
+                                baseBackground,
+                              );
                         return (
                           <button
                             key={id}
                             title={label}
-                            onClick={() => handleBgTextureChange({ patternId: id })}
+                            onClick={() =>
+                              handleBgTextureChange({ patternId: id })
+                            }
                             className={`flex flex-col items-center gap-0.5 rounded-lg border p-1 transition ${isActive ? "border-[var(--seller-accent)] ring-1 ring-[var(--seller-accent)]" : "border-neutral-200 hover:border-neutral-300"}`}
                           >
                             <div
                               className="h-8 w-full rounded-md"
                               style={{ background: previewBg }}
                             />
-                            <span className="text-[9px] font-medium text-neutral-500 leading-none">{label.split(" ")[0]}</span>
+                            <span className="text-[9px] leading-none font-medium text-neutral-500">
+                              {label.split(" ")[0]}
+                            </span>
                           </button>
                         );
                       })}
                     </div>
                     {bgTexture.patternId !== "none" && (
                       <div className="mt-2">
-                        <label className="mb-1 block text-[10px] text-neutral-400">Escala: {bgTexture.scale}px</label>
+                        <label className="mb-1 block text-[10px] text-neutral-400">
+                          Escala: {bgTexture.scale}px
+                        </label>
                         <input
-                          type="range" min={10} max={50} step={2}
+                          type="range"
+                          min={10}
+                          max={50}
+                          step={2}
                           value={bgTexture.scale}
-                          onChange={(e) => handleBgTextureChange({ scale: Number(e.target.value) })}
+                          onChange={(e) =>
+                            handleBgTextureChange({
+                              scale: Number(e.target.value),
+                            })
+                          }
                           className="w-full"
                         />
                       </div>
@@ -4716,15 +6839,23 @@ export default function CollectionEditorPage() {
                 </div>
               </div>
               <div className="border-t border-neutral-100 pt-3">
-                <p className="mb-2 text-[11px] font-semibold uppercase tracking-widest text-neutral-400">Imagen de fondo</p>
+                <p className="mb-2 text-[11px] font-semibold tracking-widest text-neutral-400 uppercase">
+                  Imagen de fondo
+                </p>
                 <div className="space-y-2">
                   <button
                     onClick={() => bgImageInputRef.current?.click()}
                     disabled={bgImageUploading}
                     className="flex w-full items-center justify-center gap-1.5 rounded-xl border border-neutral-200 py-2 text-xs text-neutral-600 transition hover:bg-neutral-50 disabled:opacity-60"
                   >
-                    {bgImageUploading ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <ImageIcon className="h-3.5 w-3.5" />}
-                    {collection?.background_image_url ? "Cambiar imagen" : "Subir imagen"}
+                    {bgImageUploading ? (
+                      <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                    ) : (
+                      <ImageIcon className="h-3.5 w-3.5" />
+                    )}
+                    {collection?.background_image_url
+                      ? "Cambiar imagen"
+                      : "Subir imagen"}
                   </button>
                   {collection?.background_image_url && (
                     <>
@@ -4748,582 +6879,1181 @@ export default function CollectionEditorPage() {
             </div>
           ) : !selectedItem ? (
             <div className="flex flex-1 items-center justify-center p-4 text-center">
-              <p className="text-xs leading-relaxed text-neutral-300">Selecciona un elemento para editar</p>
+              <p className="text-xs leading-relaxed text-neutral-300">
+                Selecciona un elemento para editar
+              </p>
             </div>
           ) : (
             <div className="flex-1 space-y-3 overflow-y-auto p-3">
-
               {/* ── Position & size inputs ── */}
               <div>
-                <p className="mb-1.5 text-[11px] font-semibold uppercase tracking-widest text-neutral-400">Posición y tamaño</p>
+                <p className="mb-1.5 text-[11px] font-semibold tracking-widest text-neutral-400 uppercase">
+                  Posición y tamaño
+                </p>
                 <div className="grid grid-cols-2 gap-1.5">
-                  {(["pos_x", "pos_y", "width", "height"] as const).map((field) => (
-                    <div key={field}>
-                      <label className="text-[10px] text-neutral-400">{field === "pos_x" ? "X" : field === "pos_y" ? "Y" : field === "width" ? "Ancho" : "Alto"}</label>
-                      <input
-                        type="number"
-                        value={Math.round(selectedItem[field])}
-                        onChange={(e) => handlePositionChange(selectedItem.id, field, Number(e.target.value))}
-                        onFocus={() => handlePosInputFocus(selectedItem.id)}
-                        onBlur={() => handlePosInputBlur(selectedItem.id)}
-                        className="mt-0.5 w-full rounded-lg border border-neutral-200 px-2 py-1 text-xs outline-none focus:border-[#0F3D3A]"
-                      />
-                    </div>
-                  ))}
+                  {(["pos_x", "pos_y", "width", "height"] as const).map(
+                    (field) => (
+                      <div key={field}>
+                        <label className="text-[10px] text-neutral-400">
+                          {field === "pos_x"
+                            ? "X"
+                            : field === "pos_y"
+                              ? "Y"
+                              : field === "width"
+                                ? "Ancho"
+                                : "Alto"}
+                        </label>
+                        <input
+                          type="number"
+                          value={Math.round(selectedItem[field])}
+                          onChange={(e) =>
+                            handlePositionChange(
+                              selectedItem.id,
+                              field,
+                              Number(e.target.value),
+                            )
+                          }
+                          onFocus={() => handlePosInputFocus(selectedItem.id)}
+                          onBlur={() => handlePosInputBlur(selectedItem.id)}
+                          className="mt-0.5 w-full rounded-lg border border-neutral-200 px-2 py-1 text-xs outline-none focus:border-[#0F3D3A]"
+                        />
+                      </div>
+                    ),
+                  )}
                 </div>
               </div>
 
               {/* ── TEXT specific ── */}
-              {selectedItem.element_type === "text" && (() => {
-                const c = selectedItem.content as ContentText;
-                const upd = (patch: Partial<ContentText>) => updateItemContent(selectedItem.id, { ...c, ...patch });
-                return (
-                  <>
-                    <div className="border-t border-neutral-100 pt-2">
-                      <div className="flex items-center justify-between gap-2">
-                        <label className="text-[11px] font-medium text-neutral-500">Texto</label>
-                        {isMobileViewport && (
+              {selectedItem.element_type === "text" &&
+                (() => {
+                  const c = selectedItem.content as ContentText;
+                  const upd = (patch: Partial<ContentText>) =>
+                    updateItemContent(selectedItem.id, { ...c, ...patch });
+                  return (
+                    <>
+                      <div className="border-t border-neutral-100 pt-2">
+                        <div className="flex items-center justify-between gap-2">
+                          <label className="text-[11px] font-medium text-neutral-500">
+                            Texto
+                          </label>
+                          {isMobileViewport && (
+                            <button
+                              onClick={() => openTextEditor(selectedItem.id)}
+                              className="rounded-lg border border-[#0F3D3A]/15 px-2 py-1 text-[11px] font-medium text-[#0F3D3A] transition hover:bg-[#0F3D3A]/5"
+                            >
+                              Editar cómodo
+                            </button>
+                          )}
+                        </div>
+                        {isMobileViewport ? (
                           <button
                             onClick={() => openTextEditor(selectedItem.id)}
-                            className="rounded-lg border border-[#0F3D3A]/15 px-2 py-1 text-[11px] font-medium text-[#0F3D3A] transition hover:bg-[#0F3D3A]/5"
+                            className="mt-1 w-full rounded-lg border border-neutral-200 bg-neutral-50 px-3 py-2 text-left text-xs text-neutral-600 transition hover:border-[#0F3D3A]/25 hover:bg-[#0F3D3A]/[0.04]"
                           >
-                            Editar cómodo
+                            {c?.text?.trim()
+                              ? c.text
+                              : "Tocar para escribir en una caja más cómoda"}
                           </button>
+                        ) : (
+                          <textarea
+                            value={c?.text ?? ""}
+                            onChange={(e) => upd({ text: e.target.value })}
+                            rows={3}
+                            className="mt-1 w-full resize-none rounded-lg border border-neutral-200 p-2 text-xs outline-none focus:border-[#0F3D3A]"
+                          />
                         )}
                       </div>
-                      {isMobileViewport ? (
-                        <button
-                          onClick={() => openTextEditor(selectedItem.id)}
-                          className="mt-1 w-full rounded-lg border border-neutral-200 bg-neutral-50 px-3 py-2 text-left text-xs text-neutral-600 transition hover:border-[#0F3D3A]/25 hover:bg-[#0F3D3A]/[0.04]"
-                        >
-                          {c?.text?.trim() ? c.text : "Tocar para escribir en una caja más cómoda"}
-                        </button>
-                      ) : (
-                        <textarea value={c?.text ?? ""} onChange={(e) => upd({ text: e.target.value })}
-                          rows={3} className="mt-1 w-full resize-none rounded-lg border border-neutral-200 p-2 text-xs outline-none focus:border-[#0F3D3A]" />
-                      )}
-                    </div>
-                    <div>
-                      <label className="text-[11px] font-medium text-neutral-500">Fuente</label>
-                      <select value={c?.fontFamily ?? "inherit"}
-                        onChange={(e) => upd({ fontFamily: e.target.value })}
-                        className="mt-1 w-full rounded-lg border border-neutral-200 px-2 py-1.5 text-xs outline-none focus:border-[#0F3D3A]"
-                        style={{ fontFamily: c?.fontFamily ?? "inherit" }}>
-                        {GOOGLE_FONTS.map((f) => (
-                          <option key={f.value} value={f.value} style={{ fontFamily: f.value }}>{f.label}</option>
-                        ))}
-                      </select>
-                    </div>
-                    <div className="flex gap-2">
-                      <div className="flex-1">
-                        <label className="text-[11px] font-medium text-neutral-500">Tamaño</label>
-                        <input type="number" min={10} max={120} value={c?.fontSize ?? 24}
-                          onChange={(e) => upd({ fontSize: Number(e.target.value) })}
-                          className="mt-1 w-full rounded-lg border border-neutral-200 px-2 py-1 text-xs outline-none focus:border-[#0F3D3A]" />
-                      </div>
-                      <div className="flex-1">
-                        <label className="text-[11px] font-medium text-neutral-500">Color</label>
-                        <input type="color" value={c?.color ?? "#1a1a1a"} onChange={(e) => upd({ color: e.target.value })}
-                          className="mt-1 h-8 w-full cursor-pointer rounded-lg border border-neutral-200" />
-                      </div>
-                    </div>
-                    <div className="flex gap-1.5">
-                      <button onClick={() => upd({ fontWeight: c.fontWeight === "bold" ? "normal" : "bold" })}
-                        className={`flex-1 rounded-lg border py-1.5 text-xs font-bold transition ${c?.fontWeight === "bold" ? "border-[#0F3D3A] bg-[#0F3D3A] text-white" : "border-neutral-200 text-neutral-500"}`}>B</button>
-                      <button onClick={() => upd({ fontStyle: c.fontStyle === "italic" ? "normal" : "italic" })}
-                        className={`flex-1 rounded-lg border py-1.5 text-xs italic transition ${c?.fontStyle === "italic" ? "border-[#0F3D3A] bg-[#0F3D3A] text-white" : "border-neutral-200 text-neutral-500"}`}>i</button>
-                    </div>
-                    <div>
-                      <label className="mb-1 block text-[11px] font-medium text-neutral-500">Alineación</label>
-                      <div className="flex gap-1.5">
-                        {(["left","center","right"] as const).map((align) => (
-                          <button key={align} onClick={() => upd({ textAlign: align })}
-                            className={`flex-1 rounded-lg border py-1.5 transition ${c?.textAlign === align ? "border-[#0F3D3A] bg-[#0F3D3A] text-white" : "border-neutral-200 text-neutral-400"}`}>
-                            {align === "left" ? <AlignLeft className="mx-auto h-3 w-3" /> : align === "center" ? <AlignCenter className="mx-auto h-3 w-3" /> : <AlignRight className="mx-auto h-3 w-3" />}
-                          </button>
-                        ))}
-                      </div>
-                    </div>
-                    {/* Text background */}
-                    <div className="border-t border-neutral-100 pt-2">
-                      <label className="flex cursor-pointer items-center gap-2 text-xs font-medium text-neutral-600">
-                        <input type="checkbox" checked={!!(c?.bgColor)}
-                          onChange={(e) => upd({ bgColor: e.target.checked ? "#000000" : undefined })}
-                          className="rounded" />
-                        Fondo de texto
-                      </label>
-                      {c?.bgColor && (
-                        <div className="mt-2 flex items-end gap-2">
-                          <div className="flex-1">
-                            <label className="text-[10px] text-neutral-400">Color</label>
-                            <input type="color" value={c.bgColor}
-                              onChange={(e) => upd({ bgColor: e.target.value })}
-                              className="mt-0.5 h-7 w-full cursor-pointer rounded border border-neutral-200" />
-                          </div>
-                          <div className="flex-1">
-                            <label className="text-[10px] text-neutral-400">Opacidad: {Math.round((c.bgOpacity ?? 0.6) * 100)}%</label>
-                            <input type="range" min={0.05} max={1} step={0.05} value={c.bgOpacity ?? 0.6}
-                              onChange={(e) => upd({ bgOpacity: Number(e.target.value) })}
-                              className="mt-0.5 w-full" />
-                          </div>
-                        </div>
-                      )}
-                    </div>
-                    {/* Shadow */}
-                    <div className="border-t border-neutral-100 pt-2">
                       <div>
-                        <label className="text-[11px] font-medium text-neutral-500">Letter spacing: {c?.letterSpacing ?? 0}px</label>
-                        <input type="range" min={-2} max={10} step={0.5} value={c?.letterSpacing ?? 0}
-                          onChange={(e) => upd({ letterSpacing: Number(e.target.value) })}
-                          className="mt-1 w-full" />
+                        <label className="text-[11px] font-medium text-neutral-500">
+                          Fuente
+                        </label>
+                        <select
+                          value={c?.fontFamily ?? "inherit"}
+                          onChange={(e) => upd({ fontFamily: e.target.value })}
+                          className="mt-1 w-full rounded-lg border border-neutral-200 px-2 py-1.5 text-xs outline-none focus:border-[#0F3D3A]"
+                          style={{ fontFamily: c?.fontFamily ?? "inherit" }}
+                        >
+                          {GOOGLE_FONTS.map((f) => (
+                            <option
+                              key={f.value}
+                              value={f.value}
+                              style={{ fontFamily: f.value }}
+                            >
+                              {f.label}
+                            </option>
+                          ))}
+                        </select>
                       </div>
-                      <div className="mt-2">
-                        <label className="text-[11px] font-medium text-neutral-500">Line height: {(c?.lineHeight ?? 1.2).toFixed(1)}</label>
-                        <input type="range" min={0.8} max={3} step={0.1} value={c?.lineHeight ?? 1.2}
-                          onChange={(e) => upd({ lineHeight: Number(e.target.value) })}
-                          className="mt-1 w-full" />
+                      <div className="flex gap-2">
+                        <div className="flex-1">
+                          <label className="text-[11px] font-medium text-neutral-500">
+                            Tamaño
+                          </label>
+                          <input
+                            type="number"
+                            min={10}
+                            max={120}
+                            value={c?.fontSize ?? 24}
+                            onChange={(e) =>
+                              upd({ fontSize: Number(e.target.value) })
+                            }
+                            className="mt-1 w-full rounded-lg border border-neutral-200 px-2 py-1 text-xs outline-none focus:border-[#0F3D3A]"
+                          />
+                        </div>
+                        <div className="flex-1">
+                          <label className="text-[11px] font-medium text-neutral-500">
+                            Color
+                          </label>
+                          <input
+                            type="color"
+                            value={c?.color ?? "#1a1a1a"}
+                            onChange={(e) => upd({ color: e.target.value })}
+                            className="mt-1 h-8 w-full cursor-pointer rounded-lg border border-neutral-200"
+                          />
+                        </div>
                       </div>
-                      <div className="mt-2 grid grid-cols-2 gap-2">
+                      <div className="flex gap-1.5">
+                        <button
+                          onClick={() =>
+                            upd({
+                              fontWeight:
+                                c.fontWeight === "bold" ? "normal" : "bold",
+                            })
+                          }
+                          className={`flex-1 rounded-lg border py-1.5 text-xs font-bold transition ${c?.fontWeight === "bold" ? "border-[#0F3D3A] bg-[#0F3D3A] text-white" : "border-neutral-200 text-neutral-500"}`}
+                        >
+                          B
+                        </button>
+                        <button
+                          onClick={() =>
+                            upd({
+                              fontStyle:
+                                c.fontStyle === "italic" ? "normal" : "italic",
+                            })
+                          }
+                          className={`flex-1 rounded-lg border py-1.5 text-xs italic transition ${c?.fontStyle === "italic" ? "border-[#0F3D3A] bg-[#0F3D3A] text-white" : "border-neutral-200 text-neutral-500"}`}
+                        >
+                          i
+                        </button>
+                      </div>
+                      <div>
+                        <label className="mb-1 block text-[11px] font-medium text-neutral-500">
+                          Alineación
+                        </label>
+                        <div className="flex gap-1.5">
+                          {(["left", "center", "right"] as const).map(
+                            (align) => (
+                              <button
+                                key={align}
+                                onClick={() => upd({ textAlign: align })}
+                                className={`flex-1 rounded-lg border py-1.5 transition ${c?.textAlign === align ? "border-[#0F3D3A] bg-[#0F3D3A] text-white" : "border-neutral-200 text-neutral-400"}`}
+                              >
+                                {align === "left" ? (
+                                  <AlignLeft className="mx-auto h-3 w-3" />
+                                ) : align === "center" ? (
+                                  <AlignCenter className="mx-auto h-3 w-3" />
+                                ) : (
+                                  <AlignRight className="mx-auto h-3 w-3" />
+                                )}
+                              </button>
+                            ),
+                          )}
+                        </div>
+                      </div>
+                      {/* Text background */}
+                      <div className="border-t border-neutral-100 pt-2">
+                        <label className="flex cursor-pointer items-center gap-2 text-xs font-medium text-neutral-600">
+                          <input
+                            type="checkbox"
+                            checked={!!c?.bgColor}
+                            onChange={(e) =>
+                              upd({
+                                bgColor: e.target.checked
+                                  ? "#000000"
+                                  : undefined,
+                              })
+                            }
+                            className="rounded"
+                          />
+                          Fondo de texto
+                        </label>
+                        {c?.bgColor && (
+                          <div className="mt-2 flex items-end gap-2">
+                            <div className="flex-1">
+                              <label className="text-[10px] text-neutral-400">
+                                Color
+                              </label>
+                              <input
+                                type="color"
+                                value={c.bgColor}
+                                onChange={(e) =>
+                                  upd({ bgColor: e.target.value })
+                                }
+                                className="mt-0.5 h-7 w-full cursor-pointer rounded border border-neutral-200"
+                              />
+                            </div>
+                            <div className="flex-1">
+                              <label className="text-[10px] text-neutral-400">
+                                Opacidad:{" "}
+                                {Math.round((c.bgOpacity ?? 0.6) * 100)}%
+                              </label>
+                              <input
+                                type="range"
+                                min={0.05}
+                                max={1}
+                                step={0.05}
+                                value={c.bgOpacity ?? 0.6}
+                                onChange={(e) =>
+                                  upd({ bgOpacity: Number(e.target.value) })
+                                }
+                                className="mt-0.5 w-full"
+                              />
+                            </div>
+                          </div>
+                        )}
+                      </div>
+                      {/* Shadow */}
+                      <div className="border-t border-neutral-100 pt-2">
                         <div>
-                          <label className="text-[11px] font-medium text-neutral-500">Padding X: {c?.paddingX ?? 10}px</label>
-                          <input type="range" min={0} max={40} value={c?.paddingX ?? 10}
-                            onChange={(e) => upd({ paddingX: Number(e.target.value) })}
-                            className="mt-1 w-full" />
+                          <label className="text-[11px] font-medium text-neutral-500">
+                            Letter spacing: {c?.letterSpacing ?? 0}px
+                          </label>
+                          <input
+                            type="range"
+                            min={-2}
+                            max={10}
+                            step={0.5}
+                            value={c?.letterSpacing ?? 0}
+                            onChange={(e) =>
+                              upd({ letterSpacing: Number(e.target.value) })
+                            }
+                            className="mt-1 w-full"
+                          />
                         </div>
-                        <div>
-                          <label className="text-[11px] font-medium text-neutral-500">Padding Y: {c?.paddingY ?? 8}px</label>
-                          <input type="range" min={0} max={40} value={c?.paddingY ?? 8}
-                            onChange={(e) => upd({ paddingY: Number(e.target.value) })}
-                            className="mt-1 w-full" />
+                        <div className="mt-2">
+                          <label className="text-[11px] font-medium text-neutral-500">
+                            Line height: {(c?.lineHeight ?? 1.2).toFixed(1)}
+                          </label>
+                          <input
+                            type="range"
+                            min={0.8}
+                            max={3}
+                            step={0.1}
+                            value={c?.lineHeight ?? 1.2}
+                            onChange={(e) =>
+                              upd({ lineHeight: Number(e.target.value) })
+                            }
+                            className="mt-1 w-full"
+                          />
+                        </div>
+                        <div className="mt-2 grid grid-cols-2 gap-2">
+                          <div>
+                            <label className="text-[11px] font-medium text-neutral-500">
+                              Padding X: {c?.paddingX ?? 10}px
+                            </label>
+                            <input
+                              type="range"
+                              min={0}
+                              max={40}
+                              value={c?.paddingX ?? 10}
+                              onChange={(e) =>
+                                upd({ paddingX: Number(e.target.value) })
+                              }
+                              className="mt-1 w-full"
+                            />
+                          </div>
+                          <div>
+                            <label className="text-[11px] font-medium text-neutral-500">
+                              Padding Y: {c?.paddingY ?? 8}px
+                            </label>
+                            <input
+                              type="range"
+                              min={0}
+                              max={40}
+                              value={c?.paddingY ?? 8}
+                              onChange={(e) =>
+                                upd({ paddingY: Number(e.target.value) })
+                              }
+                              className="mt-1 w-full"
+                            />
+                          </div>
                         </div>
                       </div>
-                    </div>
-                    <div className="border-t border-neutral-100 pt-2">
-                      <label className="flex cursor-pointer items-center gap-2 text-xs font-medium text-neutral-600">
-                        <input type="checkbox" checked={c?.shadow ?? false}
-                          onChange={(e) => upd({ shadow: e.target.checked })} className="rounded" />
-                        Sombra
-                      </label>
-                      {c?.shadow && (
-                        <div className="mt-2 space-y-2">
-                          <div className="flex gap-1.5">
+                      <div className="border-t border-neutral-100 pt-2">
+                        <label className="flex cursor-pointer items-center gap-2 text-xs font-medium text-neutral-600">
+                          <input
+                            type="checkbox"
+                            checked={c?.shadow ?? false}
+                            onChange={(e) => upd({ shadow: e.target.checked })}
+                            className="rounded"
+                          />
+                          Sombra
+                        </label>
+                        {c?.shadow && (
+                          <div className="mt-2 space-y-2">
+                            <div className="flex gap-1.5">
+                              <div className="flex-1">
+                                <label className="text-[10px] text-neutral-400">
+                                  X
+                                </label>
+                                <input
+                                  type="number"
+                                  min={-20}
+                                  max={20}
+                                  value={c.shadowX ?? 2}
+                                  onChange={(e) =>
+                                    upd({ shadowX: Number(e.target.value) })
+                                  }
+                                  className="mt-0.5 w-full rounded border border-neutral-200 px-1.5 py-1 text-xs outline-none"
+                                />
+                              </div>
+                              <div className="flex-1">
+                                <label className="text-[10px] text-neutral-400">
+                                  Y
+                                </label>
+                                <input
+                                  type="number"
+                                  min={-20}
+                                  max={20}
+                                  value={c.shadowY ?? 2}
+                                  onChange={(e) =>
+                                    upd({ shadowY: Number(e.target.value) })
+                                  }
+                                  className="mt-0.5 w-full rounded border border-neutral-200 px-1.5 py-1 text-xs outline-none"
+                                />
+                              </div>
+                              <div className="flex-1">
+                                <label className="text-[10px] text-neutral-400">
+                                  Blur
+                                </label>
+                                <input
+                                  type="number"
+                                  min={0}
+                                  max={30}
+                                  value={c.shadowBlur ?? 4}
+                                  onChange={(e) =>
+                                    upd({ shadowBlur: Number(e.target.value) })
+                                  }
+                                  className="mt-0.5 w-full rounded border border-neutral-200 px-1.5 py-1 text-xs outline-none"
+                                />
+                              </div>
+                            </div>
+                            <input
+                              type="color"
+                              value={c.shadowColor ?? "#000000"}
+                              onChange={(e) =>
+                                upd({ shadowColor: e.target.value })
+                              }
+                              className="h-7 w-full cursor-pointer rounded border border-neutral-200"
+                              title="Color sombra"
+                            />
+                          </div>
+                        )}
+                      </div>
+                      {/* Outline */}
+                      <div className="border-t border-neutral-100 pt-2">
+                        <label className="flex cursor-pointer items-center gap-2 text-xs font-medium text-neutral-600">
+                          <input
+                            type="checkbox"
+                            checked={c?.outline ?? false}
+                            onChange={(e) => upd({ outline: e.target.checked })}
+                            className="rounded"
+                          />
+                          Borde de texto
+                        </label>
+                        {c?.outline && (
+                          <div className="mt-2 flex gap-2">
                             <div className="flex-1">
-                              <label className="text-[10px] text-neutral-400">X</label>
-                              <input type="number" min={-20} max={20} value={c.shadowX ?? 2}
-                                onChange={(e) => upd({ shadowX: Number(e.target.value) })}
-                                className="mt-0.5 w-full rounded border border-neutral-200 px-1.5 py-1 text-xs outline-none" />
+                              <label className="text-[10px] text-neutral-400">
+                                Grosor: {c.outlineWidth ?? 1}px
+                              </label>
+                              <input
+                                type="range"
+                                min={1}
+                                max={8}
+                                value={c.outlineWidth ?? 1}
+                                onChange={(e) =>
+                                  upd({ outlineWidth: Number(e.target.value) })
+                                }
+                                className="mt-0.5 w-full"
+                              />
                             </div>
                             <div className="flex-1">
-                              <label className="text-[10px] text-neutral-400">Y</label>
-                              <input type="number" min={-20} max={20} value={c.shadowY ?? 2}
-                                onChange={(e) => upd({ shadowY: Number(e.target.value) })}
-                                className="mt-0.5 w-full rounded border border-neutral-200 px-1.5 py-1 text-xs outline-none" />
+                              <label className="text-[10px] text-neutral-400">
+                                Color
+                              </label>
+                              <input
+                                type="color"
+                                value={c.outlineColor ?? "#000000"}
+                                onChange={(e) =>
+                                  upd({ outlineColor: e.target.value })
+                                }
+                                className="mt-0.5 h-7 w-full cursor-pointer rounded border border-neutral-200"
+                              />
                             </div>
-                            <div className="flex-1">
-                              <label className="text-[10px] text-neutral-400">Blur</label>
-                              <input type="number" min={0} max={30} value={c.shadowBlur ?? 4}
-                                onChange={(e) => upd({ shadowBlur: Number(e.target.value) })}
-                                className="mt-0.5 w-full rounded border border-neutral-200 px-1.5 py-1 text-xs outline-none" />
-                            </div>
                           </div>
-                          <input type="color" value={c.shadowColor ?? "#000000"}
-                            onChange={(e) => upd({ shadowColor: e.target.value })}
-                            className="h-7 w-full cursor-pointer rounded border border-neutral-200" title="Color sombra" />
-                        </div>
-                      )}
-                    </div>
-                    {/* Outline */}
-                    <div className="border-t border-neutral-100 pt-2">
-                      <label className="flex cursor-pointer items-center gap-2 text-xs font-medium text-neutral-600">
-                        <input type="checkbox" checked={c?.outline ?? false}
-                          onChange={(e) => upd({ outline: e.target.checked })} className="rounded" />
-                        Borde de texto
-                      </label>
-                      {c?.outline && (
-                        <div className="mt-2 flex gap-2">
-                          <div className="flex-1">
-                            <label className="text-[10px] text-neutral-400">Grosor: {c.outlineWidth ?? 1}px</label>
-                            <input type="range" min={1} max={8} value={c.outlineWidth ?? 1}
-                              onChange={(e) => upd({ outlineWidth: Number(e.target.value) })}
-                              className="mt-0.5 w-full" />
-                          </div>
-                          <div className="flex-1">
-                            <label className="text-[10px] text-neutral-400">Color</label>
-                            <input type="color" value={c.outlineColor ?? "#000000"}
-                              onChange={(e) => upd({ outlineColor: e.target.value })}
-                              className="mt-0.5 h-7 w-full cursor-pointer rounded border border-neutral-200" />
-                          </div>
-                        </div>
-                      )}
-                    </div>
-                  </>
-                );
-              })()}
+                        )}
+                      </div>
+                    </>
+                  );
+                })()}
 
               {/* ── SHAPE specific ── */}
-              {selectedItem.element_type === "shape" && (() => {
-                const c = selectedItem.content as ContentShape;
-                const upd = (patch: Partial<ContentShape>) => updateItemContent(selectedItem.id, { ...c, ...patch });
-                return (
-                  <>
-                    <div className="border-t border-neutral-100 pt-2">
-                      <label className="mb-1 block text-[11px] font-medium text-neutral-500">Básicas</label>
-                      <div className="grid grid-cols-3 gap-1">
-                        {SHAPE_TYPES.slice(0, 5).map((t) => (
-                          <button key={t.value} onClick={() => upd({ shapeType: t.value })}
-                            className={`rounded-lg border py-1.5 text-[10px] transition ${c?.shapeType === t.value ? "border-[#0F3D3A] bg-[#0F3D3A] text-white" : "border-neutral-200 text-neutral-500"}`}>
-                            {t.label}
-                          </button>
-                        ))}
-                      </div>
-                    </div>
-                    <div>
-                      <div className="mb-1 flex items-center justify-between gap-2">
-                        <label className="block text-[11px] font-medium text-neutral-500">Decorativos</label>
-                        <span className="text-[10px] text-neutral-400">figuras más editoriales</span>
-                      </div>
-                      <div className="grid grid-cols-3 gap-1">
-                        {SHAPE_TYPES.filter((t) => DECORATIVE_SHAPE_TYPES.includes(t.value)).map((t) => (
-                          <button key={t.value} onClick={() => upd({ shapeType: t.value })}
-                            className={`rounded-lg border py-1.5 text-[10px] transition ${c?.shapeType === t.value ? "border-[#0F3D3A] bg-[#0F3D3A] text-white" : "border-neutral-200 text-neutral-500"}`}>
-                            {t.label}
-                          </button>
-                        ))}
-                      </div>
-                    </div>
-                    <div>
-                      <label className="text-[11px] font-medium text-neutral-500">
-                        {c?.gradientEnabled ? "Color 1" : "Color"}
-                      </label>
-                      <input type="color" value={c?.fillColor ?? "#0F3D3A"} onChange={(e) => upd({ fillColor: e.target.value })}
-                        className="mt-1 h-8 w-full cursor-pointer rounded-lg border border-neutral-200" />
-                    </div>
-                    <label className="flex cursor-pointer items-center gap-2 text-xs text-neutral-600">
-                      <input type="checkbox" checked={c?.gradientEnabled ?? false}
-                        onChange={(e) => upd({ gradientEnabled: e.target.checked })} className="rounded" />
-                      Degradado
-                    </label>
-                    {c?.gradientEnabled && (
-                      <>
-                        <div>
-                          <label className="text-[11px] font-medium text-neutral-500">Color 2</label>
-                          <input type="color" value={c?.gradientColor2 ?? "#AADDCC"}
-                            onChange={(e) => upd({ gradientColor2: e.target.value })}
-                            className="mt-1 h-8 w-full cursor-pointer rounded-lg border border-neutral-200" />
-                        </div>
-                        <div>
-                          <label className="mb-1 block text-[11px] font-medium text-neutral-500">Tipo degradado</label>
-                          <div className="flex gap-1.5">
-                            {(["linear","radial"] as const).map((t) => (
-                              <button key={t} onClick={() => upd({ gradientType: t })}
-                                className={`flex-1 rounded-lg border py-1.5 text-xs transition ${(c?.gradientType ?? "linear") === t ? "border-[#0F3D3A] bg-[#0F3D3A] text-white" : "border-neutral-200 text-neutral-500"}`}>
-                                {t === "linear" ? "Lineal" : "Radial"}
-                              </button>
-                            ))}
-                          </div>
-                        </div>
-                        {(c?.gradientType ?? "linear") === "linear" && (
-                          <div>
-                            <label className="text-[11px] font-medium text-neutral-500">Ángulo: {c?.gradientAngle ?? 135}°</label>
-                            <input type="range" min={0} max={359} value={c?.gradientAngle ?? 135}
-                              onChange={(e) => upd({ gradientAngle: Number(e.target.value) })}
-                              className="mt-1 w-full" />
-                          </div>
-                        )}
-                      </>
-                    )}
-                    {(c?.shapeType === "rectangle") && (
-                      <div>
-                        <label className="text-[11px] font-medium text-neutral-500">Redondeo: {c?.borderRadius ?? 8}px</label>
-                        <input type="range" min={0} max={80} value={c?.borderRadius ?? 8}
-                          onChange={(e) => upd({ borderRadius: Number(e.target.value) })}
-                          className="mt-1 w-full" />
-                      </div>
-                    )}
-                    <div>
-                      <label className="text-[11px] font-medium text-neutral-500">Opacidad: {Math.round((c?.opacity ?? 1) * 100)}%</label>
-                      <input type="range" min={0.05} max={1} step={0.05} value={c?.opacity ?? 1}
-                        onChange={(e) => upd({ opacity: Number(e.target.value) })}
-                        className="mt-1 w-full" />
-                    </div>
-                    {isBorderFriendlyShape(c?.shapeType ?? "rectangle") && (
+              {selectedItem.element_type === "shape" &&
+                (() => {
+                  const c = selectedItem.content as ContentShape;
+                  const upd = (patch: Partial<ContentShape>) =>
+                    updateItemContent(selectedItem.id, { ...c, ...patch });
+                  return (
+                    <>
                       <div className="border-t border-neutral-100 pt-2">
-                        <label className="text-[11px] font-medium text-neutral-500">Borde: {c?.strokeWidth ?? 0}px</label>
-                        <input type="range" min={0} max={20} value={c?.strokeWidth ?? 0}
-                          onChange={(e) => upd({ strokeWidth: Number(e.target.value) })}
-                          className="mt-1 w-full" />
-                        {(c?.strokeWidth ?? 0) > 0 && (
-                          <input type="color" value={c?.strokeColor ?? "#000000"}
-                            onChange={(e) => upd({ strokeColor: e.target.value })}
-                            className="mt-1 h-7 w-full cursor-pointer rounded border border-neutral-200" title="Color borde" />
-                        )}
+                        <label className="mb-1 block text-[11px] font-medium text-neutral-500">
+                          Básicas
+                        </label>
+                        <div className="grid grid-cols-3 gap-1">
+                          {SHAPE_TYPES.slice(0, 5).map((t) => (
+                            <button
+                              key={t.value}
+                              onClick={() => upd({ shapeType: t.value })}
+                              className={`rounded-lg border py-1.5 text-[10px] transition ${c?.shapeType === t.value ? "border-[#0F3D3A] bg-[#0F3D3A] text-white" : "border-neutral-200 text-neutral-500"}`}
+                            >
+                              {t.label}
+                            </button>
+                          ))}
+                        </div>
                       </div>
-                    )}
-                    <div className="border-t border-neutral-100 pt-2">
-                      <label className="flex cursor-pointer items-center gap-2 text-xs font-medium text-neutral-600">
-                        <input type="checkbox" checked={c?.shadowEnabled ?? false}
-                          onChange={(e) => upd({ shadowEnabled: e.target.checked })} className="rounded" />
-                        Sombra
+                      <div>
+                        <div className="mb-1 flex items-center justify-between gap-2">
+                          <label className="block text-[11px] font-medium text-neutral-500">
+                            Decorativos
+                          </label>
+                          <span className="text-[10px] text-neutral-400">
+                            figuras más editoriales
+                          </span>
+                        </div>
+                        <div className="grid grid-cols-3 gap-1">
+                          {SHAPE_TYPES.filter((t) =>
+                            DECORATIVE_SHAPE_TYPES.includes(t.value),
+                          ).map((t) => (
+                            <button
+                              key={t.value}
+                              onClick={() => upd({ shapeType: t.value })}
+                              className={`rounded-lg border py-1.5 text-[10px] transition ${c?.shapeType === t.value ? "border-[#0F3D3A] bg-[#0F3D3A] text-white" : "border-neutral-200 text-neutral-500"}`}
+                            >
+                              {t.label}
+                            </button>
+                          ))}
+                        </div>
+                      </div>
+                      <div>
+                        <label className="text-[11px] font-medium text-neutral-500">
+                          {c?.gradientEnabled ? "Color 1" : "Color"}
+                        </label>
+                        <input
+                          type="color"
+                          value={c?.fillColor ?? "#0F3D3A"}
+                          onChange={(e) => upd({ fillColor: e.target.value })}
+                          className="mt-1 h-8 w-full cursor-pointer rounded-lg border border-neutral-200"
+                        />
+                      </div>
+                      <label className="flex cursor-pointer items-center gap-2 text-xs text-neutral-600">
+                        <input
+                          type="checkbox"
+                          checked={c?.gradientEnabled ?? false}
+                          onChange={(e) =>
+                            upd({ gradientEnabled: e.target.checked })
+                          }
+                          className="rounded"
+                        />
+                        Degradado
                       </label>
-                      {c?.shadowEnabled && (
-                        <div className="mt-2 space-y-2">
-                          <div className="grid grid-cols-2 gap-1.5">
-                            <div>
-                              <label className="text-[10px] text-neutral-400">X</label>
-                              <input type="number" min={-40} max={40} value={c.shadowX ?? 4}
-                                onChange={(e) => upd({ shadowX: Number(e.target.value) })}
-                                className="mt-0.5 w-full rounded border border-neutral-200 px-1.5 py-1 text-xs outline-none" />
-                            </div>
-                            <div>
-                              <label className="text-[10px] text-neutral-400">Y</label>
-                              <input type="number" min={-40} max={40} value={c.shadowY ?? 4}
-                                onChange={(e) => upd({ shadowY: Number(e.target.value) })}
-                                className="mt-0.5 w-full rounded border border-neutral-200 px-1.5 py-1 text-xs outline-none" />
-                            </div>
-                            <div>
-                              <label className="text-[10px] text-neutral-400">Blur</label>
-                              <input type="number" min={0} max={80} value={c.shadowBlur ?? 8}
-                                onChange={(e) => upd({ shadowBlur: Number(e.target.value) })}
-                                className="mt-0.5 w-full rounded border border-neutral-200 px-1.5 py-1 text-xs outline-none" />
-                            </div>
-                            <div>
-                              <label className="text-[10px] text-neutral-400">Spread</label>
-                              <input type="number" min={-20} max={40} value={c.shadowSpread ?? 0}
-                                onChange={(e) => upd({ shadowSpread: Number(e.target.value) })}
-                                className="mt-0.5 w-full rounded border border-neutral-200 px-1.5 py-1 text-xs outline-none" />
+                      {c?.gradientEnabled && (
+                        <>
+                          <div>
+                            <label className="text-[11px] font-medium text-neutral-500">
+                              Color 2
+                            </label>
+                            <input
+                              type="color"
+                              value={c?.gradientColor2 ?? "#AADDCC"}
+                              onChange={(e) =>
+                                upd({ gradientColor2: e.target.value })
+                              }
+                              className="mt-1 h-8 w-full cursor-pointer rounded-lg border border-neutral-200"
+                            />
+                          </div>
+                          <div>
+                            <label className="mb-1 block text-[11px] font-medium text-neutral-500">
+                              Tipo degradado
+                            </label>
+                            <div className="flex gap-1.5">
+                              {(["linear", "radial"] as const).map((t) => (
+                                <button
+                                  key={t}
+                                  onClick={() => upd({ gradientType: t })}
+                                  className={`flex-1 rounded-lg border py-1.5 text-xs transition ${(c?.gradientType ?? "linear") === t ? "border-[#0F3D3A] bg-[#0F3D3A] text-white" : "border-neutral-200 text-neutral-500"}`}
+                                >
+                                  {t === "linear" ? "Lineal" : "Radial"}
+                                </button>
+                              ))}
                             </div>
                           </div>
-                          <input type="color" value={c.shadowColor ?? "#000000"}
-                            onChange={(e) => upd({ shadowColor: e.target.value })}
-                            className="h-7 w-full cursor-pointer rounded border border-neutral-200" />
+                          {(c?.gradientType ?? "linear") === "linear" && (
+                            <div>
+                              <label className="text-[11px] font-medium text-neutral-500">
+                                Ángulo: {c?.gradientAngle ?? 135}°
+                              </label>
+                              <input
+                                type="range"
+                                min={0}
+                                max={359}
+                                value={c?.gradientAngle ?? 135}
+                                onChange={(e) =>
+                                  upd({ gradientAngle: Number(e.target.value) })
+                                }
+                                className="mt-1 w-full"
+                              />
+                            </div>
+                          )}
+                        </>
+                      )}
+                      {c?.shapeType === "rectangle" && (
+                        <div>
+                          <label className="text-[11px] font-medium text-neutral-500">
+                            Redondeo: {c?.borderRadius ?? 8}px
+                          </label>
+                          <input
+                            type="range"
+                            min={0}
+                            max={80}
+                            value={c?.borderRadius ?? 8}
+                            onChange={(e) =>
+                              upd({ borderRadius: Number(e.target.value) })
+                            }
+                            className="mt-1 w-full"
+                          />
                         </div>
                       )}
-                    </div>
-                  </>
-                );
-              })()}
+                      <div>
+                        <label className="text-[11px] font-medium text-neutral-500">
+                          Opacidad: {Math.round((c?.opacity ?? 1) * 100)}%
+                        </label>
+                        <input
+                          type="range"
+                          min={0.05}
+                          max={1}
+                          step={0.05}
+                          value={c?.opacity ?? 1}
+                          onChange={(e) =>
+                            upd({ opacity: Number(e.target.value) })
+                          }
+                          className="mt-1 w-full"
+                        />
+                      </div>
+                      {isBorderFriendlyShape(c?.shapeType ?? "rectangle") && (
+                        <div className="border-t border-neutral-100 pt-2">
+                          <label className="text-[11px] font-medium text-neutral-500">
+                            Borde: {c?.strokeWidth ?? 0}px
+                          </label>
+                          <input
+                            type="range"
+                            min={0}
+                            max={20}
+                            value={c?.strokeWidth ?? 0}
+                            onChange={(e) =>
+                              upd({ strokeWidth: Number(e.target.value) })
+                            }
+                            className="mt-1 w-full"
+                          />
+                          {(c?.strokeWidth ?? 0) > 0 && (
+                            <input
+                              type="color"
+                              value={c?.strokeColor ?? "#000000"}
+                              onChange={(e) =>
+                                upd({ strokeColor: e.target.value })
+                              }
+                              className="mt-1 h-7 w-full cursor-pointer rounded border border-neutral-200"
+                              title="Color borde"
+                            />
+                          )}
+                        </div>
+                      )}
+                      <div className="border-t border-neutral-100 pt-2">
+                        <label className="flex cursor-pointer items-center gap-2 text-xs font-medium text-neutral-600">
+                          <input
+                            type="checkbox"
+                            checked={c?.shadowEnabled ?? false}
+                            onChange={(e) =>
+                              upd({ shadowEnabled: e.target.checked })
+                            }
+                            className="rounded"
+                          />
+                          Sombra
+                        </label>
+                        {c?.shadowEnabled && (
+                          <div className="mt-2 space-y-2">
+                            <div className="grid grid-cols-2 gap-1.5">
+                              <div>
+                                <label className="text-[10px] text-neutral-400">
+                                  X
+                                </label>
+                                <input
+                                  type="number"
+                                  min={-40}
+                                  max={40}
+                                  value={c.shadowX ?? 4}
+                                  onChange={(e) =>
+                                    upd({ shadowX: Number(e.target.value) })
+                                  }
+                                  className="mt-0.5 w-full rounded border border-neutral-200 px-1.5 py-1 text-xs outline-none"
+                                />
+                              </div>
+                              <div>
+                                <label className="text-[10px] text-neutral-400">
+                                  Y
+                                </label>
+                                <input
+                                  type="number"
+                                  min={-40}
+                                  max={40}
+                                  value={c.shadowY ?? 4}
+                                  onChange={(e) =>
+                                    upd({ shadowY: Number(e.target.value) })
+                                  }
+                                  className="mt-0.5 w-full rounded border border-neutral-200 px-1.5 py-1 text-xs outline-none"
+                                />
+                              </div>
+                              <div>
+                                <label className="text-[10px] text-neutral-400">
+                                  Blur
+                                </label>
+                                <input
+                                  type="number"
+                                  min={0}
+                                  max={80}
+                                  value={c.shadowBlur ?? 8}
+                                  onChange={(e) =>
+                                    upd({ shadowBlur: Number(e.target.value) })
+                                  }
+                                  className="mt-0.5 w-full rounded border border-neutral-200 px-1.5 py-1 text-xs outline-none"
+                                />
+                              </div>
+                              <div>
+                                <label className="text-[10px] text-neutral-400">
+                                  Spread
+                                </label>
+                                <input
+                                  type="number"
+                                  min={-20}
+                                  max={40}
+                                  value={c.shadowSpread ?? 0}
+                                  onChange={(e) =>
+                                    upd({
+                                      shadowSpread: Number(e.target.value),
+                                    })
+                                  }
+                                  className="mt-0.5 w-full rounded border border-neutral-200 px-1.5 py-1 text-xs outline-none"
+                                />
+                              </div>
+                            </div>
+                            <input
+                              type="color"
+                              value={c.shadowColor ?? "#000000"}
+                              onChange={(e) =>
+                                upd({ shadowColor: e.target.value })
+                              }
+                              className="h-7 w-full cursor-pointer rounded border border-neutral-200"
+                            />
+                          </div>
+                        )}
+                      </div>
+                    </>
+                  );
+                })()}
 
               {/* ── IMAGE specific ── */}
-              {selectedItem.element_type === "image" && (() => {
-                const c = selectedItem.content as ContentImage;
-                const upd = (patch: Partial<ContentImage>) => updateItemContent(selectedItem.id, { ...c, ...patch });
-                return (
-                  <>
-                    <div className="border-t border-neutral-100 pt-2">
-                      <label className="mb-1 block text-[11px] font-medium text-neutral-500">Ajuste</label>
-                      <div className="flex gap-1.5">
-                        {(["cover","contain"] as const).map((fit) => (
-                          <button key={fit} onClick={() => upd({ objectFit: fit })}
-                            className={`flex-1 rounded-lg border py-1.5 text-xs transition ${(c?.objectFit ?? "cover") === fit ? "border-[#0F3D3A] bg-[#0F3D3A] text-white" : "border-neutral-200 text-neutral-500"}`}>
-                            {fit === "cover" ? "Llenar" : "Contener"}
-                          </button>
-                        ))}
-                      </div>
-                    </div>
-                    <div>
-                      <label className="text-[11px] font-medium text-neutral-500">Redondeo: {c?.borderRadius ?? 8}px</label>
-                      <input type="range" min={0} max={100} value={c?.borderRadius ?? 8}
-                        onChange={(e) => upd({ borderRadius: Number(e.target.value) })}
-                        className="mt-1 w-full" />
-                    </div>
-                    <div>
-                      <label className="text-[11px] font-medium text-neutral-500">Opacidad: {Math.round((c?.opacity ?? 1) * 100)}%</label>
-                      <input type="range" min={0.05} max={1} step={0.05} value={c?.opacity ?? 1}
-                        onChange={(e) => upd({ opacity: Number(e.target.value) })}
-                        className="mt-1 w-full" />
-                    </div>
-                    <div className="border-t border-neutral-100 pt-2 space-y-2">
-                      <p className="text-[11px] font-semibold uppercase tracking-widest text-neutral-400">Filtros</p>
-                      <div>
-                        <label className="text-[11px] font-medium text-neutral-500">Brillo: {c?.filterBrightness ?? 100}%</label>
-                        <input type="range" min={0} max={200} value={c?.filterBrightness ?? 100}
-                          onChange={(e) => upd({ filterBrightness: Number(e.target.value) })}
-                          className="mt-1 w-full" />
+              {selectedItem.element_type === "image" &&
+                (() => {
+                  const c = selectedItem.content as ContentImage;
+                  const upd = (patch: Partial<ContentImage>) =>
+                    updateItemContent(selectedItem.id, { ...c, ...patch });
+                  return (
+                    <>
+                      <div className="border-t border-neutral-100 pt-2">
+                        <label className="mb-1 block text-[11px] font-medium text-neutral-500">
+                          Ajuste
+                        </label>
+                        <div className="flex gap-1.5">
+                          {(["cover", "contain"] as const).map((fit) => (
+                            <button
+                              key={fit}
+                              onClick={() => upd({ objectFit: fit })}
+                              className={`flex-1 rounded-lg border py-1.5 text-xs transition ${(c?.objectFit ?? "cover") === fit ? "border-[#0F3D3A] bg-[#0F3D3A] text-white" : "border-neutral-200 text-neutral-500"}`}
+                            >
+                              {fit === "cover" ? "Llenar" : "Contener"}
+                            </button>
+                          ))}
+                        </div>
                       </div>
                       <div>
-                        <label className="text-[11px] font-medium text-neutral-500">Contraste: {c?.filterContrast ?? 100}%</label>
-                        <input type="range" min={0} max={200} value={c?.filterContrast ?? 100}
-                          onChange={(e) => upd({ filterContrast: Number(e.target.value) })}
-                          className="mt-1 w-full" />
+                        <label className="text-[11px] font-medium text-neutral-500">
+                          Redondeo: {c?.borderRadius ?? 8}px
+                        </label>
+                        <input
+                          type="range"
+                          min={0}
+                          max={100}
+                          value={c?.borderRadius ?? 8}
+                          onChange={(e) =>
+                            upd({ borderRadius: Number(e.target.value) })
+                          }
+                          className="mt-1 w-full"
+                        />
                       </div>
                       <div>
-                        <label className="text-[11px] font-medium text-neutral-500">Saturación: {c?.filterSaturation ?? 100}%</label>
-                        <input type="range" min={0} max={200} value={c?.filterSaturation ?? 100}
-                          onChange={(e) => upd({ filterSaturation: Number(e.target.value) })}
-                          className="mt-1 w-full" />
+                        <label className="text-[11px] font-medium text-neutral-500">
+                          Opacidad: {Math.round((c?.opacity ?? 1) * 100)}%
+                        </label>
+                        <input
+                          type="range"
+                          min={0.05}
+                          max={1}
+                          step={0.05}
+                          value={c?.opacity ?? 1}
+                          onChange={(e) =>
+                            upd({ opacity: Number(e.target.value) })
+                          }
+                          className="mt-1 w-full"
+                        />
+                      </div>
+                      <div className="space-y-2 border-t border-neutral-100 pt-2">
+                        <p className="text-[11px] font-semibold tracking-widest text-neutral-400 uppercase">
+                          Filtros
+                        </p>
+                        <div>
+                          <label className="text-[11px] font-medium text-neutral-500">
+                            Brillo: {c?.filterBrightness ?? 100}%
+                          </label>
+                          <input
+                            type="range"
+                            min={0}
+                            max={200}
+                            value={c?.filterBrightness ?? 100}
+                            onChange={(e) =>
+                              upd({ filterBrightness: Number(e.target.value) })
+                            }
+                            className="mt-1 w-full"
+                          />
+                        </div>
+                        <div>
+                          <label className="text-[11px] font-medium text-neutral-500">
+                            Contraste: {c?.filterContrast ?? 100}%
+                          </label>
+                          <input
+                            type="range"
+                            min={0}
+                            max={200}
+                            value={c?.filterContrast ?? 100}
+                            onChange={(e) =>
+                              upd({ filterContrast: Number(e.target.value) })
+                            }
+                            className="mt-1 w-full"
+                          />
+                        </div>
+                        <div>
+                          <label className="text-[11px] font-medium text-neutral-500">
+                            Saturación: {c?.filterSaturation ?? 100}%
+                          </label>
+                          <input
+                            type="range"
+                            min={0}
+                            max={200}
+                            value={c?.filterSaturation ?? 100}
+                            onChange={(e) =>
+                              upd({ filterSaturation: Number(e.target.value) })
+                            }
+                            className="mt-1 w-full"
+                          />
+                        </div>
+                        <div>
+                          <label className="text-[11px] font-medium text-neutral-500">
+                            Tono: {c?.filterHue ?? 0}°
+                          </label>
+                          <input
+                            type="range"
+                            min={0}
+                            max={360}
+                            value={c?.filterHue ?? 0}
+                            onChange={(e) =>
+                              upd({ filterHue: Number(e.target.value) })
+                            }
+                            className="mt-1 w-full"
+                          />
+                        </div>
+                        <div className="grid grid-cols-3 gap-1.5">
+                          <div>
+                            <label className="text-[10px] text-neutral-400">
+                              Sepia: {c?.filterSepia ?? 0}%
+                            </label>
+                            <input
+                              type="range"
+                              min={0}
+                              max={100}
+                              value={c?.filterSepia ?? 0}
+                              onChange={(e) =>
+                                upd({ filterSepia: Number(e.target.value) })
+                              }
+                              className="mt-1 w-full"
+                            />
+                          </div>
+                          <div>
+                            <label className="text-[10px] text-neutral-400">
+                              B&N: {c?.filterGrayscale ?? 0}%
+                            </label>
+                            <input
+                              type="range"
+                              min={0}
+                              max={100}
+                              value={c?.filterGrayscale ?? 0}
+                              onChange={(e) =>
+                                upd({ filterGrayscale: Number(e.target.value) })
+                              }
+                              className="mt-1 w-full"
+                            />
+                          </div>
+                          <div>
+                            <label className="text-[10px] text-neutral-400">
+                              Blur: {c?.filterBlur ?? 0}px
+                            </label>
+                            <input
+                              type="range"
+                              min={0}
+                              max={20}
+                              value={c?.filterBlur ?? 0}
+                              onChange={(e) =>
+                                upd({ filterBlur: Number(e.target.value) })
+                              }
+                              className="mt-1 w-full"
+                            />
+                          </div>
+                        </div>
+                        <button
+                          onClick={() =>
+                            upd({
+                              filterBrightness: undefined,
+                              filterContrast: undefined,
+                              filterSaturation: undefined,
+                              filterHue: undefined,
+                              filterBlur: undefined,
+                              filterSepia: undefined,
+                              filterGrayscale: undefined,
+                            })
+                          }
+                          className="w-full rounded-lg border border-neutral-200 py-1 text-[11px] text-neutral-500 transition hover:bg-neutral-50"
+                        >
+                          Restablecer filtros
+                        </button>
+                      </div>
+                      <div className="border-t border-neutral-100 pt-2">
+                        <label className="flex cursor-pointer items-center gap-2 text-xs font-medium text-neutral-600">
+                          <input
+                            type="checkbox"
+                            checked={c?.shadowEnabled ?? false}
+                            onChange={(e) =>
+                              upd({ shadowEnabled: e.target.checked })
+                            }
+                            className="rounded"
+                          />
+                          Sombra
+                        </label>
+                        {c?.shadowEnabled && (
+                          <div className="mt-2 space-y-2">
+                            <div className="grid grid-cols-2 gap-1.5">
+                              <div>
+                                <label className="text-[10px] text-neutral-400">
+                                  X
+                                </label>
+                                <input
+                                  type="number"
+                                  min={-40}
+                                  max={40}
+                                  value={c.shadowX ?? 4}
+                                  onChange={(e) =>
+                                    upd({ shadowX: Number(e.target.value) })
+                                  }
+                                  className="mt-0.5 w-full rounded border border-neutral-200 px-1.5 py-1 text-xs outline-none"
+                                />
+                              </div>
+                              <div>
+                                <label className="text-[10px] text-neutral-400">
+                                  Y
+                                </label>
+                                <input
+                                  type="number"
+                                  min={-40}
+                                  max={40}
+                                  value={c.shadowY ?? 4}
+                                  onChange={(e) =>
+                                    upd({ shadowY: Number(e.target.value) })
+                                  }
+                                  className="mt-0.5 w-full rounded border border-neutral-200 px-1.5 py-1 text-xs outline-none"
+                                />
+                              </div>
+                              <div>
+                                <label className="text-[10px] text-neutral-400">
+                                  Blur
+                                </label>
+                                <input
+                                  type="number"
+                                  min={0}
+                                  max={80}
+                                  value={c.shadowBlur ?? 8}
+                                  onChange={(e) =>
+                                    upd({ shadowBlur: Number(e.target.value) })
+                                  }
+                                  className="mt-0.5 w-full rounded border border-neutral-200 px-1.5 py-1 text-xs outline-none"
+                                />
+                              </div>
+                              <div>
+                                <label className="text-[10px] text-neutral-400">
+                                  Spread
+                                </label>
+                                <input
+                                  type="number"
+                                  min={-20}
+                                  max={40}
+                                  value={c.shadowSpread ?? 0}
+                                  onChange={(e) =>
+                                    upd({
+                                      shadowSpread: Number(e.target.value),
+                                    })
+                                  }
+                                  className="mt-0.5 w-full rounded border border-neutral-200 px-1.5 py-1 text-xs outline-none"
+                                />
+                              </div>
+                            </div>
+                            <input
+                              type="color"
+                              value={c.shadowColor ?? "#000000"}
+                              onChange={(e) =>
+                                upd({ shadowColor: e.target.value })
+                              }
+                              className="h-7 w-full cursor-pointer rounded border border-neutral-200"
+                            />
+                          </div>
+                        )}
+                      </div>
+                      <button
+                        onClick={() => imageInputRef.current?.click()}
+                        disabled={imageUploading}
+                        className="flex w-full items-center justify-center gap-1.5 rounded-lg border border-neutral-200 py-1.5 text-xs text-neutral-600 transition hover:bg-neutral-50 disabled:opacity-60"
+                      >
+                        {imageUploading ? (
+                          <Loader2 className="h-3 w-3 animate-spin" />
+                        ) : (
+                          <ImageIcon className="h-3 w-3" />
+                        )}
+                        Cambiar imagen
+                      </button>
+                    </>
+                  );
+                })()}
+
+              {/* ── PRODUCT image filters + visual props ── */}
+              {selectedItem.element_type === "product" &&
+                (() => {
+                  const c = selectedItem.content as ContentProduct;
+                  const upd = (patch: Partial<ContentProduct>) =>
+                    updateItemContent(selectedItem.id, { ...c, ...patch });
+                  return (
+                    <div className="space-y-2 border-t border-neutral-100 pt-2">
+                      <p className="text-[11px] font-semibold tracking-widest text-neutral-400 uppercase">
+                        Imagen
+                      </p>
+                      <div>
+                        <label className="mb-1 block text-[11px] font-medium text-neutral-500">
+                          Ajuste
+                        </label>
+                        <div className="flex gap-1.5">
+                          {(["cover", "contain"] as const).map((fit) => (
+                            <button
+                              key={fit}
+                              onClick={() => upd({ objectFit: fit })}
+                              className={`flex-1 rounded-lg border py-1.5 text-xs transition ${(c?.objectFit ?? "cover") === fit ? "border-[#0F3D3A] bg-[#0F3D3A] text-white" : "border-neutral-200 text-neutral-500"}`}
+                            >
+                              {fit === "cover" ? "Llenar" : "Contener"}
+                            </button>
+                          ))}
+                        </div>
                       </div>
                       <div>
-                        <label className="text-[11px] font-medium text-neutral-500">Tono: {c?.filterHue ?? 0}°</label>
-                        <input type="range" min={0} max={360} value={c?.filterHue ?? 0}
-                          onChange={(e) => upd({ filterHue: Number(e.target.value) })}
-                          className="mt-1 w-full" />
+                        <label className="text-[11px] font-medium text-neutral-500">
+                          Redondeo: {c?.borderRadius ?? 8}px
+                        </label>
+                        <input
+                          type="range"
+                          min={0}
+                          max={100}
+                          value={c?.borderRadius ?? 8}
+                          onChange={(e) =>
+                            upd({ borderRadius: Number(e.target.value) })
+                          }
+                          className="mt-1 w-full"
+                        />
+                      </div>
+                      <div>
+                        <label className="text-[11px] font-medium text-neutral-500">
+                          Opacidad: {Math.round((c?.opacity ?? 1) * 100)}%
+                        </label>
+                        <input
+                          type="range"
+                          min={0.05}
+                          max={1}
+                          step={0.05}
+                          value={c?.opacity ?? 1}
+                          onChange={(e) =>
+                            upd({ opacity: Number(e.target.value) })
+                          }
+                          className="mt-1 w-full"
+                        />
+                      </div>
+                      <p className="pt-1 text-[11px] font-semibold tracking-widest text-neutral-400 uppercase">
+                        Filtros
+                      </p>
+                      <div>
+                        <label className="text-[11px] font-medium text-neutral-500">
+                          Brillo: {c?.filterBrightness ?? 100}%
+                        </label>
+                        <input
+                          type="range"
+                          min={0}
+                          max={200}
+                          value={c?.filterBrightness ?? 100}
+                          onChange={(e) =>
+                            upd({ filterBrightness: Number(e.target.value) })
+                          }
+                          className="mt-1 w-full"
+                        />
+                      </div>
+                      <div>
+                        <label className="text-[11px] font-medium text-neutral-500">
+                          Contraste: {c?.filterContrast ?? 100}%
+                        </label>
+                        <input
+                          type="range"
+                          min={0}
+                          max={200}
+                          value={c?.filterContrast ?? 100}
+                          onChange={(e) =>
+                            upd({ filterContrast: Number(e.target.value) })
+                          }
+                          className="mt-1 w-full"
+                        />
+                      </div>
+                      <div>
+                        <label className="text-[11px] font-medium text-neutral-500">
+                          Saturación: {c?.filterSaturation ?? 100}%
+                        </label>
+                        <input
+                          type="range"
+                          min={0}
+                          max={200}
+                          value={c?.filterSaturation ?? 100}
+                          onChange={(e) =>
+                            upd({ filterSaturation: Number(e.target.value) })
+                          }
+                          className="mt-1 w-full"
+                        />
+                      </div>
+                      <div>
+                        <label className="text-[11px] font-medium text-neutral-500">
+                          Tono: {c?.filterHue ?? 0}°
+                        </label>
+                        <input
+                          type="range"
+                          min={0}
+                          max={360}
+                          value={c?.filterHue ?? 0}
+                          onChange={(e) =>
+                            upd({ filterHue: Number(e.target.value) })
+                          }
+                          className="mt-1 w-full"
+                        />
                       </div>
                       <div className="grid grid-cols-3 gap-1.5">
                         <div>
-                          <label className="text-[10px] text-neutral-400">Sepia: {c?.filterSepia ?? 0}%</label>
-                          <input type="range" min={0} max={100} value={c?.filterSepia ?? 0}
-                            onChange={(e) => upd({ filterSepia: Number(e.target.value) })}
-                            className="mt-1 w-full" />
+                          <label className="text-[10px] text-neutral-400">
+                            Sepia: {c?.filterSepia ?? 0}%
+                          </label>
+                          <input
+                            type="range"
+                            min={0}
+                            max={100}
+                            value={c?.filterSepia ?? 0}
+                            onChange={(e) =>
+                              upd({ filterSepia: Number(e.target.value) })
+                            }
+                            className="mt-1 w-full"
+                          />
                         </div>
                         <div>
-                          <label className="text-[10px] text-neutral-400">B&N: {c?.filterGrayscale ?? 0}%</label>
-                          <input type="range" min={0} max={100} value={c?.filterGrayscale ?? 0}
-                            onChange={(e) => upd({ filterGrayscale: Number(e.target.value) })}
-                            className="mt-1 w-full" />
+                          <label className="text-[10px] text-neutral-400">
+                            B&N: {c?.filterGrayscale ?? 0}%
+                          </label>
+                          <input
+                            type="range"
+                            min={0}
+                            max={100}
+                            value={c?.filterGrayscale ?? 0}
+                            onChange={(e) =>
+                              upd({ filterGrayscale: Number(e.target.value) })
+                            }
+                            className="mt-1 w-full"
+                          />
                         </div>
                         <div>
-                          <label className="text-[10px] text-neutral-400">Blur: {c?.filterBlur ?? 0}px</label>
-                          <input type="range" min={0} max={20} value={c?.filterBlur ?? 0}
-                            onChange={(e) => upd({ filterBlur: Number(e.target.value) })}
-                            className="mt-1 w-full" />
+                          <label className="text-[10px] text-neutral-400">
+                            Blur: {c?.filterBlur ?? 0}px
+                          </label>
+                          <input
+                            type="range"
+                            min={0}
+                            max={20}
+                            value={c?.filterBlur ?? 0}
+                            onChange={(e) =>
+                              upd({ filterBlur: Number(e.target.value) })
+                            }
+                            className="mt-1 w-full"
+                          />
                         </div>
                       </div>
                       <button
-                        onClick={() => upd({ filterBrightness: undefined, filterContrast: undefined, filterSaturation: undefined, filterHue: undefined, filterBlur: undefined, filterSepia: undefined, filterGrayscale: undefined })}
-                        className="w-full rounded-lg border border-neutral-200 py-1 text-[11px] text-neutral-500 transition hover:bg-neutral-50">
+                        onClick={() =>
+                          upd({
+                            filterBrightness: undefined,
+                            filterContrast: undefined,
+                            filterSaturation: undefined,
+                            filterHue: undefined,
+                            filterBlur: undefined,
+                            filterSepia: undefined,
+                            filterGrayscale: undefined,
+                          })
+                        }
+                        className="w-full rounded-lg border border-neutral-200 py-1 text-[11px] text-neutral-500 transition hover:bg-neutral-50"
+                      >
                         Restablecer filtros
                       </button>
                     </div>
-                    <div className="border-t border-neutral-100 pt-2">
-                      <label className="flex cursor-pointer items-center gap-2 text-xs font-medium text-neutral-600">
-                        <input type="checkbox" checked={c?.shadowEnabled ?? false}
-                          onChange={(e) => upd({ shadowEnabled: e.target.checked })} className="rounded" />
-                        Sombra
-                      </label>
-                      {c?.shadowEnabled && (
-                        <div className="mt-2 space-y-2">
-                          <div className="grid grid-cols-2 gap-1.5">
-                            <div>
-                              <label className="text-[10px] text-neutral-400">X</label>
-                              <input type="number" min={-40} max={40} value={c.shadowX ?? 4}
-                                onChange={(e) => upd({ shadowX: Number(e.target.value) })}
-                                className="mt-0.5 w-full rounded border border-neutral-200 px-1.5 py-1 text-xs outline-none" />
-                            </div>
-                            <div>
-                              <label className="text-[10px] text-neutral-400">Y</label>
-                              <input type="number" min={-40} max={40} value={c.shadowY ?? 4}
-                                onChange={(e) => upd({ shadowY: Number(e.target.value) })}
-                                className="mt-0.5 w-full rounded border border-neutral-200 px-1.5 py-1 text-xs outline-none" />
-                            </div>
-                            <div>
-                              <label className="text-[10px] text-neutral-400">Blur</label>
-                              <input type="number" min={0} max={80} value={c.shadowBlur ?? 8}
-                                onChange={(e) => upd({ shadowBlur: Number(e.target.value) })}
-                                className="mt-0.5 w-full rounded border border-neutral-200 px-1.5 py-1 text-xs outline-none" />
-                            </div>
-                            <div>
-                              <label className="text-[10px] text-neutral-400">Spread</label>
-                              <input type="number" min={-20} max={40} value={c.shadowSpread ?? 0}
-                                onChange={(e) => upd({ shadowSpread: Number(e.target.value) })}
-                                className="mt-0.5 w-full rounded border border-neutral-200 px-1.5 py-1 text-xs outline-none" />
-                            </div>
-                          </div>
-                          <input type="color" value={c.shadowColor ?? "#000000"}
-                            onChange={(e) => upd({ shadowColor: e.target.value })}
-                            className="h-7 w-full cursor-pointer rounded border border-neutral-200" />
-                        </div>
-                      )}
-                    </div>
-                    <button
-                      onClick={() => imageInputRef.current?.click()}
-                      disabled={imageUploading}
-                      className="flex w-full items-center justify-center gap-1.5 rounded-lg border border-neutral-200 py-1.5 text-xs text-neutral-600 transition hover:bg-neutral-50 disabled:opacity-60">
-                      {imageUploading ? <Loader2 className="h-3 w-3 animate-spin" /> : <ImageIcon className="h-3 w-3" />}
-                      Cambiar imagen
-                    </button>
-                  </>
-                );
-              })()}
-
-              {/* ── PRODUCT image filters + visual props ── */}
-              {selectedItem.element_type === "product" && (() => {
-                const c = selectedItem.content as ContentProduct;
-                const upd = (patch: Partial<ContentProduct>) => updateItemContent(selectedItem.id, { ...c, ...patch });
-                return (
-                  <div className="border-t border-neutral-100 pt-2 space-y-2">
-                    <p className="text-[11px] font-semibold uppercase tracking-widest text-neutral-400">Imagen</p>
-                    <div>
-                      <label className="mb-1 block text-[11px] font-medium text-neutral-500">Ajuste</label>
-                      <div className="flex gap-1.5">
-                        {(["cover","contain"] as const).map((fit) => (
-                          <button key={fit} onClick={() => upd({ objectFit: fit })}
-                            className={`flex-1 rounded-lg border py-1.5 text-xs transition ${(c?.objectFit ?? "cover") === fit ? "border-[#0F3D3A] bg-[#0F3D3A] text-white" : "border-neutral-200 text-neutral-500"}`}>
-                            {fit === "cover" ? "Llenar" : "Contener"}
-                          </button>
-                        ))}
-                      </div>
-                    </div>
-                    <div>
-                      <label className="text-[11px] font-medium text-neutral-500">Redondeo: {c?.borderRadius ?? 8}px</label>
-                      <input type="range" min={0} max={100} value={c?.borderRadius ?? 8}
-                        onChange={(e) => upd({ borderRadius: Number(e.target.value) })}
-                        className="mt-1 w-full" />
-                    </div>
-                    <div>
-                      <label className="text-[11px] font-medium text-neutral-500">Opacidad: {Math.round((c?.opacity ?? 1) * 100)}%</label>
-                      <input type="range" min={0.05} max={1} step={0.05} value={c?.opacity ?? 1}
-                        onChange={(e) => upd({ opacity: Number(e.target.value) })}
-                        className="mt-1 w-full" />
-                    </div>
-                    <p className="text-[11px] font-semibold uppercase tracking-widest text-neutral-400 pt-1">Filtros</p>
-                    <div>
-                      <label className="text-[11px] font-medium text-neutral-500">Brillo: {c?.filterBrightness ?? 100}%</label>
-                      <input type="range" min={0} max={200} value={c?.filterBrightness ?? 100}
-                        onChange={(e) => upd({ filterBrightness: Number(e.target.value) })}
-                        className="mt-1 w-full" />
-                    </div>
-                    <div>
-                      <label className="text-[11px] font-medium text-neutral-500">Contraste: {c?.filterContrast ?? 100}%</label>
-                      <input type="range" min={0} max={200} value={c?.filterContrast ?? 100}
-                        onChange={(e) => upd({ filterContrast: Number(e.target.value) })}
-                        className="mt-1 w-full" />
-                    </div>
-                    <div>
-                      <label className="text-[11px] font-medium text-neutral-500">Saturación: {c?.filterSaturation ?? 100}%</label>
-                      <input type="range" min={0} max={200} value={c?.filterSaturation ?? 100}
-                        onChange={(e) => upd({ filterSaturation: Number(e.target.value) })}
-                        className="mt-1 w-full" />
-                    </div>
-                    <div>
-                      <label className="text-[11px] font-medium text-neutral-500">Tono: {c?.filterHue ?? 0}°</label>
-                      <input type="range" min={0} max={360} value={c?.filterHue ?? 0}
-                        onChange={(e) => upd({ filterHue: Number(e.target.value) })}
-                        className="mt-1 w-full" />
-                    </div>
-                    <div className="grid grid-cols-3 gap-1.5">
-                      <div>
-                        <label className="text-[10px] text-neutral-400">Sepia: {c?.filterSepia ?? 0}%</label>
-                        <input type="range" min={0} max={100} value={c?.filterSepia ?? 0}
-                          onChange={(e) => upd({ filterSepia: Number(e.target.value) })}
-                          className="mt-1 w-full" />
-                      </div>
-                      <div>
-                        <label className="text-[10px] text-neutral-400">B&N: {c?.filterGrayscale ?? 0}%</label>
-                        <input type="range" min={0} max={100} value={c?.filterGrayscale ?? 0}
-                          onChange={(e) => upd({ filterGrayscale: Number(e.target.value) })}
-                          className="mt-1 w-full" />
-                      </div>
-                      <div>
-                        <label className="text-[10px] text-neutral-400">Blur: {c?.filterBlur ?? 0}px</label>
-                        <input type="range" min={0} max={20} value={c?.filterBlur ?? 0}
-                          onChange={(e) => upd({ filterBlur: Number(e.target.value) })}
-                          className="mt-1 w-full" />
-                      </div>
-                    </div>
-                    <button
-                      onClick={() => upd({ filterBrightness: undefined, filterContrast: undefined, filterSaturation: undefined, filterHue: undefined, filterBlur: undefined, filterSepia: undefined, filterGrayscale: undefined })}
-                      className="w-full rounded-lg border border-neutral-200 py-1 text-[11px] text-neutral-500 transition hover:bg-neutral-50">
-                      Restablecer filtros
-                    </button>
-                  </div>
-                );
-              })()}
+                  );
+                })()}
 
               {/* ── PRODUCT swap ── */}
               {selectedItem.element_type === "product" && (
                 <div className="space-y-2 border-t border-neutral-100 pt-3">
                   <div className="flex items-center justify-between">
-                    <p className="text-[11px] font-semibold uppercase tracking-widest text-neutral-400">Producto</p>
+                    <p className="text-[11px] font-semibold tracking-widest text-neutral-400 uppercase">
+                      Producto
+                    </p>
                     <button
                       onClick={() => setProductSwapOpen((o) => !o)}
                       className={`flex items-center gap-1 rounded-lg border px-2 py-1 text-[10px] font-medium transition ${productSwapOpen ? "border-[#0F3D3A] bg-[#0F3D3A] text-white" : "border-neutral-200 text-neutral-500 hover:bg-neutral-50"}`}
@@ -5334,43 +8064,65 @@ export default function CollectionEditorPage() {
                   {selectedItem.product_name ? (
                     <div className="flex items-center gap-2 rounded-lg bg-neutral-50 p-2">
                       {selectedItem.product_image && (
-                        <img src={selectedItem.product_image} alt="" className="h-9 w-9 shrink-0 rounded object-cover" />
+                        <img
+                          src={selectedItem.product_image}
+                          alt=""
+                          className="h-9 w-9 shrink-0 rounded object-cover"
+                        />
                       )}
                       <div className="min-w-0">
-                        <p className="truncate text-xs font-medium text-neutral-700">{selectedItem.product_name}</p>
-                        <p className="text-[11px] text-neutral-400">Q{Number(selectedItem.product_price ?? 0).toFixed(2)}</p>
+                        <p className="truncate text-xs font-medium text-neutral-700">
+                          {selectedItem.product_name}
+                        </p>
+                        <p className="text-[11px] text-neutral-400">
+                          Q{Number(selectedItem.product_price ?? 0).toFixed(2)}
+                        </p>
                       </div>
                     </div>
                   ) : (
-                    <p className="rounded-lg bg-neutral-50 p-2 text-center text-[11px] text-neutral-400">Sin producto asignado</p>
+                    <p className="rounded-lg bg-neutral-50 p-2 text-center text-[11px] text-neutral-400">
+                      Sin producto asignado
+                    </p>
                   )}
                   {productSwapOpen && (
                     <div className="space-y-1.5">
                       <div className="relative">
-                        <Search className="absolute left-2 top-1/2 h-3 w-3 -translate-y-1/2 text-neutral-400" />
+                        <Search className="absolute top-1/2 left-2 h-3 w-3 -translate-y-1/2 text-neutral-400" />
                         <input
                           type="text"
                           placeholder="Buscar producto…"
                           value={productSwapSearch}
                           onChange={(e) => setProductSwapSearch(e.target.value)}
-                          className="w-full rounded-lg border border-neutral-200 py-1.5 pl-6 pr-2 text-xs outline-none focus:border-[#0F3D3A]"
+                          className="w-full rounded-lg border border-neutral-200 py-1.5 pr-2 pl-6 text-xs outline-none focus:border-[#0F3D3A]"
                         />
                       </div>
                       <div className="max-h-44 space-y-0.5 overflow-y-auto">
                         {products
-                          .filter((p) => p.nombre.toLowerCase().includes(productSwapSearch.toLowerCase()))
+                          .filter((p) =>
+                            p.nombre
+                              .toLowerCase()
+                              .includes(productSwapSearch.toLowerCase()),
+                          )
                           .map((p) => (
                             <button
                               key={p.id}
-                              onClick={() => handleSwapProduct(selectedItem.id, p)}
+                              onClick={() =>
+                                handleSwapProduct(selectedItem.id, p)
+                              }
                               className={`flex w-full items-center gap-2 rounded-lg px-2 py-1.5 text-left transition hover:bg-neutral-50 ${selectedItem.product_id === p.id ? "bg-[#F3F7F6] ring-1 ring-[#0F3D3A]/20" : ""}`}
                             >
                               {p.imagen_url ? (
-                                <img src={p.imagen_url} alt="" className="h-8 w-8 shrink-0 rounded object-cover" />
+                                <img
+                                  src={p.imagen_url}
+                                  alt=""
+                                  className="h-8 w-8 shrink-0 rounded object-cover"
+                                />
                               ) : (
                                 <div className="h-8 w-8 shrink-0 rounded bg-neutral-200" />
                               )}
-                              <span className="truncate text-xs text-neutral-700">{p.nombre}</span>
+                              <span className="truncate text-xs text-neutral-700">
+                                {p.nombre}
+                              </span>
                             </button>
                           ))}
                       </div>
@@ -5381,40 +8133,63 @@ export default function CollectionEditorPage() {
 
               {/* ── SHARED: Rotation + Flip ── */}
               <div className="border-t border-neutral-100 pt-3">
-                <p className="mb-2 text-[11px] font-semibold uppercase tracking-widest text-neutral-400">Transformación</p>
+                <p className="mb-2 text-[11px] font-semibold tracking-widest text-neutral-400 uppercase">
+                  Transformación
+                </p>
                 <div>
                   <label className="text-[11px] font-medium text-neutral-500">
                     Ángulo: {(selectedItem.content as any)?.rotation ?? 0}°
                   </label>
-                  <input type="range" min={0} max={359}
+                  <input
+                    type="range"
+                    min={0}
+                    max={359}
                     value={(selectedItem.content as any)?.rotation ?? 0}
                     onChange={(e) => {
-                      const c = selectedItem.content as any ?? {};
-                      updateItemContent(selectedItem.id, { ...c, rotation: Number(e.target.value) });
+                      const c = (selectedItem.content as any) ?? {};
+                      updateItemContent(selectedItem.id, {
+                        ...c,
+                        rotation: Number(e.target.value),
+                      });
                     }}
-                    className="mt-1 w-full" />
+                    className="mt-1 w-full"
+                  />
                 </div>
                 <div className="mt-2">
-                  <label className="mb-1 block text-[11px] font-medium text-neutral-500">Voltear</label>
+                  <label className="mb-1 block text-[11px] font-medium text-neutral-500">
+                    Voltear
+                  </label>
                   <div className="flex gap-1.5">
                     <button
                       onClick={() => {
-                        const c = selectedItem.content as any ?? {};
-                        updateItemContent(selectedItem.id, { ...c, flipX: !(c.flipX ?? false) });
+                        const c = (selectedItem.content as any) ?? {};
+                        updateItemContent(selectedItem.id, {
+                          ...c,
+                          flipX: !(c.flipX ?? false),
+                        });
                       }}
                       className={`flex flex-1 items-center justify-center gap-1 rounded-lg border py-1.5 text-xs transition ${
-                        (selectedItem.content as any)?.flipX ? "border-[#0F3D3A] bg-[#0F3D3A] text-white" : "border-neutral-200 text-neutral-500 hover:bg-neutral-50"
-                      }`}>
+                        (selectedItem.content as any)?.flipX
+                          ? "border-[#0F3D3A] bg-[#0F3D3A] text-white"
+                          : "border-neutral-200 text-neutral-500 hover:bg-neutral-50"
+                      }`}
+                    >
                       <FlipHorizontal className="h-3 w-3" /> Horiz.
                     </button>
                     <button
                       onClick={() => {
-                        const c = selectedItem.content as any ?? {};
-                        updateItemContent(selectedItem.id, { ...c, flipY: !(c.flipY ?? false) });
+                        const c = (selectedItem.content as any) ?? {};
+                        updateItemContent(selectedItem.id, {
+                          ...c,
+                          flipY: !(c.flipY ?? false),
+                        });
                       }}
                       className={`flex flex-1 items-center justify-center gap-1 rounded-lg border py-1.5 text-xs transition ${
-                        (selectedItem.content as any)?.flipY ? "border-[#0F3D3A] bg-[#0F3D3A] text-white" : "border-neutral-200 text-neutral-500 hover:bg-neutral-50"
-                      }`}>
+                        (selectedItem.content as any)?.flipY
+                          ? "border-[#0F3D3A] bg-[#0F3D3A] text-white"
+                          : "border-neutral-200 text-neutral-500 hover:bg-neutral-50"
+                      }`}
+                    >
                       <FlipVertical className="h-3 w-3" /> Vert.
                     </button>
                   </div>
@@ -5423,18 +8198,48 @@ export default function CollectionEditorPage() {
 
               {/* ── SHARED: Alignment ── */}
               <div className="border-t border-neutral-100 pt-3">
-                <p className="mb-2 text-[11px] font-semibold uppercase tracking-widest text-neutral-400">Alinear al canvas</p>
+                <p className="mb-2 text-[11px] font-semibold tracking-widest text-neutral-400 uppercase">
+                  Alinear al canvas
+                </p>
                 <div className="grid grid-cols-3 gap-1">
-                  {([
-                    { dir: "left"     as AlignDir, Icon: AlignHorizontalJustifyStart,  title: "Izquierda" },
-                    { dir: "center-h" as AlignDir, Icon: AlignHorizontalJustifyCenter, title: "Centro H" },
-                    { dir: "right"    as AlignDir, Icon: AlignHorizontalJustifyEnd,    title: "Derecha" },
-                    { dir: "top"      as AlignDir, Icon: AlignVerticalJustifyStart,    title: "Arriba" },
-                    { dir: "center-v" as AlignDir, Icon: AlignVerticalJustifyCenter,   title: "Centro V" },
-                    { dir: "bottom"   as AlignDir, Icon: AlignVerticalJustifyEnd,      title: "Abajo" },
-                  ]).map(({ dir, Icon, title }) => (
-                    <button key={dir} onClick={() => alignItem(selectedItem.id, dir)} title={title}
-                      className="flex items-center justify-center rounded-lg border border-neutral-200 py-1.5 text-neutral-500 transition hover:bg-neutral-50 hover:text-[#0F3D3A]">
+                  {[
+                    {
+                      dir: "left" as AlignDir,
+                      Icon: AlignHorizontalJustifyStart,
+                      title: "Izquierda",
+                    },
+                    {
+                      dir: "center-h" as AlignDir,
+                      Icon: AlignHorizontalJustifyCenter,
+                      title: "Centro H",
+                    },
+                    {
+                      dir: "right" as AlignDir,
+                      Icon: AlignHorizontalJustifyEnd,
+                      title: "Derecha",
+                    },
+                    {
+                      dir: "top" as AlignDir,
+                      Icon: AlignVerticalJustifyStart,
+                      title: "Arriba",
+                    },
+                    {
+                      dir: "center-v" as AlignDir,
+                      Icon: AlignVerticalJustifyCenter,
+                      title: "Centro V",
+                    },
+                    {
+                      dir: "bottom" as AlignDir,
+                      Icon: AlignVerticalJustifyEnd,
+                      title: "Abajo",
+                    },
+                  ].map(({ dir, Icon, title }) => (
+                    <button
+                      key={dir}
+                      onClick={() => alignItem(selectedItem.id, dir)}
+                      title={title}
+                      className="flex items-center justify-center rounded-lg border border-neutral-200 py-1.5 text-neutral-500 transition hover:bg-neutral-50 hover:text-[#0F3D3A]"
+                    >
                       <Icon className="h-3.5 w-3.5" />
                     </button>
                   ))}
@@ -5443,84 +8248,140 @@ export default function CollectionEditorPage() {
 
               {/* ── SHARED: Layer order + Duplicate + Lock ── */}
               <div className="border-t border-neutral-100 pt-3">
-                <p className="mb-2 text-[11px] font-semibold uppercase tracking-widest text-neutral-400">Capas</p>
+                <p className="mb-2 text-[11px] font-semibold tracking-widest text-neutral-400 uppercase">
+                  Capas
+                </p>
                 <div className="flex gap-1.5">
-                  <button onClick={() => handleMoveLayer(selectedItem.id, "forward")}
-                    className="flex flex-1 items-center justify-center gap-1 rounded-lg border border-neutral-200 py-1.5 text-xs text-neutral-600 transition hover:bg-neutral-50">
+                  <button
+                    onClick={() => handleMoveLayer(selectedItem.id, "forward")}
+                    className="flex flex-1 items-center justify-center gap-1 rounded-lg border border-neutral-200 py-1.5 text-xs text-neutral-600 transition hover:bg-neutral-50"
+                  >
                     <ChevronUp className="h-3 w-3" /> Subir capa
                   </button>
-                  <button onClick={() => handleMoveLayer(selectedItem.id, "backward")}
-                    className="flex flex-1 items-center justify-center gap-1 rounded-lg border border-neutral-200 py-1.5 text-xs text-neutral-600 transition hover:bg-neutral-50">
+                  <button
+                    onClick={() => handleMoveLayer(selectedItem.id, "backward")}
+                    className="flex flex-1 items-center justify-center gap-1 rounded-lg border border-neutral-200 py-1.5 text-xs text-neutral-600 transition hover:bg-neutral-50"
+                  >
                     <ChevronDown className="h-3 w-3" /> Bajar capa
                   </button>
                 </div>
                 <div className="mt-1.5 flex gap-1.5">
-                  <button onClick={() => handleDuplicate(selectedItem.id)}
-                    className="flex flex-1 items-center justify-center gap-1.5 rounded-lg border border-neutral-200 py-1.5 text-xs text-neutral-600 transition hover:bg-neutral-50">
+                  <button
+                    onClick={() => handleDuplicate(selectedItem.id)}
+                    className="flex flex-1 items-center justify-center gap-1.5 rounded-lg border border-neutral-200 py-1.5 text-xs text-neutral-600 transition hover:bg-neutral-50"
+                  >
                     <Copy className="h-3 w-3" /> Duplicar
                   </button>
                   <button
-                    onClick={() => setLockedItemIds((prev) => {
-                      const next = new Set(prev);
-                      if (next.has(selectedItem.id)) next.delete(selectedItem.id);
-                      else next.add(selectedItem.id);
-                      return next;
-                    })}
-                    title={lockedItemIds.has(selectedItem.id) ? "Desbloquear" : "Bloquear"}
+                    onClick={() =>
+                      setLockedItemIds((prev) => {
+                        const next = new Set(prev);
+                        if (next.has(selectedItem.id))
+                          next.delete(selectedItem.id);
+                        else next.add(selectedItem.id);
+                        return next;
+                      })
+                    }
+                    title={
+                      lockedItemIds.has(selectedItem.id)
+                        ? "Desbloquear"
+                        : "Bloquear"
+                    }
                     className={`flex flex-1 items-center justify-center gap-1.5 rounded-lg border py-1.5 text-xs transition ${
                       lockedItemIds.has(selectedItem.id)
                         ? "border-amber-400 bg-amber-50 text-amber-700 hover:bg-amber-100"
                         : "border-neutral-200 text-neutral-600 hover:bg-neutral-50"
-                    }`}>
-                    {lockedItemIds.has(selectedItem.id) ? <Lock className="h-3 w-3" /> : <Unlock className="h-3 w-3" />}
-                    {lockedItemIds.has(selectedItem.id) ? "Bloqueado" : "Bloquear"}
+                    }`}
+                  >
+                    {lockedItemIds.has(selectedItem.id) ? (
+                      <Lock className="h-3 w-3" />
+                    ) : (
+                      <Unlock className="h-3 w-3" />
+                    )}
+                    {lockedItemIds.has(selectedItem.id)
+                      ? "Bloqueado"
+                      : "Bloquear"}
                   </button>
                 </div>
               </div>
 
               {/* ── SHARED: Animations ── */}
               <div className="border-t border-neutral-100 pt-3">
-                <p className="mb-2 text-[11px] font-semibold uppercase tracking-widest text-neutral-400">Animación</p>
+                <p className="mb-2 text-[11px] font-semibold tracking-widest text-neutral-400 uppercase">
+                  Animación
+                </p>
                 <div>
-                  <label className="text-[11px] font-medium text-neutral-500">Entrada</label>
-                  <select value={(selectedItem.content as any)?.animation ?? "none"}
+                  <label className="text-[11px] font-medium text-neutral-500">
+                    Entrada
+                  </label>
+                  <select
+                    value={(selectedItem.content as any)?.animation ?? "none"}
                     onChange={(e) => {
-                      const c = selectedItem.content as any ?? {};
-                      updateItemContent(selectedItem.id, { ...c, animation: e.target.value });
+                      const c = (selectedItem.content as any) ?? {};
+                      updateItemContent(selectedItem.id, {
+                        ...c,
+                        animation: e.target.value,
+                      });
                     }}
-                    className="mt-1 w-full rounded-lg border border-neutral-200 px-2 py-1.5 text-xs outline-none focus:border-[#0F3D3A]">
-                    {ENTRANCE_ANIMS.map((a) => <option key={a.value} value={a.value}>{a.label}</option>)}
+                    className="mt-1 w-full rounded-lg border border-neutral-200 px-2 py-1.5 text-xs outline-none focus:border-[#0F3D3A]"
+                  >
+                    {ENTRANCE_ANIMS.map((a) => (
+                      <option key={a.value} value={a.value}>
+                        {a.label}
+                      </option>
+                    ))}
                   </select>
                 </div>
                 <div className="mt-2">
-                  <label className="text-[11px] font-medium text-neutral-500">Movimiento continuo</label>
-                  <select value={(selectedItem.content as any)?.motion ?? "none"}
+                  <label className="text-[11px] font-medium text-neutral-500">
+                    Movimiento continuo
+                  </label>
+                  <select
+                    value={(selectedItem.content as any)?.motion ?? "none"}
                     onChange={(e) => {
-                      const c = selectedItem.content as any ?? {};
-                      updateItemContent(selectedItem.id, { ...c, motion: e.target.value });
+                      const c = (selectedItem.content as any) ?? {};
+                      updateItemContent(selectedItem.id, {
+                        ...c,
+                        motion: e.target.value,
+                      });
                     }}
-                    className="mt-1 w-full rounded-lg border border-neutral-200 px-2 py-1.5 text-xs outline-none focus:border-[#0F3D3A]">
-                    {MOTION_ANIMS.map((a) => <option key={a.value} value={a.value}>{a.label}</option>)}
+                    className="mt-1 w-full rounded-lg border border-neutral-200 px-2 py-1.5 text-xs outline-none focus:border-[#0F3D3A]"
+                  >
+                    {MOTION_ANIMS.map((a) => (
+                      <option key={a.value} value={a.value}>
+                        {a.label}
+                      </option>
+                    ))}
                   </select>
                 </div>
               </div>
-
             </div>
           )}
         </aside>
 
-        <Dialog open={Boolean(mobileEditingTextItem)} onOpenChange={handleMobileTextEditorOpenChange}>
-          <DialogContent className="max-w-[calc(100%-1.5rem)] rounded-[24px] p-0 sm:max-w-lg" showCloseButton={false}>
+        <Dialog
+          open={Boolean(mobileEditingTextItem)}
+          onOpenChange={handleMobileTextEditorOpenChange}
+        >
+          <DialogContent
+            className="max-w-[calc(100%-1.5rem)] rounded-[24px] p-0 sm:max-w-lg"
+            showCloseButton={false}
+          >
             <div className="overflow-hidden rounded-[24px]">
               <DialogHeader className="border-b border-neutral-100 px-4 py-4 text-left">
-                <DialogTitle className="text-base text-neutral-900">Editar texto</DialogTitle>
+                <DialogTitle className="text-base text-neutral-900">
+                  Editar texto
+                </DialogTitle>
                 <DialogDescription className="text-xs leading-relaxed text-neutral-500">
-                  Escribe con comodidad en esta caja y confirma cuando quieras ver el resultado final en el canvas.
+                  Escribe con comodidad en esta caja y confirma cuando quieras
+                  ver el resultado final en el canvas.
                 </DialogDescription>
               </DialogHeader>
 
               <div className="px-4 py-4">
-                <label className="mb-1 block text-[11px] font-medium text-neutral-500">Contenido</label>
+                <label className="mb-1 block text-[11px] font-medium text-neutral-500">
+                  Contenido
+                </label>
                 <textarea
                   autoFocus
                   value={mobileTextEditorDraft}
@@ -5622,13 +8483,19 @@ export default function CollectionEditorPage() {
           <div className="w-full max-w-md rounded-2xl bg-white p-6 shadow-2xl">
             <div className="flex items-start justify-between gap-3">
               <div>
-                <h2 className="text-lg font-bold text-neutral-900">Guardar como plantilla</h2>
+                <h2 className="text-lg font-bold text-neutral-900">
+                  Guardar como plantilla
+                </h2>
                 <p className="mt-1 text-sm text-neutral-500">
-                  Guarda el canvas actual para reutilizarlo luego desde el editor.
+                  Guarda el canvas actual para reutilizarlo luego desde el
+                  editor.
                 </p>
               </div>
               <button
-                onClick={() => { setShowTemplateModal(false); setTemplateError(null); }}
+                onClick={() => {
+                  setShowTemplateModal(false);
+                  setTemplateError(null);
+                }}
                 className="rounded-lg border border-neutral-200 p-2 text-neutral-500 transition hover:bg-neutral-50"
               >
                 <X className="h-4 w-4" />
@@ -5637,29 +8504,48 @@ export default function CollectionEditorPage() {
 
             <div className="mt-5 space-y-4">
               <div>
-                <label className="mb-1 block text-sm font-medium text-neutral-700">Nombre</label>
+                <label className="mb-1 block text-sm font-medium text-neutral-700">
+                  Nombre
+                </label>
                 <input
-                  autoFocus type="text" maxLength={120} value={templateName}
+                  autoFocus
+                  type="text"
+                  maxLength={120}
+                  value={templateName}
                   onChange={(e) => setTemplateName(e.target.value)}
                   className="w-full rounded-xl border border-neutral-300 px-3 py-2.5 text-sm outline-none focus:border-[#0F3D3A] focus:ring-2 focus:ring-[#0F3D3A]/20"
                   placeholder="Ej. Plantilla catálogo artesanal"
                 />
               </div>
               <label className="flex items-start gap-3 rounded-xl border border-neutral-200 p-3 text-sm text-neutral-600">
-                <input type="checkbox" checked={templateIsPublic} onChange={(e) => setTemplateIsPublic(e.target.checked)} className="mt-0.5 rounded" />
-                <span>Hacer pública esta plantilla para que aparezca en la galería reutilizable.</span>
+                <input
+                  type="checkbox"
+                  checked={templateIsPublic}
+                  onChange={(e) => setTemplateIsPublic(e.target.checked)}
+                  className="mt-0.5 rounded"
+                />
+                <span>
+                  Hacer pública esta plantilla para que aparezca en la galería
+                  reutilizable.
+                </span>
               </label>
               <div className="rounded-xl bg-neutral-50 p-3 text-xs text-neutral-500">
-                Snapshot actual: {items.length} elementos, canvas {collection.canvas_width} × {collection.canvas_height}.
+                Snapshot actual: {items.length} elementos, canvas{" "}
+                {collection.canvas_width} × {collection.canvas_height}.
               </div>
               {templateError && (
-                <div className="rounded-xl border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-700">{templateError}</div>
+                <div className="rounded-xl border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-700">
+                  {templateError}
+                </div>
               )}
             </div>
 
             <div className="mt-6 flex gap-3">
               <button
-                onClick={() => { setShowTemplateModal(false); setTemplateError(null); }}
+                onClick={() => {
+                  setShowTemplateModal(false);
+                  setTemplateError(null);
+                }}
                 className="flex-1 rounded-xl border border-neutral-200 py-2.5 text-sm font-medium text-neutral-600 transition hover:bg-neutral-50"
               >
                 Cancelar
@@ -5678,69 +8564,128 @@ export default function CollectionEditorPage() {
 
       {aiModalOpen && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4">
-          <div className="flex w-full max-w-xl flex-col rounded-2xl bg-white shadow-2xl" style={{ maxHeight: "90vh" }}>
-
+          <div
+            className="flex w-full max-w-xl flex-col rounded-2xl bg-white shadow-2xl"
+            style={{ maxHeight: "90vh" }}
+          >
             <div className="flex items-center justify-between gap-3 border-b border-neutral-100 px-6 py-4">
               <div className="flex items-center gap-2.5">
                 <Sparkles className="h-5 w-5 text-[var(--seller-accent)]" />
                 <div>
-                  <p className="text-base font-bold text-neutral-900 leading-none">Generar canvas con IA</p>
-                  <p className="mt-0.5 text-[11px] text-neutral-400">Paso {aiStep} de 3</p>
+                  <p className="text-base leading-none font-bold text-neutral-900">
+                    Generar canvas con IA
+                  </p>
+                  <p className="mt-0.5 text-[11px] text-neutral-400">
+                    Paso {aiStep} de 3
+                  </p>
                 </div>
               </div>
-              <button onClick={() => setAiModalOpen(false)} className="rounded-lg border border-neutral-200 p-1.5 text-neutral-400 transition hover:bg-neutral-50">
+              <button
+                onClick={() => setAiModalOpen(false)}
+                className="rounded-lg border border-neutral-200 p-1.5 text-neutral-400 transition hover:bg-neutral-50"
+              >
                 <X className="h-4 w-4" />
               </button>
             </div>
 
             <div className="flex gap-1 px-6 pt-4">
               {([1, 2, 3] as const).map((s) => (
-                <div key={s} className={`h-1 flex-1 rounded-full transition-colors ${aiStep >= s ? "bg-[var(--seller-accent)]" : "bg-neutral-100"}`} />
+                <div
+                  key={s}
+                  className={`h-1 flex-1 rounded-full transition-colors ${aiStep >= s ? "bg-[var(--seller-accent)]" : "bg-neutral-100"}`}
+                />
               ))}
             </div>
 
-            <div className="flex-1 overflow-y-auto px-6 py-5 space-y-5">
+            <div className="flex-1 space-y-5 overflow-y-auto px-6 py-5">
               {aiStep === 1 && (
                 <>
                   <div>
-                    <p className="text-sm font-semibold text-neutral-800">Productos a mostrar</p>
-                    <p className="mt-0.5 text-xs text-neutral-500">Selecciona cuáles incluir. Se pre-seleccionaron los que ya están en el canvas.</p>
+                    <p className="text-sm font-semibold text-neutral-800">
+                      Productos a mostrar
+                    </p>
+                    <p className="mt-0.5 text-xs text-neutral-500">
+                      Selecciona cuáles incluir. Se pre-seleccionaron los que ya
+                      están en el canvas.
+                    </p>
                   </div>
                   <div>
                     <div className="mb-2 flex items-center justify-between">
-                      <label className="text-xs font-medium text-neutral-600">¿Cuántos productos mostrar?</label>
-                      <span className="text-sm font-bold text-[var(--seller-accent)]">{aiProductCount}</span>
+                      <label className="text-xs font-medium text-neutral-600">
+                        ¿Cuántos productos mostrar?
+                      </label>
+                      <span className="text-sm font-bold text-[var(--seller-accent)]">
+                        {aiProductCount}
+                      </span>
                     </div>
-                    <input type="range" min={1} max={Math.min(6, aiSelectedProductIds.size || 6)} value={aiProductCount}
-                      onChange={(e) => setAiProductCount(Number(e.target.value))} className="w-full accent-[var(--seller-accent)]" />
+                    <input
+                      type="range"
+                      min={1}
+                      max={Math.min(6, aiSelectedProductIds.size || 6)}
+                      value={aiProductCount}
+                      onChange={(e) =>
+                        setAiProductCount(Number(e.target.value))
+                      }
+                      className="w-full accent-[var(--seller-accent)]"
+                    />
                     <div className="mt-1 flex justify-between text-[10px] text-neutral-400">
-                      <span>1</span><span>Recomendado: 2–4</span><span>6</span>
+                      <span>1</span>
+                      <span>Recomendado: 2–4</span>
+                      <span>6</span>
                     </div>
                   </div>
                   <div>
                     <div className="mb-2 flex items-center justify-between">
-                      <label className="text-xs font-medium text-neutral-600">Productos disponibles ({products.length})</label>
-                      <span className="text-xs text-neutral-400">{aiSelectedProductIds.size} seleccionados</span>
+                      <label className="text-xs font-medium text-neutral-600">
+                        Productos disponibles ({products.length})
+                      </label>
+                      <span className="text-xs text-neutral-400">
+                        {aiSelectedProductIds.size} seleccionados
+                      </span>
                     </div>
                     {products.length === 0 ? (
-                      <p className="rounded-xl border border-neutral-100 bg-neutral-50 px-4 py-6 text-center text-sm text-neutral-400">No tienes productos activos.</p>
+                      <p className="rounded-xl border border-neutral-100 bg-neutral-50 px-4 py-6 text-center text-sm text-neutral-400">
+                        No tienes productos activos.
+                      </p>
                     ) : (
                       <div className="grid grid-cols-3 gap-2 sm:grid-cols-4">
                         {products.map((p) => {
                           const selected = aiSelectedProductIds.has(p.id);
                           return (
-                            <button key={p.id}
-                              onClick={() => setAiSelectedProductIds((prev) => { const n = new Set(prev); selected ? n.delete(p.id) : n.add(p.id); return n; })}
-                              className={`relative overflow-hidden rounded-xl border-2 text-left transition ${selected ? "border-[var(--seller-accent)]" : "border-neutral-100 hover:border-neutral-200"}`}>
+                            <button
+                              key={p.id}
+                              onClick={() =>
+                                setAiSelectedProductIds((prev) => {
+                                  const n = new Set(prev);
+                                  selected ? n.delete(p.id) : n.add(p.id);
+                                  return n;
+                                })
+                              }
+                              className={`relative overflow-hidden rounded-xl border-2 text-left transition ${selected ? "border-[var(--seller-accent)]" : "border-neutral-100 hover:border-neutral-200"}`}
+                            >
                               <div className="aspect-square w-full overflow-hidden bg-neutral-50">
-                                {p.imagen_url ? <img src={p.imagen_url} alt={p.nombre} className="h-full w-full object-cover" /> : <div className="flex h-full w-full items-center justify-center text-neutral-200 text-2xl">·</div>}
+                                {p.imagen_url ? (
+                                  <img
+                                    src={p.imagen_url}
+                                    alt={p.nombre}
+                                    className="h-full w-full object-cover"
+                                  />
+                                ) : (
+                                  <div className="flex h-full w-full items-center justify-center text-2xl text-neutral-200">
+                                    ·
+                                  </div>
+                                )}
                               </div>
                               <div className="p-1.5">
-                                <p className="truncate text-[10px] font-medium text-neutral-700">{p.nombre}</p>
-                                <p className="text-[10px] text-neutral-400">Q{Number(p.precio).toFixed(0)}</p>
+                                <p className="truncate text-[10px] font-medium text-neutral-700">
+                                  {p.nombre}
+                                </p>
+                                <p className="text-[10px] text-neutral-400">
+                                  Q{Number(p.precio).toFixed(0)}
+                                </p>
                               </div>
                               {selected && (
-                                <div className="absolute right-1.5 top-1.5 flex h-4 w-4 items-center justify-center rounded-full bg-[var(--seller-accent)]">
+                                <div className="absolute top-1.5 right-1.5 flex h-4 w-4 items-center justify-center rounded-full bg-[var(--seller-accent)]">
                                   <Check className="h-2.5 w-2.5 text-white" />
                                 </div>
                               )}
@@ -5756,32 +8701,75 @@ export default function CollectionEditorPage() {
               {aiStep === 2 && (
                 <>
                   <div>
-                    <p className="text-sm font-semibold text-neutral-800">Contenido del canvas</p>
-                    <p className="mt-0.5 text-xs text-neutral-500">La IA usará esta información para escribir textos y componer el diseño.</p>
+                    <p className="text-sm font-semibold text-neutral-800">
+                      Contenido del canvas
+                    </p>
+                    <p className="mt-0.5 text-xs text-neutral-500">
+                      La IA usará esta información para escribir textos y
+                      componer el diseño.
+                    </p>
                   </div>
                   <div>
-                    <label className="mb-1 block text-xs font-medium text-neutral-600">Título de la colección</label>
-                    <input type="text" maxLength={80} value={aiTitle} onChange={(e) => setAiTitle(e.target.value)}
+                    <label className="mb-1 block text-xs font-medium text-neutral-600">
+                      Título de la colección
+                    </label>
+                    <input
+                      type="text"
+                      maxLength={80}
+                      value={aiTitle}
+                      onChange={(e) => setAiTitle(e.target.value)}
                       placeholder="Ej. Colección Verano 2025"
-                      className="w-full rounded-xl border border-neutral-300 px-3 py-2.5 text-sm outline-none focus:border-[#0F3D3A] focus:ring-2 focus:ring-[#0F3D3A]/20" />
+                      className="w-full rounded-xl border border-neutral-300 px-3 py-2.5 text-sm outline-none focus:border-[#0F3D3A] focus:ring-2 focus:ring-[#0F3D3A]/20"
+                    />
                   </div>
                   <div>
-                    <label className="mb-1 block text-xs font-medium text-neutral-600">Tagline / slogan <span className="font-normal text-neutral-400">(opcional)</span></label>
-                    <input type="text" maxLength={100} value={aiTagline} onChange={(e) => setAiTagline(e.target.value)}
+                    <label className="mb-1 block text-xs font-medium text-neutral-600">
+                      Tagline / slogan{" "}
+                      <span className="font-normal text-neutral-400">
+                        (opcional)
+                      </span>
+                    </label>
+                    <input
+                      type="text"
+                      maxLength={100}
+                      value={aiTagline}
+                      onChange={(e) => setAiTagline(e.target.value)}
                       placeholder="Ej. Piezas frescas para la nueva temporada"
-                      className="w-full rounded-xl border border-neutral-300 px-3 py-2.5 text-sm outline-none focus:border-[#0F3D3A] focus:ring-2 focus:ring-[#0F3D3A]/20" />
+                      className="w-full rounded-xl border border-neutral-300 px-3 py-2.5 text-sm outline-none focus:border-[#0F3D3A] focus:ring-2 focus:ring-[#0F3D3A]/20"
+                    />
                   </div>
                   <div>
-                    <label className="mb-1 block text-xs font-medium text-neutral-600">Descripción creativa <span className="font-normal text-neutral-400">(mood, contexto, audiencia)</span></label>
-                    <textarea autoFocus rows={3} maxLength={500} value={aiPrompt} onChange={(e) => setAiPrompt(e.target.value)}
+                    <label className="mb-1 block text-xs font-medium text-neutral-600">
+                      Descripción creativa{" "}
+                      <span className="font-normal text-neutral-400">
+                        (mood, contexto, audiencia)
+                      </span>
+                    </label>
+                    <textarea
+                      autoFocus
+                      rows={3}
+                      maxLength={500}
+                      value={aiPrompt}
+                      onChange={(e) => setAiPrompt(e.target.value)}
                       placeholder="Ej. Colección playera con colores vibrantes para mujeres jóvenes, ambiente tropical, fresco y alegre"
-                      className="w-full resize-none rounded-xl border border-neutral-300 px-3 py-2.5 text-sm outline-none focus:border-[#0F3D3A] focus:ring-2 focus:ring-[#0F3D3A]/20" />
+                      className="w-full resize-none rounded-xl border border-neutral-300 px-3 py-2.5 text-sm outline-none focus:border-[#0F3D3A] focus:ring-2 focus:ring-[#0F3D3A]/20"
+                    />
                   </div>
                   <div>
-                    <label className="mb-1 block text-xs font-medium text-neutral-600">Llamada a la acción <span className="font-normal text-neutral-400">(opcional)</span></label>
-                    <input type="text" maxLength={60} value={aiCta} onChange={(e) => setAiCta(e.target.value)}
+                    <label className="mb-1 block text-xs font-medium text-neutral-600">
+                      Llamada a la acción{" "}
+                      <span className="font-normal text-neutral-400">
+                        (opcional)
+                      </span>
+                    </label>
+                    <input
+                      type="text"
+                      maxLength={60}
+                      value={aiCta}
+                      onChange={(e) => setAiCta(e.target.value)}
                       placeholder="Ej. Ver colección · Disponible ahora · Compra aquí"
-                      className="w-full rounded-xl border border-neutral-300 px-3 py-2.5 text-sm outline-none focus:border-[#0F3D3A] focus:ring-2 focus:ring-[#0F3D3A]/20" />
+                      className="w-full rounded-xl border border-neutral-300 px-3 py-2.5 text-sm outline-none focus:border-[#0F3D3A] focus:ring-2 focus:ring-[#0F3D3A]/20"
+                    />
                   </div>
                 </>
               )}
@@ -5789,82 +8777,188 @@ export default function CollectionEditorPage() {
               {aiStep === 3 && (
                 <>
                   <div>
-                    <p className="text-sm font-semibold text-neutral-800">Estilo visual</p>
-                    <p className="mt-0.5 text-xs text-neutral-500">Define la estética, paleta y estructura del canvas.</p>
+                    <p className="text-sm font-semibold text-neutral-800">
+                      Estilo visual
+                    </p>
+                    <p className="mt-0.5 text-xs text-neutral-500">
+                      Define la estética, paleta y estructura del canvas.
+                    </p>
                   </div>
                   <div>
-                    <label className="mb-2 block text-xs font-medium text-neutral-600">Estética</label>
+                    <label className="mb-2 block text-xs font-medium text-neutral-600">
+                      Estética
+                    </label>
                     <div className="grid grid-cols-3 gap-2">
-                      {([
-                        { id: "minimal",   label: "Minimal",   desc: "Limpio y moderno" },
-                        { id: "bold",      label: "Bold",      desc: "Fuerte e impactante" },
-                        { id: "editorial", label: "Editorial", desc: "Elegante y magazine" },
-                        { id: "playful",   label: "Playful",   desc: "Vibrante y divertido" },
-                        { id: "luxury",    label: "Luxury",    desc: "Premium y exclusivo" },
-                        { id: "artisanal", label: "Artesanal", desc: "Natural y orgánico" },
-                      ] as const).map((s) => (
-                        <button key={s.id} onClick={() => setAiStyle(s.id)}
-                          className={`flex flex-col items-center rounded-xl border-2 px-2 py-3 text-center transition ${aiStyle === s.id ? "border-[var(--seller-accent)] bg-[color:color-mix(in_srgb,var(--seller-accent)_8%,white)]" : "border-neutral-200 hover:border-neutral-300"}`}>
-                          <span className={`text-xs font-semibold ${aiStyle === s.id ? "text-[var(--seller-accent)]" : "text-neutral-800"}`}>{s.label}</span>
-                          <span className="mt-0.5 text-[10px] text-neutral-400">{s.desc}</span>
+                      {(
+                        [
+                          {
+                            id: "minimal",
+                            label: "Minimal",
+                            desc: "Limpio y moderno",
+                          },
+                          {
+                            id: "bold",
+                            label: "Bold",
+                            desc: "Fuerte e impactante",
+                          },
+                          {
+                            id: "editorial",
+                            label: "Editorial",
+                            desc: "Elegante y magazine",
+                          },
+                          {
+                            id: "playful",
+                            label: "Playful",
+                            desc: "Vibrante y divertido",
+                          },
+                          {
+                            id: "luxury",
+                            label: "Luxury",
+                            desc: "Premium y exclusivo",
+                          },
+                          {
+                            id: "artisanal",
+                            label: "Artesanal",
+                            desc: "Natural y orgánico",
+                          },
+                        ] as const
+                      ).map((s) => (
+                        <button
+                          key={s.id}
+                          onClick={() => setAiStyle(s.id)}
+                          className={`flex flex-col items-center rounded-xl border-2 px-2 py-3 text-center transition ${aiStyle === s.id ? "border-[var(--seller-accent)] bg-[color:color-mix(in_srgb,var(--seller-accent)_8%,white)]" : "border-neutral-200 hover:border-neutral-300"}`}
+                        >
+                          <span
+                            className={`text-xs font-semibold ${aiStyle === s.id ? "text-[var(--seller-accent)]" : "text-neutral-800"}`}
+                          >
+                            {s.label}
+                          </span>
+                          <span className="mt-0.5 text-[10px] text-neutral-400">
+                            {s.desc}
+                          </span>
                         </button>
                       ))}
                     </div>
                   </div>
                   <div>
-                    <label className="mb-2 block text-xs font-medium text-neutral-600">Paleta de colores</label>
+                    <label className="mb-2 block text-xs font-medium text-neutral-600">
+                      Paleta de colores
+                    </label>
                     <div className="flex flex-wrap gap-2">
-                      {([
-                        { id: "auto",    label: "Auto (IA elige)", dot: "bg-gradient-to-r from-[#0F3D3A] to-[#f97316]" },
-                        { id: "neutral", label: "Neutros",         dot: "bg-[#f5f0eb]" },
-                        { id: "earth",   label: "Tierra",          dot: "bg-[#c97040]" },
-                        { id: "dark",    label: "Oscuro",          dot: "bg-[#1a1a2e]" },
-                        { id: "vibrant", label: "Vibrante",        dot: "bg-[#f50057]" },
-                      ] as const).map((p) => (
-                        <button key={p.id} onClick={() => setAiPalette(p.id)}
-                          className={`flex items-center gap-2 rounded-full border px-3 py-1.5 text-xs font-medium transition ${aiPalette === p.id ? "border-[var(--seller-accent)] bg-[color:color-mix(in_srgb,var(--seller-accent)_10%,white)] text-[var(--seller-accent)]" : "border-neutral-200 text-neutral-600 hover:border-neutral-300"}`}>
-                          <span className={`h-3 w-3 rounded-full border border-neutral-200 ${p.dot}`} />
+                      {(
+                        [
+                          {
+                            id: "auto",
+                            label: "Auto (IA elige)",
+                            dot: "bg-gradient-to-r from-[#0F3D3A] to-[#f97316]",
+                          },
+                          {
+                            id: "neutral",
+                            label: "Neutros",
+                            dot: "bg-[#f5f0eb]",
+                          },
+                          { id: "earth", label: "Tierra", dot: "bg-[#c97040]" },
+                          { id: "dark", label: "Oscuro", dot: "bg-[#1a1a2e]" },
+                          {
+                            id: "vibrant",
+                            label: "Vibrante",
+                            dot: "bg-[#f50057]",
+                          },
+                        ] as const
+                      ).map((p) => (
+                        <button
+                          key={p.id}
+                          onClick={() => setAiPalette(p.id)}
+                          className={`flex items-center gap-2 rounded-full border px-3 py-1.5 text-xs font-medium transition ${aiPalette === p.id ? "border-[var(--seller-accent)] bg-[color:color-mix(in_srgb,var(--seller-accent)_10%,white)] text-[var(--seller-accent)]" : "border-neutral-200 text-neutral-600 hover:border-neutral-300"}`}
+                        >
+                          <span
+                            className={`h-3 w-3 rounded-full border border-neutral-200 ${p.dot}`}
+                          />
                           {p.label}
                         </button>
                       ))}
                     </div>
                   </div>
                   <div>
-                    <label className="mb-2 block text-xs font-medium text-neutral-600">Tipo de layout</label>
+                    <label className="mb-2 block text-xs font-medium text-neutral-600">
+                      Tipo de layout
+                    </label>
                     <div className="grid grid-cols-2 gap-2">
-                      {([
-                        { id: "hero",       label: "Hero + productos",  desc: "Un producto dominante, título en grande" },
-                        { id: "grid",       label: "Grid de productos", desc: "Cuadrícula ordenada, equilibrada" },
-                        { id: "asymmetric", label: "Asimétrico",        desc: "Tensión dinámica, elementos en capas" },
-                        { id: "collage",    label: "Collage",           desc: "Imágenes superpuestas, textura editorial" },
-                      ] as const).map((l) => (
-                        <button key={l.id} onClick={() => setAiLayout(l.id)}
-                          className={`rounded-xl border-2 px-3 py-3 text-left transition ${aiLayout === l.id ? "border-[var(--seller-accent)] bg-[color:color-mix(in_srgb,var(--seller-accent)_8%,white)]" : "border-neutral-200 hover:border-neutral-300"}`}>
-                          <p className={`text-xs font-semibold ${aiLayout === l.id ? "text-[var(--seller-accent)]" : "text-neutral-800"}`}>{l.label}</p>
-                          <p className="mt-0.5 text-[10px] text-neutral-400">{l.desc}</p>
+                      {(
+                        [
+                          {
+                            id: "hero",
+                            label: "Hero + productos",
+                            desc: "Un producto dominante, título en grande",
+                          },
+                          {
+                            id: "grid",
+                            label: "Grid de productos",
+                            desc: "Cuadrícula ordenada, equilibrada",
+                          },
+                          {
+                            id: "asymmetric",
+                            label: "Asimétrico",
+                            desc: "Tensión dinámica, elementos en capas",
+                          },
+                          {
+                            id: "collage",
+                            label: "Collage",
+                            desc: "Imágenes superpuestas, textura editorial",
+                          },
+                        ] as const
+                      ).map((l) => (
+                        <button
+                          key={l.id}
+                          onClick={() => setAiLayout(l.id)}
+                          className={`rounded-xl border-2 px-3 py-3 text-left transition ${aiLayout === l.id ? "border-[var(--seller-accent)] bg-[color:color-mix(in_srgb,var(--seller-accent)_8%,white)]" : "border-neutral-200 hover:border-neutral-300"}`}
+                        >
+                          <p
+                            className={`text-xs font-semibold ${aiLayout === l.id ? "text-[var(--seller-accent)]" : "text-neutral-800"}`}
+                          >
+                            {l.label}
+                          </p>
+                          <p className="mt-0.5 text-[10px] text-neutral-400">
+                            {l.desc}
+                          </p>
                         </button>
                       ))}
                     </div>
                   </div>
                   <label className="flex cursor-pointer items-start gap-3 rounded-xl border border-neutral-200 p-3 text-sm text-neutral-600 hover:bg-neutral-50">
-                    <input type="checkbox" checked={aiGenerateBgImage} onChange={(e) => setAiGenerateBgImage(e.target.checked)} className="mt-0.5 rounded" />
+                    <input
+                      type="checkbox"
+                      checked={aiGenerateBgImage}
+                      onChange={(e) => setAiGenerateBgImage(e.target.checked)}
+                      className="mt-0.5 rounded"
+                    />
                     <span>
-                      <strong className="block text-xs font-semibold text-neutral-800">Generar imagen de fondo con OpenAI</strong>
-                      <span className="text-[11px] text-neutral-500">Imagen personalizada para el fondo (~15–30 s extra).</span>
+                      <strong className="block text-xs font-semibold text-neutral-800">
+                        Generar imagen de fondo con OpenAI
+                      </strong>
+                      <span className="text-[11px] text-neutral-500">
+                        Imagen personalizada para el fondo (~15–30 s extra).
+                      </span>
                     </span>
                   </label>
                   {aiCreditsBalance !== null && (
-                    <div className={`flex items-center justify-between rounded-xl border px-3 py-2 text-xs font-medium ${aiCreditsBalance >= 8 ? "border-[color:color-mix(in_srgb,var(--seller-accent)_25%,white)] bg-[color:color-mix(in_srgb,var(--seller-accent)_6%,white)] text-[var(--seller-accent)]" : "border-orange-200 bg-orange-50 text-orange-700"}`}>
+                    <div
+                      className={`flex items-center justify-between rounded-xl border px-3 py-2 text-xs font-medium ${aiCreditsBalance >= aiCanvasCost ? "border-[color:color-mix(in_srgb,var(--seller-accent)_25%,white)] bg-[color:color-mix(in_srgb,var(--seller-accent)_6%,white)] text-[var(--seller-accent)]" : "border-orange-200 bg-orange-50 text-orange-700"}`}
+                    >
                       <span className="flex items-center gap-1.5">
                         <Sparkles className="h-3.5 w-3.5" />
-                        {aiCreditsBalance >= 8
-                          ? `Tienes ${aiCreditsBalance} créditos — esta acción cuesta 8`
-                          : `Saldo insuficiente: tienes ${aiCreditsBalance} cr, se necesitan 8`}
+                        {aiCreditsBalance >= aiCanvasCost
+                          ? `Tienes ${aiCreditsBalance} créditos — este canvas cuesta ${aiCanvasCost}`
+                          : `Saldo insuficiente: tienes ${aiCreditsBalance} cr, se necesitan ${aiCanvasCost}`}
                       </span>
-                      {aiCreditsBalance < 8 && (
-                        <a href="/seller/ai-credits" className="font-semibold underline underline-offset-2 hover:opacity-80 shrink-0">
+                      {aiCreditsBalance < aiCanvasCost && (
+                        <button
+                          type="button"
+                          onClick={() => setShowAiTopUp(true)}
+                          className="shrink-0 font-semibold underline underline-offset-2 hover:opacity-80"
+                        >
                           Comprar →
-                        </a>
+                        </button>
                       )}
                     </div>
                   )}
@@ -5872,12 +8966,13 @@ export default function CollectionEditorPage() {
                     <div className="rounded-xl border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-700">
                       <p>{aiError}</p>
                       {aiNoCredits && (
-                        <a
-                          href="/seller/ai-credits"
+                        <button
+                          type="button"
+                          onClick={() => setShowAiTopUp(true)}
                           className="mt-1.5 inline-flex items-center gap-1 font-semibold underline underline-offset-2 hover:opacity-80"
                         >
                           Comprar créditos →
-                        </a>
+                        </button>
                       )}
                     </div>
                   )}
@@ -5887,33 +8982,59 @@ export default function CollectionEditorPage() {
 
             <div className="flex gap-3 border-t border-neutral-100 px-6 py-4">
               <button
-                onClick={() => { if (aiStep > 1) setAiStep((s) => (s - 1) as 1 | 2 | 3); else setAiModalOpen(false); }}
+                onClick={() => {
+                  if (aiStep > 1) setAiStep((s) => (s - 1) as 1 | 2 | 3);
+                  else setAiModalOpen(false);
+                }}
                 disabled={aiLoading}
                 className="flex-1 rounded-xl border border-neutral-200 py-2.5 text-sm font-medium text-neutral-600 transition hover:bg-neutral-50 disabled:opacity-50"
               >
                 {aiStep === 1 ? "Cancelar" : "← Atrás"}
               </button>
               {aiStep < 3 ? (
-                <button onClick={() => setAiStep((s) => (s + 1) as 1 | 2 | 3)}
+                <button
+                  onClick={() => setAiStep((s) => (s + 1) as 1 | 2 | 3)}
                   disabled={aiStep === 1 && aiSelectedProductIds.size === 0}
-                  className="flex-1 rounded-xl bg-[#0F3D3A] py-2.5 text-sm font-medium text-white transition hover:bg-[#14544f] disabled:opacity-60">
+                  className="flex-1 rounded-xl bg-[#0F3D3A] py-2.5 text-sm font-medium text-white transition hover:bg-[#14544f] disabled:opacity-60"
+                >
                   Siguiente →
                 </button>
               ) : (
-                <button onClick={handleAiGenerate} disabled={aiLoading || !aiPrompt.trim() || (aiCreditsBalance !== null && aiCreditsBalance < 8)}
-                  className="flex flex-1 items-center justify-center gap-2 rounded-xl bg-[#0F3D3A] py-2.5 text-sm font-medium text-white transition hover:bg-[#14544f] disabled:opacity-60">
-                  {aiLoading ? <><Loader2 className="h-4 w-4 animate-spin" />Generando...</> : <><Sparkles className="h-4 w-4" />Generar canvas</>}
+                <button
+                  onClick={handleAiGenerate}
+                  disabled={
+                    aiLoading ||
+                    !aiPrompt.trim() ||
+                    (aiCreditsBalance !== null &&
+                      aiCreditsBalance < aiCanvasCost)
+                  }
+                  className="flex flex-1 items-center justify-center gap-2 rounded-xl bg-[#0F3D3A] py-2.5 text-sm font-medium text-white transition hover:bg-[#14544f] disabled:opacity-60"
+                >
+                  {aiLoading ? (
+                    <>
+                      <Loader2 className="h-4 w-4 animate-spin" />
+                      Generando...
+                    </>
+                  ) : (
+                    <>
+                      <Sparkles className="h-4 w-4" />
+                      Generar canvas ({aiCanvasCost} cr.)
+                    </>
+                  )}
                 </button>
               )}
             </div>
           </div>
         </div>
       )}
+      <AiCreditTopUpModal
+        open={showAiTopUp}
+        onClose={() => setShowAiTopUp(false)}
+        returnTo={`/seller/collections/${id}/canvas`}
+        source="canvas_ai"
+        title="Comprar créditos para Canvas IA"
+        description="Compra créditos IA y vuelve a tu canvas automáticamente."
+      />
     </div>
   );
 }
-
-
-
-
-
