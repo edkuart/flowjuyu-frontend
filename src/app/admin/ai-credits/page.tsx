@@ -2,23 +2,21 @@
 
 import { useCallback, useEffect, useMemo, useState } from "react";
 import {
-  CheckCircle2,
+  Activity,
+  AlertCircle,
   Coins,
   Gift,
   Loader2,
   RefreshCw,
   Search,
   ShieldCheck,
-  SlidersHorizontal,
   XCircle,
 } from "lucide-react";
 import {
-  approveAdminAiCreditRequest,
   fetchAdminAiCreditPurchaseRequests,
   fetchAdminAiCreditSummary,
   fetchAdminAiCreditTransactions,
   grantAdminAiCredits,
-  rejectAdminAiCreditRequest,
   searchAdminAiCreditSellers,
   type AdminAiCreditPurchaseRequest,
   type AdminAiCreditSeller,
@@ -33,6 +31,13 @@ const TX_TYPES = [
   { value: "refund", label: "Refunds" },
   { value: "manual_grant", label: "Promos" },
   { value: "plan_renewal", label: "Planes" },
+];
+
+const PAYMENT_STATUS_FILTERS = [
+  { value: "all", label: "Todos" },
+  { value: "approved", label: "Pagados" },
+  { value: "pending", label: "Pendientes" },
+  { value: "rejected", label: "Cancelados" },
 ];
 
 const GRANT_CATEGORIES = [
@@ -60,6 +65,20 @@ function fmtGtq(value: number) {
 
 function typeLabel(type: string) {
   return TX_TYPES.find((item) => item.value === type)?.label ?? type;
+}
+
+function paymentStatusLabel(status: AdminAiCreditPurchaseRequest["status"]) {
+  if (status === "approved") return "Pagado";
+  if (status === "rejected") return "No pagado";
+  if (status === "under_review") return "En revisión";
+  return "Pendiente";
+}
+
+function paymentStatusClass(status: AdminAiCreditPurchaseRequest["status"]) {
+  if (status === "approved") return "bg-emerald-100 text-emerald-700";
+  if (status === "rejected") return "bg-red-100 text-red-700";
+  if (status === "under_review") return "bg-blue-100 text-blue-700";
+  return "bg-amber-100 text-amber-700";
 }
 
 function StatCard({
@@ -97,6 +116,7 @@ export default function AdminAiCreditsPage() {
   const [search, setSearch] = useState("");
   const [sellerSearch, setSellerSearch] = useState("");
   const [txType, setTxType] = useState("");
+  const [paymentStatus, setPaymentStatus] = useState("all");
   const [grantCredits, setGrantCredits] = useState("70");
   const [grantCategory, setGrantCategory] = useState("promotion");
   const [grantReason, setGrantReason] = useState("");
@@ -104,7 +124,6 @@ export default function AdminAiCreditsPage() {
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
   const [granting, setGranting] = useState(false);
-  const [actionId, setActionId] = useState<string | null>(null);
   const [notice, setNotice] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
 
@@ -124,7 +143,10 @@ export default function AdminAiCreditsPage() {
         const [summaryData, txData, requestData] = await Promise.all([
           fetchAdminAiCreditSummary(),
           fetchAdminAiCreditTransactions({ search, type: txType, limit: 80 }),
-          fetchAdminAiCreditPurchaseRequests({ limit: 40 }),
+          fetchAdminAiCreditPurchaseRequests({
+            status: paymentStatus,
+            limit: 40,
+          }),
         ]);
         setSummary(summaryData);
         setTransactions(txData.transactions);
@@ -138,7 +160,7 @@ export default function AdminAiCreditsPage() {
         setRefreshing(false);
       }
     },
-    [search, txType],
+    [paymentStatus, search, txType],
   );
 
   const loadSellers = useCallback(async () => {
@@ -196,36 +218,6 @@ export default function AdminAiCreditsPage() {
     }
   }
 
-  async function handleApprove(requestId: string) {
-    setActionId(requestId);
-    setError(null);
-    try {
-      await approveAdminAiCreditRequest(requestId);
-      setNotice("Solicitud aprobada y créditos acreditados");
-      await loadData(true);
-    } catch (err) {
-      setError(err instanceof Error ? err.message : "No se pudo aprobar");
-    } finally {
-      setActionId(null);
-    }
-  }
-
-  async function handleReject(requestId: string) {
-    const reason = window.prompt("Motivo de rechazo");
-    if (!reason?.trim()) return;
-    setActionId(requestId);
-    setError(null);
-    try {
-      await rejectAdminAiCreditRequest(requestId, reason.trim());
-      setNotice("Solicitud rechazada");
-      await loadData(true);
-    } catch (err) {
-      setError(err instanceof Error ? err.message : "No se pudo rechazar");
-    } finally {
-      setActionId(null);
-    }
-  }
-
   if (loading) {
     return (
       <div className="space-y-4">
@@ -253,7 +245,7 @@ export default function AdminAiCreditsPage() {
             <div>
               <h1 className="text-2xl font-bold tracking-tight">Créditos IA</h1>
               <p className="text-muted-foreground text-sm">
-                Historial, solicitudes y maniobras administrativas de créditos.
+                Control de saldos, pagos confirmados y acreditaciones manuales.
               </p>
             </div>
           </div>
@@ -281,7 +273,7 @@ export default function AdminAiCreditsPage() {
           {error ? (
             <XCircle className="mt-0.5 h-4 w-4" />
           ) : (
-            <CheckCircle2 className="mt-0.5 h-4 w-4" />
+            <Activity className="mt-0.5 h-4 w-4" />
           )}
           <span>{error || notice}</span>
         </div>
@@ -309,11 +301,11 @@ export default function AdminAiCreditsPage() {
           hint="Acreditación manual"
         />
         <StatCard
-          label="Pendientes"
+          label="Intentos abiertos"
           value={(summary?.pendingPurchaseRequests ?? 0).toLocaleString(
             "es-GT",
           )}
-          hint="Por revisar"
+          hint="Sin pago confirmado"
         />
       </div>
 
@@ -543,14 +535,38 @@ export default function AdminAiCreditsPage() {
           </section>
 
           <section className="bg-card rounded-xl border">
-            <div className="flex items-center justify-between border-b px-4 py-3">
+            <div className="flex items-start justify-between gap-3 border-b px-4 py-3">
               <div>
-                <h2 className="text-sm font-semibold">Solicitudes</h2>
+                <div className="flex items-center gap-2">
+                  <Activity className="text-primary h-4 w-4" />
+                  <h2 className="text-sm font-semibold">Intentos de pago</h2>
+                </div>
                 <p className="text-muted-foreground text-xs">
-                  Compras por revisar.
+                  Los créditos se acreditan solo cuando el proveedor confirma el
+                  pago. Admin no aprueba compras alojadas.
                 </p>
               </div>
-              <SlidersHorizontal className="text-muted-foreground h-4 w-4" />
+              <select
+                value={paymentStatus}
+                onChange={(e) => setPaymentStatus(e.target.value)}
+                className="bg-background focus:ring-primary/20 h-8 rounded-lg border px-2 text-[11px] outline-none focus:ring-2"
+              >
+                {PAYMENT_STATUS_FILTERS.map((item) => (
+                  <option key={item.value} value={item.value}>
+                    {item.label}
+                  </option>
+                ))}
+              </select>
+            </div>
+            <div className="border-b bg-amber-50 px-4 py-3 text-xs leading-relaxed text-amber-800">
+              <div className="flex gap-2">
+                <AlertCircle className="mt-0.5 h-3.5 w-3.5 shrink-0" />
+                <p>
+                  Si el cliente cancela o abandona el checkout, el intento queda
+                  como <strong>No pagado</strong>. Si paga, el webhook/captura
+                  acredita automáticamente los créditos.
+                </p>
+              </div>
             </div>
             <div className="max-h-[520px] divide-y overflow-y-auto">
               {requests.map((request) => (
@@ -568,34 +584,29 @@ export default function AdminAiCreditsPage() {
                         {fmtDate(request.created_at)}
                       </p>
                     </div>
-                    <span className="rounded-full bg-amber-100 px-2 py-1 text-[10px] font-semibold text-amber-700 uppercase">
-                      {request.status}
+                    <span
+                      className={`rounded-full px-2 py-1 text-[10px] font-semibold uppercase ${paymentStatusClass(request.status)}`}
+                    >
+                      {paymentStatusLabel(request.status)}
                     </span>
                   </div>
-                  {request.status !== "approved" &&
-                    request.status !== "rejected" && (
-                      <div className="flex gap-2">
-                        <button
-                          onClick={() => handleApprove(request.id)}
-                          disabled={actionId === request.id}
-                          className="flex-1 rounded-lg bg-emerald-600 px-3 py-2 text-xs font-semibold text-white disabled:opacity-50"
-                        >
-                          Aprobar
-                        </button>
-                        <button
-                          onClick={() => handleReject(request.id)}
-                          disabled={actionId === request.id}
-                          className="flex-1 rounded-lg border px-3 py-2 text-xs font-semibold disabled:opacity-50"
-                        >
-                          Rechazar
-                        </button>
-                      </div>
-                    )}
+                  <div className="bg-muted/40 text-muted-foreground grid grid-cols-2 gap-2 rounded-lg px-3 py-2 text-[11px]">
+                    <span>Proveedor: {request.provider || "pendiente"}</span>
+                    <span className="text-right">
+                      Paquete:{" "}
+                      {request.package_name || `#${request.package_id}`}
+                    </span>
+                  </div>
+                  {request.rejection_reason && (
+                    <p className="rounded-lg bg-red-50 px-3 py-2 text-[11px] text-red-700">
+                      {request.rejection_reason}
+                    </p>
+                  )}
                 </div>
               ))}
               {requests.length === 0 && (
                 <div className="text-muted-foreground px-4 py-10 text-center text-sm">
-                  No hay solicitudes pendientes.
+                  No hay intentos de pago con este filtro.
                 </div>
               )}
             </div>

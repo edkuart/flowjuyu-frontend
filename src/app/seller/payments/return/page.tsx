@@ -3,7 +3,10 @@
 import { useEffect, useMemo, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { CheckCircle2, Loader2, XCircle } from "lucide-react";
-import { captureAiCreditPayment } from "@/services/aiCredits";
+import {
+  cancelAiCreditPayment,
+  captureAiCreditPayment,
+} from "@/services/aiCredits";
 
 function safeReturnTo(value: string | null): string {
   if (!value) return "/seller/ai-credits";
@@ -32,12 +35,19 @@ export default function SellerPaymentReturnPage() {
   useEffect(() => {
     const provider = params.get("provider");
     const token = params.get("token");
+    const requestId = params.get("requestId");
     const cancelled = params.get("credit_cancel") === "1";
 
     if (cancelled) {
       setState("cancel");
       setMessage("Pago cancelado");
-      window.setTimeout(() => router.replace(returnTo), 1000);
+      const finish = () =>
+        window.setTimeout(() => router.replace(returnTo), 1000);
+      if (requestId) {
+        cancelAiCreditPayment({ requestId }).finally(finish);
+      } else {
+        finish();
+      }
       return;
     }
 

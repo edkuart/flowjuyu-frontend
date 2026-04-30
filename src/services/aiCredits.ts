@@ -219,3 +219,21 @@ export async function captureAiCreditPayment(body: {
     detail?: string;
   };
 }
+
+export async function cancelAiCreditPayment(body: {
+  requestId: string;
+}): Promise<{ outcome: "cancelled" | "ignored" }> {
+  const res = await apiFetch(`${BASE}/cancel`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ requestId: body.requestId }),
+  });
+  const data = await res.json().catch(() => ({}));
+  if (!res.ok) {
+    throw new Error(
+      ((data as Record<string, unknown>).message as string) ||
+        "Error al cancelar el pago",
+    );
+  }
+  return data as { outcome: "cancelled" | "ignored" };
+}
