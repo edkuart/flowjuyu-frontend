@@ -10,9 +10,9 @@ import {
   Send,
   MessageSquare,
   CheckCircle2,
+  ChevronLeft,
 } from "lucide-react"
 import { SellerPill } from "@/components/seller/ui/SellerPrimitives"
-import { PageBackNav } from "@/components/ui/PageBackNav"
 import { authFetch } from "@/lib/authFetch"
 import { toast } from "sonner"
 
@@ -194,13 +194,13 @@ export default function SellerTicketDetailPage() {
       <div className="mx-auto max-w-2xl space-y-5 px-4 py-6 sm:px-6 sm:py-10">
 
         {/* ── Back ──────────────────────────────────────────────────── */}
-        <PageBackNav
-          variant="panel"
+        <button
           onClick={() => router.push("/seller/tickets")}
-          label="Volver a mis tickets"
-          meta="Soporte"
-          title={<p className="truncate text-[15px] font-semibold text-[var(--seller-ink)]">Ticket #{ticket.id}</p>}
-        />
+          className="inline-flex items-center gap-1.5 text-xs font-medium text-[var(--seller-muted)] transition hover:text-[var(--seller-ink)]"
+        >
+          <ChevronLeft className="h-3.5 w-3.5" />
+          Mis tickets
+        </button>
 
         {/* ── Header card ───────────────────────────────────────────── */}
         <section className="space-y-4 rounded-3xl border border-[var(--seller-line)] bg-white p-5">

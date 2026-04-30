@@ -8,11 +8,9 @@ import { Card, CardContent } from '@/components/ui/card'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog'
-import { PageBackNav } from '@/components/ui/PageBackNav'
 import {
   SellerActionButton,
   SellerDetailPanel,
-  SellerPanelHeader,
   SellerPill,
   SellerSurfaceCard,
 } from '@/components/seller/ui/SellerPrimitives'
@@ -31,7 +29,6 @@ import {
   Sparkles,
   Share2,
   MessageCircle,
-  ShoppingCart,
 } from 'lucide-react'
 
 const API = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8800'
@@ -112,7 +109,8 @@ function SellerOrdersLockedState() {
   ]
 
   return (
-    <main className="max-w-3xl mx-auto px-4 py-12 space-y-8">
+    <div className="min-h-screen bg-[#f8f5ef]">
+      <div className="mx-auto max-w-3xl space-y-8 px-4 py-10 sm:px-6">
 
       {/* 1. MAIN BANNER */}
       <Card className="bg-white border border-neutral-100 shadow-sm overflow-hidden">
@@ -285,7 +283,8 @@ function SellerOrdersLockedState() {
         </Button>
       </div>
 
-    </main>
+      </div>
+    </div>
   )
 }
 
@@ -385,7 +384,8 @@ function SellerOrdersComingSoon({ slug }: { slug: string }) {
   }
 
   return (
-    <main className="max-w-2xl mx-auto px-4 py-16 space-y-8">
+    <div className="min-h-screen bg-[#f8f5ef]">
+      <div className="mx-auto max-w-2xl space-y-8 px-4 py-10 sm:px-6">
 
       {/* Hero card */}
       <Card className="bg-white border border-neutral-100 shadow-sm overflow-hidden">
@@ -522,7 +522,8 @@ function SellerOrdersComingSoon({ slug }: { slug: string }) {
         </CardContent>
       </Card>
 
-    </main>
+      </div>
+    </div>
   )
 }
 
@@ -690,9 +691,9 @@ export default function SellerOrdersPage() {
   /* ── loading gate ── */
   if (accountLoading) {
     return (
-      <main className="min-h-screen flex items-center justify-center">
-        <Loader2 className="w-5 h-5 animate-spin text-muted-foreground" />
-      </main>
+      <div className="flex min-h-screen items-center justify-center bg-[#f8f5ef]">
+        <Loader2 className="h-5 w-5 animate-spin text-[var(--seller-muted)]" />
+      </div>
     )
   }
 
@@ -711,24 +712,25 @@ export default function SellerOrdersPage() {
   ══════════════════════════════════════════ */
 
   return (
-    <main className="max-w-6xl mx-auto px-4 py-10 space-y-8">
-      <PageBackNav
-        variant="panel"
-        label="Volver"
-        onClick={() => window.history.back()}
-        title="Historial de pedidos"
-        meta="Ventas y seguimiento"
-      />
+    <div className="min-h-screen bg-[#f8f5ef]">
+      <div className="mx-auto max-w-5xl space-y-6 px-4 py-6 sm:px-6 sm:py-10">
+        <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
+          <div>
+            <p className="text-[10px] font-bold tracking-[0.18em] text-[var(--seller-accent)] uppercase">
+              Pedidos · Flowjuyu Seller
+            </p>
+            <h1 className="mt-1.5 text-2xl font-bold tracking-tight text-[var(--seller-ink)] sm:text-[28px] sm:leading-[1.05]">
+              Historial de pedidos
+            </h1>
+            <p className="mt-1.5 text-sm leading-relaxed text-[var(--seller-muted)]">
+              Consulta, filtra y exporta tus pedidos desde una vista más clara y profesional.
+            </p>
+          </div>
+          <SellerPill tone="neutral" className="shrink-0 self-start">{formatQ(totalPagina)} en página</SellerPill>
+        </div>
 
-      <SellerSurfaceCard className="overflow-hidden">
-        <SellerPanelHeader
-          eyebrow="Pedidos"
-          icon={<ShoppingCart className="h-5 w-5" />}
-          title="Historial de pedidos"
-          description="Consulta, filtra y exporta tus pedidos desde una vista más clara y profesional."
-          action={<SellerPill tone="neutral">{formatQ(totalPagina)} en página</SellerPill>}
-        />
-        <div className="grid gap-3 border-t border-[var(--seller-line)] p-5 md:grid-cols-4">
+        <SellerSurfaceCard className="overflow-hidden">
+          <div className="grid gap-3 p-5 md:grid-cols-4">
           <SellerDetailPanel
             icon={<Package className="h-4 w-4" />}
             title={`${pedidos.length} pedidos`}
@@ -978,6 +980,7 @@ export default function SellerOrdersPage() {
           )}
         </DialogContent>
       </Dialog>
-    </main>
+      </div>
+    </div>
   )
 }

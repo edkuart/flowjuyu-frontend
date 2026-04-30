@@ -31,7 +31,6 @@ import { MapPin, QrCode, ShieldCheck, Eye, Hand, Leaf, ArrowLeft } from "lucide-
 import { SellerContactCTA } from "@/components/seller/SellerContactCTA"
 import SellerQrModal from "@/components/seller/SellerQrModal"
 import { StoreHeaderPreview } from "@/components/seller/StoreHeaderPreview"
-import { PageBackNav } from "@/components/ui/PageBackNav"
 import {
   SellerInfoRow,
   SellerSectionCard,
@@ -269,19 +268,13 @@ export default function SellerPublicProfilePage() {
     <main className="max-w-4xl mx-auto px-4 py-12 space-y-10">
 
       {/* ── Back navigation ── */}
-      <PageBackNav
-        variant="panel"
+      <button
         onClick={() => router.push('/seller/my-business')}
-        className="-mt-2"
-        meta="Perfil del vendedor"
-        title={
-          <div className="min-w-0">
-            <p className="truncate text-[15px] font-semibold text-[#14231c]">
-              {vendedor.nombre_comercio || "Editar perfil"}
-            </p>
-          </div>
-        }
-      />
+        className="-mt-2 inline-flex items-center gap-1.5 text-xs font-medium text-[var(--seller-muted)] transition hover:text-[var(--seller-ink)]"
+      >
+        <ArrowLeft className="h-3.5 w-3.5" />
+        Mi tienda
+      </button>
 
       {/* ══════════════════════════════════════
           1. HERO

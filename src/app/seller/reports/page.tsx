@@ -1,10 +1,6 @@
 'use client'
 
 import { useState } from 'react'
-import { Button } from '@/components/ui/button'
-import { Card } from '@/components/ui/card'
-import { Input } from '@/components/ui/input'
-import { Label } from '@/components/ui/label'
 import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer } from 'recharts'
 import ExcelJS from 'exceljs'
 import jsPDF from 'jspdf'
@@ -258,101 +254,113 @@ async function exportarExcel() {
   }
 
   return (
-    <main className="min-h-screen p-6 space-y-6">
-      <h1 className="text-2xl font-bold">Reportes</h1>
-      <p className="text-muted-foreground">
-        Selecciona un rango de fechas para ver ventas, costos, pérdidas y utilidad.
-      </p>
+    <div className="min-h-screen bg-[#f8f5ef]">
+      <div className="mx-auto max-w-4xl space-y-6 px-4 py-6 sm:px-6 sm:py-10">
+        <div>
+          <p className="text-[10px] font-bold tracking-[0.18em] text-[var(--seller-accent)] uppercase">
+            Reportes · Flowjuyu Seller
+          </p>
+          <h1 className="mt-1.5 text-2xl font-bold tracking-tight text-[var(--seller-ink)] sm:text-[28px] sm:leading-[1.05]">
+            Reportes financieros
+          </h1>
+          <p className="mt-1.5 text-sm leading-relaxed text-[var(--seller-muted)]">
+            Selecciona un rango de fechas para ver ventas, costos, pérdidas y utilidad.
+          </p>
+        </div>
 
-      {/* Filtros */}
-      <Card className="p-4 space-y-4">
-        <div className="grid gap-4 sm:grid-cols-3">
-          <div>
-            <Label>Desde</Label>
-            <Input type="date" value={from} onChange={e => setFrom(e.target.value)} />
-          </div>
-          <div>
-            <Label>Hasta</Label>
-            <Input type="date" value={to} onChange={e => setTo(e.target.value)} />
-          </div>
-          <div className="flex items-end gap-2">
-            <Button onClick={cargarReporte} disabled={loading}>
-              {loading ? 'Generando…' : 'Generar'}
-            </Button>
-            <Button variant="outline" onClick={exportarExcel} disabled={!data}>
-              Exportar Excel
-            </Button>
-            <Button variant="outline" onClick={exportarPDF} disabled={!data}>
-              Exportar PDF
-            </Button>
+        {/* Filtros */}
+        <div className="rounded-3xl border border-[var(--seller-line)] bg-white p-5">
+          <div className="grid gap-4 sm:grid-cols-3">
+            <div className="space-y-1.5">
+              <label className="block text-[10px] font-bold tracking-[0.18em] text-[var(--seller-muted)] uppercase">Desde</label>
+              <input type="date" value={from} onChange={e => setFrom(e.target.value)}
+                className="w-full rounded-xl border border-[var(--seller-line)] bg-white px-4 py-2.5 text-sm text-[var(--seller-ink)] outline-none transition focus:border-[var(--seller-accent)] focus:ring-2 focus:ring-[color:color-mix(in_srgb,var(--seller-accent)_20%,transparent)]" />
+            </div>
+            <div className="space-y-1.5">
+              <label className="block text-[10px] font-bold tracking-[0.18em] text-[var(--seller-muted)] uppercase">Hasta</label>
+              <input type="date" value={to} onChange={e => setTo(e.target.value)}
+                className="w-full rounded-xl border border-[var(--seller-line)] bg-white px-4 py-2.5 text-sm text-[var(--seller-ink)] outline-none transition focus:border-[var(--seller-accent)] focus:ring-2 focus:ring-[color:color-mix(in_srgb,var(--seller-accent)_20%,transparent)]" />
+            </div>
+            <div className="flex items-end gap-2">
+              <button onClick={cargarReporte} disabled={loading}
+                className="group relative flex-1 overflow-hidden rounded-xl bg-[var(--seller-accent)] px-4 py-2.5 text-sm font-semibold text-white transition disabled:opacity-50">
+                <span aria-hidden className="absolute inset-0 -translate-x-full bg-gradient-to-r from-transparent via-white/15 to-transparent transition-transform duration-700 group-hover:translate-x-full" />
+                {loading ? 'Generando…' : 'Generar'}
+              </button>
+              <button onClick={exportarExcel} disabled={!data}
+                className="rounded-xl border border-[var(--seller-line-strong)] px-3 py-2.5 text-sm font-medium text-[var(--seller-ink)] transition hover:bg-[var(--seller-panel)] disabled:opacity-40">
+                Excel
+              </button>
+              <button onClick={exportarPDF} disabled={!data}
+                className="rounded-xl border border-[var(--seller-line-strong)] px-3 py-2.5 text-sm font-medium text-[var(--seller-ink)] transition hover:bg-[var(--seller-panel)] disabled:opacity-40">
+                PDF
+              </button>
+            </div>
           </div>
         </div>
-      </Card>
 
-      {/* Resultados */}
-      {data && (
-        <>
-          {/* KPIs */}
-          <section className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
-            <Card className="p-4">
-              <div className="text-sm text-muted-foreground">Ingresos</div>
-              <div className="text-2xl font-bold">{Q(data.resumen.ingresos)}</div>
-            </Card>
-            <Card className="p-4">
-              <div className="text-sm text-muted-foreground">Costos</div>
-              <div className="text-2xl font-bold">{Q(data.resumen.costos)}</div>
-            </Card>
-            <Card className="p-4">
-              <div className="text-sm text-muted-foreground">Pérdidas</div>
-              <div className="text-2xl font-bold">{Q(data.resumen.perdidas)}</div>
-            </Card>
-            <Card className="p-4">
-              <div className="text-sm text-muted-foreground">Utilidad</div>
-              <div className="text-2xl font-bold">{Q(data.resumen.utilidad)}</div>
-            </Card>
-          </section>
+        {/* Resultados */}
+        {data && (
+          <>
+            {/* KPIs */}
+            <section className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+              {[
+                { label: 'Ingresos', value: Q(data.resumen.ingresos), color: 'text-emerald-600' },
+                { label: 'Costos', value: Q(data.resumen.costos), color: 'text-[var(--seller-ink)]' },
+                { label: 'Pérdidas', value: Q(data.resumen.perdidas), color: 'text-red-500' },
+                { label: 'Utilidad', value: Q(data.resumen.utilidad), color: 'text-[var(--seller-accent)]' },
+              ].map(kpi => (
+                <div key={kpi.label} className="rounded-3xl border border-[var(--seller-line)] bg-white p-5">
+                  <p className="text-xs text-[var(--seller-muted)]">{kpi.label}</p>
+                  <p className={`mt-1 text-2xl font-bold ${kpi.color}`}>{kpi.value}</p>
+                </div>
+              ))}
+            </section>
 
-          {/* Serie por día */}
-          <Card className="p-4">
-            <h2 className="text-lg font-semibold mb-2">Ventas por día</h2>
-            <ResponsiveContainer width="100%" height={280}>
-              <BarChart data={data.porDia}>
-                <XAxis dataKey="fecha" />
-                <YAxis />
-                <Tooltip formatter={(v: any) => Q(Number(v))} />
-                <Bar dataKey="ventas" name="Ventas" fill="#3b82f6" />
-                <Bar dataKey="costos" name="Costos" fill="#94a3b8" />
-                <Bar dataKey="perdidas" name="Pérdidas" fill="#ef4444" />
-              </BarChart>
-            </ResponsiveContainer>
-          </Card>
-
-          {/* Top productos */}
-          <Card className="p-4">
-            <h2 className="text-lg font-semibold mb-2">Top productos por ingresos</h2>
-            <div className="overflow-x-auto">
-              <table className="min-w-full text-sm">
-                <thead>
-                  <tr className="border-b">
-                    <th className="text-left p-2">Producto</th>
-                    <th className="text-left p-2">Unidades</th>
-                    <th className="text-left p-2">Ingresos</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {data.topProductos.map((p, i) => (
-                    <tr key={i} className="border-b">
-                      <td className="p-2">{p.nombre}</td>
-                      <td className="p-2">{p.unidades}</td>
-                      <td className="p-2">{Q(p.ingresos)}</td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
+            {/* Serie por día */}
+            <div className="rounded-3xl border border-[var(--seller-line)] bg-white p-5">
+              <h2 className="mb-4 text-sm font-semibold text-[var(--seller-ink)]">Ventas por día</h2>
+              <ResponsiveContainer width="100%" height={280}>
+                <BarChart data={data.porDia}>
+                  <XAxis dataKey="fecha" tick={{ fontSize: 11 }} />
+                  <YAxis tick={{ fontSize: 11 }} />
+                  <Tooltip formatter={(v: any) => Q(Number(v))} />
+                  <Bar dataKey="ventas" name="Ventas" fill="#0f3d3a" radius={[4,4,0,0]} />
+                  <Bar dataKey="costos" name="Costos" fill="#94a3b8" radius={[4,4,0,0]} />
+                  <Bar dataKey="perdidas" name="Pérdidas" fill="#ef4444" radius={[4,4,0,0]} />
+                </BarChart>
+              </ResponsiveContainer>
             </div>
-          </Card>
-        </>
-      )}
-    </main>
+
+            {/* Top productos */}
+            <div className="overflow-hidden rounded-3xl border border-[var(--seller-line)] bg-white">
+              <div className="px-5 py-4">
+                <h2 className="text-sm font-semibold text-[var(--seller-ink)]">Top productos por ingresos</h2>
+              </div>
+              <div className="overflow-x-auto">
+                <table className="min-w-full text-sm">
+                  <thead>
+                    <tr className="border-b border-[var(--seller-line)] bg-[var(--seller-panel)]">
+                      <th className="px-5 py-3 text-left text-[10px] font-bold tracking-[0.14em] text-[var(--seller-muted)] uppercase">Producto</th>
+                      <th className="px-5 py-3 text-left text-[10px] font-bold tracking-[0.14em] text-[var(--seller-muted)] uppercase">Unidades</th>
+                      <th className="px-5 py-3 text-left text-[10px] font-bold tracking-[0.14em] text-[var(--seller-muted)] uppercase">Ingresos</th>
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y divide-[var(--seller-line)]">
+                    {data.topProductos.map((p, i) => (
+                      <tr key={i} className="transition hover:bg-[var(--seller-panel)]">
+                        <td className="px-5 py-3 font-medium text-[var(--seller-ink)]">{p.nombre}</td>
+                        <td className="px-5 py-3 text-[var(--seller-muted)]">{p.unidades}</td>
+                        <td className="px-5 py-3 font-semibold text-[var(--seller-accent)]">{Q(p.ingresos)}</td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            </div>
+          </>
+        )}
+      </div>
+    </div>
   )
 }

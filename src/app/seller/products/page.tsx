@@ -396,21 +396,21 @@ export default function SellerProductsPage() {
     <div className="min-h-screen bg-[#f8f5ef]">
       <div className="mx-auto max-w-3xl space-y-6 px-4 py-6 sm:px-6 sm:py-8">
         {/* ── Header editorial ──────────────────────────── */}
-        <div className="flex items-start justify-between gap-3">
-          <div>
-            <p className="text-[10px] font-bold tracking-[0.22em] text-[var(--seller-accent)] uppercase">
+        <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
+          <div className="min-w-0">
+            <p className="text-[10px] font-bold tracking-[0.18em] text-[var(--seller-accent)] uppercase">
               Catálogo · Flowjuyu Seller
             </p>
-            <h1 className="mt-1.5 text-[28px] leading-[1.05] font-bold tracking-tight text-[var(--seller-ink)]">
+            <h1 className="mt-1.5 text-2xl font-bold tracking-tight text-[var(--seller-ink)] sm:text-[28px] sm:leading-[1.05]">
               Mis productos
             </h1>
-            <p className="mt-1.5 max-w-[42ch] text-sm leading-relaxed text-[var(--seller-muted)]">
+            <p className="mt-1.5 text-sm leading-relaxed text-[var(--seller-muted)]">
               Administra tu inventario y controla qué piezas están visibles.
             </p>
           </div>
           <Link
             href="/seller/products/new"
-            className="group relative inline-flex shrink-0 items-center gap-2 overflow-hidden rounded-2xl bg-[var(--seller-accent)] px-4 py-2.5 text-sm font-semibold text-white shadow-[0_10px_24px_-14px_rgba(15,61,58,0.5)] transition hover:shadow-[0_14px_28px_-12px_rgba(15,61,58,0.6)] active:scale-[0.99]"
+            className="group relative inline-flex shrink-0 items-center justify-center gap-2 overflow-hidden rounded-2xl bg-[var(--seller-accent)] px-5 py-2.5 text-sm font-semibold text-white shadow-[0_10px_24px_-14px_rgba(15,61,58,0.5)] transition hover:shadow-[0_14px_28px_-12px_rgba(15,61,58,0.6)] active:scale-[0.99] sm:self-start"
           >
             <span
               aria-hidden

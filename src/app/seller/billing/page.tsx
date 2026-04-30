@@ -15,7 +15,7 @@ import { CreditCard, Receipt } from "lucide-react"
 import { BillingSubscriptionCard } from "@/components/seller/billing/BillingSubscriptionCard"
 import { BillingInvoiceList } from "@/components/seller/billing/BillingInvoiceList"
 import { BillingPaymentList } from "@/components/seller/billing/BillingPaymentList"
-import { SellerPanelHeader, SellerPill, SellerSurfaceCard } from "@/components/seller/ui/SellerPrimitives"
+import { SellerSurfaceCard } from "@/components/seller/ui/SellerPrimitives"
 import { fetchCurrentSubscription } from "@/services/sellerBilling"
 import type { CurrentSubscription } from "@/types/billing"
 
@@ -35,15 +35,18 @@ export default function SellerBillingPage() {
 
   return (
     <div className="min-h-screen bg-[#f8f5ef]">
-      <div className="mx-auto max-w-3xl space-y-6 px-4 py-8 sm:px-6">
-        <SellerSurfaceCard className="overflow-hidden">
-          <SellerPanelHeader
-            eyebrow="Billing seller"
-            title="Mi suscripción"
-            description="Gestiona tu plan, facturas y pagos desde una misma vista."
-            action={<SellerPill tone="neutral">{activeTab === "invoices" ? "Facturas" : "Pagos"}</SellerPill>}
-          />
-        </SellerSurfaceCard>
+      <div className="mx-auto max-w-3xl space-y-6 px-4 py-6 sm:px-6 sm:py-10">
+        <div>
+          <p className="text-[10px] font-bold tracking-[0.18em] text-[var(--seller-accent)] uppercase">
+            Facturación · Flowjuyu Seller
+          </p>
+          <h1 className="mt-1.5 text-2xl font-bold tracking-tight text-[var(--seller-ink)] sm:text-[28px] sm:leading-[1.05]">
+            Mi suscripción
+          </h1>
+          <p className="mt-1.5 text-sm leading-relaxed text-[var(--seller-muted)]">
+            Gestiona tu plan, facturas y pagos desde una misma vista.
+          </p>
+        </div>
 
         <BillingSubscriptionCard subscription={subscription} loading={loading} />
 

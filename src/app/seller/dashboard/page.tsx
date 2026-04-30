@@ -16,10 +16,6 @@ import { apiFetch } from "@/lib/api";
 import { apiGetVendedorPerfil } from "@/services/vendedorPerfil";
 import { SellerProgressCard } from "@/components/seller/SellerProgressCard";
 import { MarketingOptInNudge } from "@/components/consent/MarketingOptInNudge";
-import { BaseCard } from "@/components/ui/BaseCard";
-import { BaseSection } from "@/components/ui/BaseSection";
-import { BaseSectionHeading } from "@/components/ui/BaseSectionHeading";
-import { Button } from "@/components/ui/button";
 import type { SellerPerfil } from "@/lib/sellerProgress";
 import {
   getSellerOnboardingSummary,
@@ -164,67 +160,51 @@ export default function SellerDashboardHomePage() {
   );
 
   return (
-    <main className="mx-auto min-h-screen max-w-6xl space-y-6 bg-[#f6f1e8] px-4 py-8">
-      {loading ? (
-        <div className="space-y-4">
-          <div className="h-40 animate-pulse rounded-[28px] bg-white/70" />
-          <div className="grid grid-cols-1 gap-4 md:grid-cols-2 xl:grid-cols-4">
-            {[0, 1, 2, 3].map((item) => (
-              <div
-                key={item}
-                className="h-48 animate-pulse rounded-3xl bg-white/70"
-              />
-            ))}
+    <div className="min-h-screen bg-[#f8f5ef]">
+      <div className="mx-auto max-w-5xl space-y-8 px-4 py-6 sm:px-6 sm:py-10">
+        {loading ? (
+          <div className="space-y-4">
+            <div className="h-48 animate-pulse rounded-3xl bg-white/70" />
+            <div className="grid grid-cols-1 gap-4 md:grid-cols-2 xl:grid-cols-3">
+              {[0, 1, 2, 3, 4].map((item) => (
+                <div key={item} className="h-48 animate-pulse rounded-3xl bg-white/70" />
+              ))}
+            </div>
           </div>
-        </div>
-      ) : (
-        <>
-          <BaseSection>
-            <BaseCard
-              className="border border-[#0F3D3A]/10 bg-gradient-to-br from-[#0F3D3A] via-[#14544f] to-[#1b6b63] text-white"
-              contentClassName="space-y-5"
-            >
-              <div className="space-y-2">
-                <p className="text-xs font-semibold tracking-[0.18em] text-white/70 uppercase">
-                  Seller dashboard
-                </p>
-                <h1 className="text-3xl font-semibold tracking-tight">
-                  Un home limpio para operar tu negocio
-                </h1>
-                <p className="max-w-3xl text-sm leading-relaxed text-white/80">
-                  Desde aqui puedes continuar onboarding cuando aplique, revisar
-                  metricas en su propio modulo y entrar a las vistas operativas
-                  sin mezclar responsabilidades.
-                </p>
-              </div>
-
-              <div className="flex flex-wrap gap-3">
+        ) : (
+          <>
+            {/* Hero */}
+            <div className="overflow-hidden rounded-3xl bg-gradient-to-br from-[#0F3D3A] via-[#14544f] to-[#1b6b63] p-6 text-white sm:p-8">
+              <p className="text-[10px] font-bold tracking-[0.22em] text-white/60 uppercase">
+                Seller Dashboard · Flowjuyu
+              </p>
+              <h1 className="mt-2 text-2xl font-bold tracking-tight sm:text-3xl sm:leading-tight">
+                {sellerProfile?.nombre_comercio?.trim()
+                  ? sellerProfile.nombre_comercio
+                  : "Tu panel de control"}
+              </h1>
+              <p className="mt-2 max-w-2xl text-sm leading-relaxed text-white/75">
+                Gestiona tu catálogo, revisa métricas y administra tu tienda desde un solo lugar.
+              </p>
+              <div className="mt-5 flex flex-wrap gap-3">
                 <Link
-                  href={
-                    onboardingIncomplete
-                      ? "/seller/onboarding"
-                      : "/seller/metrics"
-                  }
+                  href={onboardingIncomplete ? "/seller/onboarding" : "/seller/metrics"}
+                  className="group relative inline-flex items-center gap-2 overflow-hidden rounded-2xl bg-white px-5 py-2.5 text-sm font-bold text-[#0F3D3A] transition hover:bg-white/90 active:scale-[0.99]"
                 >
-                  <Button className="min-h-10 bg-white text-[#0F3D3A] hover:bg-neutral-100">
-                    {onboardingIncomplete
-                      ? "Continuar activacion"
-                      : "Abrir metricas"}
-                  </Button>
+                  <span aria-hidden className="absolute inset-0 -translate-x-full bg-gradient-to-r from-transparent via-[#0F3D3A]/5 to-transparent transition-transform duration-700 group-hover:translate-x-full" />
+                  {onboardingIncomplete ? "Continuar activación" : "Abrir métricas"}
+                  <ArrowRight className="h-4 w-4" />
                 </Link>
-                <Link href="/seller/my-business">
-                  <Button
-                    variant="outline"
-                    className="min-h-10 border-white/30 bg-white/10 text-white hover:bg-white/15"
-                  >
-                    Ver mi tienda
-                  </Button>
+                <Link
+                  href="/seller/my-business"
+                  className="inline-flex items-center gap-2 rounded-2xl border border-white/25 bg-white/10 px-5 py-2.5 text-sm font-semibold text-white transition hover:bg-white/15"
+                >
+                  Ver mi tienda
                 </Link>
               </div>
-            </BaseCard>
-          </BaseSection>
+            </div>
 
-          <BaseSection>
+            {/* Marketing nudge */}
             <MarketingOptInNudge
               promptKey="seller_marketing_email_dashboard"
               eligible={sellerProducts.length > 0}
@@ -239,96 +219,103 @@ export default function SellerDashboardHomePage() {
               settingsHref="/seller/account"
               surface="seller_dashboard"
             />
-          </BaseSection>
 
-          <BaseSection>
-            <BaseSectionHeading
-              eyebrow={onboardingSummary.label}
-              title={onboardingSummary.title}
-              description={onboardingSummary.description}
-            />
+            {/* Progress section */}
             <div className="space-y-4">
+              <div>
+                <p className="text-[10px] font-bold tracking-[0.18em] text-[var(--seller-accent)] uppercase">
+                  {onboardingSummary.label}
+                </p>
+                <h2 className="mt-1 text-xl font-bold tracking-tight text-[var(--seller-ink)]">
+                  {onboardingSummary.title}
+                </h2>
+                <p className="mt-1 text-sm leading-relaxed text-[var(--seller-muted)]">
+                  {onboardingSummary.description}
+                </p>
+              </div>
               <SellerProgressCard
                 estadoValidacion={sellerValidation}
                 productos={sellerProducts}
                 perfil={sellerProfile}
               />
             </div>
-          </BaseSection>
 
-          <BaseSection>
-            <BaseSectionHeading
-              eyebrow="Modulos"
-              title="Cada experiencia en su propia ruta"
-              description="Onboarding, metricas y operacion diaria conviven sin secuestrarse entre si."
-            />
-            <div className="grid grid-cols-1 gap-4 md:grid-cols-2 xl:grid-cols-3 2xl:grid-cols-5">
-              {summaryCards.map((card) => {
-                const Icon = card.icon;
-                return (
-                  <BaseCard
-                    key={card.title}
-                    hover
-                    contentClassName="flex h-full flex-col gap-4"
-                  >
-                    <div className="flex h-11 w-11 items-center justify-center rounded-2xl bg-[#0F3D3A]/8">
-                      <Icon className="h-5 w-5 text-[#0F3D3A]" />
-                    </div>
-                    <div className="space-y-2">
-                      <p className="text-[11px] font-semibold tracking-[0.12em] text-neutral-500 uppercase">
-                        {card.title}
-                      </p>
-                      <h2 className="text-2xl font-semibold text-neutral-900">
-                        {card.value}
-                      </h2>
-                      <p className="text-sm leading-relaxed text-neutral-600">
-                        {card.description}
-                      </p>
-                    </div>
-                    <div className="pt-1">
-                      <Link href={card.href}>
-                        <Button
-                          variant="outline"
-                          className="min-h-10 w-full justify-between"
-                        >
-                          {card.cta}
-                          <ArrowRight className="h-4 w-4" />
-                        </Button>
+            {/* Modules */}
+            <div className="space-y-4">
+              <div>
+                <p className="text-[10px] font-bold tracking-[0.18em] text-[var(--seller-accent)] uppercase">
+                  Módulos
+                </p>
+                <h2 className="mt-1 text-xl font-bold tracking-tight text-[var(--seller-ink)]">
+                  Cada experiencia en su propia ruta
+                </h2>
+              </div>
+              <div className="grid grid-cols-1 gap-4 md:grid-cols-2 xl:grid-cols-3 2xl:grid-cols-5">
+                {summaryCards.map((card) => {
+                  const Icon = card.icon;
+                  return (
+                    <div
+                      key={card.title}
+                      className="flex flex-col gap-4 rounded-3xl border border-[var(--seller-line)] bg-white p-5 transition hover:-translate-y-0.5 hover:border-[var(--seller-accent)]/20 hover:shadow-[0_24px_48px_-28px_rgba(15,61,58,0.2)]"
+                    >
+                      <div className="flex h-11 w-11 items-center justify-center rounded-2xl bg-[color:color-mix(in_srgb,var(--seller-accent)_8%,white)] text-[var(--seller-accent)]">
+                        <Icon className="h-5 w-5" />
+                      </div>
+                      <div className="flex-1 space-y-1.5">
+                        <p className="text-[10px] font-bold tracking-[0.14em] text-[var(--seller-faint-text)] uppercase">
+                          {card.title}
+                        </p>
+                        <h3 className="text-xl font-bold text-[var(--seller-ink)]">
+                          {card.value}
+                        </h3>
+                        <p className="text-xs leading-relaxed text-[var(--seller-muted)]">
+                          {card.description}
+                        </p>
+                      </div>
+                      <Link
+                        href={card.href}
+                        className="flex items-center justify-between rounded-2xl border border-[var(--seller-line-strong)] px-4 py-2.5 text-sm font-medium text-[var(--seller-ink)] transition hover:bg-[var(--seller-panel)]"
+                      >
+                        {card.cta}
+                        <ArrowRight className="h-4 w-4 text-[var(--seller-muted)]" />
                       </Link>
                     </div>
-                  </BaseCard>
-                );
-              })}
+                  );
+                })}
+              </div>
             </div>
-          </BaseSection>
 
-          <BaseSection>
-            <BaseCard contentClassName="flex flex-col gap-4 md:flex-row md:items-start md:justify-between">
-              <div className="space-y-2">
-                <div className="flex items-center gap-2 text-sm font-semibold text-neutral-800">
+            {/* Status footer */}
+            <div className="flex flex-col gap-4 rounded-3xl border border-[var(--seller-line)] bg-white p-5 sm:flex-row sm:items-start sm:justify-between">
+              <div className="space-y-1.5">
+                <div className="flex items-center gap-2 text-sm font-semibold text-[var(--seller-ink)]">
                   <ShieldCheck className="h-4 w-4 text-emerald-600" />
                   Estado de acceso seller
                 </div>
-                <p className="max-w-3xl text-sm leading-relaxed text-neutral-600">
-                  El onboarding se decide por estado explicito y el acceso a
-                  modulos se resuelve por rutas dedicadas. Entrar a metricas ya
-                  no dispara redirecciones silenciosas.
+                <p className="max-w-xl text-sm leading-relaxed text-[var(--seller-muted)]">
+                  El acceso a módulos se resuelve por rutas dedicadas. Métricas y operación
+                  diaria conviven sin interferencias.
                 </p>
               </div>
-              <div className="flex flex-wrap gap-3">
-                <Link href="/seller/account">
-                  <Button variant="outline" className="min-h-10 px-4">
-                    Cuenta y seguridad
-                  </Button>
+              <div className="flex flex-wrap gap-2">
+                <Link
+                  href="/seller/account"
+                  className="inline-flex items-center gap-2 rounded-2xl border border-[var(--seller-line-strong)] px-4 py-2.5 text-sm font-medium text-[var(--seller-ink)] transition hover:bg-[var(--seller-panel)]"
+                >
+                  Cuenta y seguridad
                 </Link>
-                <Link href="/seller/metrics">
-                  <Button className="min-h-10 px-4">Ver metricas reales</Button>
+                <Link
+                  href="/seller/metrics"
+                  className="group relative inline-flex items-center gap-2 overflow-hidden rounded-2xl bg-[var(--seller-accent)] px-4 py-2.5 text-sm font-semibold text-white transition hover:opacity-90"
+                >
+                  <span aria-hidden className="absolute inset-0 -translate-x-full bg-gradient-to-r from-transparent via-white/15 to-transparent transition-transform duration-700 group-hover:translate-x-full" />
+                  Ver métricas reales
                 </Link>
               </div>
-            </BaseCard>
-          </BaseSection>
-        </>
-      )}
-    </main>
+            </div>
+          </>
+        )}
+      </div>
+    </div>
   );
 }

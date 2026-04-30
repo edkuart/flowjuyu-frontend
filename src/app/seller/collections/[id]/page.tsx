@@ -3,14 +3,13 @@
 import { ChangeEvent, useEffect, useMemo, useRef, useState } from "react";
 import Link from "next/link";
 import { useParams } from "next/navigation";
-import { ChevronDown, ExternalLink, ImageIcon, Loader2, Plus, Sparkles, Trash2 } from "lucide-react";
+import { ChevronDown, ChevronLeft, ExternalLink, ImageIcon, Loader2, Plus, Sparkles, Trash2 } from "lucide-react";
 import {
   SellerActionButton,
   SellerPill,
   SellerSurfaceCard,
 } from "@/components/seller/ui/SellerPrimitives";
 import { sellerFieldClassName } from "@/components/seller/ui/sellerFormStyles";
-import { PageBackNav } from "@/components/ui/PageBackNav";
 import { apiFetch } from "@/lib/api";
 import { CollectionPreviewBox } from "@/components/seller/CollectionArtworkPreview";
 
@@ -245,16 +244,15 @@ export default function CollectionDetailPage() {
     <div className="min-w-0 space-y-6 pb-12 md:space-y-8">
       <div className="flex flex-col gap-4 md:flex-row md:items-start md:justify-between">
         <div className="min-w-0">
-          <PageBackNav
-            variant="panel"
+          <button
             onClick={() => (window.location.href = "/seller/collections")}
-            label="Volver a colecciones"
-            meta="Colecciones"
-            title={<p className="truncate text-[15px] font-semibold text-[var(--seller-ink)]">{collection.name}</p>}
-            className="mb-3"
-          />
-          <h1 className="mt-3 break-words text-3xl font-bold text-neutral-900">{collection.name}</h1>
-          <p className="mt-2 max-w-3xl text-sm leading-6 text-neutral-500">
+            className="mb-3 inline-flex items-center gap-1.5 text-xs font-medium text-[var(--seller-muted)] transition hover:text-[var(--seller-ink)]"
+          >
+            <ChevronLeft className="h-3.5 w-3.5" />
+            Colecciones
+          </button>
+          <h1 className="mt-3 break-words text-3xl font-bold text-[var(--seller-ink)]">{collection.name}</h1>
+          <p className="mt-2 max-w-3xl text-sm leading-6 text-[var(--seller-muted)]">
             Aquí defines la colección como concepto comercial. Si quieres construir la imagen desde cero con capas y composición, entra al canvas como herramienta separada.
           </p>
         </div>

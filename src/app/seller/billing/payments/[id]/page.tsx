@@ -17,15 +17,11 @@ import { useParams } from "next/navigation"
 import Link from "next/link"
 import {
   CreditCard, CheckCircle2, AlertCircle,
-  ExternalLink, Building2, Clock,
+  ExternalLink, Building2, Clock, ChevronLeft,
 } from "lucide-react"
-import { Button } from "@/components/ui/button"
 import {
-  SellerActionButton,
-  SellerPanelHeader,
   SellerSurfaceCard,
 } from "@/components/seller/ui/SellerPrimitives"
-import { PageBackNav } from "@/components/ui/PageBackNav"
 import { PaymentStatusBadge, providerLabel } from "@/components/seller/billing/BillingStatusBadge"
 import { BillingManualPaymentForm } from "@/components/seller/billing/BillingManualPaymentForm"
 import { formatQ, formatDate, formatDateTime } from "@/components/seller/billing/billingFormatters"
@@ -58,11 +54,14 @@ export default function PaymentDetailPage() {
     return (
       <div className="flex min-h-screen items-center justify-center bg-[#f8f5ef] p-6">
         <SellerSurfaceCard className="max-w-xs space-y-4 p-6 text-center">
-          <AlertCircle className="w-8 h-8 text-neutral-300 mx-auto" />
-          <p className="text-sm text-neutral-500">{error ?? "Pago no encontrado."}</p>
-          <Button asChild variant="outline" size="sm">
-            <Link href="/seller/billing">← Volver a facturación</Link>
-          </Button>
+          <AlertCircle className="mx-auto h-8 w-8 text-[var(--seller-line-strong)]" />
+          <p className="text-sm text-[var(--seller-muted)]">{error ?? "Pago no encontrado."}</p>
+          <Link
+            href="/seller/billing"
+            className="inline-flex items-center gap-1.5 rounded-xl border border-[var(--seller-line-strong)] px-3 py-2 text-xs font-medium text-[var(--seller-ink)] transition hover:bg-[var(--seller-panel)]"
+          >
+            ← Volver a facturación
+          </Link>
         </SellerSurfaceCard>
       </div>
     )
@@ -82,40 +81,44 @@ export default function PaymentDetailPage() {
       <div className="mx-auto max-w-2xl space-y-5 px-4 py-6">
 
         {/* Back */}
-        <PageBackNav
-          variant="panel"
+        <button
           onClick={() => (window.location.href = `/seller/billing/invoices/${invoice.id}`)}
-          label={`Factura ${invoice.invoiceNumber}`}
-          meta="Facturación"
-          title={<p className="truncate text-[15px] font-semibold text-[var(--seller-ink)]">Detalle de pago</p>}
-        />
+          className="inline-flex items-center gap-1.5 text-xs font-medium text-[var(--seller-muted)] transition hover:text-[var(--seller-ink)]"
+        >
+          <ChevronLeft className="h-3.5 w-3.5" />
+          Factura {invoice.invoiceNumber}
+        </button>
 
         {/* Payment status card */}
         <SellerSurfaceCard className="overflow-hidden">
-          <div className={`border-b border-[var(--seller-line)] ${
+          <div className={`flex items-center justify-between border-b border-[var(--seller-line)] px-5 py-4 ${
             isConfirmed ? "bg-emerald-50"
             : isFailed  ? "bg-red-50"
             : isManual  ? "bg-amber-50"
             : "bg-[var(--seller-panel)]"
           }`}>
-            <SellerPanelHeader
-              icon={<CreditCard className="w-4 h-4" />}
-              title={providerLabel(payment.provider)}
-              description={invoice.invoiceNumber}
-              action={<PaymentStatusBadge status={payment.status} />}
-            />
+            <div className="flex items-center gap-2.5">
+              <div className="flex h-8 w-8 items-center justify-center rounded-xl bg-white/60 text-[var(--seller-accent)]">
+                <CreditCard className="h-4 w-4" />
+              </div>
+              <div>
+                <p className="text-sm font-semibold text-[var(--seller-ink)]">{providerLabel(payment.provider)}</p>
+                <p className="text-xs text-[var(--seller-muted)]">{invoice.invoiceNumber}</p>
+              </div>
+            </div>
+            <PaymentStatusBadge status={payment.status} />
           </div>
 
-          <div className="px-5 py-4 space-y-4">
+          <div className="space-y-4 px-5 py-4">
             {/* Amount */}
             <div className="flex items-center justify-between">
               <div>
-                <p className="text-xs text-neutral-400">Monto</p>
-                <p className="text-2xl font-bold text-neutral-900">{formatQ(payment.amount)}</p>
+                <p className="text-xs text-[var(--seller-muted)]">Monto</p>
+                <p className="text-2xl font-bold text-[var(--seller-ink)]">{formatQ(payment.amount)}</p>
               </div>
               {isConfirmed && (
                 <div className="flex items-center gap-1.5 text-emerald-600">
-                  <CheckCircle2 className="w-4 h-4" />
+                  <CheckCircle2 className="h-4 w-4" />
                   <span className="text-xs font-semibold">{formatDateTime(payment.confirmedAt)}</span>
                 </div>
               )}
@@ -125,7 +128,7 @@ export default function PaymentDetailPage() {
             {payment.providerReference && (
               <div className="seller-panel-subtle rounded-[var(--seller-radius-lg)] px-4 py-2.5">
                 <p className="text-xs text-[var(--seller-soft-text)]">Referencia del proveedor</p>
-                <p className="mt-0.5 break-all text-xs font-mono font-semibold text-[var(--seller-text)]">
+                <p className="mt-0.5 break-all font-mono text-xs font-semibold text-[var(--seller-text)]">
                   {payment.providerReference}
                 </p>
               </div>
@@ -133,36 +136,45 @@ export default function PaymentDetailPage() {
 
             {/* Failure reason */}
             {isFailed && payment.failureReason && (
-              <div className="flex items-start gap-2 rounded-lg bg-red-50 border border-red-200 px-4 py-3">
-                <AlertCircle className="w-4 h-4 text-red-500 mt-0.5 flex-shrink-0" />
+              <div className="flex items-start gap-2 rounded-lg border border-red-200 bg-red-50 px-4 py-3">
+                <AlertCircle className="mt-0.5 h-4 w-4 flex-shrink-0 text-red-500" />
                 <div>
                   <p className="text-xs font-semibold text-red-700">Pago no procesado</p>
-                  <p className="text-xs text-red-600 mt-0.5">{payment.failureReason}</p>
+                  <p className="mt-0.5 text-xs text-red-600">{payment.failureReason}</p>
                 </div>
               </div>
             )}
 
             {/* Payment link (non-manual, not expired) */}
             {hasLink && !isManual && !linkExpired && !isConfirmed && (
-              <Button asChild className="seller-button-primary w-full text-sm font-semibold">
-                <a href={payment.paymentLink!} target="_blank" rel="noopener noreferrer">
-                  <ExternalLink className="w-4 h-4 mr-2" />
+              <a
+                href={payment.paymentLink!}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="group relative flex w-full items-center justify-center gap-2 overflow-hidden rounded-2xl bg-[var(--seller-accent)] px-5 py-3 text-sm font-semibold text-white transition"
+              >
+                <span className="relative z-10 flex items-center gap-2">
+                  <ExternalLink className="h-4 w-4" />
                   Ir al portal de pago
-                </a>
-              </Button>
+                </span>
+                <span className="absolute inset-0 translate-x-[-100%] bg-white/10 transition-transform duration-300 group-hover:translate-x-full" />
+              </a>
             )}
 
             {/* Expired link warning */}
             {hasLink && !isManual && linkExpired && !isConfirmed && (
               <div className="space-y-2 rounded-lg border border-amber-200 bg-amber-50 px-4 py-3 text-center">
-                <Clock className="w-4 h-4 text-amber-500 mx-auto" />
-                <p className="text-xs text-amber-700 font-semibold">El enlace de pago expiró</p>
+                <Clock className="mx-auto h-4 w-4 text-amber-500" />
+                <p className="text-xs font-semibold text-amber-700">El enlace de pago expiró</p>
                 <p className="text-xs text-amber-600">
                   Regresa a la factura y genera un nuevo intento de pago.
                 </p>
-                <Button asChild variant="outline" size="sm">
-                  <Link href={`/seller/billing/invoices/${invoice.id}`}>Ver factura</Link>
-                </Button>
+                <Link
+                  href={`/seller/billing/invoices/${invoice.id}`}
+                  className="inline-flex items-center gap-1.5 rounded-xl border border-[var(--seller-line-strong)] px-3 py-2 text-xs font-medium text-[var(--seller-ink)] transition hover:bg-[var(--seller-panel)]"
+                >
+                  Ver factura
+                </Link>
               </div>
             )}
           </div>
@@ -185,10 +197,10 @@ export default function PaymentDetailPage() {
         {/* Confirmed manual payment — show report status */}
         {isManual && isConfirmed && report && (
           <div className="flex items-start gap-3 rounded-xl border border-emerald-200 bg-emerald-50 px-5 py-4">
-            <CheckCircle2 className="w-5 h-5 text-emerald-600 mt-0.5 flex-shrink-0" />
+            <CheckCircle2 className="mt-0.5 h-5 w-5 flex-shrink-0 text-emerald-600" />
             <div>
               <p className="text-sm font-bold text-emerald-800">¡Tu depósito fue aprobado!</p>
-              <p className="text-xs text-emerald-700 mt-1 leading-relaxed">
+              <p className="mt-1 text-xs leading-relaxed text-emerald-700">
                 Tu suscripción está activa. Gracias por tu pago.
               </p>
             </div>
@@ -201,25 +213,24 @@ export default function PaymentDetailPage() {
 }
 
 // ─── Bank transfer instructions card ─────────────────────────────────────────
-// Static display of where to deposit. In production these details
-// come from BILLING_CONFIG / admin settings — shown here as UI shell.
 
 function BankInstructions() {
   return (
     <SellerSurfaceCard className="overflow-hidden">
-      <SellerPanelHeader
-        icon={<Building2 className="w-4 h-4" />}
-        title="Instrucciones de depósito"
-        className="bg-[var(--seller-panel)]"
-      />
-      <div className="px-5 py-4 space-y-3">
-        <BankRow label="Banco"          value="Banco Industrial" />
-        <BankRow label="Tipo de cuenta" value="Monetaria" />
+      <div className="flex items-center gap-2.5 border-b border-[var(--seller-line)] bg-[var(--seller-panel)] px-5 py-4">
+        <div className="flex h-8 w-8 items-center justify-center rounded-xl bg-[color:color-mix(in_srgb,var(--seller-accent)_8%,white)] text-[var(--seller-accent)]">
+          <Building2 className="h-4 w-4" />
+        </div>
+        <p className="text-sm font-semibold text-[var(--seller-ink)]">Instrucciones de depósito</p>
+      </div>
+      <div className="space-y-3 px-5 py-4">
+        <BankRow label="Banco"            value="Banco Industrial" />
+        <BankRow label="Tipo de cuenta"   value="Monetaria" />
         <BankRow label="Número de cuenta" value="021-000-0000" />
-        <BankRow label="Nombre"         value="Flowjuyu, S.A." />
-        <BankRow label="NIT"            value="12345678-9" />
-        <div className="rounded-lg bg-amber-50 border border-amber-200 px-4 py-3 mt-2">
-          <p className="text-xs text-amber-700 leading-relaxed">
+        <BankRow label="Nombre"           value="Flowjuyu, S.A." />
+        <BankRow label="NIT"              value="12345678-9" />
+        <div className="mt-2 rounded-lg border border-amber-200 bg-amber-50 px-4 py-3">
+          <p className="text-xs leading-relaxed text-amber-700">
             <span className="font-semibold">Importante:</span> Deposita exactamente{" "}
             el monto de la factura. Después de depositar, completa el formulario abajo
             para que podamos verificar tu pago.
@@ -244,15 +255,15 @@ function BankRow({ label, value }: { label: string; value: string }) {
 function PageSkeleton() {
   return (
     <div className="min-h-screen bg-[#f8f5ef]">
-      <div className="mx-auto max-w-2xl space-y-5 px-4 py-6 animate-pulse">
-        <div className="h-4 w-28 bg-neutral-200 rounded-full" />
+      <div className="mx-auto max-w-2xl animate-pulse space-y-5 px-4 py-6">
+        <div className="h-4 w-28 rounded-full bg-neutral-200" />
         <SellerSurfaceCard className="space-y-4 p-5">
-          <div className="h-5 w-36 bg-neutral-100 rounded-full" />
-          <div className="h-8 w-24 bg-neutral-100 rounded-full" />
+          <div className="h-5 w-36 rounded-full bg-neutral-100" />
+          <div className="h-8 w-24 rounded-full bg-neutral-100" />
         </SellerSurfaceCard>
         <SellerSurfaceCard className="space-y-4 p-5">
           {Array.from({ length: 4 }).map((_, i) => (
-            <div key={i} className="h-10 bg-neutral-100 rounded-lg" />
+            <div key={i} className="h-10 rounded-lg bg-neutral-100" />
           ))}
         </SellerSurfaceCard>
       </div>

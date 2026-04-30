@@ -4,12 +4,10 @@ import Link from "next/link";
 import type { ElementType } from "react";
 import {
   Plus,
-  Clapperboard,
   Loader2,
   Film,
   ImagePlus,
   MessageSquareText,
-  Sparkles,
   ArrowRight,
 } from "lucide-react";
 import { useVideoProjects } from "@/hooks/useVideoProjects";
@@ -25,51 +23,41 @@ export default function VideoStudioPage() {
   const latestProject = projects[0];
 
   return (
-    <div className="space-y-4">
-      <div className="overflow-hidden rounded-[18px] border border-[var(--seller-line)] bg-white shadow-[var(--seller-shadow-panel)]">
-        <div className="grid gap-0 lg:grid-cols-[1fr_340px]">
-          <div className="p-4">
-            <div className="flex items-center gap-2.5">
-              <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-[color:color-mix(in_srgb,var(--seller-accent)_10%,white)] text-[var(--seller-accent)]">
-                <Clapperboard className="h-4 w-4" />
-              </div>
-              <div>
-                <p className="text-[10px] font-semibold uppercase tracking-[0.14em] text-[var(--seller-faint-text)]">
-                  Video Studio
-                </p>
-                <h1 className="text-lg font-semibold tracking-tight text-[var(--seller-ink)] sm:text-xl">
-                  Videos de producto con brief inteligente
-                </h1>
-              </div>
-            </div>
-            <p className="mt-2 max-w-2xl text-xs leading-relaxed text-[var(--seller-muted)] sm:text-sm">
+    <div className="min-h-screen bg-[#f8f5ef]">
+      <div className="mx-auto max-w-5xl space-y-6 px-4 py-6 sm:px-6 sm:py-10">
+        <div className="flex flex-col gap-5 sm:flex-row sm:items-start sm:justify-between">
+          <div>
+            <p className="text-[10px] font-bold tracking-[0.18em] text-[var(--seller-accent)] uppercase">
+              Video Studio · Flowjuyu Seller
+            </p>
+            <h1 className="mt-1.5 text-2xl font-bold tracking-tight text-[var(--seller-ink)] sm:text-[28px] sm:leading-[1.05]">
+              Videos de producto
+            </h1>
+            <p className="mt-1.5 max-w-[48ch] text-sm leading-relaxed text-[var(--seller-muted)]">
               Crea videos sociales con producto, referencias visuales y un brief corto que se convierte en prompt profesional.
             </p>
-            <div className="mt-3 flex flex-wrap gap-2">
+            <div className="mt-4 flex flex-wrap gap-2">
               <Link
                 href="/seller/video-studio/new"
-                className="inline-flex shrink-0 items-center gap-2 rounded-lg bg-[var(--seller-accent)] px-3.5 py-2 text-xs font-semibold text-white transition hover:opacity-90 sm:text-sm"
+                className="group relative inline-flex shrink-0 items-center gap-2 overflow-hidden rounded-2xl bg-[var(--seller-accent)] px-5 py-2.5 text-sm font-bold text-white shadow-[0_10px_24px_-14px_rgba(15,61,58,0.5)] transition-all hover:shadow-[0_14px_28px_-12px_rgba(15,61,58,0.6)] active:scale-[0.99]"
               >
+                <span aria-hidden className="absolute inset-0 -translate-x-full bg-gradient-to-r from-transparent via-white/15 to-transparent transition-transform duration-700 group-hover:translate-x-full" />
                 <Plus className="h-4 w-4" />
                 Nuevo video
               </Link>
               {latestProject && (
                 <Link
                   href={`/seller/video-studio/${latestProject.id}`}
-                  className="inline-flex shrink-0 items-center gap-1.5 rounded-lg border border-[var(--seller-line)] bg-white px-3 py-2 text-[11px] font-semibold text-[var(--seller-ink)] transition hover:bg-[var(--seller-panel)]"
+                  className="inline-flex shrink-0 items-center gap-1.5 rounded-2xl border border-[var(--seller-line-strong)] px-4 py-2.5 text-sm font-medium text-[var(--seller-ink)] transition hover:bg-[var(--seller-panel)]"
                 >
                   Continuar último
                   <ArrowRight className="h-3.5 w-3.5" />
                 </Link>
               )}
-              <span className="inline-flex items-center gap-1.5 rounded-lg border border-[var(--seller-line)] bg-[var(--seller-panel)] px-3 py-2 text-[11px] font-semibold text-[var(--seller-muted)]">
-                <Sparkles className="h-3.5 w-3.5 text-[var(--seller-accent)]" />
-                Prompt profesional automatico
-              </span>
             </div>
           </div>
 
-          <div className="border-t border-[var(--seller-line)] bg-[var(--seller-panel)] p-3 lg:border-l lg:border-t-0">
+          <div className="w-full rounded-2xl border border-[var(--seller-line)] bg-white p-4 sm:w-60 sm:shrink-0">
             <div className="grid grid-cols-3 gap-2">
               <MetricCard label="Proyectos" value={projects.length} tone="text-[var(--seller-accent)]" />
               <MetricCard label="Listos" value={completedCount} tone="text-emerald-600" />
@@ -82,7 +70,6 @@ export default function VideoStudioPage() {
             </div>
           </div>
         </div>
-      </div>
 
       <div className="grid gap-2 md:grid-cols-3">
         <WorkflowCard
@@ -147,6 +134,7 @@ export default function VideoStudioPage() {
         <p className="mt-1 text-xs text-[var(--seller-muted)] leading-relaxed">
           En esta fase el video se genera como simulación visual. La integración real con proveedores de IA (Luma, Runway, fal) se activará en la siguiente fase. Los proyectos y assets que guardes ahora se migrarán automáticamente.
         </p>
+      </div>
       </div>
     </div>
   );

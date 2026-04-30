@@ -2,13 +2,12 @@
 
 import { useEffect, useMemo, useState } from "react";
 import Link from "next/link";
-import { Eye, Layers2, Loader2, Sparkles, Store } from "lucide-react";
+import { ChevronLeft, Eye, Layers2, Loader2, Sparkles, Store } from "lucide-react";
 import {
   SellerActionButton,
   SellerPill,
   SellerSurfaceCard,
 } from "@/components/seller/ui/SellerPrimitives";
-import { PageBackNav } from "@/components/ui/PageBackNav";
 import { apiFetch } from "@/lib/api";
 import { apiGetVendedorPerfil } from "@/services/vendedorPerfil";
 import { updateSellerLiveConfig } from "@/services/sellerLive";
@@ -143,15 +142,14 @@ export default function SellerStoreCollectionPage() {
     <div className="space-y-8 pb-12">
       <div className="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
         <div className="min-w-0">
-          <PageBackNav
-            variant="panel"
+          <button
             onClick={() => (window.location.href = "/seller/collections")}
-            label="Volver a colecciones"
-            meta="Colecciones"
-            title={<p className="truncate text-[15px] font-semibold text-[var(--seller-ink)]">Colección en tienda</p>}
-            className="mb-3"
-          />
-          <h1 className="mt-3 text-3xl font-bold text-neutral-900">Colección en tienda</h1>
+            className="mb-3 inline-flex items-center gap-1.5 text-xs font-medium text-[var(--seller-muted)] transition hover:text-[var(--seller-ink)]"
+          >
+            <ChevronLeft className="h-3.5 w-3.5" />
+            Colecciones
+          </button>
+          <h1 className="mt-3 text-3xl font-bold text-[var(--seller-ink)]">Colección en tienda</h1>
         </div>
         <div className="flex w-full flex-col gap-2 sm:flex-row lg:w-auto lg:justify-end">
           <Link href="/seller/my-business" className="inline-flex items-center justify-center rounded-lg border border-[var(--seller-line-strong)] px-4 py-2 text-sm font-medium text-[var(--seller-text)] transition hover:bg-[var(--seller-panel)]">

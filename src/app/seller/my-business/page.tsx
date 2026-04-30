@@ -187,7 +187,7 @@ export default function MyBusinessPage() {
   ========================================================= */
   return (
     <>
-    <main className="min-h-screen bg-neutral-50">
+    <main className="min-h-screen bg-[#f8f5ef]">
       <div className="max-w-6xl mx-auto px-4 py-8 space-y-8">
 
         <section className="rounded-[28px] border border-[#0F3D3A]/10 bg-gradient-to-r from-[#0F3D3A] to-[#14544f] px-6 py-5 text-white shadow-sm">

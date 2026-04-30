@@ -2,8 +2,7 @@
 
 import { useEffect, useState } from "react";
 import Link from "next/link";
-import { Copy, Loader2 } from "lucide-react";
-import { PageBackNav } from "@/components/ui/PageBackNav";
+import { Copy, Loader2, ChevronLeft } from "lucide-react";
 import { CollectionPreviewBox } from "@/components/seller/CollectionArtworkPreview";
 import { apiFetch } from "@/lib/api";
 
@@ -117,40 +116,43 @@ export default function SellerTemplatesPage() {
   });
 
   return (
-    <div className="space-y-6">
-      <div className="flex items-start justify-between gap-4">
+    <div className="min-h-screen bg-[#f8f5ef]">
+      <div className="mx-auto max-w-5xl space-y-6 px-4 py-6 sm:px-6 sm:py-10">
         <div>
-          <PageBackNav
-            variant="panel"
-            onClick={() => (window.location.href = "/seller/collections")}
-            label="Volver a colecciones"
-            meta="Colecciones"
-            title={<p className="truncate text-[15px] font-semibold text-[#14231c]">Plantillas</p>}
-            className="mb-3"
-          />
-          <h1 className="text-2xl font-bold text-neutral-900">Plantillas</h1>
-          <p className="mt-1 text-sm text-neutral-500">
-            Biblioteca premium para lanzar colecciones con mejor jerarquia, tono y adaptacion por formato.
+          <Link
+            href="/seller/collections"
+            className="mb-3 inline-flex items-center gap-1.5 text-xs font-medium text-[var(--seller-muted)] transition hover:text-[var(--seller-ink)]"
+          >
+            <ChevronLeft className="h-3.5 w-3.5" />
+            Colecciones
+          </Link>
+          <p className="text-[10px] font-bold tracking-[0.18em] text-[var(--seller-accent)] uppercase">
+            Plantillas · Flowjuyu Seller
+          </p>
+          <h1 className="mt-1.5 text-2xl font-bold tracking-tight text-[var(--seller-ink)] sm:text-[28px] sm:leading-[1.05]">
+            Biblioteca de plantillas
+          </h1>
+          <p className="mt-1.5 text-sm leading-relaxed text-[var(--seller-muted)]">
+            Plantillas premium para lanzar colecciones con mejor jerarquía, tono y adaptación por formato.
           </p>
         </div>
-      </div>
 
-      {loading ? (
-        <div className="flex h-48 items-center justify-center">
-          <Loader2 className="h-8 w-8 animate-spin text-neutral-400" />
-        </div>
-      ) : templates.length === 0 ? (
-        <div className="rounded-2xl border border-dashed border-neutral-200 bg-white p-10 text-center text-sm text-neutral-500">
-          Todavía no hay plantillas públicas.
-        </div>
-      ) : (
-        <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-3">
-          {sortedTemplates.map((template) => {
-            const templateMeta = getTemplateMeta(template.name);
-            const rawItems = parseTemplateItems(template.items_snapshot);
-            const templateItems = injectSellerProducts(rawItems, sellerProducts);
-            return (
-            <div key={template.id} className="overflow-hidden rounded-2xl border border-neutral-200 bg-white">
+        {loading ? (
+          <div className="flex h-48 items-center justify-center">
+            <Loader2 className="h-8 w-8 animate-spin text-[var(--seller-faint-text)]" />
+          </div>
+        ) : templates.length === 0 ? (
+          <div className="rounded-3xl border border-dashed border-[var(--seller-line)] bg-white p-10 text-center text-sm text-[var(--seller-muted)]">
+            Todavía no hay plantillas públicas.
+          </div>
+        ) : (
+          <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-3">
+            {sortedTemplates.map((template) => {
+              const templateMeta = getTemplateMeta(template.name);
+              const rawItems = parseTemplateItems(template.items_snapshot);
+              const templateItems = injectSellerProducts(rawItems, sellerProducts);
+              return (
+              <div key={template.id} className="overflow-hidden rounded-3xl border border-[var(--seller-line)] bg-white transition hover:-translate-y-0.5 hover:shadow-[0_20px_40px_-20px_rgba(15,61,58,0.18)]">
               <CollectionPreviewBox
                 name={template.name}
                 items={templateItems}
@@ -176,20 +178,20 @@ export default function SellerTemplatesPage() {
               <div className="space-y-3 p-4">
                 <div>
                   <div className="mb-2 flex flex-wrap gap-1.5">
-                    <span className="rounded-full bg-[#F3F7F6] px-2 py-1 text-[10px] font-semibold uppercase tracking-[0.14em] text-[#0F3D3A]">
+                    <span className="rounded-full bg-[color:color-mix(in_srgb,var(--seller-accent)_8%,white)] px-2 py-1 text-[10px] font-semibold uppercase tracking-[0.14em] text-[var(--seller-accent)]">
                       {templateMeta.family}
                     </span>
-                    <span className="rounded-full bg-neutral-100 px-2 py-1 text-[10px] font-semibold uppercase tracking-[0.14em] text-neutral-500">
+                    <span className="rounded-full bg-[var(--seller-panel)] px-2 py-1 text-[10px] font-semibold uppercase tracking-[0.14em] text-[var(--seller-muted)]">
                       {getCanvasFormatLabel(template.canvas_width, template.canvas_height)}
                     </span>
                   </div>
-                  <h2 className="text-sm font-semibold text-neutral-900">{templateMeta.family}</h2>
-                  <p className="mt-1 text-xs leading-relaxed text-neutral-500">{templateMeta.description}</p>
-                  <p className="mt-2 text-xs text-neutral-400">{template.item_count} elementos</p>
+                  <h2 className="text-sm font-semibold text-[var(--seller-ink)]">{templateMeta.family}</h2>
+                  <p className="mt-1 text-xs leading-relaxed text-[var(--seller-muted)]">{templateMeta.description}</p>
+                  <p className="mt-2 text-xs text-[var(--seller-faint-text)]">{template.item_count} elementos</p>
                 </div>
                 <Link
                   href="/seller/collections"
-                  className="inline-flex items-center gap-2 rounded-lg border border-neutral-200 px-3 py-2 text-xs font-medium text-neutral-700 transition hover:bg-neutral-50"
+                  className="inline-flex items-center gap-2 rounded-xl border border-[var(--seller-line-strong)] px-3 py-2 text-xs font-medium text-[var(--seller-ink)] transition hover:bg-[var(--seller-panel)]"
                 >
                   <Copy className="h-3.5 w-3.5" />
                   Abrir editor para usarla
@@ -197,8 +199,9 @@ export default function SellerTemplatesPage() {
               </div>
             </div>
           )})}
-        </div>
-      )}
+          </div>
+        )}
+      </div>
     </div>
   );
 }

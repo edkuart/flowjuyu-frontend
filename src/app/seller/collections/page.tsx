@@ -162,31 +162,44 @@ export default function CollectionsPage() {
   }
 
   return (
-    <div className="min-w-0 space-y-6 md:space-y-8">
-      <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
-        <div className="min-w-0">
-          <h1 className="text-2xl font-bold text-neutral-900">Mis Colecciones</h1>
-          <p className="mt-1 text-sm text-neutral-500">
-            En tienda: {selectedStoreCollection ? selectedStoreCollection.name : hasPublishedCollections ? "sin destacar" : "sin publicadas"}
-          </p>
+    <div className="min-h-screen bg-[#f8f5ef]">
+      <div className="mx-auto max-w-3xl space-y-6 px-4 py-6 sm:px-6 sm:py-10">
+        <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
+          <div>
+            <p className="text-[10px] font-bold tracking-[0.18em] text-[var(--seller-accent)] uppercase">
+              Colecciones · Flowjuyu Seller
+            </p>
+            <h1 className="mt-1.5 text-2xl font-bold tracking-tight text-[var(--seller-ink)] sm:text-[28px] sm:leading-[1.05]">
+              Mis colecciones
+            </h1>
+            <p className="mt-1.5 text-sm leading-relaxed text-[var(--seller-muted)]">
+              En tienda:{" "}
+              <span className="font-medium text-[var(--seller-ink)]">
+                {selectedStoreCollection
+                  ? selectedStoreCollection.name
+                  : hasPublishedCollections
+                  ? "sin destacar"
+                  : "sin publicadas"}
+              </span>
+            </p>
+          </div>
+          <div className="flex shrink-0 flex-wrap gap-2">
+            <Link
+              href="/seller/templates"
+              className="inline-flex items-center gap-2 rounded-2xl border border-[var(--seller-line-strong)] px-4 py-2.5 text-sm font-medium text-[var(--seller-text)] transition hover:bg-[var(--seller-panel)]"
+            >
+              <LayoutTemplate className="h-4 w-4" />
+              Plantillas
+            </Link>
+            <SellerActionButton
+              onClick={() => setShowModal(true)}
+              className="px-4 py-2.5"
+            >
+              <Plus className="h-4 w-4" />
+              Nueva colección
+            </SellerActionButton>
+          </div>
         </div>
-        <div className="grid w-full grid-cols-2 gap-2 md:flex md:w-auto md:flex-wrap md:justify-end">
-          <Link
-            href="/seller/templates"
-            className="inline-flex min-w-0 items-center justify-center gap-2 rounded-lg border border-[var(--seller-line-strong)] px-3 py-2 text-center text-sm font-medium text-[var(--seller-text)] transition hover:bg-[var(--seller-panel)] md:px-4"
-          >
-            <LayoutTemplate className="h-4 w-4" />
-            <span className="leading-tight">Plantillas</span>
-          </Link>
-          <SellerActionButton
-            onClick={() => setShowModal(true)}
-            className="min-w-0 px-3 py-2 md:px-4"
-          >
-            <Plus className="h-4 w-4" />
-            <span className="leading-tight">Nueva colección</span>
-          </SellerActionButton>
-        </div>
-      </div>
 
       {error && (
         <div className="rounded-lg border border-red-200 bg-red-50 p-4 text-sm text-red-700">
@@ -205,7 +218,7 @@ export default function CollectionsPage() {
       {!loading && collections.length === 0 && (
         <SellerSurfaceCard className="border-dashed p-6 sm:p-8">
           <div className="space-y-4">
-            <h2 className="text-2xl font-bold text-neutral-900">No tienes colecciones</h2>
+            <h2 className="text-xl font-bold text-[var(--seller-ink)]">No tienes colecciones</h2>
             <div className="flex flex-wrap gap-3">
               <SellerActionButton
                 onClick={() => setShowModal(true)}
@@ -302,7 +315,7 @@ export default function CollectionsPage() {
       {showModal && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4">
           <SellerSurfaceCard className="w-full max-w-md p-6 shadow-xl">
-            <h2 className="mb-1 text-lg font-bold text-neutral-900">Nueva colección</h2>
+            <h2 className="mb-1 text-lg font-bold text-[var(--seller-ink)]">Nueva colección</h2>
 
             <input
               autoFocus
@@ -333,6 +346,7 @@ export default function CollectionsPage() {
           </SellerSurfaceCard>
         </div>
       )}
+      </div>
     </div>
   );
 }
